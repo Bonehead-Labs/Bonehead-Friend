@@ -5,7 +5,7 @@
 [ext_resource type="Script" uid="uid://bescxfco5pm5b" path="res://Mouse-Collision.gd" id="3_8utrg"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_n6jjk"]
-size = Vector2(1934, 20)
+size = Vector2(1934, 66)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_58cjr"]
 size = Vector2(244, 1091)
@@ -27,7 +27,7 @@ shape = SubResource("RectangleShape2D_n6jjk")
 [node name="Bottom" type="StaticBody2D" parent="."]
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Bottom"]
-position = Vector2(957, 1070)
+position = Vector2(957, 1047)
 shape = SubResource("RectangleShape2D_n6jjk")
 
 [node name="StaticBody2D" type="StaticBody2D" parent="."]
