@@ -5,10 +5,10 @@
 [ext_resource type="Script" uid="uid://bescxfco5pm5b" path="res://Mouse-Collision.gd" id="3_8utrg"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_n6jjk"]
-size = Vector2(1934, 66)
+size = Vector2(2328, 66)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_58cjr"]
-size = Vector2(244, 1091)
+size = Vector2(244, 1445.5)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_y4u8w"]
 size = Vector2(128, 132)
@@ -21,25 +21,25 @@ size = Vector2(128, 129)
 [node name="Top" type="StaticBody2D" parent="."]
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Top"]
-position = Vector2(957, 0)
+position = Vector2(1170, 39)
 shape = SubResource("RectangleShape2D_n6jjk")
 
 [node name="Bottom" type="StaticBody2D" parent="."]
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Bottom"]
-position = Vector2(957, 1047)
+position = Vector2(1147, 1109)
 shape = SubResource("RectangleShape2D_n6jjk")
 
 [node name="StaticBody2D" type="StaticBody2D" parent="."]
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="StaticBody2D"]
-position = Vector2(-112, 535.5)
+position = Vector2(-128, 725)
 shape = SubResource("RectangleShape2D_58cjr")
 
 [node name="StaticBody2D2" type="StaticBody2D" parent="."]
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="StaticBody2D2"]
-position = Vector2(1914, 536)
+position = Vector2(2031, 704)
 shape = SubResource("RectangleShape2D_58cjr")
 
 [node name="CharacterBody2D" type="RigidBody2D" parent="."]
