@@ -1,8 +1,9 @@
-[gd_scene load_steps=8 format=3 uid="uid://ffc6yllqjnb1"]
+[gd_scene load_steps=9 format=3 uid="uid://ffc6yllqjnb1"]
 
-[ext_resource type="Texture2D" uid="uid://dpywkdffjsllf" path="res://icon.svg" id="1_58cjr"]
-[ext_resource type="Script" uid="uid://h1y8tl051ks4" path="res://PT-MainCharacter.gd" id="1_y4u8w"]
-[ext_resource type="Script" uid="uid://bescxfco5pm5b" path="res://Mouse-Collision.gd" id="3_8utrg"]
+[ext_resource type="Script" uid="uid://h1y8tl051ks4" path="res://Scripts/Prototypes/PT-MainCharacter.gd" id="1_gg6ud"]
+[ext_resource type="Script" uid="uid://bbovk20fupeq4" path="res://Scripts/Globals/BaseDraggable.gd" id="1_t8jrt"]
+[ext_resource type="Texture2D" uid="uid://dpywkdffjsllf" path="res://Assets/icon.svg" id="2_t8jrt"]
+[ext_resource type="Script" uid="uid://bescxfco5pm5b" path="res://Scripts/Globals/Mouse-Collision.gd" id="3_q0nye"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_n6jjk"]
 size = Vector2(2328, 66)
@@ -42,19 +43,20 @@ shape = SubResource("RectangleShape2D_58cjr")
 position = Vector2(2031, 704)
 shape = SubResource("RectangleShape2D_58cjr")
 
-[node name="CharacterBody2D" type="RigidBody2D" parent="."]
+[node name="CharacterBody2D" type="RigidBody2D" parent="." node_paths=PackedStringArray("mouse_collider")]
 position = Vector2(1022, 418)
 mass = 30.0
-script = ExtResource("1_y4u8w")
+script = ExtResource("1_t8jrt")
+mouse_collider = NodePath("Area2D")
 
 [node name="Sprite2D" type="Sprite2D" parent="CharacterBody2D"]
-texture = ExtResource("1_58cjr")
+texture = ExtResource("2_t8jrt")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="CharacterBody2D"]
 shape = SubResource("RectangleShape2D_y4u8w")
 
 [node name="Area2D" type="Area2D" parent="CharacterBody2D"]
-script = ExtResource("3_8utrg")
+script = ExtResource("3_q0nye")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="CharacterBody2D/Area2D"]
 shape = SubResource("RectangleShape2D_0jqog")
@@ -62,16 +64,16 @@ debug_color = Color(0.99839, 0, 0.143239, 0.42)
 
 [node name="CharacterBody2D2" type="RigidBody2D" parent="."]
 position = Vector2(1325, 305)
-script = ExtResource("1_y4u8w")
+script = ExtResource("1_gg6ud")
 
 [node name="Sprite2D" type="Sprite2D" parent="CharacterBody2D2"]
-texture = ExtResource("1_58cjr")
+texture = ExtResource("2_t8jrt")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="CharacterBody2D2"]
 shape = SubResource("RectangleShape2D_y4u8w")
 
 [node name="Area2D" type="Area2D" parent="CharacterBody2D2"]
-script = ExtResource("3_8utrg")
+script = ExtResource("3_q0nye")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="CharacterBody2D2/Area2D"]
 shape = SubResource("RectangleShape2D_0jqog")

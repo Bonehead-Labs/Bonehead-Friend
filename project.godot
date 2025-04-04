@@ -11,13 +11,13 @@ config_version=5
 [application]
 
 config/name="Interactive-Buddy-2"
-run/main_scene="res://PROTOTYPE.tscn"
+run/main_scene="res://Scenes/PROTOTYPE.tscn"
 config/features=PackedStringArray("4.4", "GL Compatibility")
-config/icon="res://icon.svg"
+config/icon="res://Assets/icon.svg"
 
 [autoload]
 
-Main="*res://Main.gd"
+Main="*res://Scripts/Globals/Main.gd"
 
 [display]
 
