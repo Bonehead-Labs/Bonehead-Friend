@@ -1,6 +1,12 @@
 class_name BaseDraggable
 extends RigidBody2D
 
+
+# Attached Nodes
+@export var sprite: AnimatedSprite2D
+@export var collider: CollisionShape2D
+@export var drag_area: DraggableArea
+
 @export var is_uniform: bool = true  # True for uniform (center-based) dragging; false for non-uniform.
 var dragging: bool = false
 var force_multiplier: float = 8000.0
@@ -15,7 +21,7 @@ var deadzone: float = 10.0
 
 var drag_offset: Vector2 = Vector2.ZERO
 
-@onready var mouse_collider = $Area2D
+@onready var mouse_collider = drag_area
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:

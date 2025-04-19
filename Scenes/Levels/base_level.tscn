@@ -1,0 +1,45 @@
+[gd_scene load_steps=6 format=3 uid="uid://cx146pu1jid8s"]
+
+[ext_resource type="PackedScene" uid="uid://bmg2ybmet6dm6" path="res://Scenes/Bodies/character.tscn" id="1_ssatm"]
+
+[sub_resource type="WorldBoundaryShape2D" id="WorldBoundaryShape2D_s0vl6"]
+distance = -14.0
+
+[sub_resource type="WorldBoundaryShape2D" id="WorldBoundaryShape2D_ssatm"]
+
+[sub_resource type="SegmentShape2D" id="SegmentShape2D_s0vl6"]
+b = Vector2(0, 723)
+
+[sub_resource type="SegmentShape2D" id="SegmentShape2D_17q77"]
+b = Vector2(1, 724)
+
+[node name="BaseLevel" type="Node2D"]
+
+[node name="Borders" type="Node" parent="."]
+
+[node name="BottomBorder" type="StaticBody2D" parent="Borders"]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Borders/BottomBorder"]
+position = Vector2(636, 706)
+shape = SubResource("WorldBoundaryShape2D_s0vl6")
+
+[node name="TopBorder" type="StaticBody2D" parent="Borders"]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Borders/TopBorder"]
+rotation = -3.12935
+shape = SubResource("WorldBoundaryShape2D_ssatm")
+
+[node name="LeftBorder" type="StaticBody2D" parent="Borders"]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Borders/LeftBorder"]
+shape = SubResource("SegmentShape2D_s0vl6")
+
+[node name="RightBorder" type="StaticBody2D" parent="Borders"]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Borders/RightBorder"]
+position = Vector2(1280, 2)
+shape = SubResource("SegmentShape2D_17q77")
+debug_color = Color(0.775156, 0.371108, 0.62304, 0.42)
+
+[node name="Character" parent="." instance=ExtResource("1_ssatm")]
+position = Vector2(403, 158)

@@ -1,0 +1,76 @@
+[gd_scene load_steps=12 format=3 uid="uid://bmg2ybmet6dm6"]
+
+[ext_resource type="Script" uid="uid://bux7k4g67ga1d" path="res://Character.gd" id="1_cqkw7"]
+[ext_resource type="Texture2D" uid="uid://bx7k8r035pbiq" path="res://Assets/base-bonehead.png" id="2_p07va"]
+[ext_resource type="PackedScene" uid="uid://bx84gcmi6yqgv" path="res://Scenes/Components/draggable_area.tscn" id="3_tykmh"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_nseg5"]
+atlas = ExtResource("2_p07va")
+region = Rect2(0, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_28461"]
+atlas = ExtResource("2_p07va")
+region = Rect2(64, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_sfacg"]
+atlas = ExtResource("2_p07va")
+region = Rect2(128, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_a35so"]
+atlas = ExtResource("2_p07va")
+region = Rect2(192, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_be87q"]
+atlas = ExtResource("2_p07va")
+region = Rect2(256, 0, 64, 64)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_tn5so"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_nseg5")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_28461")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_sfacg")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_a35so")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_be87q")
+}],
+"loop": true,
+"name": &"default",
+"speed": 7.0
+}]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_4l2rl"]
+size = Vector2(44, 60)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_5u4qe"]
+size = Vector2(45, 59)
+
+[node name="Character" type="RigidBody2D" node_paths=PackedStringArray("sprite", "collider", "drag_area")]
+script = ExtResource("1_cqkw7")
+sprite = NodePath("BoneheadSprite")
+collider = NodePath("CollisionShape2D")
+drag_area = NodePath("DraggableArea")
+
+[node name="BoneheadSprite" type="AnimatedSprite2D" parent="."]
+sprite_frames = SubResource("SpriteFrames_tn5so")
+autoplay = "default"
+frame_progress = 0.630529
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, 2)
+shape = SubResource("RectangleShape2D_4l2rl")
+
+[node name="DraggableArea" parent="." instance=ExtResource("3_tykmh")]
+
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="DraggableArea"]
+position = Vector2(0.5, 2.5)
+shape = SubResource("RectangleShape2D_5u4qe")
+debug_color = Color(0.537646, 0.461186, 0.864023, 0.42)

@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://f8t65apchval"]
+
+[ext_resource type="Script" uid="uid://bbovk20fupeq4" path="res://Scripts/Globals/BaseDraggable.gd" id="1_kg7lm"]
+
+[node name="BaseBody" type="RigidBody2D"]
+script = ExtResource("1_kg7lm")

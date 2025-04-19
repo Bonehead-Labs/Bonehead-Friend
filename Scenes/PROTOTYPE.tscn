@@ -1,6 +1,5 @@
-[gd_scene load_steps=11 format=3 uid="uid://ffc6yllqjnb1"]
+[gd_scene load_steps=10 format=3 uid="uid://ffc6yllqjnb1"]
 
-[ext_resource type="Script" uid="uid://h1y8tl051ks4" path="res://Scripts/Prototypes/PT-MainCharacter.gd" id="1_gg6ud"]
 [ext_resource type="Script" uid="uid://bbovk20fupeq4" path="res://Scripts/Globals/BaseDraggable.gd" id="1_t8jrt"]
 [ext_resource type="Texture2D" uid="uid://dpywkdffjsllf" path="res://Assets/icon.svg" id="2_t8jrt"]
 [ext_resource type="Script" uid="uid://bescxfco5pm5b" path="res://Scripts/Globals/Mouse-Collision.gd" id="3_q0nye"]
@@ -28,13 +27,13 @@ height = 282.0
 [node name="Top" type="StaticBody2D" parent="."]
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Top"]
-position = Vector2(1170, 39)
+position = Vector2(1166, -35)
 shape = SubResource("RectangleShape2D_n6jjk")
 
 [node name="Bottom" type="StaticBody2D" parent="."]
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Bottom"]
-position = Vector2(1147, 1109)
+position = Vector2(1161, 752)
 shape = SubResource("RectangleShape2D_n6jjk")
 
 [node name="StaticBody2D" type="StaticBody2D" parent="."]
@@ -46,7 +45,7 @@ shape = SubResource("RectangleShape2D_58cjr")
 [node name="StaticBody2D2" type="StaticBody2D" parent="."]
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="StaticBody2D2"]
-position = Vector2(2031, 704)
+position = Vector2(1412, 713)
 shape = SubResource("RectangleShape2D_58cjr")
 
 [node name="CharacterBody2D" type="RigidBody2D" parent="."]
@@ -64,44 +63,6 @@ script = ExtResource("3_q0nye")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="CharacterBody2D/Area2D"]
 shape = SubResource("RectangleShape2D_0jqog")
-debug_color = Color(0.99839, 0, 0.143239, 0.42)
-
-[node name="CharacterBody2D2" type="RigidBody2D" parent="."]
-position = Vector2(1325, 305)
-script = ExtResource("1_gg6ud")
-
-[node name="Sprite2D" type="Sprite2D" parent="CharacterBody2D2"]
-texture = ExtResource("2_t8jrt")
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="CharacterBody2D2"]
-shape = SubResource("RectangleShape2D_y4u8w")
-
-[node name="Area2D" type="Area2D" parent="CharacterBody2D2"]
-script = ExtResource("3_q0nye")
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="CharacterBody2D2/Area2D"]
-shape = SubResource("RectangleShape2D_0jqog")
-debug_color = Color(0.99839, 0, 0.143239, 0.42)
-
-[node name="CharacterBody2D3" type="RigidBody2D" parent="."]
-position = Vector2(782, 408)
-center_of_mass_mode = 1
-center_of_mass = Vector2(0, 338.71)
-script = ExtResource("1_gg6ud")
-
-[node name="Sprite2D" type="Sprite2D" parent="CharacterBody2D3"]
-position = Vector2(3.8147e-06, -2.00002)
-scale = Vector2(0.15625, 2.10938)
-texture = ExtResource("2_t8jrt")
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="CharacterBody2D3"]
-shape = SubResource("CapsuleShape2D_t8jrt")
-
-[node name="Area2D" type="Area2D" parent="CharacterBody2D3"]
-script = ExtResource("3_q0nye")
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="CharacterBody2D3/Area2D"]
-shape = SubResource("CapsuleShape2D_q0nye")
 debug_color = Color(0.99839, 0, 0.143239, 0.42)
 
 [node name="CharacterBody2D4" type="RigidBody2D" parent="."]

@@ -1,0 +1,9 @@
+[gd_scene load_steps=2 format=3 uid="uid://bx84gcmi6yqgv"]
+
+[ext_resource type="Script" uid="uid://bescxfco5pm5b" path="res://Scripts/Globals/Mouse-Collision.gd" id="1_t0n8s"]
+
+[node name="DraggableArea" type="Area2D"]
+script = ExtResource("1_t0n8s")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+debug_color = Color(0.99839, 0, 0.143239, 0.42)

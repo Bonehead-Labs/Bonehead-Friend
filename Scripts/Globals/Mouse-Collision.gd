@@ -1,3 +1,4 @@
+class_name DraggableArea
 extends Area2D
 
 var is_hovered: bool = false
