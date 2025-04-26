@@ -1,78 +1,68 @@
-class_name BaseDraggable
+# BaseDraggable.gd  – Godot 4.3 / 4.4
 extends RigidBody2D
+class_name BaseDraggable
 
+# ───────────── Scene references (drag into Inspector) ─────────────
+@export var drag_area : Area2D        # hover detection
+@export var handle    : StaticBody2D  # invisible hand
+@export var sprite    : AnimatedSprite2D
+@export var collider  : CollisionShape2D
 
-# Attached Nodes
-@export var sprite: AnimatedSprite2D
-@export var collider: CollisionShape2D
-@export var drag_area: DraggableArea
+# ───────────── Joint parameters ─────────────
+@export var joint_softness : float = 0.0   # 0 = rigid pin, >0 = springy
+@export var joint_bias     : float = 0.9   # solver bias (0–1; high pulls harder)
+@export var follow_lerp    : float = 0.5   # how fast the handle chases the mouse
 
-@export var is_uniform: bool = true  # True for uniform (center-based) dragging; false for non-uniform.
-var dragging: bool = false
-var force_multiplier: float = 8000.0
-var max_force: float = 8000.0
+# ───────────── Internals ─────────────
+var dragging      : bool = false
+var drag_offset   : Vector2
+var mouse_joint   : PinJoint2D        # created at runtime
 
-# Damping values for dynamic damping.
-@export var min_damping: float = 5.0   # Lower damping when far from the mouse.
-@export var max_damping: float = 100.0  # Higher damping when close to the mouse.
+# --------------------------------------------------------------
+func _ready() -> void:
+	# Handle never collides; we just teleport it each physics step
+	pass
 
-# Deadzone: if displacement is less than this, snap the object.
-var deadzone: float = 10.0
-
-var drag_offset: Vector2 = Vector2.ZERO
-
-@onready var mouse_collider = drag_area
-
+# --------------------------------------------------------------
 func _input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if event.pressed:
-			# Start dragging only if the mouse is over the collider.
-			if mouse_collider.is_hovered:
-				dragging = true
-				# For uniform objects, use the center; for non-uniform, record the click offset in local space.
-				drag_offset = Vector2.ZERO if is_uniform else to_local(get_global_mouse_position())
-		else:
-			dragging = false
+			if drag_area and drag_area.is_hovered:
+				_start_drag(event.position)
+		elif dragging:
+			_end_drag()
 
-func _physics_process(delta: float) -> void:
+# --------------------------------------------------------------
+func _start_drag(mouse_pos: Vector2) -> void:
+	dragging    = true
+	drag_offset = to_local(mouse_pos)
+
+	# Move handle to the grab point right away
+	handle.global_position = mouse_pos
+
+	# Create & configure the joint
+	mouse_joint = PinJoint2D.new()
+	mouse_joint.node_a = handle.get_path()
+	mouse_joint.node_b = self.get_path()
+	mouse_joint.softness = joint_softness      # 0 = stiff, >0 = spring
+	mouse_joint.bias     = joint_bias
+	add_child(mouse_joint)
+
+# --------------------------------------------------------------
+func _end_drag() -> void:
+	dragging = false
+	if mouse_joint:
+		mouse_joint.queue_free()
+		mouse_joint = null
+
+# --------------------------------------------------------------
+func _physics_process(_delta: float) -> void:
 	if dragging:
-		var target_pos: Vector2 = get_global_mouse_position()
-		var displacement: Vector2
-		var force_offset: Vector2
-		
-		if is_uniform:
-			# For uniform objects, the displacement is from the center.
-			displacement = target_pos - global_position
-			force_offset = Vector2.ZERO
-		else:
-			# For non-uniform objects, calculate displacement from the clicked point.
-			var clicked_point_global: Vector2 = to_global(drag_offset)
-			displacement = target_pos - clicked_point_global
-			force_offset = drag_offset
-		
-		# If within the deadzone, snap the object to the mouse.
-		if displacement.length() < deadzone:
-			if is_uniform:
-				global_position = target_pos
-			else:
-				# For non-uniform objects, ensure the clicked point stays at the mouse.
-				global_position = target_pos - drag_offset.rotated(rotation)
-			linear_velocity = Vector2.ZERO
-			return
-		
-		# Compute the drag force.
-		var drag_force: Vector2 = displacement * force_multiplier
-		if drag_force.length() > max_force:
-			drag_force = drag_force.normalized() * max_force
-		
-		# Dynamic damping: lower damping when far, higher when close.
-		var distance: float = displacement.length()
-		var distance_threshold: float = 11.0  # Adjust to control the transition range.
-		var effective_damping: float = lerp(max_damping, min_damping, clamp(distance / distance_threshold, 0, 1))
-		var damping_force: Vector2 = -linear_velocity * effective_damping
-		
-		# Apply the combined force at the appropriate offset.
-		apply_force(drag_force + damping_force, force_offset)
-	else:
-		# Apply simple air resistance when not dragging.
-		apply_central_force(-linear_velocity * 0.5)
+		# Destination is the mouse minus the original grab offset (so centre vs handle feels right)
+		var target = get_global_mouse_position()
+		handle.global_position = handle.global_position.lerp(target, follow_lerp)
+
+# --------------------------------------------------------------
+func _exit_tree() -> void:
+	if mouse_joint:
+		mouse_joint.queue_free()

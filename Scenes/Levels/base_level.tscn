@@ -1,6 +1,7 @@
-[gd_scene load_steps=6 format=3 uid="uid://cx146pu1jid8s"]
+[gd_scene load_steps=7 format=3 uid="uid://cx146pu1jid8s"]
 
 [ext_resource type="PackedScene" uid="uid://bmg2ybmet6dm6" path="res://Scenes/Bodies/character.tscn" id="1_ssatm"]
+[ext_resource type="PackedScene" uid="uid://dfqst7v7bwncv" path="res://Scenes/Bodies/BaseballBat.tscn" id="2_s0vl6"]
 
 [sub_resource type="WorldBoundaryShape2D" id="WorldBoundaryShape2D_s0vl6"]
 distance = -14.0
@@ -43,3 +44,6 @@ debug_color = Color(0.775156, 0.371108, 0.62304, 0.42)
 
 [node name="Character" parent="." instance=ExtResource("1_ssatm")]
 position = Vector2(403, 158)
+
+[node name="BaseBody" parent="." instance=ExtResource("2_s0vl6")]
+position = Vector2(212, 297)
