@@ -44,6 +44,9 @@ debug_color = Color(0.775156, 0.371108, 0.62304, 0.42)
 
 [node name="Character" parent="." instance=ExtResource("1_ssatm")]
 position = Vector2(403, 158)
+center_of_mass_mode = 1
+center_of_mass = Vector2(0, 10)
 
-[node name="BaseBody" parent="." instance=ExtResource("2_s0vl6")]
-position = Vector2(212, 297)
+[node name="_BaseballBat" parent="." instance=ExtResource("2_s0vl6")]
+position = Vector2(279, 346)
+center_of_mass = Vector2(0, -40)

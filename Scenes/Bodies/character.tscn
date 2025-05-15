@@ -81,3 +81,5 @@ debug_color = Color(0.537646, 0.461186, 0.864023, 0.42)
 
 [node name="StaticBody2D" type="StaticBody2D" parent="."]
 visible = false
+
+[node name="CharacterBody2D" type="CharacterBody2D" parent="."]

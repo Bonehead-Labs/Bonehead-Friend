@@ -19,27 +19,25 @@ animations = [{
 }]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_l1ltb"]
-radius = 7.0
+radius = 5.5
 height = 56.0
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_f30ci"]
 radius = 5.0
 height = 56.0
 
-[node name="BaseBody" node_paths=PackedStringArray("drag_area", "handle", "sprite", "collider") instance=ExtResource("1_dw3le")]
+[node name="_BaseballBat" node_paths=PackedStringArray("drag_area", "handle") instance=ExtResource("1_dw3le")]
 center_of_mass_mode = 1
 center_of_mass = Vector2(0, -50)
 drag_area = NodePath("DraggableArea")
 handle = NodePath("StaticBody2D")
-sprite = NodePath("AnimatedSprite2D")
-collider = NodePath("CollisionShape2D")
 
 [node name="AnimatedSprite2D" parent="." index="0"]
 scale = Vector2(4, 4)
 sprite_frames = SubResource("SpriteFrames_myi0o")
 
 [node name="CollisionShape2D" parent="." index="1"]
-position = Vector2(-1, -2)
+position = Vector2(-4, -10)
 scale = Vector2(4, 4)
 shape = SubResource("CapsuleShape2D_l1ltb")
 
@@ -53,3 +51,5 @@ debug_color = Color(0.970795, 0.157083, 0.175347, 0.42)
 
 [node name="StaticBody2D" type="StaticBody2D" parent="." index="3"]
 visible = false
+
+[node name="CharacterBody2D" type="CharacterBody2D" parent="." index="4"]
