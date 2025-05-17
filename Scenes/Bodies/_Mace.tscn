@@ -1,0 +1,62 @@
+[gd_scene load_steps=8 format=3 uid="uid://3k8yf82j34ys"]
+
+[ext_resource type="PackedScene" uid="uid://f8t65apchval" path="res://Scenes/Bodies/base_body.tscn" id="1_rfmqk"]
+[ext_resource type="Texture2D" uid="uid://cilgvnqai1mbc" path="res://Assets/base-Mace.png" id="2_7nf5c"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_u6ghd"]
+atlas = ExtResource("2_7nf5c")
+region = Rect2(0, 0, 64, 64)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_fw4pm"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_u6ghd")
+}],
+"loop": true,
+"name": &"default",
+"speed": 5.0
+}]
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_mjsii"]
+radius = 15.0
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_f2okt"]
+size = Vector2(7, 26)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_bke40"]
+size = Vector2(7, 34)
+
+[node name="_Mace" node_paths=PackedStringArray("drag_area", "handle", "sprite", "collider") instance=ExtResource("1_rfmqk")]
+mass = 15.0
+center_of_mass_mode = 1
+center_of_mass = Vector2(0, -80)
+drag_area = NodePath("DraggableArea")
+handle = NodePath("StaticBody2D")
+sprite = NodePath("AnimatedSprite2D")
+collider = NodePath("CollisionShape2D")
+
+[node name="AnimatedSprite2D" parent="." index="0"]
+scale = Vector2(4, 4)
+sprite_frames = SubResource("SpriteFrames_fw4pm")
+
+[node name="CollisionShape2D" parent="." index="1"]
+position = Vector2(0, -66)
+scale = Vector2(4, 4)
+shape = SubResource("CapsuleShape2D_mjsii")
+
+[node name="DraggableArea" parent="." index="2"]
+scale = Vector2(4, 4)
+
+[node name="CollisionShape2D2" parent="DraggableArea" index="1"]
+position = Vector2(0.5, 11)
+shape = SubResource("RectangleShape2D_f2okt")
+debug_color = Color(0.958719, 7.70092e-07, 0.525594, 0.42)
+
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="." index="3"]
+position = Vector2(2, 58)
+scale = Vector2(4, 4)
+shape = SubResource("RectangleShape2D_bke40")
+
+[node name="StaticBody2D" type="StaticBody2D" parent="." index="4"]
+scale = Vector2(4, 4)

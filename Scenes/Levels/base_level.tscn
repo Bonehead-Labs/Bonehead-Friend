@@ -1,18 +1,31 @@
-[gd_scene load_steps=7 format=3 uid="uid://cx146pu1jid8s"]
+[gd_scene load_steps=12 format=3 uid="uid://cx146pu1jid8s"]
 
 [ext_resource type="PackedScene" uid="uid://bmg2ybmet6dm6" path="res://Scenes/Bodies/character.tscn" id="1_ssatm"]
 [ext_resource type="PackedScene" uid="uid://dfqst7v7bwncv" path="res://Scenes/Bodies/BaseballBat.tscn" id="2_s0vl6"]
+[ext_resource type="PackedScene" uid="uid://3k8yf82j34ys" path="res://Scenes/Bodies/_Mace.tscn" id="3_17q77"]
 
 [sub_resource type="WorldBoundaryShape2D" id="WorldBoundaryShape2D_s0vl6"]
 distance = -14.0
 
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_17q77"]
+size = Vector2(1282, 213.5)
+
 [sub_resource type="WorldBoundaryShape2D" id="WorldBoundaryShape2D_ssatm"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_lai3q"]
+size = Vector2(210, 932.5)
 
 [sub_resource type="SegmentShape2D" id="SegmentShape2D_s0vl6"]
 b = Vector2(0, 723)
 
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_30ow2"]
+size = Vector2(1489, 162)
+
 [sub_resource type="SegmentShape2D" id="SegmentShape2D_17q77"]
 b = Vector2(1, 724)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_iemmg"]
+size = Vector2(350.5, 1092)
 
 [node name="BaseLevel" type="Node2D"]
 
@@ -24,16 +37,28 @@ b = Vector2(1, 724)
 position = Vector2(636, 706)
 shape = SubResource("WorldBoundaryShape2D_s0vl6")
 
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="Borders/BottomBorder"]
+position = Vector2(639, 826.25)
+shape = SubResource("RectangleShape2D_17q77")
+
 [node name="TopBorder" type="StaticBody2D" parent="Borders"]
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Borders/TopBorder"]
 rotation = -3.12935
 shape = SubResource("WorldBoundaryShape2D_ssatm")
 
+[node name="CollisionShape2D3" type="CollisionShape2D" parent="Borders/TopBorder"]
+position = Vector2(-105, 465.75)
+shape = SubResource("RectangleShape2D_lai3q")
+
 [node name="LeftBorder" type="StaticBody2D" parent="Borders"]
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Borders/LeftBorder"]
 shape = SubResource("SegmentShape2D_s0vl6")
+
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="Borders/LeftBorder"]
+position = Vector2(534.5, -80)
+shape = SubResource("RectangleShape2D_30ow2")
 
 [node name="RightBorder" type="StaticBody2D" parent="Borders"]
 
@@ -42,6 +67,10 @@ position = Vector2(1280, 2)
 shape = SubResource("SegmentShape2D_17q77")
 debug_color = Color(0.775156, 0.371108, 0.62304, 0.42)
 
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="Borders/RightBorder"]
+position = Vector2(1455.75, 384)
+shape = SubResource("RectangleShape2D_iemmg")
+
 [node name="Character" parent="." instance=ExtResource("1_ssatm")]
 position = Vector2(403, 158)
 center_of_mass_mode = 1
@@ -49,4 +78,12 @@ center_of_mass = Vector2(0, 10)
 
 [node name="_BaseballBat" parent="." instance=ExtResource("2_s0vl6")]
 position = Vector2(279, 346)
-center_of_mass = Vector2(0, -40)
+mass = 5.0
+joint_bias = 0.9
+max_angular_speed = 1e+06
+
+[node name="_Mace" parent="." instance=ExtResource("3_17q77")]
+position = Vector2(638, 349)
+mass = 40.0
+joint_softness = 0.2
+joint_bias = 0.9

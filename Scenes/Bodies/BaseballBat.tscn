@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3 uid="uid://dfqst7v7bwncv"]
+[gd_scene load_steps=9 format=3 uid="uid://dfqst7v7bwncv"]
 
 [ext_resource type="PackedScene" uid="uid://f8t65apchval" path="res://Scenes/Bodies/base_body.tscn" id="1_dw3le"]
 [ext_resource type="Texture2D" uid="uid://db7aai4qgbeql" path="res://Assets/baseball bat.png" id="2_5mnlb"]
@@ -18,38 +18,53 @@ animations = [{
 "speed": 5.0
 }]
 
-[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_l1ltb"]
-radius = 5.5
-height = 56.0
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_dw3le"]
+radius = 6.25
+height = 39.0
 
-[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_f30ci"]
-radius = 5.0
-height = 56.0
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_5mnlb"]
+size = Vector2(5.75, 15)
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_dw3le"]
+radius = 40.0
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_bee53"]
+size = Vector2(25, 62)
 
 [node name="_BaseballBat" node_paths=PackedStringArray("drag_area", "handle") instance=ExtResource("1_dw3le")]
+mass = 16.205
 center_of_mass_mode = 1
-center_of_mass = Vector2(0, -50)
+center_of_mass = Vector2(0, -30)
 drag_area = NodePath("DraggableArea")
 handle = NodePath("StaticBody2D")
+joint_softness = 0.2
 
 [node name="AnimatedSprite2D" parent="." index="0"]
 scale = Vector2(4, 4)
 sprite_frames = SubResource("SpriteFrames_myi0o")
 
 [node name="CollisionShape2D" parent="." index="1"]
-position = Vector2(-4, -10)
+position = Vector2(-4, -39)
 scale = Vector2(4, 4)
-shape = SubResource("CapsuleShape2D_l1ltb")
+shape = SubResource("CapsuleShape2D_dw3le")
 
 [node name="DraggableArea" parent="." index="2"]
 scale = Vector2(4, 4)
 
 [node name="CollisionShape2D2" parent="DraggableArea" index="1"]
-position = Vector2(-1, -3)
-shape = SubResource("CapsuleShape2D_f30ci")
+position = Vector2(-1.125, 16.75)
+shape = SubResource("RectangleShape2D_5mnlb")
 debug_color = Color(0.970795, 0.157083, 0.175347, 0.42)
 
 [node name="StaticBody2D" type="StaticBody2D" parent="." index="3"]
-visible = false
+collision_layer = 2
+collision_mask = 2
 
-[node name="CharacterBody2D" type="CharacterBody2D" parent="." index="4"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="StaticBody2D" index="0"]
+position = Vector2(-3, -82)
+shape = SubResource("CircleShape2D_dw3le")
+debug_color = Color(0.0629817, 0.629378, 0.466078, 0.42)
+
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="." index="4"]
+position = Vector2(-4.5, 68)
+shape = SubResource("RectangleShape2D_bee53")

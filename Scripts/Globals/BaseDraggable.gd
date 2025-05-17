@@ -20,7 +20,7 @@ var mouse_joint   : PinJoint2D
 var joint_line    : Line2D
 
 func _ready() -> void:
-	custom_integrator = true
+	custom_integrator = false
 	continuous_cd = RigidBody2D.CCD_MODE_CAST_RAY
 
 func _input(event: InputEvent) -> void:
@@ -29,6 +29,17 @@ func _input(event: InputEvent) -> void:
 			_start_drag(event.position)
 		elif not event.pressed and dragging:
 			_end_drag()
+
+func create_debug_line():
+	# --- create the visual line ---
+	joint_line = Line2D.new()
+	joint_line.width = 2
+	joint_line.default_color = Color.RED
+	# start with two dummy points
+	joint_line.add_point(handle.global_position)
+	joint_line.add_point(to_global(drag_offset))
+	get_parent().add_child(joint_line)
+
 
 func _start_drag(mouse_pos: Vector2) -> void:
 	dragging    = true
@@ -43,14 +54,7 @@ func _start_drag(mouse_pos: Vector2) -> void:
 	mouse_joint.bias     = joint_bias
 	add_child(mouse_joint)
 
-	# --- create the visual line ---
-	joint_line = Line2D.new()
-	joint_line.width = 2
-	joint_line.default_color = Color.RED
-	# start with two dummy points
-	joint_line.add_point(handle.global_position)
-	joint_line.add_point(to_global(drag_offset))
-	get_parent().add_child(joint_line)
+	#create_debug_line()
 
 func _end_drag() -> void:
 	dragging = false
@@ -62,13 +66,14 @@ func _end_drag() -> void:
 		joint_line = null
 
 func _physics_process(delta: float) -> void:
-	if dragging and joint_line:
+	if dragging:
 		# move handle toward mouse
 		var target = get_global_mouse_position()
 		handle.global_position = handle.global_position.lerp(target, follow_lerp)
 		# update the visual line
-		joint_line.set_point_position(0, handle.global_position)
-		joint_line.set_point_position(1, to_global(drag_offset))
+		if joint_line:
+			joint_line.set_point_position(0, handle.global_position)
+			joint_line.set_point_position(1, to_global(drag_offset))
 
 # func _integrate_forces(state: PhysicsDirectBodyState2D) -> void:
 # 	state.integrate_forces()
