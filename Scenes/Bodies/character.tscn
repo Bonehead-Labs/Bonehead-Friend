@@ -1,10 +1,11 @@
-[gd_scene load_steps=15 format=3 uid="uid://bmg2ybmet6dm6"]
+[gd_scene load_steps=16 format=3 uid="uid://bmg2ybmet6dm6"]
 
-[ext_resource type="Script" uid="uid://bux7k4g67ga1d" path="res://Character.gd" id="1_cqkw7"]
+[ext_resource type="Script" uid="uid://bux7k4g67ga1d" path="res://Scripts/Globals/Character.gd" id="1_cqkw7"]
 [ext_resource type="Texture2D" uid="uid://bx7k8r035pbiq" path="res://Assets/base-bonehead.png" id="2_p07va"]
 [ext_resource type="PackedScene" uid="uid://bx84gcmi6yqgv" path="res://Scenes/Components/draggable_area.tscn" id="3_tykmh"]
 [ext_resource type="Script" uid="uid://fx02j21xgjqk" path="res://Scripts/Components/HitBoxComponent.gd" id="4_tykmh"]
 [ext_resource type="Script" uid="uid://b668ljoyba60u" path="res://Scripts/Components/HealthComponent.gd" id="5_nseg5"]
+[ext_resource type="Script" uid="uid://brwip17pj6yh8" path="res://Scripts/Components/EffectsPlayer.gd" id="6_nseg5"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_nseg5"]
 atlas = ExtResource("2_p07va")
@@ -63,7 +64,7 @@ script = ExtResource("1_cqkw7")
 health = NodePath("HitBoxComponent/HealthComponent")
 hurtbox = NodePath("HitBoxComponent")
 drag_area = NodePath("DraggableArea")
-handle = NodePath("StaticBody2D")
+handle = NodePath("_handle")
 sprite = NodePath("BoneheadSprite")
 collider = NodePath("CollisionShape2D")
 
@@ -86,10 +87,8 @@ scale = Vector2(2, 2)
 shape = SubResource("RectangleShape2D_5u4qe")
 debug_color = Color(0.537646, 0.461186, 0.864023, 0.42)
 
-[node name="StaticBody2D" type="StaticBody2D" parent="."]
+[node name="_handle" type="StaticBody2D" parent="."]
 visible = false
-
-[node name="CharacterBody2D" type="CharacterBody2D" parent="."]
 
 [node name="HitBoxComponent" type="Area2D" parent="." node_paths=PackedStringArray("health_component", "body")]
 script = ExtResource("4_tykmh")
@@ -107,3 +106,9 @@ metadata/_custom_type_script = "uid://b668ljoyba60u"
 position = Vector2(0, 12)
 shape = SubResource("RectangleShape2D_tykmh")
 debug_color = Color(0.994174, 0.0697804, 9.62615e-07, 0.42)
+
+[node name="EffectsPlayer" type="Node" parent="." node_paths=PackedStringArray("sprite", "Character")]
+script = ExtResource("6_nseg5")
+sprite = NodePath("../BoneheadSprite")
+Character = NodePath("..")
+metadata/_custom_type_script = "uid://brwip17pj6yh8"

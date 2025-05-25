@@ -1,7 +1,7 @@
 class_name EffectsPlayer extends Node
 
 @export var sprite: AnimatedSprite2D
-@export var Character: CharacterBody2D
+@export var Character: Node2D
 
 func hit_effect():
 	sprite.modulate = Color.RED

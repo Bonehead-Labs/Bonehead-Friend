@@ -6,6 +6,7 @@ class_name BaseDraggable
 @export var handle    : StaticBody2D
 @export var sprite    : AnimatedSprite2D
 @export var collider  : CollisionShape2D
+@export var Effects_Player: EffectsPlayer
 
 @export var joint_softness : float = 1.0
 @export var joint_bias     : float = 0.2
