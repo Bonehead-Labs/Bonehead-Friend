@@ -1,8 +1,10 @@
-[gd_scene load_steps=12 format=3 uid="uid://bmg2ybmet6dm6"]
+[gd_scene load_steps=15 format=3 uid="uid://bmg2ybmet6dm6"]
 
 [ext_resource type="Script" uid="uid://bux7k4g67ga1d" path="res://Character.gd" id="1_cqkw7"]
 [ext_resource type="Texture2D" uid="uid://bx7k8r035pbiq" path="res://Assets/base-bonehead.png" id="2_p07va"]
 [ext_resource type="PackedScene" uid="uid://bx84gcmi6yqgv" path="res://Scenes/Components/draggable_area.tscn" id="3_tykmh"]
+[ext_resource type="Script" uid="uid://fx02j21xgjqk" path="res://Scripts/Components/HitBoxComponent.gd" id="4_tykmh"]
+[ext_resource type="Script" uid="uid://b668ljoyba60u" path="res://Scripts/Components/HealthComponent.gd" id="5_nseg5"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_nseg5"]
 atlas = ExtResource("2_p07va")
@@ -53,8 +55,13 @@ size = Vector2(44, 60)
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_5u4qe"]
 size = Vector2(45, 59)
 
-[node name="Character" type="RigidBody2D" node_paths=PackedStringArray("drag_area", "handle", "sprite", "collider")]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_tykmh"]
+size = Vector2(64, 100)
+
+[node name="Character" type="RigidBody2D" node_paths=PackedStringArray("health", "hurtbox", "drag_area", "handle", "sprite", "collider")]
 script = ExtResource("1_cqkw7")
+health = NodePath("HitBoxComponent/HealthComponent")
+hurtbox = NodePath("HitBoxComponent")
 drag_area = NodePath("DraggableArea")
 handle = NodePath("StaticBody2D")
 sprite = NodePath("BoneheadSprite")
@@ -83,3 +90,20 @@ debug_color = Color(0.537646, 0.461186, 0.864023, 0.42)
 visible = false
 
 [node name="CharacterBody2D" type="CharacterBody2D" parent="."]
+
+[node name="HitBoxComponent" type="Area2D" parent="." node_paths=PackedStringArray("health_component", "body")]
+script = ExtResource("4_tykmh")
+health_component = NodePath("HealthComponent")
+body = NodePath("..")
+metadata/_custom_type_script = "uid://fx02j21xgjqk"
+
+[node name="HealthComponent" type="Node2D" parent="HitBoxComponent" node_paths=PackedStringArray("Entity")]
+script = ExtResource("5_nseg5")
+Max_Health = 100
+Entity = NodePath("../..")
+metadata/_custom_type_script = "uid://b668ljoyba60u"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="HitBoxComponent"]
+position = Vector2(0, 12)
+shape = SubResource("RectangleShape2D_tykmh")
+debug_color = Color(0.994174, 0.0697804, 9.62615e-07, 0.42)

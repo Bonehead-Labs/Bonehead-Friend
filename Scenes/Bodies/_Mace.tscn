@@ -1,7 +1,9 @@
-[gd_scene load_steps=8 format=3 uid="uid://3k8yf82j34ys"]
+[gd_scene load_steps=11 format=3 uid="uid://3k8yf82j34ys"]
 
 [ext_resource type="PackedScene" uid="uid://f8t65apchval" path="res://Scenes/Bodies/base_body.tscn" id="1_rfmqk"]
 [ext_resource type="Texture2D" uid="uid://cilgvnqai1mbc" path="res://Assets/base-Mace.png" id="2_7nf5c"]
+[ext_resource type="Script" uid="uid://ua4ytm4j71yn" path="res://Scripts/Globals/WeaponClass.gd" id="2_u6ghd"]
+[ext_resource type="Script" uid="uid://bjsajrtuu6742" path="res://Scripts/Components/AttackBoxClass.gd" id="4_u6ghd"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_u6ghd"]
 atlas = ExtResource("2_7nf5c")
@@ -27,12 +29,20 @@ size = Vector2(7, 26)
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_bke40"]
 size = Vector2(7, 34)
 
-[node name="_Mace" node_paths=PackedStringArray("drag_area", "handle", "sprite", "collider") instance=ExtResource("1_rfmqk")]
+[sub_resource type="CircleShape2D" id="CircleShape2D_fw4pm"]
+radius = 61.2046
+
+[node name="_Mace" node_paths=PackedStringArray("AttackBox", "_attackBody", "drag_area", "handle", "sprite", "collider") instance=ExtResource("1_rfmqk")]
 mass = 15.0
 center_of_mass_mode = 1
 center_of_mass = Vector2(0, -80)
+script = ExtResource("2_u6ghd")
+AttackBox = NodePath("AttackBox")
+_attackBody = NodePath("AttackBox/_attackPhysics")
+min_damage = 0
+max_damage = 40
 drag_area = NodePath("DraggableArea")
-handle = NodePath("StaticBody2D")
+handle = NodePath("Handle")
 sprite = NodePath("AnimatedSprite2D")
 collider = NodePath("CollisionShape2D")
 
@@ -58,5 +68,19 @@ position = Vector2(2, 58)
 scale = Vector2(4, 4)
 shape = SubResource("RectangleShape2D_bke40")
 
-[node name="StaticBody2D" type="StaticBody2D" parent="." index="4"]
+[node name="Handle" type="StaticBody2D" parent="." index="4"]
 scale = Vector2(4, 4)
+
+[node name="AttackBox" type="Area2D" parent="." index="5" node_paths=PackedStringArray("_Weapon")]
+script = ExtResource("4_u6ghd")
+_Weapon = NodePath("..")
+metadata/_custom_type_script = "uid://bjsajrtuu6742"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="AttackBox" index="0"]
+position = Vector2(1, -64)
+shape = SubResource("CircleShape2D_fw4pm")
+debug_color = Color(0.994241, 0, 0.225226, 0.42)
+
+[node name="_attackPhysics" type="RigidBody2D" parent="AttackBox" index="1"]
+
+[connection signal="area_entered" from="AttackBox" to="." method="_on_attack_box_area_entered"]

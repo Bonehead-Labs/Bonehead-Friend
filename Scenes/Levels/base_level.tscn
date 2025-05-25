@@ -8,24 +8,24 @@
 distance = -14.0
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_17q77"]
-size = Vector2(1282, 213.5)
+size = Vector2(1282, 600.5)
 
 [sub_resource type="WorldBoundaryShape2D" id="WorldBoundaryShape2D_ssatm"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_lai3q"]
-size = Vector2(210, 932.5)
+size = Vector2(704, 1299.5)
 
 [sub_resource type="SegmentShape2D" id="SegmentShape2D_s0vl6"]
 b = Vector2(0, 723)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_30ow2"]
-size = Vector2(1489, 162)
+size = Vector2(1987, 694)
 
 [sub_resource type="SegmentShape2D" id="SegmentShape2D_17q77"]
 b = Vector2(1, 724)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_iemmg"]
-size = Vector2(350.5, 1092)
+size = Vector2(907.5, 2013)
 
 [node name="BaseLevel" type="Node2D"]
 
@@ -38,7 +38,7 @@ position = Vector2(636, 706)
 shape = SubResource("WorldBoundaryShape2D_s0vl6")
 
 [node name="CollisionShape2D2" type="CollisionShape2D" parent="Borders/BottomBorder"]
-position = Vector2(639, 826.25)
+position = Vector2(639, 1019.75)
 shape = SubResource("RectangleShape2D_17q77")
 
 [node name="TopBorder" type="StaticBody2D" parent="Borders"]
@@ -48,7 +48,7 @@ rotation = -3.12935
 shape = SubResource("WorldBoundaryShape2D_ssatm")
 
 [node name="CollisionShape2D3" type="CollisionShape2D" parent="Borders/TopBorder"]
-position = Vector2(-105, 465.75)
+position = Vector2(-352, 649.25)
 shape = SubResource("RectangleShape2D_lai3q")
 
 [node name="LeftBorder" type="StaticBody2D" parent="Borders"]
@@ -57,7 +57,7 @@ shape = SubResource("RectangleShape2D_lai3q")
 shape = SubResource("SegmentShape2D_s0vl6")
 
 [node name="CollisionShape2D2" type="CollisionShape2D" parent="Borders/LeftBorder"]
-position = Vector2(534.5, -80)
+position = Vector2(285.5, -346)
 shape = SubResource("RectangleShape2D_30ow2")
 
 [node name="RightBorder" type="StaticBody2D" parent="Borders"]
@@ -68,7 +68,7 @@ shape = SubResource("SegmentShape2D_17q77")
 debug_color = Color(0.775156, 0.371108, 0.62304, 0.42)
 
 [node name="CollisionShape2D2" type="CollisionShape2D" parent="Borders/RightBorder"]
-position = Vector2(1455.75, 384)
+position = Vector2(1734.25, 328.5)
 shape = SubResource("RectangleShape2D_iemmg")
 
 [node name="Character" parent="." instance=ExtResource("1_ssatm")]
