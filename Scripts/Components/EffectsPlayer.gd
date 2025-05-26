@@ -20,4 +20,6 @@ func death_effect():
 	
 func explosion_effect():
 	var explosion = ExplosionScene.instantiate()
+	get_tree().current_scene.add_child(explosion)
 	explosion.global_position = Character.global_position
+	explosion.get_node("_particleEffect").emitting = true

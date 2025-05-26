@@ -29,17 +29,18 @@ func explode() -> void:
 	var cs = explosion_area.get_node("_explosionAreaShape") as CollisionShape2D
 	var radius = (cs.shape as CircleShape2D).radius
 
-	# 3) Apply radial impulse to each RigidBody2D in range
 	for body in explosion_area.get_overlapping_bodies():
 		print("Body found", body)
 		if body is RigidBody2D:
 			var dir = body.global_position - global_position
 			var dist = dir.length()
-			var strength = max_force * (1.0 - clamp(dist / radius, 0.0, 1.0))
+			var falloff = 1.0 - clamp(dist / radius, 0.0, 1.0)
+			var strength = max_force * falloff * falloff
 			body.apply_impulse(dir.normalized() * strength, Vector2.ZERO)
 	# 4) Turn off detection and remove self
 			print("dist:", dist, " radius:", radius, " strength:", strength)
 	explosion_area.monitoring = false
-	#Effects_Player.explosion_effect()
-	#await get_tree().create_timer(10).timeout # test timer
+	Effects_Player.explosion_effect()
+	sprite.queue_free()
+	await get_tree().create_timer(0.5).timeout # test timer
 	queue_free()  # Remove the throwable from the scene after explosion

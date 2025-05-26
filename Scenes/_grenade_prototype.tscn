@@ -27,10 +27,13 @@ radius = 21.095
 radius = 19.105
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_1qmm5"]
-radius = 124.258
+radius = 342.584
 
 [node name="_GrenadePrototype" type="RigidBody2D" node_paths=PackedStringArray("explosion_area", "drag_area", "handle", "sprite", "collider", "Effects_Player")]
 position = Vector2(1, -7)
+mass = 3.0
+center_of_mass_mode = 1
+center_of_mass = Vector2(0, -8)
 script = ExtResource("1_lmnya")
 explosion_area = NodePath("_ExplosionArea")
 drag_area = NodePath("DraggableArea")

@@ -1,14 +1,28 @@
-[gd_scene format=3 uid="uid://cwbikscs4r2w6"]
+[gd_scene load_steps=3 format=3 uid="uid://cwbikscs4r2w6"]
+
+[sub_resource type="Curve" id="Curve_t71c2"]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(0.96729, 0), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Gradient" id="Gradient_itj65"]
+offsets = PackedFloat32Array(0.56383, 1)
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 0)
 
 [node name="Explosion" type="Node2D"]
 
-[node name="CPUParticles2D" type="CPUParticles2D" parent="."]
+[node name="_particleEffect" type="CPUParticles2D" parent="."]
+self_modulate = Color(1, 0.533333, 0.211765, 1)
 emitting = false
-amount = 90
-lifetime = 5.0
+amount = 50
+lifetime = 0.5
 one_shot = true
-explosiveness = 0.81
-randomness = 0.95
-emission_shape = 2
-emission_sphere_radius = 39.95
-orbit_velocity_min = -20.0
+explosiveness = 1.0
+randomness = 0.5
+spread = 180.0
+gravity = Vector2(0, 0)
+initial_velocity_min = 500.0
+initial_velocity_max = 500.0
+scale_amount_min = 20.0
+scale_amount_max = 20.0
+scale_amount_curve = SubResource("Curve_t71c2")
+color_ramp = SubResource("Gradient_itj65")
