@@ -1,0 +1,14 @@
+[gd_scene format=3 uid="uid://cwbikscs4r2w6"]
+
+[node name="Explosion" type="Node2D"]
+
+[node name="CPUParticles2D" type="CPUParticles2D" parent="."]
+emitting = false
+amount = 90
+lifetime = 5.0
+one_shot = true
+explosiveness = 0.81
+randomness = 0.95
+emission_shape = 2
+emission_sphere_radius = 39.95
+orbit_velocity_min = -20.0

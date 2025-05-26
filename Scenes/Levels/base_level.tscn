@@ -1,8 +1,9 @@
-[gd_scene load_steps=12 format=3 uid="uid://cx146pu1jid8s"]
+[gd_scene load_steps=13 format=3 uid="uid://cx146pu1jid8s"]
 
 [ext_resource type="PackedScene" uid="uid://bmg2ybmet6dm6" path="res://Scenes/Bodies/character.tscn" id="1_ssatm"]
 [ext_resource type="PackedScene" uid="uid://dfqst7v7bwncv" path="res://Scenes/Bodies/BaseballBat.tscn" id="2_s0vl6"]
 [ext_resource type="PackedScene" uid="uid://3k8yf82j34ys" path="res://Scenes/Bodies/_Mace.tscn" id="3_17q77"]
+[ext_resource type="PackedScene" uid="uid://42rforhhajo5" path="res://Scenes/_grenade_prototype.tscn" id="4_lai3q"]
 
 [sub_resource type="WorldBoundaryShape2D" id="WorldBoundaryShape2D_s0vl6"]
 distance = -14.0
@@ -87,3 +88,6 @@ position = Vector2(638, 349)
 mass = 40.0
 joint_softness = 0.2
 joint_bias = 0.9
+
+[node name="_GrenadePrototype" parent="." instance=ExtResource("4_lai3q")]
+position = Vector2(485, 556)
