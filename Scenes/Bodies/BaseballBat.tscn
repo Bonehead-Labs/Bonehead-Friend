@@ -1,7 +1,10 @@
-[gd_scene load_steps=9 format=3 uid="uid://dfqst7v7bwncv"]
+[gd_scene load_steps=13 format=3 uid="uid://dfqst7v7bwncv"]
 
 [ext_resource type="PackedScene" uid="uid://f8t65apchval" path="res://Scenes/Bodies/base_body.tscn" id="1_dw3le"]
 [ext_resource type="Texture2D" uid="uid://db7aai4qgbeql" path="res://Assets/baseball bat.png" id="2_5mnlb"]
+[ext_resource type="Script" uid="uid://ua4ytm4j71yn" path="res://Scripts/Globals/WeaponClass.gd" id="2_bee53"]
+[ext_resource type="Script" uid="uid://bjsajrtuu6742" path="res://Scripts/Components/AttackBoxClass.gd" id="4_bee53"]
+[ext_resource type="Script" uid="uid://brwip17pj6yh8" path="res://Scripts/Components/EffectsPlayer.gd" id="5_myi0o"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_bee53"]
 atlas = ExtResource("2_5mnlb")
@@ -31,13 +34,24 @@ radius = 40.0
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_bee53"]
 size = Vector2(25, 62)
 
-[node name="_BaseballBat" node_paths=PackedStringArray("drag_area", "handle") instance=ExtResource("1_dw3le")]
-mass = 16.205
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_myi0o"]
+radius = 32.0
+height = 160.0
+
+[node name="_BaseballBat" node_paths=PackedStringArray("AttackBox", "_attackBody", "drag_area", "handle", "sprite", "collider", "Effects_Player") instance=ExtResource("1_dw3le")]
+mass = 8.0
 center_of_mass_mode = 1
 center_of_mass = Vector2(0, -30)
+script = ExtResource("2_bee53")
+AttackBox = NodePath("AttackBox")
+_attackBody = NodePath("AttackBox/_attackPhysics")
+min_damage = 1
+max_damage = 40
 drag_area = NodePath("DraggableArea")
 handle = NodePath("StaticBody2D")
-joint_softness = 0.2
+sprite = NodePath("AnimatedSprite2D")
+collider = NodePath("CollisionShape2D")
+Effects_Player = NodePath("EffectsPlayer")
 
 [node name="AnimatedSprite2D" parent="." index="0"]
 scale = Vector2(4, 4)
@@ -68,3 +82,21 @@ debug_color = Color(0.0629817, 0.629378, 0.466078, 0.42)
 [node name="CollisionShape2D2" type="CollisionShape2D" parent="." index="4"]
 position = Vector2(-4.5, 68)
 shape = SubResource("RectangleShape2D_bee53")
+
+[node name="AttackBox" type="Area2D" parent="." index="5" node_paths=PackedStringArray("_Weapon")]
+script = ExtResource("4_bee53")
+_Weapon = NodePath("..")
+metadata/_custom_type_script = "uid://bjsajrtuu6742"
+
+[node name="_attackPhysics" type="RigidBody2D" parent="AttackBox" index="0"]
+
+[node name="_attackCollision" type="CollisionShape2D" parent="AttackBox" index="1"]
+position = Vector2(-5, -43)
+shape = SubResource("CapsuleShape2D_myi0o")
+debug_color = Color(0.98588, 0, 0.329313, 0.42)
+
+[node name="EffectsPlayer" type="Node" parent="." index="6"]
+script = ExtResource("5_myi0o")
+metadata/_custom_type_script = "uid://brwip17pj6yh8"
+
+[connection signal="area_entered" from="AttackBox" to="." method="_on_attack_box_area_entered"]

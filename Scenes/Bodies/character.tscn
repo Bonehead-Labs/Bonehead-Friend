@@ -57,7 +57,7 @@ size = Vector2(44, 60)
 size = Vector2(45, 59)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_tykmh"]
-size = Vector2(64, 100)
+size = Vector2(103, 129)
 
 [node name="Character" type="RigidBody2D" node_paths=PackedStringArray("health", "hurtbox", "drag_area", "handle", "sprite", "collider")]
 script = ExtResource("1_cqkw7")
@@ -72,7 +72,8 @@ collider = NodePath("CollisionShape2D")
 scale = Vector2(2, 2)
 sprite_frames = SubResource("SpriteFrames_tn5so")
 autoplay = "default"
-frame_progress = 0.630529
+frame = 4
+frame_progress = 0.282486
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 position = Vector2(0, 2)
@@ -103,7 +104,7 @@ Entity = NodePath("../..")
 metadata/_custom_type_script = "uid://b668ljoyba60u"
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="HitBoxComponent"]
-position = Vector2(0, 12)
+position = Vector2(0.5, 0.5)
 shape = SubResource("RectangleShape2D_tykmh")
 debug_color = Color(0.994174, 0.0697804, 9.62615e-07, 0.42)
 

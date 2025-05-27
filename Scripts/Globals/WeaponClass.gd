@@ -12,7 +12,9 @@ func _on_attack_box_area_entered(area:Area2D) -> void:
 	if area is HitBoxComponent:
 		var body = area.body
 		if body.has_method("Character"):
-			impact_strength = _attackBody.linear_velocity.length()
+			print(_attackBody.linear_velocity.length())
+			impact_strength = _attackBody.linear_velocity.length()/1000 * mass
+			_attackBody.linear_velocity = Vector2.ZERO
 			print("Impact Strength: ", impact_strength)
 			var damage = clamp(impact_strength, min_damage, max_damage)
 			print("Damage: ", damage)

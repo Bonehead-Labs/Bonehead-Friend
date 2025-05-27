@@ -73,21 +73,21 @@ position = Vector2(1734.25, 328.5)
 shape = SubResource("RectangleShape2D_iemmg")
 
 [node name="Character" parent="." instance=ExtResource("1_ssatm")]
-position = Vector2(403, 158)
+position = Vector2(700, 72)
 center_of_mass_mode = 1
 center_of_mass = Vector2(0, 10)
 
 [node name="_BaseballBat" parent="." instance=ExtResource("2_s0vl6")]
-position = Vector2(279, 346)
+position = Vector2(218, 596)
 mass = 5.0
 joint_bias = 0.9
 max_angular_speed = 1e+06
 
 [node name="_Mace" parent="." instance=ExtResource("3_17q77")]
-position = Vector2(638, 349)
+position = Vector2(92, 559)
 mass = 40.0
 joint_softness = 0.2
 joint_bias = 0.9
 
 [node name="_GrenadePrototype" parent="." instance=ExtResource("4_lai3q")]
-position = Vector2(485, 556)
+position = Vector2(1112, 663)

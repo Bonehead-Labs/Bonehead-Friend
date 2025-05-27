@@ -13,7 +13,7 @@ func _ready() -> void:
 func _input(event: InputEvent) -> void:
 	super._input(event)
 	if !is_primed:
-		if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_RIGHT:
+		if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_RIGHT and dragging:
 			prime_explosion()
 
 
