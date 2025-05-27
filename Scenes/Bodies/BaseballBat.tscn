@@ -35,7 +35,7 @@ radius = 40.0
 size = Vector2(25, 62)
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_myi0o"]
-radius = 32.0
+radius = 24.0
 height = 160.0
 
 [node name="_BaseballBat" node_paths=PackedStringArray("AttackBox", "_attackBody", "drag_area", "handle", "sprite", "collider", "Effects_Player") instance=ExtResource("1_dw3le")]
