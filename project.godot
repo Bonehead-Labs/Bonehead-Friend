@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="Interactive-Buddy-2"
-run/main_scene="res://Scenes/PROTOTYPE.tscn"
+run/main_scene="uid://cx146pu1jid8s"
 config/features=PackedStringArray("4.4", "GL Compatibility")
 config/icon="res://Assets/icon.svg"
 
