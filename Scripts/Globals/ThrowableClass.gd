@@ -40,7 +40,7 @@ func explode() -> void:
 	# 4) Turn off detection and remove self
 			print("dist:", dist, " radius:", radius, " strength:", strength)
 	explosion_area.monitoring = false
-	Effects_Player.explosion_effect()
+	Effects_Player.explosion_effect(global_position)
 	sprite.queue_free()
 	await get_tree().create_timer(0.5).timeout # test timer
 	queue_free()  # Remove the throwable from the scene after explosion

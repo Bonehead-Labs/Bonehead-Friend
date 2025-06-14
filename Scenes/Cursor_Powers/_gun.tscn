@@ -1,0 +1,21 @@
+[gd_scene load_steps=4 format=3 uid="uid://cqyv6r1ix1vci"]
+
+[ext_resource type="Script" uid="uid://c2cpqbsyh5aol" path="res://Scripts/Bodies/_gun.gd" id="1_wm4ue"]
+[ext_resource type="Script" uid="uid://brwip17pj6yh8" path="res://Scripts/Components/EffectsPlayer.gd" id="2_quml6"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_wm4ue"]
+
+[node name="_Gun" type="Node2D" node_paths=PackedStringArray("fire_area", "Effects_Player")]
+script = ExtResource("1_wm4ue")
+fire_area = NodePath("_FireArea")
+Effects_Player = NodePath("EffectsPlayer")
+
+[node name="_FireArea" type="Area2D" parent="."]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="_FireArea"]
+shape = SubResource("CircleShape2D_wm4ue")
+
+[node name="EffectsPlayer" type="Node" parent="." node_paths=PackedStringArray("Character")]
+script = ExtResource("2_quml6")
+Character = NodePath("..")
+metadata/_custom_type_script = "uid://brwip17pj6yh8"

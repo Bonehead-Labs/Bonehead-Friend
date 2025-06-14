@@ -18,8 +18,8 @@ func heal_effect():
 func death_effect():
 	pass
 	
-func explosion_effect():
+func explosion_effect(position):
 	var explosion = ExplosionScene.instantiate()
 	get_tree().current_scene.add_child(explosion)
-	explosion.global_position = Character.global_position
+	explosion.global_position = position
 	explosion.get_node("_particleEffect").emitting = true
