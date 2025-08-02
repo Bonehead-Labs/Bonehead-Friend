@@ -1,0 +1,73 @@
+[gd_scene load_steps=10 format=3 uid="uid://bylijbtw28ht"]
+
+[ext_resource type="Script" uid="uid://u33fib7lqv03" path="res://Scripts/Globals/ThrowableClass.gd" id="1_we2pa"]
+[ext_resource type="Texture2D" uid="uid://63a26q7vvfc5" path="res://Assets/base-Dynamite.png" id="2_we2pa"]
+[ext_resource type="Script" uid="uid://bescxfco5pm5b" path="res://Scripts/Globals/Mouse-Collision.gd" id="3_loqp7"]
+[ext_resource type="Script" uid="uid://brwip17pj6yh8" path="res://Scripts/Components/EffectsPlayer.gd" id="4_a7qhf"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_uqw1y"]
+atlas = ExtResource("2_we2pa")
+region = Rect2(0, 0, 64, 64)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_loqp7"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_uqw1y")
+}],
+"loop": true,
+"name": &"default",
+"speed": 5.0
+}]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_52rwt"]
+radius = 21.095
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_nity8"]
+radius = 19.105
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_1qmm5"]
+radius = 342.584
+
+[node name="_GrenadePrototype" type="RigidBody2D" node_paths=PackedStringArray("explosion_area", "drag_area", "handle", "sprite", "collider", "Effects_Player")]
+position = Vector2(1, -7)
+mass = 3.0
+center_of_mass_mode = 1
+center_of_mass = Vector2(0, -8)
+script = ExtResource("1_we2pa")
+explosion_area = NodePath("_ExplosionArea")
+drag_area = NodePath("DraggableArea")
+handle = NodePath("_handle")
+sprite = NodePath("_grenadeSprite")
+collider = NodePath("_grenadeCollider")
+Effects_Player = NodePath("EffectsPlayer")
+
+[node name="_grenadeSprite" type="AnimatedSprite2D" parent="."]
+sprite_frames = SubResource("SpriteFrames_loqp7")
+
+[node name="_grenadeCollider" type="CollisionShape2D" parent="."]
+position = Vector2(0, 7)
+shape = SubResource("CircleShape2D_52rwt")
+
+[node name="DraggableArea" type="Area2D" parent="."]
+script = ExtResource("3_loqp7")
+metadata/_custom_type_script = "uid://bescxfco5pm5b"
+
+[node name="_dragAreaShape" type="CollisionShape2D" parent="DraggableArea"]
+position = Vector2(-1, 6)
+shape = SubResource("CircleShape2D_nity8")
+debug_color = Color(0.408225, 0.606929, 1.92523e-07, 0.42)
+
+[node name="_handle" type="StaticBody2D" parent="."]
+
+[node name="_ExplosionArea" type="Area2D" parent="."]
+
+[node name="_explosionAreaShape" type="CollisionShape2D" parent="_ExplosionArea"]
+shape = SubResource("CircleShape2D_1qmm5")
+debug_color = Color(0.990287, 0, 0.280209, 0.42)
+
+[node name="EffectsPlayer" type="Node" parent="." node_paths=PackedStringArray("sprite", "Character")]
+script = ExtResource("4_a7qhf")
+sprite = NodePath("../_grenadeSprite")
+Character = NodePath("..")
+metadata/_custom_type_script = "uid://brwip17pj6yh8"
