@@ -4,7 +4,7 @@
 [ext_resource type="PackedScene" uid="uid://dfqst7v7bwncv" path="res://Scenes/Bodies/BaseballBat.tscn" id="2_s0vl6"]
 [ext_resource type="PackedScene" uid="uid://3k8yf82j34ys" path="res://Scenes/Bodies/_Mace.tscn" id="3_17q77"]
 [ext_resource type="PackedScene" uid="uid://42rforhhajo5" path="res://Scenes/_Grenade.tscn" id="4_lai3q"]
-[ext_resource type="PackedScene" uid="uid://bscdbec0tksur" path="res://Scenes/Bodies/_fist.tscn" id="5_30ow2"]
+[ext_resource type="PackedScene" uid="uid://bscdbec0tksur" path="res://Scenes/Cursor_Powers/_fist.tscn" id="5_30ow2"]
 [ext_resource type="PackedScene" uid="uid://cqyv6r1ix1vci" path="res://Scenes/Cursor_Powers/_gun.tscn" id="6_iemmg"]
 
 [sub_resource type="WorldBoundaryShape2D" id="WorldBoundaryShape2D_s0vl6"]
