@@ -22,18 +22,21 @@ animations = [{
 [sub_resource type="CircleShape2D" id="CircleShape2D_kqcn3"]
 radius = 166.012
 
-[node name="Missle" type="Node2D" node_paths=PackedStringArray("explosion_area", "Effects_Player")]
+[node name="Missle" type="Node2D" node_paths=PackedStringArray("explosion_area", "Effects_Player", "flame_effect", "sprite")]
 scale = Vector2(3, 3)
 script = ExtResource("1_uhxtr")
 explosion_area = NodePath("_ExplosionArea")
 Effects_Player = NodePath("EffectsPlayer")
+flame_effect = NodePath("MissleFlameEffect")
+sprite = NodePath("MissleSprite")
 metadata/_custom_type_script = "uid://ci77vkpdfs7d5"
 
 [node name="MissleSprite" type="AnimatedSprite2D" parent="."]
+position = Vector2(0, 28.3333)
 sprite_frames = SubResource("SpriteFrames_4g2cb")
 
 [node name="MissleFlameEffect" type="CPUParticles2D" parent="."]
-position = Vector2(0, 21)
+position = Vector2(0, 49.3333)
 amount = 100
 lifetime = 0.5
 speed_scale = 3.71
