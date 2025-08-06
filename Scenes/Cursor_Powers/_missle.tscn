@@ -22,8 +22,11 @@ animations = [{
 [sub_resource type="CircleShape2D" id="CircleShape2D_kqcn3"]
 radius = 166.012
 
-[node name="Missle" type="Node2D"]
+[node name="Missle" type="Node2D" node_paths=PackedStringArray("explosion_area", "Effects_Player")]
+scale = Vector2(3, 3)
 script = ExtResource("1_uhxtr")
+explosion_area = NodePath("_ExplosionArea")
+Effects_Player = NodePath("EffectsPlayer")
 metadata/_custom_type_script = "uid://ci77vkpdfs7d5"
 
 [node name="MissleSprite" type="AnimatedSprite2D" parent="."]
@@ -31,12 +34,13 @@ sprite_frames = SubResource("SpriteFrames_4g2cb")
 
 [node name="MissleFlameEffect" type="CPUParticles2D" parent="."]
 position = Vector2(0, 21)
-amount = 30
+amount = 100
 lifetime = 0.5
 speed_scale = 3.71
 randomness = 0.5
 emission_shape = 2
 emission_sphere_radius = 8.0
+gravity = Vector2(0, 0)
 linear_accel_min = 82.26
 linear_accel_max = 82.26
 scale_amount_min = 3.0
@@ -45,7 +49,7 @@ color = Color(1, 0.696667, 0.09, 1)
 
 [node name="_ExplosionArea" type="Area2D" parent="."]
 
-[node name="_ExplosionAreaShape" type="CollisionShape2D" parent="_ExplosionArea"]
+[node name="_explosionAreaShape" type="CollisionShape2D" parent="_ExplosionArea"]
 shape = SubResource("CircleShape2D_kqcn3")
 debug_color = Color(0.985061, 0.120166, 0, 0.42)
 

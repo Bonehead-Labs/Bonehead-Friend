@@ -17,7 +17,11 @@ var pistol_texture: Texture2D = preload("res://Assets/Crosshair Basic.png")
 var shotgun_texture: Texture2D = preload("res://Assets/Crosshair Basic.png")
 var rifle_texture: Texture2D = preload("res://Assets/Crosshair Basic.png")
 
-
+func make_active() -> void:
+	gun_active = true
+	
+func make_inactive() -> void:
+	gun_active = false
 
 
 func _ready() -> void:

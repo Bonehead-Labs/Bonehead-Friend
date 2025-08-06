@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://bfgwoub7o4ktg"]
+
+[ext_resource type="Script" uid="uid://ddpkbmesdnul" path="res://Scripts/Bodies/_missle_pointer.gd" id="1_3defv"]
+
+[node name="MisslePointer" type="Node2D"]
+script = ExtResource("1_3defv")
