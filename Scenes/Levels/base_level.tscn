@@ -99,6 +99,6 @@ position = Vector2(1112, 663)
 position = Vector2(234, 131)
 
 [node name="_Gun" parent="." instance=ExtResource("6_iemmg")]
+gun_active = true
 
 [node name="MisslePointer" parent="." instance=ExtResource("7_3b8rg")]
-active = true

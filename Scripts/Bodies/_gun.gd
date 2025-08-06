@@ -53,7 +53,7 @@ func _process(delta: float) -> void:
 
 func _input(event: InputEvent) -> void:
 	if gun_active:
-		if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed and not event.is_echo():
 			fire()
 			Effects_Player.explosion_effect(fire_area.global_position)
 
