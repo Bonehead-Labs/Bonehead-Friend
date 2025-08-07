@@ -1,5 +1,6 @@
-[gd_scene load_steps=16 format=3 uid="uid://cx146pu1jid8s"]
+[gd_scene load_steps=18 format=3 uid="uid://cx146pu1jid8s"]
 
+[ext_resource type="Script" uid="uid://dhweo1ejwqfli" path="res://Scripts/Globals/BaseLevel.gd" id="1_hr04v"]
 [ext_resource type="PackedScene" uid="uid://bmg2ybmet6dm6" path="res://Scenes/Bodies/character.tscn" id="1_ssatm"]
 [ext_resource type="PackedScene" uid="uid://dfqst7v7bwncv" path="res://Scenes/Bodies/BaseballBat.tscn" id="2_s0vl6"]
 [ext_resource type="PackedScene" uid="uid://3k8yf82j34ys" path="res://Scenes/Bodies/_Mace.tscn" id="3_17q77"]
@@ -7,6 +8,7 @@
 [ext_resource type="PackedScene" uid="uid://bscdbec0tksur" path="res://Scenes/Cursor_Powers/_fist.tscn" id="5_30ow2"]
 [ext_resource type="PackedScene" uid="uid://cqyv6r1ix1vci" path="res://Scenes/Cursor_Powers/_gun.tscn" id="6_iemmg"]
 [ext_resource type="PackedScene" uid="uid://bfgwoub7o4ktg" path="res://Scenes/Cursor_Powers/missle_pointer.tscn" id="7_3b8rg"]
+[ext_resource type="PackedScene" uid="uid://2kaw0rb80tl" path="res://Scenes/Menus/main_menu.tscn" id="8_xghcx"]
 
 [sub_resource type="WorldBoundaryShape2D" id="WorldBoundaryShape2D_s0vl6"]
 distance = -14.0
@@ -32,6 +34,7 @@ b = Vector2(1, 724)
 size = Vector2(907.5, 2013)
 
 [node name="BaseLevel" type="Node2D"]
+script = ExtResource("1_hr04v")
 
 [node name="Borders" type="Node" parent="."]
 
@@ -99,6 +102,10 @@ position = Vector2(1112, 663)
 position = Vector2(234, 131)
 
 [node name="_Gun" parent="." instance=ExtResource("6_iemmg")]
-gun_active = true
 
 [node name="MisslePointer" parent="." instance=ExtResource("7_3b8rg")]
+
+[node name="Menus" type="CanvasLayer" parent="."]
+
+[node name="Main_Menu" parent="Menus" instance=ExtResource("8_xghcx")]
+visible = false

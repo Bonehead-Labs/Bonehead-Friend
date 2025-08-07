@@ -9,6 +9,9 @@ var in_cooldown: bool = false
 func _ready() -> void:
     if active:
         Input.set_custom_mouse_cursor(crosshair_texture)
+    # else:
+    #     #reset crosshair to default
+    #     Input.set_custom_mouse_cursor(null)
 
 func make_active() -> void:
     active = true
