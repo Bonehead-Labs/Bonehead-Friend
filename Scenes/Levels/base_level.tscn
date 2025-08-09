@@ -8,7 +8,7 @@
 [ext_resource type="PackedScene" uid="uid://bscdbec0tksur" path="res://Scenes/Cursor_Powers/_fist.tscn" id="5_30ow2"]
 [ext_resource type="PackedScene" uid="uid://cqyv6r1ix1vci" path="res://Scenes/Cursor_Powers/_gun.tscn" id="6_iemmg"]
 [ext_resource type="PackedScene" uid="uid://bfgwoub7o4ktg" path="res://Scenes/Cursor_Powers/missle_pointer.tscn" id="7_3b8rg"]
-[ext_resource type="PackedScene" uid="uid://2kaw0rb80tl" path="res://Scenes/Menus/main_menu.tscn" id="8_xghcx"]
+[ext_resource type="PackedScene" uid="uid://2kaw0rb80tl" path="res://Scenes/Menus/pause_menu.tscn" id="8_xghcx"]
 
 [sub_resource type="WorldBoundaryShape2D" id="WorldBoundaryShape2D_s0vl6"]
 distance = -14.0
