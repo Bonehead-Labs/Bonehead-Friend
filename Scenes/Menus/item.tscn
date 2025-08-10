@@ -1,0 +1,32 @@
+[gd_scene load_steps=2 format=3 uid="uid://dt4meaur4lwv"]
+
+[ext_resource type="Texture2D" uid="uid://db7aai4qgbeql" path="res://Assets/baseball bat.png" id="1_0jnib"]
+
+[node name="Item" type="Control"]
+layout_mode = 3
+anchor_right = 0.099
+anchor_bottom = 0.176
+offset_right = -126.72
+offset_bottom = -126.72
+
+[node name="Panel" type="Panel" parent="."]
+layout_mode = 0
+offset_right = 128.0
+offset_bottom = 128.0
+
+[node name="TextureRect" type="TextureRect" parent="."]
+layout_mode = 0
+offset_left = 8.0
+offset_right = 72.0
+offset_bottom = 64.0
+scale = Vector2(1.8, 1.8)
+texture = ExtResource("1_0jnib")
+
+[node name="Label" type="Label" parent="."]
+layout_mode = 0
+offset_left = 1.0
+offset_top = 107.0
+offset_right = 127.0
+offset_bottom = 130.0
+text = "label"
+horizontal_alignment = 1
