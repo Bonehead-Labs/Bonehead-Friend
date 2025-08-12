@@ -1,4 +1,4 @@
-[gd_scene load_steps=18 format=3 uid="uid://cx146pu1jid8s"]
+[gd_scene load_steps=19 format=3 uid="uid://cx146pu1jid8s"]
 
 [ext_resource type="Script" uid="uid://dhweo1ejwqfli" path="res://Scripts/Globals/BaseLevel.gd" id="1_hr04v"]
 [ext_resource type="PackedScene" uid="uid://bmg2ybmet6dm6" path="res://Scenes/Bodies/character.tscn" id="1_ssatm"]
@@ -9,6 +9,7 @@
 [ext_resource type="PackedScene" uid="uid://cqyv6r1ix1vci" path="res://Scenes/Cursor_Powers/_gun.tscn" id="6_iemmg"]
 [ext_resource type="PackedScene" uid="uid://bfgwoub7o4ktg" path="res://Scenes/Cursor_Powers/missle_pointer.tscn" id="7_3b8rg"]
 [ext_resource type="PackedScene" uid="uid://2kaw0rb80tl" path="res://Scenes/Menus/pause_menu.tscn" id="8_xghcx"]
+[ext_resource type="PackedScene" uid="uid://cu3mtxhsmco6s" path="res://Scenes/Menus/item_menu.tscn" id="10_71eip"]
 
 [sub_resource type="WorldBoundaryShape2D" id="WorldBoundaryShape2D_s0vl6"]
 distance = -14.0
@@ -107,5 +108,21 @@ position = Vector2(234, 131)
 
 [node name="Menus" type="CanvasLayer" parent="."]
 
-[node name="Main_Menu" parent="Menus" instance=ExtResource("8_xghcx")]
+[node name="pause_menu" parent="Menus" instance=ExtResource("8_xghcx")]
 visible = false
+
+[node name="item_menu" parent="Menus" instance=ExtResource("10_71eip")]
+process_mode = 4
+visible = false
+
+[node name="Toggle_Items" type="Button" parent="Menus"]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -147.0
+offset_bottom = 74.0
+grow_horizontal = 0
+size_flags_horizontal = 8
+text = "  Items  "
+
+[connection signal="pressed" from="Menus/Toggle_Items" to="Menus/item_menu" method="_on_toggle_items_pressed"]

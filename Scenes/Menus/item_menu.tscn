@@ -1,14 +1,27 @@
-[gd_scene load_steps=2 format=3 uid="uid://cu3mtxhsmco6s"]
+[gd_scene load_steps=9 format=3 uid="uid://cu3mtxhsmco6s"]
 
-[ext_resource type="PackedScene" uid="uid://dt4meaur4lwv" path="res://Scenes/Menus/item.tscn" id="1_mwl0f"]
+[ext_resource type="Script" uid="uid://u77kadqssa1c" path="res://Scripts/Menus/item_menu.gd" id="1_jmb4m"]
+[ext_resource type="Texture2D" uid="uid://db7aai4qgbeql" path="res://Assets/baseball bat.png" id="2_wtch7"]
+[ext_resource type="Texture2D" uid="uid://cilgvnqai1mbc" path="res://Assets/base-Mace.png" id="3_40dny"]
+[ext_resource type="Texture2D" uid="uid://8pxivhgowtdt" path="res://Assets/Crosshair Basic.png" id="4_s364s"]
+[ext_resource type="Texture2D" uid="uid://baeoxho7dug4y" path="res://Assets/base-Missle.png" id="5_40dny"]
+[ext_resource type="Texture2D" uid="uid://bp1d1slggdhbd" path="res://Assets/FIST.png" id="6_p5fjk"]
+[ext_resource type="Texture2D" uid="uid://c2yf27fdtl7gh" path="res://Assets/base-handGrenade.png" id="7_3cgg8"]
+[ext_resource type="Texture2D" uid="uid://63a26q7vvfc5" path="res://Assets/base-Dynamite.png" id="8_40dny"]
 
 [node name="item_menu" type="Control"]
 layout_mode = 3
-anchors_preset = 15
+anchors_preset = 11
+anchor_left = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-grow_horizontal = 2
+offset_left = -136.0
+offset_top = 75.0
+offset_right = -4.0
+offset_bottom = 499.0
+grow_horizontal = 0
 grow_vertical = 2
+script = ExtResource("1_jmb4m")
 
 [node name="Panel" type="ScrollContainer" parent="."]
 layout_mode = 1
@@ -17,33 +30,160 @@ anchor_left = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = -131.0
-offset_top = -1.0
-offset_right = -1.0
+offset_bottom = -506.0
 grow_horizontal = 0
 grow_vertical = 2
 
 [node name="Menu" type="VBoxContainer" parent="Panel"]
 layout_mode = 2
 theme_override_constants/separation = 136
-alignment = 1
 
-[node name="Item" parent="Panel/Menu" instance=ExtResource("1_mwl0f")]
+[node name="BaseBallBat" type="Control" parent="Panel/Menu"]
 layout_mode = 2
 
-[node name="Item2" parent="Panel/Menu" instance=ExtResource("1_mwl0f")]
+[node name="Panel" type="Panel" parent="Panel/Menu/BaseBallBat"]
+offset_right = 128.0
+offset_bottom = 128.0
+
+[node name="Item_Icon" type="TextureButton" parent="Panel/Menu/BaseBallBat"]
+layout_mode = 0
+offset_left = 4.0
+offset_right = 68.0
+offset_bottom = 64.0
+scale = Vector2(1.8, 1.8)
+texture_normal = ExtResource("2_wtch7")
+
+[node name="Item_Label" type="Label" parent="Panel/Menu/BaseBallBat"]
+offset_left = 1.0
+offset_top = 107.0
+offset_right = 127.0
+offset_bottom = 130.0
+text = "Baseball Bat"
+horizontal_alignment = 1
+
+[node name="Mace" type="Control" parent="Panel/Menu"]
 layout_mode = 2
 
-[node name="Item3" parent="Panel/Menu" instance=ExtResource("1_mwl0f")]
+[node name="Panel" type="Panel" parent="Panel/Menu/Mace"]
+offset_right = 128.0
+offset_bottom = 128.0
+
+[node name="Item_Icon" type="TextureButton" parent="Panel/Menu/Mace"]
+offset_left = 4.0
+offset_right = 68.0
+offset_bottom = 64.0
+scale = Vector2(1.8, 1.8)
+texture_normal = ExtResource("3_40dny")
+
+[node name="Item_Label" type="Label" parent="Panel/Menu/Mace"]
+offset_left = 1.0
+offset_top = 107.0
+offset_right = 127.0
+offset_bottom = 130.0
+text = "Mace"
+horizontal_alignment = 1
+
+[node name="Gun" type="Control" parent="Panel/Menu"]
 layout_mode = 2
 
-[node name="Item4" parent="Panel/Menu" instance=ExtResource("1_mwl0f")]
+[node name="Panel" type="Panel" parent="Panel/Menu/Gun"]
+offset_right = 128.0
+offset_bottom = 128.0
+
+[node name="Item_Icon" type="TextureButton" parent="Panel/Menu/Gun"]
+offset_left = 4.0
+offset_right = 68.0
+offset_bottom = 64.0
+scale = Vector2(1.8, 1.8)
+texture_normal = ExtResource("4_s364s")
+
+[node name="Item_Label" type="Label" parent="Panel/Menu/Gun"]
+offset_top = 107.0
+offset_right = 128.0
+offset_bottom = 130.0
+text = "Gun"
+horizontal_alignment = 1
+
+[node name="Missle Launcher" type="Control" parent="Panel/Menu"]
 layout_mode = 2
 
-[node name="Item5" parent="Panel/Menu" instance=ExtResource("1_mwl0f")]
+[node name="Panel" type="Panel" parent="Panel/Menu/Missle Launcher"]
+offset_right = 128.0
+offset_bottom = 128.0
+
+[node name="Item_Icon" type="TextureButton" parent="Panel/Menu/Missle Launcher"]
+offset_left = 4.0
+offset_right = 68.0
+offset_bottom = 64.0
+scale = Vector2(1.8, 1.8)
+texture_normal = ExtResource("5_40dny")
+
+[node name="Item_Label" type="Label" parent="Panel/Menu/Missle Launcher"]
+offset_top = 107.0
+offset_right = 128.0
+offset_bottom = 130.0
+text = "Missle Launcher"
+horizontal_alignment = 1
+
+[node name="Fist" type="Control" parent="Panel/Menu"]
 layout_mode = 2
 
-[node name="Item6" parent="Panel/Menu" instance=ExtResource("1_mwl0f")]
+[node name="Panel" type="Panel" parent="Panel/Menu/Fist"]
+offset_right = 128.0
+offset_bottom = 128.0
+
+[node name="Item_Icon" type="TextureButton" parent="Panel/Menu/Fist"]
+offset_left = 4.0
+offset_right = 68.0
+offset_bottom = 64.0
+scale = Vector2(1.8, 1.8)
+texture_normal = ExtResource("6_p5fjk")
+
+[node name="Item_Label" type="Label" parent="Panel/Menu/Fist"]
+offset_top = 107.0
+offset_right = 128.0
+offset_bottom = 130.0
+text = "Fist"
+horizontal_alignment = 1
+
+[node name="Grenade" type="Control" parent="Panel/Menu"]
 layout_mode = 2
 
-[node name="Item7" parent="Panel/Menu" instance=ExtResource("1_mwl0f")]
+[node name="Panel" type="Panel" parent="Panel/Menu/Grenade"]
+offset_right = 128.0
+offset_bottom = 128.0
+
+[node name="Item_Icon" type="TextureButton" parent="Panel/Menu/Grenade"]
+offset_left = 4.0
+offset_right = 68.0
+offset_bottom = 64.0
+scale = Vector2(1.8, 1.8)
+texture_normal = ExtResource("7_3cgg8")
+
+[node name="Item_Label" type="Label" parent="Panel/Menu/Grenade"]
+offset_top = 107.0
+offset_right = 128.0
+offset_bottom = 130.0
+text = "Grenade"
+horizontal_alignment = 1
+
+[node name="Dynamite" type="Control" parent="Panel/Menu"]
 layout_mode = 2
+
+[node name="Panel" type="Panel" parent="Panel/Menu/Dynamite"]
+offset_right = 128.0
+offset_bottom = 128.0
+
+[node name="Item_Icon" type="TextureButton" parent="Panel/Menu/Dynamite"]
+offset_left = 4.0
+offset_right = 68.0
+offset_bottom = 64.0
+scale = Vector2(1.8, 1.8)
+texture_normal = ExtResource("8_40dny")
+
+[node name="Item_Label" type="Label" parent="Panel/Menu/Dynamite"]
+offset_top = 107.0
+offset_right = 128.0
+offset_bottom = 130.0
+text = "Dyanmite"
+horizontal_alignment = 1
