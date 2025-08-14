@@ -1,42 +1,10 @@
 extends Control
-
-var item_database: Dictionary
+@onready var item_limit: int = 10
+@onready var item_count: int = 0
+var baseball_bat_scene: PackedScene = preload("res://Scenes/bodies/BaseballBat.tscn")
 
 func _ready() -> void:
-    item_database = {
-        "baseball_bat": {
-            "item_name": "baseball_bat",
-            "item_description": "This is item 1",
-            "item_icon": ""
-        },
-        "mace": {
-            "item_name": "mace",
-            "item_description": "This is item 2",
-            "item_icon": ""
-        },
-        "fist": {
-            "item_name": "fist",
-            "item_description": "This is item 3",
-        },
-        "gun": {
-            "item_name": "gun",
-            "item_description": "This is item 4",
-            "item_icon": ""
-        },
-        "missle_pointer": {
-            "item_name": "knife",
-            "item_description": "This is item 5",
-        },
-        "grenade": {
-            "item_name": "grenade",
-            "item_description": "This is item 6",
-            "item_icon": ""
-        },
-        "dynamite": {
-            "item_name": "dynamite",
-            "item_description": "This is item 7",
-        }
-    }
+    pass
 
 func _on_toggle_items_pressed() -> void:
     if !visible:
@@ -45,3 +13,13 @@ func _on_toggle_items_pressed() -> void:
     else:
         visible = false
         process_mode = Node.PROCESS_MODE_DISABLED
+
+
+func _on_baseball_icon_pressed() -> void:
+    if item_count < item_limit:
+        var bat = baseball_bat_scene.instantiate()
+        bat.global_position = Vector2(600,100)
+        get_tree().current_scene.add_child(bat)
+        item_count += 1
+    else:
+        print("Item limit reached")

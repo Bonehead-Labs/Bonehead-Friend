@@ -1,12 +1,15 @@
-[gd_scene load_steps=16 format=3 uid="uid://cx146pu1jid8s"]
+[gd_scene load_steps=19 format=3 uid="uid://dn5n7e3hb1deo"]
 
-[ext_resource type="Script" uid="uid://dhweo1ejwqfli" path="res://Scripts/Globals/BaseLevel.gd" id="1_hr04v"]
-[ext_resource type="PackedScene" uid="uid://bmg2ybmet6dm6" path="res://Scenes/Bodies/character.tscn" id="1_ssatm"]
-[ext_resource type="PackedScene" uid="uid://bscdbec0tksur" path="res://Scenes/Cursor_Powers/_fist.tscn" id="5_30ow2"]
-[ext_resource type="PackedScene" uid="uid://cqyv6r1ix1vci" path="res://Scenes/Cursor_Powers/_gun.tscn" id="6_iemmg"]
-[ext_resource type="PackedScene" uid="uid://bfgwoub7o4ktg" path="res://Scenes/Cursor_Powers/missle_pointer.tscn" id="7_3b8rg"]
-[ext_resource type="PackedScene" uid="uid://2kaw0rb80tl" path="res://Scenes/Menus/pause_menu.tscn" id="8_xghcx"]
-[ext_resource type="PackedScene" uid="uid://cu3mtxhsmco6s" path="res://Scenes/Menus/item_menu.tscn" id="10_71eip"]
+[ext_resource type="Script" uid="uid://dhweo1ejwqfli" path="res://Scripts/Globals/BaseLevel.gd" id="1_c1eni"]
+[ext_resource type="PackedScene" uid="uid://bmg2ybmet6dm6" path="res://Scenes/Bodies/character.tscn" id="2_1jawu"]
+[ext_resource type="PackedScene" uid="uid://dfqst7v7bwncv" path="res://Scenes/Bodies/BaseballBat.tscn" id="3_xshe6"]
+[ext_resource type="PackedScene" uid="uid://3k8yf82j34ys" path="res://Scenes/Bodies/_Mace.tscn" id="4_7hoo0"]
+[ext_resource type="PackedScene" uid="uid://42rforhhajo5" path="res://Scenes/Bodies/_Grenade.tscn" id="5_gs6g8"]
+[ext_resource type="PackedScene" uid="uid://bscdbec0tksur" path="res://Scenes/Cursor_Powers/_fist.tscn" id="6_jebva"]
+[ext_resource type="PackedScene" uid="uid://cqyv6r1ix1vci" path="res://Scenes/Cursor_Powers/_gun.tscn" id="7_i0ixa"]
+[ext_resource type="PackedScene" uid="uid://bfgwoub7o4ktg" path="res://Scenes/Cursor_Powers/missle_pointer.tscn" id="8_uwu6r"]
+[ext_resource type="PackedScene" uid="uid://2kaw0rb80tl" path="res://Scenes/Menus/pause_menu.tscn" id="9_5j03r"]
+[ext_resource type="PackedScene" uid="uid://cu3mtxhsmco6s" path="res://Scenes/Menus/item_menu.tscn" id="10_ce0vv"]
 
 [sub_resource type="WorldBoundaryShape2D" id="WorldBoundaryShape2D_s0vl6"]
 distance = -14.0
@@ -32,7 +35,7 @@ b = Vector2(1, 724)
 size = Vector2(907.5, 2013)
 
 [node name="BaseLevel" type="Node2D"]
-script = ExtResource("1_hr04v")
+script = ExtResource("1_c1eni")
 
 [node name="Borders" type="Node" parent="."]
 
@@ -76,24 +79,39 @@ debug_color = Color(0.775156, 0.371108, 0.62304, 0.42)
 position = Vector2(1734.25, 328.5)
 shape = SubResource("RectangleShape2D_iemmg")
 
-[node name="Character" parent="." instance=ExtResource("1_ssatm")]
+[node name="Character" parent="." instance=ExtResource("2_1jawu")]
 position = Vector2(700, 72)
 center_of_mass_mode = 1
 center_of_mass = Vector2(0, 10)
 
-[node name="_Fist" parent="." instance=ExtResource("5_30ow2")]
+[node name="_BaseballBat" parent="." instance=ExtResource("3_xshe6")]
+position = Vector2(218, 596)
+mass = 5.0
+joint_bias = 0.9
+max_angular_speed = 1e+06
+
+[node name="_Mace" parent="." instance=ExtResource("4_7hoo0")]
+position = Vector2(92, 559)
+mass = 40.0
+joint_softness = 0.2
+joint_bias = 0.9
+
+[node name="_GrenadePrototype" parent="." instance=ExtResource("5_gs6g8")]
+position = Vector2(1112, 663)
+
+[node name="_Fist" parent="." instance=ExtResource("6_jebva")]
 position = Vector2(234, 131)
 
-[node name="_Gun" parent="." instance=ExtResource("6_iemmg")]
+[node name="_Gun" parent="." instance=ExtResource("7_i0ixa")]
 
-[node name="MisslePointer" parent="." instance=ExtResource("7_3b8rg")]
+[node name="MisslePointer" parent="." instance=ExtResource("8_uwu6r")]
 
 [node name="Menus" type="CanvasLayer" parent="."]
 
-[node name="pause_menu" parent="Menus" instance=ExtResource("8_xghcx")]
+[node name="pause_menu" parent="Menus" instance=ExtResource("9_5j03r")]
 visible = false
 
-[node name="item_menu" parent="Menus" instance=ExtResource("10_71eip")]
+[node name="item_menu" parent="Menus" instance=ExtResource("10_ce0vv")]
 process_mode = 4
 visible = false
 

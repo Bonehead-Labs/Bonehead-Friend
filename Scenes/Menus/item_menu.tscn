@@ -36,16 +36,17 @@ grow_vertical = 2
 
 [node name="Menu" type="VBoxContainer" parent="Panel"]
 layout_mode = 2
-theme_override_constants/separation = 136
+theme_override_constants/separation = 130
 
 [node name="BaseBallBat" type="Control" parent="Panel/Menu"]
 layout_mode = 2
 
 [node name="Panel" type="Panel" parent="Panel/Menu/BaseBallBat"]
+layout_mode = 0
 offset_right = 128.0
 offset_bottom = 128.0
 
-[node name="Item_Icon" type="TextureButton" parent="Panel/Menu/BaseBallBat"]
+[node name="Baseball_Icon" type="TextureButton" parent="Panel/Menu/BaseBallBat"]
 layout_mode = 0
 offset_left = 4.0
 offset_right = 68.0
@@ -54,6 +55,7 @@ scale = Vector2(1.8, 1.8)
 texture_normal = ExtResource("2_wtch7")
 
 [node name="Item_Label" type="Label" parent="Panel/Menu/BaseBallBat"]
+layout_mode = 0
 offset_left = 1.0
 offset_top = 107.0
 offset_right = 127.0
@@ -65,10 +67,12 @@ horizontal_alignment = 1
 layout_mode = 2
 
 [node name="Panel" type="Panel" parent="Panel/Menu/Mace"]
+layout_mode = 0
 offset_right = 128.0
 offset_bottom = 128.0
 
-[node name="Item_Icon" type="TextureButton" parent="Panel/Menu/Mace"]
+[node name="Mace_Icon" type="TextureButton" parent="Panel/Menu/Mace"]
+layout_mode = 0
 offset_left = 4.0
 offset_right = 68.0
 offset_bottom = 64.0
@@ -76,6 +80,7 @@ scale = Vector2(1.8, 1.8)
 texture_normal = ExtResource("3_40dny")
 
 [node name="Item_Label" type="Label" parent="Panel/Menu/Mace"]
+layout_mode = 0
 offset_left = 1.0
 offset_top = 107.0
 offset_right = 127.0
@@ -87,10 +92,12 @@ horizontal_alignment = 1
 layout_mode = 2
 
 [node name="Panel" type="Panel" parent="Panel/Menu/Gun"]
+layout_mode = 0
 offset_right = 128.0
 offset_bottom = 128.0
 
-[node name="Item_Icon" type="TextureButton" parent="Panel/Menu/Gun"]
+[node name="Gun_Icon" type="TextureButton" parent="Panel/Menu/Gun"]
+layout_mode = 0
 offset_left = 4.0
 offset_right = 68.0
 offset_bottom = 64.0
@@ -98,6 +105,7 @@ scale = Vector2(1.8, 1.8)
 texture_normal = ExtResource("4_s364s")
 
 [node name="Item_Label" type="Label" parent="Panel/Menu/Gun"]
+layout_mode = 0
 offset_top = 107.0
 offset_right = 128.0
 offset_bottom = 130.0
@@ -108,10 +116,12 @@ horizontal_alignment = 1
 layout_mode = 2
 
 [node name="Panel" type="Panel" parent="Panel/Menu/Missle Launcher"]
+layout_mode = 0
 offset_right = 128.0
 offset_bottom = 128.0
 
-[node name="Item_Icon" type="TextureButton" parent="Panel/Menu/Missle Launcher"]
+[node name="Missle_Icon" type="TextureButton" parent="Panel/Menu/Missle Launcher"]
+layout_mode = 0
 offset_left = 4.0
 offset_right = 68.0
 offset_bottom = 64.0
@@ -119,6 +129,7 @@ scale = Vector2(1.8, 1.8)
 texture_normal = ExtResource("5_40dny")
 
 [node name="Item_Label" type="Label" parent="Panel/Menu/Missle Launcher"]
+layout_mode = 0
 offset_top = 107.0
 offset_right = 128.0
 offset_bottom = 130.0
@@ -129,10 +140,12 @@ horizontal_alignment = 1
 layout_mode = 2
 
 [node name="Panel" type="Panel" parent="Panel/Menu/Fist"]
+layout_mode = 0
 offset_right = 128.0
 offset_bottom = 128.0
 
-[node name="Item_Icon" type="TextureButton" parent="Panel/Menu/Fist"]
+[node name="Fist_Icon" type="TextureButton" parent="Panel/Menu/Fist"]
+layout_mode = 0
 offset_left = 4.0
 offset_right = 68.0
 offset_bottom = 64.0
@@ -140,6 +153,7 @@ scale = Vector2(1.8, 1.8)
 texture_normal = ExtResource("6_p5fjk")
 
 [node name="Item_Label" type="Label" parent="Panel/Menu/Fist"]
+layout_mode = 0
 offset_top = 107.0
 offset_right = 128.0
 offset_bottom = 130.0
@@ -150,10 +164,12 @@ horizontal_alignment = 1
 layout_mode = 2
 
 [node name="Panel" type="Panel" parent="Panel/Menu/Grenade"]
+layout_mode = 0
 offset_right = 128.0
 offset_bottom = 128.0
 
-[node name="Item_Icon" type="TextureButton" parent="Panel/Menu/Grenade"]
+[node name="Grenade_Icon" type="TextureButton" parent="Panel/Menu/Grenade"]
+layout_mode = 0
 offset_left = 4.0
 offset_right = 68.0
 offset_bottom = 64.0
@@ -161,6 +177,7 @@ scale = Vector2(1.8, 1.8)
 texture_normal = ExtResource("7_3cgg8")
 
 [node name="Item_Label" type="Label" parent="Panel/Menu/Grenade"]
+layout_mode = 0
 offset_top = 107.0
 offset_right = 128.0
 offset_bottom = 130.0
@@ -171,10 +188,12 @@ horizontal_alignment = 1
 layout_mode = 2
 
 [node name="Panel" type="Panel" parent="Panel/Menu/Dynamite"]
+layout_mode = 0
 offset_right = 128.0
 offset_bottom = 128.0
 
-[node name="Item_Icon" type="TextureButton" parent="Panel/Menu/Dynamite"]
+[node name="Dynamite_Icon" type="TextureButton" parent="Panel/Menu/Dynamite"]
+layout_mode = 0
 offset_left = 4.0
 offset_right = 68.0
 offset_bottom = 64.0
@@ -182,8 +201,11 @@ scale = Vector2(1.8, 1.8)
 texture_normal = ExtResource("8_40dny")
 
 [node name="Item_Label" type="Label" parent="Panel/Menu/Dynamite"]
+layout_mode = 0
 offset_top = 107.0
 offset_right = 128.0
 offset_bottom = 130.0
 text = "Dyanmite"
 horizontal_alignment = 1
+
+[connection signal="pressed" from="Panel/Menu/BaseBallBat/Baseball_Icon" to="." method="_on_baseball_icon_pressed"]
