@@ -19,30 +19,35 @@ var rifle_texture: Texture2D = preload("res://Assets/Crosshair Basic.png")
 
 func make_active() -> void:
 	gun_active = true
-	
+	set_cursor_texture()
+
+
 func make_inactive() -> void:
 	gun_active = false
 
 
-func _ready() -> void:
-	var cursor_texture: Texture2D
-	match gun_type:
-		cursor_type.PISTOL:
-			cursor_texture = pistol_texture
-		cursor_type.SHOTGUN:
-			cursor_texture = shotgun_texture
-		cursor_type.RIFLE:
-			cursor_texture = rifle_texture
-		_:
-			cursor_texture = null
-
-
+func set_cursor_texture() -> void:
+	var cursor_texture: Texture2D = get_cursor_texture()
 	if gun_active:
 		Input.set_custom_mouse_cursor(cursor_texture)
 	else:
 		#reset crosshair to default
 		Input.set_custom_mouse_cursor(null)
 
+func get_cursor_texture() -> Texture2D:
+	match gun_type:
+		cursor_type.PISTOL:
+			return pistol_texture
+		cursor_type.SHOTGUN:
+			return shotgun_texture
+		cursor_type.RIFLE:
+			return rifle_texture
+		_:
+			return null
+
+
+func _ready() -> void:
+	pass
 
 
 func _process(delta: float) -> void:

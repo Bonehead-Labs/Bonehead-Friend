@@ -47,4 +47,8 @@ func _on_mace_icon_pressed() -> void:
 
 
 func _on_gun_icon_pressed() -> void:
-	get_node("../BaseLevel/_Gun").make_active()
+	var gun = get_node_or_null("/root/BaseLevel/_Gun")
+	if gun:
+		gun.make_active()
+	else:
+		print("Gun node not found at /root/BaseLevel/_Gun")
