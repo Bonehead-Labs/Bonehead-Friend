@@ -17,6 +17,22 @@ func _physics_process(delta: float) -> void:
     else:
         global_position = Vector2(-1000,-1000)
 
+
+func make_active() -> void:
+    fist_enabled = true
+    _Sprite.visible = true
+    gravity_scale = 0.0
+    linear_velocity = Vector2.ZERO
+    rotation = 0.0
+    
+func make_inactive() -> void:
+    fist_enabled = false
+    _Sprite.visible = false
+    gravity_scale = 0.0
+    linear_velocity = Vector2.ZERO
+    rotation = 0.0
+
+
 func fist_physics(delta):
     var mouse_position = get_global_mouse_position()
     
