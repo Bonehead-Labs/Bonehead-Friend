@@ -211,3 +211,6 @@ horizontal_alignment = 1
 [connection signal="pressed" from="Panel/Menu/BaseBallBat/Baseball_Icon" to="." method="_on_baseball_icon_pressed"]
 [connection signal="pressed" from="Panel/Menu/Mace/Mace_Icon" to="." method="_on_mace_icon_pressed"]
 [connection signal="pressed" from="Panel/Menu/Gun/Gun_Icon" to="." method="_on_gun_icon_pressed"]
+[connection signal="pressed" from="Panel/Menu/Missle Launcher/Missle_Icon" to="." method="_on_missle_icon_pressed"]
+[connection signal="pressed" from="Panel/Menu/Fist/Fist_Icon" to="." method="_on_fist_icon_pressed"]
+[connection signal="pressed" from="Panel/Menu/Grenade/Grenade_Icon" to="." method="_on_grenade_icon_pressed"]

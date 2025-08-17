@@ -83,6 +83,7 @@ center_of_mass = Vector2(0, 10)
 
 [node name="_Fist" parent="." instance=ExtResource("5_30ow2")]
 position = Vector2(234, 131)
+active = true
 
 [node name="_Gun" parent="." instance=ExtResource("6_iemmg")]
 

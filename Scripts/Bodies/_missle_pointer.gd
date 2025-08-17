@@ -15,9 +15,11 @@ func _ready() -> void:
 
 func make_active() -> void:
     active = true
+    Input.set_custom_mouse_cursor(crosshair_texture)
 
 func make_inactive() -> void:
     active = false
+    Input.set_custom_mouse_cursor(null)
 
 func _process(delta: float) -> void:
     if active and not in_cooldown:

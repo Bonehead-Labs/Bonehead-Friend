@@ -7,9 +7,12 @@ var mace_scene: PackedScene = preload("res://Scenes/bodies/_Mace.tscn")
 #var gun_scene: PackedScene = preload("res://Scenes/Cursor_Powers/_gun.tscn")
 var missle_launcher_scene: PackedScene = preload("res://Scenes/Cursor_Powers/missle_pointer.tscn")
 var dynamite_scene: PackedScene = preload("res://Scenes/Bodies/_Dynamite.tscn")
-var hand_grenade_scene: PackedScene = preload("res://Scenes/Bodies/_Grenade.tscn")
+var grenade_scene: PackedScene = preload("res://Scenes/Bodies/_Grenade.tscn")
 var fist_scene: PackedScene = preload("res://Scenes/Cursor_Powers/_fist.tscn")
 
+@onready var missle_launcher = get_node_or_null("/root/BaseLevel/MisslePointer")
+@onready var gun = get_node_or_null("/root/BaseLevel/_Gun")
+@onready var fist = get_node_or_null("/root/BaseLevel/_Fist")
 var active_items: Array = []
 
 func _ready() -> void:
@@ -35,9 +38,6 @@ func spawn_item(item_scene: PackedScene) -> void:
 		print("Item limit reached")
 		
 
-func activate_power(power_scene: PackedScene) -> void:
-	power_scene.make_active()
-
 func _on_baseball_icon_pressed() -> void:
 	spawn_item(baseball_bat_scene)
 
@@ -47,8 +47,37 @@ func _on_mace_icon_pressed() -> void:
 
 
 func _on_gun_icon_pressed() -> void:
-	var gun = get_node_or_null("/root/BaseLevel/_Gun")
-	if gun:
+	if missle_launcher and missle_launcher.active == true:
+		missle_launcher.make_inactive()
+	if gun and gun.gun_active == false:
 		gun.make_active()
+	elif gun and gun.gun_active == true:
+		gun.make_inactive()
 	else:
 		print("Gun node not found at /root/BaseLevel/_Gun")
+
+
+func _on_missle_icon_pressed() -> void:
+	if gun and gun.gun_active == true:
+		gun.make_inactive()
+	if missle_launcher and missle_launcher.active == false:
+		missle_launcher.make_active()
+	elif missle_launcher and missle_launcher.active == true:
+		missle_launcher.make_inactive()
+	else:
+		print("Gun node not found at /root/BaseLevel/MisslePointer")
+
+
+func _on_fist_icon_pressed() -> void:
+	gun.make_inactive()
+	missle_launcher.make_inactive()
+	if fist and fist.active == false:
+		fist.make_active()
+	elif fist and fist.active == true:
+		fist.make_inactive()
+	else:
+		print("Fist node not found at /root/BaseLevel/_Fist")
+
+
+func _on_grenade_icon_pressed() -> void:
+	spawn_item(grenade_scene)

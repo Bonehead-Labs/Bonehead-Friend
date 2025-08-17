@@ -24,7 +24,7 @@ func make_active() -> void:
 
 func make_inactive() -> void:
 	gun_active = false
-
+	Input.set_custom_mouse_cursor(null)
 
 func set_cursor_texture() -> void:
 	var cursor_texture: Texture2D = get_cursor_texture()
