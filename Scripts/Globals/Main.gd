@@ -20,7 +20,8 @@ var primary_screen_id: int
 
 func _ready():
 	detect_system_info()
-	setup_transparent_window()
+	#setup_transparent_window()
+	set_window_mode(WindowMode.WINDOWED)
 
 func detect_system_info():
 	# Detect operating system

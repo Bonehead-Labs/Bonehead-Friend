@@ -1,10 +1,11 @@
-[gd_scene load_steps=16 format=3 uid="uid://cx146pu1jid8s"]
+[gd_scene load_steps=17 format=3 uid="uid://cx146pu1jid8s"]
 
 [ext_resource type="Script" uid="uid://dhweo1ejwqfli" path="res://Scripts/Globals/BaseLevel.gd" id="1_hr04v"]
 [ext_resource type="PackedScene" uid="uid://bmg2ybmet6dm6" path="res://Scenes/Bodies/character.tscn" id="1_ssatm"]
 [ext_resource type="PackedScene" uid="uid://bscdbec0tksur" path="res://Scenes/Cursor_Powers/_fist.tscn" id="5_30ow2"]
 [ext_resource type="PackedScene" uid="uid://cqyv6r1ix1vci" path="res://Scenes/Cursor_Powers/_gun.tscn" id="6_iemmg"]
 [ext_resource type="PackedScene" uid="uid://bfgwoub7o4ktg" path="res://Scenes/Cursor_Powers/missle_pointer.tscn" id="7_3b8rg"]
+[ext_resource type="PackedScene" uid="uid://dw2ubrk11wtvy" path="res://Scenes/Misc/trash_bin.tscn" id="8_hr04v"]
 [ext_resource type="PackedScene" uid="uid://2kaw0rb80tl" path="res://Scenes/Menus/pause_menu.tscn" id="8_xghcx"]
 [ext_resource type="PackedScene" uid="uid://cu3mtxhsmco6s" path="res://Scenes/Menus/item_menu.tscn" id="10_71eip"]
 
@@ -107,5 +108,9 @@ offset_bottom = 74.0
 grow_horizontal = 0
 size_flags_horizontal = 8
 text = "  Items  "
+
+[node name="TrashBin" parent="." instance=ExtResource("8_hr04v")]
+position = Vector2(55, 47)
+scale = Vector2(1.5, 1.5)
 
 [connection signal="pressed" from="Menus/Toggle_Items" to="Menus/item_menu" method="_on_toggle_items_pressed"]
