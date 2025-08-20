@@ -10,10 +10,12 @@ config_version=5
 
 [application]
 
-config/name="Interactive-Buddy-2"
+config/name="Bonehead Friend"
+config/version="1.0.0"
 run/main_scene="uid://cx146pu1jid8s"
 config/features=PackedStringArray("4.4", "GL Compatibility")
-config/icon="res://Assets/icon.svg"
+config/icon="uid://c12mnyiv85kom"
+config/windows_native_icon="res://Assets/base-bonehead-ICON (1).ico"
 
 [autoload]
 

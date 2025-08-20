@@ -81,3 +81,7 @@ func _on_fist_icon_pressed() -> void:
 
 func _on_grenade_icon_pressed() -> void:
 	spawn_item(grenade_scene)
+
+
+func _on_dynamite_icon_pressed() -> void:
+	spawn_item(dynamite_scene)

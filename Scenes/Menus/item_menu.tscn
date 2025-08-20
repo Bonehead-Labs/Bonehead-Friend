@@ -30,16 +30,21 @@ anchor_left = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = -131.0
-offset_bottom = -506.0
+offset_bottom = -492.0
 grow_horizontal = 0
 grow_vertical = 2
 
 [node name="Menu" type="VBoxContainer" parent="Panel"]
+custom_minimum_size = Vector2(128, 1676)
 layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
 theme_override_constants/separation = 130
 
 [node name="BaseBallBat" type="Control" parent="Panel/Menu"]
 layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 0
 
 [node name="Panel" type="Panel" parent="Panel/Menu/BaseBallBat"]
 layout_mode = 0
@@ -65,6 +70,8 @@ horizontal_alignment = 1
 
 [node name="Mace" type="Control" parent="Panel/Menu"]
 layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 0
 
 [node name="Panel" type="Panel" parent="Panel/Menu/Mace"]
 layout_mode = 0
@@ -90,6 +97,8 @@ horizontal_alignment = 1
 
 [node name="Gun" type="Control" parent="Panel/Menu"]
 layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 0
 
 [node name="Panel" type="Panel" parent="Panel/Menu/Gun"]
 layout_mode = 0
@@ -114,6 +123,8 @@ horizontal_alignment = 1
 
 [node name="Missle Launcher" type="Control" parent="Panel/Menu"]
 layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 0
 
 [node name="Panel" type="Panel" parent="Panel/Menu/Missle Launcher"]
 layout_mode = 0
@@ -138,6 +149,8 @@ horizontal_alignment = 1
 
 [node name="Fist" type="Control" parent="Panel/Menu"]
 layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 0
 
 [node name="Panel" type="Panel" parent="Panel/Menu/Fist"]
 layout_mode = 0
@@ -162,6 +175,8 @@ horizontal_alignment = 1
 
 [node name="Grenade" type="Control" parent="Panel/Menu"]
 layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 0
 
 [node name="Panel" type="Panel" parent="Panel/Menu/Grenade"]
 layout_mode = 0
@@ -186,6 +201,8 @@ horizontal_alignment = 1
 
 [node name="Dynamite" type="Control" parent="Panel/Menu"]
 layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 0
 
 [node name="Panel" type="Panel" parent="Panel/Menu/Dynamite"]
 layout_mode = 0
@@ -205,7 +222,7 @@ layout_mode = 0
 offset_top = 107.0
 offset_right = 128.0
 offset_bottom = 130.0
-text = "Dyanmite"
+text = "Dynamite"
 horizontal_alignment = 1
 
 [connection signal="pressed" from="Panel/Menu/BaseBallBat/Baseball_Icon" to="." method="_on_baseball_icon_pressed"]
@@ -214,3 +231,4 @@ horizontal_alignment = 1
 [connection signal="pressed" from="Panel/Menu/Missle Launcher/Missle_Icon" to="." method="_on_missle_icon_pressed"]
 [connection signal="pressed" from="Panel/Menu/Fist/Fist_Icon" to="." method="_on_fist_icon_pressed"]
 [connection signal="pressed" from="Panel/Menu/Grenade/Grenade_Icon" to="." method="_on_grenade_icon_pressed"]
+[connection signal="pressed" from="Panel/Menu/Dynamite/Dynamite_Icon" to="." method="_on_dynamite_icon_pressed"]
