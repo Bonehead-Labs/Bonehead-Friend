@@ -7,6 +7,9 @@ extends RigidBody2D
 var last_rotation: float = 0.0  # Store the last rotation value
 var previous_mouse_position: Vector2  # Track previous mouse position
 
+func fist():
+    pass
+
 func _ready():
     previous_mouse_position = get_global_mouse_position()
     gravity_scale = 0.0
