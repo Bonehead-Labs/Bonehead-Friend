@@ -4,6 +4,7 @@
 [ext_resource type="Texture2D" uid="uid://dio67gr8f5p2l" path="res://Assets/Trash-Bin.png" id="1_bf5ry"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_vrnnp"]
+size = Vector2(24.5, 30)
 
 [node name="TrashBin" type="Node2D" node_paths=PackedStringArray("delete_timer")]
 script = ExtResource("1_272qm")
@@ -15,6 +16,7 @@ texture = ExtResource("1_bf5ry")
 [node name="TrashArea" type="Area2D" parent="."]
 
 [node name="TrashAreaShape" type="CollisionShape2D" parent="TrashArea"]
+position = Vector2(-1, 2)
 shape = SubResource("RectangleShape2D_vrnnp")
 
 [node name="Delete_Timer" type="Timer" parent="."]

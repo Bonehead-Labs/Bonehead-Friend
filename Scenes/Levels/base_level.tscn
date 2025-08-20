@@ -109,8 +109,14 @@ grow_horizontal = 0
 size_flags_horizontal = 8
 text = "  Items  "
 
-[node name="TrashBin" parent="." instance=ExtResource("8_hr04v")]
-position = Vector2(55, 47)
+[node name="Panel" type="Panel" parent="."]
+offset_left = 38.0
+offset_top = 23.0
+offset_right = 115.0
+offset_bottom = 109.0
+
+[node name="TrashBin" parent="Panel" instance=ExtResource("8_hr04v")]
+position = Vector2(37, 40)
 scale = Vector2(1.5, 1.5)
 
 [connection signal="pressed" from="Menus/Toggle_Items" to="Menus/item_menu" method="_on_toggle_items_pressed"]
