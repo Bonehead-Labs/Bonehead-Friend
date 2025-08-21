@@ -2,9 +2,8 @@ extends Control
 @onready var item_limit: int = 10
 @onready var item_count: int = 0
 @onready var cursor_item_active: bool = false
-var baseball_bat_scene: PackedScene = preload("res://Scenes/bodies/BaseballBat.tscn")
-var mace_scene: PackedScene = preload("res://Scenes/bodies/_Mace.tscn")
-#var gun_scene: PackedScene = preload("res://Scenes/Cursor_Powers/_gun.tscn")
+var baseball_bat_scene: PackedScene = preload("res://Scenes/Bodies/BaseballBat.tscn")
+var mace_scene: PackedScene = preload("res://Scenes/Bodies/_Mace.tscn")
 var missle_launcher_scene: PackedScene = preload("res://Scenes/Cursor_Powers/missle_pointer.tscn")
 var dynamite_scene: PackedScene = preload("res://Scenes/Bodies/_Dynamite.tscn")
 var grenade_scene: PackedScene = preload("res://Scenes/Bodies/_Grenade.tscn")
