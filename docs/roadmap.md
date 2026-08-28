@@ -95,18 +95,14 @@ is the floor) and all four corner snaps land on-screen with their margin.
 **Still needs a human, and cannot be automated:** click-through over a real application and
 the CPU budget on an exported build. That is the actual gate. See `docs/test-matrix.md`.
 
-**⚠️ The perf spike found a real problem.** Fullscreen overlay (2560x1380) runs at roughly
-20–58 fps on an RTX 4080 with an almost-empty scene, while the same overlay at 480x360 runs
-at ~4140 fps and the overlay-off baseline at ~3660. Cost scales with transparent window area;
-transparency itself, the renderer and the passthrough polygon were each ruled out by direct
-measurement. Numbers and method are in `docs/overlay-tech.md`. This is the milestone doing
-its job — it is exactly the risk M1 was front-loaded to find, and it needs a decision on
-whether play-area becomes the shipped default before content is built for fullscreen.
-
-Known limitation carried forward: `window_set_mouse_passthrough()` accepts one polygon, so
-scattered items produce a convex hull that over-includes empty space. Play-area mode makes
-this mostly moot; if fullscreen mode needs true per-region masking, the options are a bridged
-polygon or a Win32 region via GDExtension.
+**The perf spike found a real problem — in our own code, not the platform.** A first pass
+concluded that fullscreen overlay was inherently expensive and that play-area might have to
+become the default. That was wrong. The cause was `PassthroughBuilder` handing Windows a
+convex hull: a rectangular window region is free, an 8-vertex hull costs 3x and a 16-vertex
+one 6.5x. Replacing the hull with a bounding box took fullscreen from ~20 fps to ~3598
+uncapped. A separate bug had the viewport flipping between two sizes on almost every frame,
+shifting the whole scene by 2 px each frame. Both are fixed; numbers and the ruled-out
+suspects are in `docs/overlay-tech.md`.
 
 *Art needed:* none.
 

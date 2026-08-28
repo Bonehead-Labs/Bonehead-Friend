@@ -67,6 +67,8 @@ func _initialize() -> void:
 	_test_empty_passthrough_blocks_nothing()
 	_test_passthrough_covers_padded_rect()
 	_test_passthrough_is_window_local()
+	_test_passthrough_is_always_a_rectangle()
+	_test_passthrough_is_stable_under_jitter()
 	_test_whole_window_polygon()
 
 	print("")
@@ -265,6 +267,7 @@ func _test_passthrough_covers_padded_rect() -> void:
 func _test_passthrough_is_window_local() -> void:
 	# DisplayServer wants window-local coordinates; feeding it world coordinates puts the
 	# click region somewhere else entirely on a window that is not at the origin.
+	# Rects are snapped outward to a grid, so allow for that rather than exact equality.
 	var rects: Array = [Rect2(1000, 500, 50, 50)]
 	var poly: PackedVector2Array = PassthroughBuilder.build(rects, Vector2(900, 400), 0.0)
 	var min_x := poly[0].x
@@ -272,7 +275,34 @@ func _test_passthrough_is_window_local() -> void:
 	for p in poly:
 		min_x = minf(min_x, p.x)
 		min_y = minf(min_y, p.y)
-	_check("origin subtracted from polygon", is_equal_approx(min_x, 100.0) and is_equal_approx(min_y, 100.0))
+	var snap: float = PassthroughBuilder.SNAP
+	_check("origin subtracted from polygon",
+		min_x <= 100.0 and min_x > 100.0 - snap and min_y <= 100.0 and min_y > 100.0 - snap)
+
+## The single most important property of the region: a rectangular window region is free,
+## while an 8-vertex hull cost 3x the frame time and a 16-vertex one 6.5x. If a future
+## change reintroduces a hull, this test is what should stop it.
+func _test_passthrough_is_always_a_rectangle() -> void:
+	var scattered: Array = [
+		Rect2(0, 0, 40, 40), Rect2(900, 700, 60, 60), Rect2(300, 20, 20, 500), Rect2(1200, 5, 10, 10),
+	]
+	var poly: PackedVector2Array = PassthroughBuilder.build(scattered, Vector2.ZERO)
+	_check("region is a 4-vertex rectangle", poly.size() == 4)
+	_check("region is axis-aligned",
+		is_equal_approx(poly[0].y, poly[1].y) and is_equal_approx(poly[2].y, poly[3].y)
+		and is_equal_approx(poly[0].x, poly[3].x) and is_equal_approx(poly[1].x, poly[2].x))
+
+## Snapping exists so a settled scene produces a byte-identical polygon, letting the caller
+## skip re-applying the region — which is what actually costs the frame time.
+##
+## The guarantee is "jitter within a grid cell", not "any jitter": a body resting exactly on
+## a grid line still flips a whole cell when it wobbles across it. That is correct snapping
+## and rare in practice, since physics bodies sleep once settled.
+func _test_passthrough_is_stable_under_jitter() -> void:
+	var a: PackedVector2Array = PassthroughBuilder.build([Rect2(104.0, 104.0, 50, 50)], Vector2.ZERO)
+	var b: PackedVector2Array = PassthroughBuilder.build([Rect2(104.4, 104.3, 50, 50)], Vector2.ZERO)
+	var c: PackedVector2Array = PassthroughBuilder.build([Rect2(103.6, 103.8, 50, 50)], Vector2.ZERO)
+	_check("sub-pixel jitter produces an identical region", a == b and a == c)
 
 func _test_whole_window_polygon() -> void:
 	var poly: PackedVector2Array = PassthroughBuilder.whole_window(Vector2i(800, 600))

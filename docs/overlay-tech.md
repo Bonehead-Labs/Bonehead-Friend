@@ -140,39 +140,41 @@ Mitigations, all shipped in v0.1 rather than retrofitted:
 | Occlusion hibernate | When covered by a fullscreen app, stop rendering and switch to offline accrual. |
 | Window area | If 4K measurements are bad, fall back to a smaller "play area" window instead of full-screen. |
 
-### ⚠️ M1 measurement: fullscreen overlay is expensive (2026-08-28)
+### M1 measurement: the passthrough region must be a RECTANGLE (2026-08-28)
 
-Measured on this machine (RTX 4080 SUPER, 2560x1440 @ 60 Hz secondary), uncapped with VSync
-off, on a nearly-empty scene — 91 nodes, one active body:
+An earlier revision of this document claimed fullscreen overlay was inherently expensive and
+suggested making play-area the shipped default. **That was wrong, and it was caused by a bug
+in our own code.** The finding is recorded here because the wrong version was acted on.
 
-| Configuration | FPS |
+The real cause: `PassthroughBuilder` built a convex hull. Measured at 2560x1378, uncapped:
+
+| Passthrough region | FPS |
 |---|---|
-| Overlay off, 1280x720 | **~3660** |
-| Overlay on, play area 480x360 (transparent, borderless, always-on-top) | **~4140** |
-| Overlay on, fullscreen 2560x1380 | **~20–58** (run to run) |
+| No region | 3624 |
+| **4-vertex rectangle** | **3635** — free |
+| 8-vertex convex hull | 1253 |
+| 16-vertex polygon | 553 |
 
-**The overlay flags are free. The cost scales with transparent window AREA.** Ruled out by
-direct measurement, so don't re-investigate these:
+A rectangular window region composites on a fast path; any non-rectangular polygon forces a
+slow one, and the cost grows with vertex count. With the hull replaced by a bounding box,
+fullscreen went from ~20 fps to **3598 fps uncapped** — a 180x improvement. Play area is
+3946 fps. Both modes now sit comfortably at their frame cap.
 
-- *Not transparency* — fullscreen with `transparent = false` performs the same (55 vs 57 fps).
-- *Not the renderer* — `gl_compatibility`, `forward_plus` and `mobile` all land at ~20 fps
-  fullscreen, so D5's choice is not the problem.
-- *Not the passthrough polygon* — `window_set_mouse_passthrough()` costs ~1.3 ms per call and
-  only runs at 12 Hz, and is now skipped entirely when the region is unchanged.
-- *Not physics* — physics time is 0.13 ms.
+Ruled out by direct measurement along the way, so nobody needs to re-investigate them:
+per-pixel transparency (19.8 vs 19.6 fps with it off at creation), window area on its own
+(a plain 2560x1378 window runs at 3591 fps), the borderless and always-on-top flags (all
+~3600 fps), the renderer (`gl_compatibility`, `forward_plus` and `mobile` all identical),
+and passthrough call *frequency* (free at 60 Hz with a rectangle).
 
-This is the DWM compositing cost the genre research predicted, arriving exactly where it was
-predicted: large always-on-top windows on a high-resolution display. Fullscreen mode is
-therefore playable only because of the frame cap (30 idle / 60 active); it has little headroom
-above that, and a 4K display will be worse.
+**Rule: never hand `window_set_mouse_passthrough()` a non-rectangular polygon.**
 
-**Consequences to decide before M4:** either make play-area the shipped default, restrict
-fullscreen to a "performance mode" with a hard 30 fps cap and a warning, or find a cheaper
-presentation path. Play-area mode is unaffected and comfortably exceeds the budget.
-
-**Fixed alongside:** Windows returns a client area up to 2 px smaller than the requested
-window size, and Godot then reported a window/viewport mismatch roughly 80 times a second.
-`OverlayManager._reconcile_client_size()` corrects the window once so the storm stops.
+A second bug found alongside: sizing a borderless window leaves its outer size ~2 px larger
+than its client area, and each passthrough call makes Windows re-report the outer size. The
+viewport then flipped between the two values on 159 of 165 frames, shifting the entire scene
+— UI included — by two pixels every frame. That was the reported "everything bouncing on the
+spot". `OverlayManager._reconcile_client_size()` shrinks the window to its own client size
+once, and must do so *deferred*, because the viewport does not report its new size until a
+frame has passed.
 
 **Measurement method:** Windows Task Manager and PresentMon against an **exported build** —
 editor numbers are meaningless. Record baselines in this doc at each milestone gate; a

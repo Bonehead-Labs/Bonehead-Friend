@@ -53,8 +53,14 @@ func _process(delta: float) -> void:
 		_passthrough_accumulator = 0.0
 		rebuild_passthrough()
 
-	# Drop back to the idle frame rate once the player stops touching things.
-	if _interacting:
+	# Stay at the active frame rate while anything is still moving, not just while the
+	# player is touching it — a buddy falling at 30 fps looks choppy for no reason now
+	# that there is plenty of headroom.
+	if Performance.get_monitor(Performance.PHYSICS_2D_ACTIVE_OBJECTS) > 0:
+		_idle_timer = 0.0
+		if not _interacting:
+			set_interacting(true)
+	elif _interacting:
 		_idle_timer += delta
 		if _idle_timer >= INTERACTION_TIMEOUT:
 			set_interacting(false)
@@ -109,7 +115,7 @@ func apply_window_configuration() -> void:
 
 	DisplayServer.window_set_position(target.position)
 	DisplayServer.window_set_size(target.size)
-	target.size = _reconcile_client_size(target.size)
+	_reconcile_client_size()
 
 	current_rect = target
 	_known_size = target.size
@@ -118,19 +124,32 @@ func apply_window_configuration() -> void:
 	_force_passthrough_rebuild()
 	window_rect_changed.emit(target)
 
-## Windows can hand back a client area a couple of pixels smaller than the size we asked
-## for. Godot then reports a window/viewport mismatch every frame, which produced ~80
-## spurious size_changed events per second. Reconciling once stops the storm.
-func _reconcile_client_size(requested: Vector2i) -> Vector2i:
-	var actual := Vector2i(get_viewport().get_visible_rect().size)
-	if actual == requested or actual.x <= 0 or actual.y <= 0:
-		return requested
-	var delta := (requested - actual).abs()
-	# Only correct small discrepancies; a large one means something else resized us.
-	if delta.x > 8 or delta.y > 8:
-		return requested
-	DisplayServer.window_set_size(actual)
-	return actual
+## Sizing a BORDERLESS window leaves its outer size a couple of pixels larger than its
+## client area. On its own that is harmless — but every window_set_mouse_passthrough() call
+## makes Windows re-report the outer size, so the viewport flips between the two values on
+## almost every frame. The whole scene, UI included, then shifts by those pixels each frame,
+## which reads as everything vibrating on the spot.
+##
+## Shrinking the window to its own client size removes the discrepancy the flip needs.
+## Must be deferred: the viewport does not report its new size until a frame has passed,
+## so reading it immediately after window_set_size() returns the OLD size and corrects
+## nothing (which is exactly how the first attempt at this failed).
+func _reconcile_client_size() -> void:
+	for _attempt in 4:
+		await get_tree().process_frame
+		await get_tree().process_frame
+		if not _applied and _attempt > 0:
+			return
+		var client := Vector2i(get_viewport().get_visible_rect().size)
+		var outer := DisplayServer.window_get_size()
+		if client.x <= 0 or client.y <= 0 or client == outer:
+			return
+		# A large difference means something other than the border is at work; leave it.
+		if absi(outer.x - client.x) > 16 or absi(outer.y - client.y) > 16:
+			return
+		DisplayServer.window_set_size(client)
+		_known_size = client
+		current_rect.size = client
 
 func set_window_mode(mode: WindowLayout.Mode) -> void:
 	Settings.window_mode = mode
