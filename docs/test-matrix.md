@@ -8,10 +8,14 @@ A plain GDScript test runner — no framework. GUT is overhead a solo dev doesn'
 is mostly pure-function testing.
 
 ```bash
-GODOT="/mnt/c/Users/George/Godot Projects/Godot_v4.7.2-stable_win64.exe"
-"$GODOT" --headless --path . -s tests/run_tests.gd     # asserts, non-zero exit on failure
-"$GODOT" --headless --path . --quit-after 300          # boot smoke test
+GODOT="/mnt/c/Users/George/Godot Projects/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe"
+PROJ='C:\Users\George\Godot Projects\Projects\Bonehead_Friend\interactive-buddy-2'
+"$GODOT" --headless --path "$PROJ" -s tests/run_tests.gd   # asserts, non-zero exit on failure
+"$GODOT" --headless --path "$PROJ" --quit-after 120        # boot smoke test
 ```
+
+(The doubled path segment is real — the release zip was extracted into a folder named like the
+exe. `--path` must be a Windows path; Godot is a Windows process.)
 
 **Run before any commit touching `Economy`, `Progression` or `SaveManager`.**
 

@@ -15,8 +15,10 @@ Read `docs/README.md` first — it indexes the full spec. Design questions are a
 - **Engine is pinned to Godot 4.7.2-stable.** Do not open the project in another version;
   it rewrites `config/features` and `.tscn` formats. See `docs/decisions.md`.
 - The repo lives on the Windows filesystem (`/mnt/c/...`) but agents run in **WSL**.
-  **Godot must be run as the Windows executable**, never a Linux build:
-  `"/mnt/c/Users/George/Godot Projects/Godot_v4.7.2-stable_win64.exe"`
+  **Godot must be run as the Windows executable**, never a Linux build. Note the doubled
+  path segment — the release zip was extracted into a folder named like the exe:
+  `"/mnt/c/Users/George/Godot Projects/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64.exe"`
+  (use the `_console.exe` sibling to capture stdout from WSL)
 - Any tool that is a Windows `.exe` (Godot, Aseprite) must receive **Windows-style paths**
   in its own arguments, even when you invoke it from WSL. Convert with `wslpath -w`.
 - Never run `godot` from a Linux PATH — it is not installed and a Linux build would
@@ -74,14 +76,19 @@ Read `docs/README.md` first — it indexes the full spec. Design questions are a
 ## Verifying work
 
 ```bash
-GODOT="/mnt/c/Users/George/Godot Projects/Godot_v4.7.2-stable_win64.exe"
+GODOT="/mnt/c/Users/George/Godot Projects/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe"
+PROJ='C:\Users\George\Godot Projects\Projects\Bonehead_Friend\interactive-buddy-2'
 
 # Economy math, save round-trips, every migration step
-"$GODOT" --headless --path . -s tests/run_tests.gd
+"$GODOT" --headless --path "$PROJ" -s tests/run_tests.gd
 
 # Boot smoke test — catches broken @export refs and missing scene paths
-"$GODOT" --headless --path . --quit-after 300
+"$GODOT" --headless --path "$PROJ" --quit-after 120
 ```
+
+`--path` takes a **Windows** path because Godot is a Windows process. Verified working on
+4.7.2: the project boots headless with exit 0. Adding `--editor --quit` instead opens the
+project in the editor headlessly, which is how to verify an addon loads.
 
 Run the test suite before any commit touching `Economy`, `Progression` or `SaveManager`.
 Overlay behaviour cannot be unit-tested — work through `docs/test-matrix.md` by hand at the

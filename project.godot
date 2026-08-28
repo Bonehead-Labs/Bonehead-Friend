@@ -21,6 +21,10 @@ config/features=PackedStringArray("4.7", "GL Compatibility")
 config/icon="uid://c12mnyiv85kom"
 config/windows_native_icon="res://Assets/base-bonehead-ICON (1).ico"
 
+[aseprite]
+
+general/command_path="C:\\Program Files (x86)\\Steam\\steamapps\\common\\Aseprite\\Aseprite.exe"
+
 [autoload]
 
 Main="*res://Scripts/Globals/Main.gd"
@@ -35,6 +39,10 @@ window/stretch/mode="viewport"
 window/stretch/aspect="expand"
 window/per_pixel_transparency/allowed=true
 window/vsync/vsync_mode=0
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/AsepriteWizard/plugin.cfg")
 
 [input]
 

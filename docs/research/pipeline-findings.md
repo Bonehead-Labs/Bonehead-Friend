@@ -127,9 +127,10 @@ one to use.
   control via tag repeat; **regex layer filtering** (exclude `_ref`/`_guide` layers); slice support;
   **converts Aseprite's millisecond frame durations into Godot FPS**. AnimationPlayer import
   adds/removes only its own tracks. Editor-only — remove the plugin later and imports still work.
-- ⚠️ **Unverified:** no source states Godot **4.7** compatibility. The branch is generic-4.x with a
-  recent commit and no open 4.7 issues, but 9.8.0 predates 4.7's release. Test the importer
-  immediately after enabling. Fallback: plain spritesheet + JSON.
+- ~~⚠️ **Unverified:** no source states Godot **4.7** compatibility.~~ **✔ Resolved 2026-08-28:**
+  v9.8.0 installed into this project and the editor opened headlessly on Godot 4.7.2 with the
+  plugin enabled, exit 0, no addon errors. Still worth importing one real `.aseprite` file before
+  trusting it end-to-end. Fallback remains plain spritesheet + JSON.
 - Alternative `nklbdev/godot-4-aseprite-importers` has no GitHub releases — lower confidence.
 
 **AnimatedSprite2D vs AnimationPlayer:** `AnimatedSprite2D` + `SpriteFrames` is the right default

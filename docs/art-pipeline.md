@@ -33,20 +33,26 @@ uses `${env:RD_API_KEY}` — that is VS Code syntax and does **not** expand in C
 
 Smoke test: `get_service_status`, then `get_balance`.
 
-### 2. Aseprite Wizard (Godot addon)
+### 2. Aseprite Wizard (Godot addon) — ✅ installed
 
-`viniciusgerevini/godot-aseprite-wizard`, `godot_4` branch. Install into `addons/`, enable, then
-set the Aseprite command path to the **Windows** path (the Godot editor is a Windows process):
+`viniciusgerevini/godot-aseprite-wizard` **v9.8.0** is installed at `addons/AsepriteWizard/`,
+enabled in `project.godot`, with the command path already set to the Windows Aseprite path:
 
+```ini
+[aseprite]
+general/command_path="C:\\Program Files (x86)\\Steam\\steamapps\\common\\Aseprite\\Aseprite.exe"
 ```
-C:\Program Files (x86)\Steam\steamapps\common\Aseprite\Aseprite.exe
-```
 
-Verify with *Project → Tools → Aseprite Config* — it should print a version, not "command not
-found". Confirmed present on this machine: Aseprite **1.3.18.3**, runs headless.
+It must be the **Windows** path — the Godot editor is a Windows process.
 
-⚠️ The addon's 4.7 compatibility is untested upstream. Verify an import immediately after
-enabling; fallback is plain spritesheet + JSON import.
+**Verified 2026-08-28:** Aseprite **1.3.18.3** responds to `--batch --version`, and the project
+opens in the Godot **4.7.2** editor headlessly with the addon enabled and exit code 0 (the
+addon's 4.7 compatibility was the open question; it loads clean). Sanity-check the importer
+itself with a real `.aseprite` file the first time you use it — loading without errors isn't
+quite the same as importing correctly. Fallback if it ever breaks: plain spritesheet + JSON.
+
+In-editor check: *Project → Tools → Aseprite Config* should print a version, not "command not
+found".
 
 What it buys: `.aseprite` files become first-class Godot resources. Each Aseprite **tag becomes
 an animation**, frame durations convert from milliseconds to Godot FPS automatically, and layer

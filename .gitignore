@@ -8,7 +8,8 @@
 !.env.example
 
 # Art pipeline intermediates (raw generator output is regenerable from art/prompts/)
-art/raw/
+art/raw/*
+!art/raw/.gitkeep
 
 # Exports
 /Exports/
