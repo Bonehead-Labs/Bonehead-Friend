@@ -8,7 +8,9 @@ extends Control
 ## release their slot instead of permanently burning it.
 
 const ITEM_LIMIT := 10
-const SPAWN_POSITION := Vector2(600, 100)
+## Fraction of the window to spawn at, rather than a fixed point: the authored (600, 100)
+## is outside the window entirely in a small play area.
+const SPAWN_FRACTION := Vector2(0.5, 0.2)
 
 const GROUP_SPAWNED := &"spawned_item"
 const GROUP_FIST := &"power_fist"
@@ -40,7 +42,7 @@ func spawn_item(item_scene: PackedScene) -> void:
 		return
 
 	var item := item_scene.instantiate() as Node2D
-	item.global_position = SPAWN_POSITION
+	item.global_position = get_viewport().get_visible_rect().size * SPAWN_FRACTION
 	# The trash bin only deletes members of this group, so anything spawnable must join it.
 	item.add_to_group(GROUP_SPAWNED)
 	host.add_child(item)

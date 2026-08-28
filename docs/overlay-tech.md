@@ -21,6 +21,23 @@ almost entirely about.
   Minimum 320x240. Corner snapping uses a 16 px margin and survives resolution changes,
   because the corner is stored rather than the absolute position.
 
+### Running it
+
+**The editor's embedded game window breaks the overlay.** Godot can run the game inside its
+own Game tab, and an embedded window cannot be borderless, always-on-top or click-through.
+`OverlayManager` detects this, skips overlay setup and pushes a warning rather than producing
+a half-broken window. To test the overlay properly, either turn off
+*Editor Settings > Run > Window Placement > Embed Game Window*, use the Game tab's **Make
+Floating** button, or run an exported build.
+
+**Content must not assume a window size.** The prototype authored the buddy at `(700, 72)`
+and item spawns at `(600, 100)`, both of which are outside a 480x360 play area entirely — the
+buddy started beyond the right wall, fell past the floor forever, and the player saw a
+correctly-working but completely empty transparent window. Spawn points are now fractions of
+the viewport, `WorldBounds` pulls stranded bodies back in whenever the window changes size,
+and the buddy's out-of-bounds failsafe measures against the viewport rather than a fixed
+distance. Anything positioned in world coordinates has to survive a 320x240 window.
+
 ### Developer hotkeys
 
 `F3` stats · `F4` window mode · `F5` corner · `F6` monitor · `F7` low power · `F8` overlay off.

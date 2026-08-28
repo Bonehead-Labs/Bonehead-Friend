@@ -51,6 +51,15 @@ func apply_window_configuration() -> void:
 	# Headless runs (tests, smoke tests, CI) have no screens and no window to configure.
 	if DisplayServer.get_name() == "headless":
 		return
+
+	# The editor can embed the running game inside its own Game tab. An embedded window
+	# cannot be made borderless, always-on-top or click-through, so configuring it produces
+	# a confusing half-broken overlay. Skip it and say why.
+	if get_window().is_embedded():
+		push_warning("OverlayManager: game window is embedded in the editor, so overlay mode is disabled. "
+			+ "Turn off Editor Settings > Run > Window Placement > Embed Game Window (or use the "
+			+ "Game tab's Make Floating button) to test the overlay.")
+		return
 	if not Settings.overlay_enabled:
 		_applied = false
 		_clear_passthrough()

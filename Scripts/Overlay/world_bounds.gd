@@ -14,6 +14,9 @@ const WALL_THICKNESS := 256.0
 ## How far above the window the ceiling sits, so things can be flung up and come back.
 const HEADROOM := 400.0
 
+## Keep-inside margin used when the play area shrinks under something.
+const CONTAIN_MARGIN := 64.0
+
 var _walls: Array[StaticBody2D] = []
 
 func _ready() -> void:
@@ -48,6 +51,29 @@ func rebuild() -> void:
 	_place(_walls[1], Vector2(half.x, -HEADROOM - t), Vector2(size.x + WALL_THICKNESS, WALL_THICKNESS))
 	_place(_walls[2], Vector2(-t, half.y), Vector2(WALL_THICKNESS, size.y + HEADROOM * 2.0))
 	_place(_walls[3], Vector2(size.x + t, half.y), Vector2(WALL_THICKNESS, size.y + HEADROOM * 2.0))
+
+	# Anything already outside the new walls would otherwise be stranded — including the
+	# buddy, whose authored spawn point sits outside a small play area entirely.
+	_contain_escapees(size)
+
+## Pulls interactive bodies back into view after the window changes size or monitor.
+## Without this, shrinking the play area silently loses the buddy off-screen and the
+## player sees an empty transparent window.
+func _contain_escapees(size: Vector2) -> void:
+	var inner := Rect2(Vector2.ZERO, size).grow(-CONTAIN_MARGIN)
+	if inner.size.x <= 0.0 or inner.size.y <= 0.0:
+		inner = Rect2(Vector2.ZERO, size)
+	for node in get_tree().get_nodes_in_group(&"interactive"):
+		if not (node is Node2D) or not is_instance_valid(node):
+			continue
+		var body := node as Node2D
+		if inner.has_point(body.global_position):
+			continue
+		body.global_position = body.global_position.clamp(inner.position, inner.end)
+		if body is RigidBody2D:
+			var rb := body as RigidBody2D
+			rb.linear_velocity = Vector2.ZERO
+			rb.angular_velocity = 0.0
 
 func _place(body: StaticBody2D, at: Vector2, size: Vector2) -> void:
 	body.position = at
