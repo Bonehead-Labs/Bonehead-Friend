@@ -1,3 +1,15 @@
 # Godot 4+ specific ignores
 .godot/
 /android/
+
+# Secrets — never commit API keys (Retro Diffusion etc.)
+.env
+*.env
+!.env.example
+
+# Art pipeline intermediates (raw generator output is regenerable from art/prompts/)
+art/raw/
+
+# Exports
+/Exports/
+*.tmp
