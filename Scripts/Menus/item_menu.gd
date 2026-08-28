@@ -1,86 +1,98 @@
 extends Control
-@onready var item_limit: int = 10
-@onready var item_count: int = 0
-@onready var cursor_item_active: bool = false
+
+## Interim item menu. Replaced entirely in M2 by ItemDB + data-driven tiles
+## (docs/decisions.md D8) — every item here still costs three coordinated edits to add.
+##
+## What M0 fixed: cursor powers are found by group instead of absolute node path
+## (the "/root/BaseLevel/_Gun" pattern that shipped a crash), and freed items now
+## release their slot instead of permanently burning it.
+
+const ITEM_LIMIT := 10
+const SPAWN_POSITION := Vector2(600, 100)
+
+const GROUP_SPAWNED := &"spawned_item"
+const GROUP_FIST := &"power_fist"
+const GROUP_GUN := &"power_gun"
+const GROUP_MISSILE := &"power_missile"
+
 var baseball_bat_scene: PackedScene = preload("res://Scenes/Bodies/BaseballBat.tscn")
 var mace_scene: PackedScene = preload("res://Scenes/Bodies/_Mace.tscn")
-var missle_launcher_scene: PackedScene = preload("res://Scenes/Cursor_Powers/missle_pointer.tscn")
 var dynamite_scene: PackedScene = preload("res://Scenes/Bodies/_Dynamite.tscn")
 var grenade_scene: PackedScene = preload("res://Scenes/Bodies/_Grenade.tscn")
-var fist_scene: PackedScene = preload("res://Scenes/Cursor_Powers/_fist.tscn")
 
-@onready var missle_launcher = get_node_or_null("/root/BaseLevel/MisslePointer")
-@onready var gun = get_node_or_null("/root/BaseLevel/_Gun")
-@onready var fist = get_node_or_null("/root/BaseLevel/_Fist")
-var active_items: Array = []
-
-func _ready() -> void:
-	pass
+var active_items: Array[Node2D] = []
 
 func _on_toggle_items_pressed() -> void:
-	if !visible:
-		visible = true
-		process_mode = Node.PROCESS_MODE_ALWAYS
-	else:
-		visible = false
-		process_mode = Node.PROCESS_MODE_DISABLED
+	visible = not visible
+	process_mode = Node.PROCESS_MODE_ALWAYS if visible else Node.PROCESS_MODE_DISABLED
 
+# --- spawning --------------------------------------------------------------
 
 func spawn_item(item_scene: PackedScene) -> void:
-	if item_count < item_limit:
-		var item = item_scene.instantiate()
-		item.global_position = Vector2(600,100)
-		get_tree().current_scene.add_child(item)
-		item_count += 1
-		active_items.append(item)
+	_prune_freed_items()
+	if active_items.size() >= ITEM_LIMIT:
+		return
+
+	var host := get_tree().current_scene
+	if host == null:
+		return
+
+	var item := item_scene.instantiate() as Node2D
+	item.global_position = SPAWN_POSITION
+	# The trash bin only deletes members of this group, so anything spawnable must join it.
+	item.add_to_group(GROUP_SPAWNED)
+	host.add_child(item)
+
+	active_items.append(item)
+	EventBus.item_spawned.emit(item)
+
+## Freed items used to leave their slot occupied forever, so a player who binned ten
+## things could never spawn anything again.
+func _prune_freed_items() -> void:
+	active_items = active_items.filter(func(i: Node2D) -> bool: return is_instance_valid(i))
+
+# --- cursor powers ---------------------------------------------------------
+
+func _power(group: StringName) -> Node:
+	return get_tree().get_first_node_in_group(group)
+
+## Only one cursor power can be live at a time.
+func _toggle_power(group: StringName) -> void:
+	var target := _power(group)
+	if target == null:
+		push_warning("item_menu: no cursor power in group %s" % group)
+		return
+
+	var was_active: bool = target.active
+	for other_group in [GROUP_FIST, GROUP_GUN, GROUP_MISSILE]:
+		var other := _power(other_group)
+		if other and other != target:
+			other.make_inactive()
+
+	if was_active:
+		target.make_inactive()
 	else:
-		print("Item limit reached")
-		
+		target.make_active()
+
+# --- button handlers -------------------------------------------------------
 
 func _on_baseball_icon_pressed() -> void:
 	spawn_item(baseball_bat_scene)
 
-
 func _on_mace_icon_pressed() -> void:
 	spawn_item(mace_scene)
-
-
-func _on_gun_icon_pressed() -> void:
-	if missle_launcher and missle_launcher.active == true:
-		missle_launcher.make_inactive()
-	if gun and gun.gun_active == false:
-		gun.make_active()
-	elif gun and gun.gun_active == true:
-		gun.make_inactive()
-	else:
-		print("Gun node not found at /root/BaseLevel/_Gun")
-
-
-func _on_missle_icon_pressed() -> void:
-	if gun and gun.gun_active == true:
-		gun.make_inactive()
-	if missle_launcher and missle_launcher.active == false:
-		missle_launcher.make_active()
-	elif missle_launcher and missle_launcher.active == true:
-		missle_launcher.make_inactive()
-	else:
-		print("Gun node not found at /root/BaseLevel/MisslePointer")
-
-
-func _on_fist_icon_pressed() -> void:
-	gun.make_inactive()
-	missle_launcher.make_inactive()
-	if fist and fist.active == false:
-		fist.make_active()
-	elif fist and fist.active == true:
-		fist.make_inactive()
-	else:
-		print("Fist node not found at /root/BaseLevel/_Fist")
-
 
 func _on_grenade_icon_pressed() -> void:
 	spawn_item(grenade_scene)
 
-
 func _on_dynamite_icon_pressed() -> void:
 	spawn_item(dynamite_scene)
+
+func _on_gun_icon_pressed() -> void:
+	_toggle_power(GROUP_GUN)
+
+func _on_missle_icon_pressed() -> void:
+	_toggle_power(GROUP_MISSILE)
+
+func _on_fist_icon_pressed() -> void:
+	_toggle_power(GROUP_FIST)

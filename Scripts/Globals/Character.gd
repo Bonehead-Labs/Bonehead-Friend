@@ -1,62 +1,62 @@
 class_name Character extends BaseDraggable
 
+## Bonehead. Kept as a single rigid body by design (docs/decisions.md D4) — the uplift
+## is animation, not simulated dismemberment.
+
+const GROUP_BUDDY := &"buddy"
+
+## How far outside the world he can get before being rescued.
+const OUT_OF_BOUNDS_MARGIN := 3000.0
+
 @export var health: HealthComponent
 @export var hurtbox: HitBoxComponent
+
 var can_take_damage: bool = true
 var initial_position: Vector2
 
-func Character() -> void:
-	pass
-
-func _process(delta: float) -> void:
-	# Failsafe if chaaracter falls off the map
-	var current_pos = global_position
-	if current_pos.y < -2000:
-		global_position = Vector2(500,500)
-		linear_velocity = Vector2.ZERO
-
 func _ready() -> void:
 	super._ready()
-	call_deferred("connect_health_signals")
+	add_to_group(GROUP_BUDDY)
 	initial_position = global_position
-	
-func connect_health_signals():
-	if health:
-		health.EntityKilled.connect(destroy_entity)
-		health.EntityDamaged.connect(entity_damaged)
-		health.EntityHealed.connect(entity_healed)
-		print("Signals connected successfully!")
+	call_deferred("connect_health_signals")
 
-func destroy_entity():
+func _process(_delta: float) -> void:
+	# Failsafe if he escapes the world. The old check only tested y < -2000, which is
+	# *upward* in Godot's 2D space — the one direction gravity guarantees he won't go.
+	if global_position.length() > OUT_OF_BOUNDS_MARGIN:
+		_return_home()
+
+func connect_health_signals() -> void:
+	if health == null:
+		push_warning("Character: no HealthComponent assigned")
+		return
+	health.EntityKilled.connect(destroy_entity)
+	health.EntityDamaged.connect(entity_damaged)
+	health.EntityHealed.connect(entity_healed)
+
+func destroy_entity() -> void:
 	reset_character()
 
-	
-func DELETE():
-	rotate(240)
-	hurtbox.queue_free()
-	set_process(false)
-	await get_tree().create_timer(0.5).timeout
-	queue_free()
-	
-func reset_character():
+func reset_character() -> void:
 	_end_drag()
 	health.Health = health.Max_Health
-	linear_velocity = Vector2.ZERO
-	set_physics_process(false)
+	freeze = true
 	await get_tree().create_timer(0.5).timeout
-	global_position = initial_position
-	linear_velocity = Vector2.ZERO
-	global_rotation = 0
-	await get_tree().create_timer(0.5).timeout
-	set_physics_process(true)  # Resume physics
-		
-	
-func entity_damaged():
-	pass
-	# if Effects_Player:
-	#     Effects_Player.hit_effect()
-	#     if SoundPlayer:
-	#         SoundPlayer.hit_effect()
+	if not is_instance_valid(self):
+		return
+	_return_home()
+	freeze = false
 
-func entity_healed():
-	pass
+func _return_home() -> void:
+	global_position = initial_position
+	global_rotation = 0.0
+	linear_velocity = Vector2.ZERO
+	angular_velocity = 0.0
+
+func entity_damaged() -> void:
+	if Effects_Player:
+		Effects_Player.hit_effect()
+
+func entity_healed() -> void:
+	if Effects_Player:
+		Effects_Player.heal_effect()

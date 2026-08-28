@@ -38,13 +38,12 @@ size = Vector2(25, 62)
 radius = 24.0
 height = 160.0
 
-[node name="_BaseballBat" node_paths=PackedStringArray("AttackBox", "_attackBody", "drag_area", "handle", "sprite", "collider", "Effects_Player") instance=ExtResource("1_dw3le")]
+[node name="_BaseballBat" node_paths=PackedStringArray("AttackBox", "drag_area", "handle", "sprite", "collider", "Effects_Player") instance=ExtResource("1_dw3le")]
 mass = 8.0
 center_of_mass_mode = 1
 center_of_mass = Vector2(0, -30)
 script = ExtResource("2_bee53")
 AttackBox = NodePath("AttackBox")
-_attackBody = NodePath("AttackBox/_attackPhysics")
 min_damage = 1
 max_damage = 40
 drag_area = NodePath("DraggableArea")
@@ -88,9 +87,7 @@ script = ExtResource("4_bee53")
 _Weapon = NodePath("..")
 metadata/_custom_type_script = "uid://bjsajrtuu6742"
 
-[node name="_attackPhysics" type="RigidBody2D" parent="AttackBox" index="0"]
-
-[node name="_attackCollision" type="CollisionShape2D" parent="AttackBox" index="1"]
+[node name="_attackCollision" type="CollisionShape2D" parent="AttackBox" index="0"]
 position = Vector2(-5, -43)
 shape = SubResource("CapsuleShape2D_myi0o")
 debug_color = Color(0.98588, 0, 0.329313, 0.42)

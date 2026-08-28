@@ -32,13 +32,12 @@ size = Vector2(7, 34)
 [sub_resource type="CircleShape2D" id="CircleShape2D_fw4pm"]
 radius = 61.2046
 
-[node name="_Mace" node_paths=PackedStringArray("AttackBox", "_attackBody", "drag_area", "handle", "sprite", "collider") instance=ExtResource("1_rfmqk")]
+[node name="_Mace" node_paths=PackedStringArray("AttackBox", "drag_area", "handle", "sprite", "collider") instance=ExtResource("1_rfmqk")]
 mass = 15.0
 center_of_mass_mode = 1
 center_of_mass = Vector2(0, -80)
 script = ExtResource("2_u6ghd")
 AttackBox = NodePath("AttackBox")
-_attackBody = NodePath("AttackBox/_attackPhysics")
 min_damage = 0
 max_damage = 40
 drag_area = NodePath("DraggableArea")
@@ -80,7 +79,5 @@ metadata/_custom_type_script = "uid://bjsajrtuu6742"
 position = Vector2(1, -64)
 shape = SubResource("CircleShape2D_fw4pm")
 debug_color = Color(0.994241, 0, 0.225226, 0.42)
-
-[node name="_attackPhysics" type="RigidBody2D" parent="AttackBox" index="1"]
 
 [connection signal="area_entered" from="AttackBox" to="." method="_on_attack_box_area_entered"]

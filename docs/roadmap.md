@@ -5,7 +5,7 @@ start the next milestone until the current gate passes.
 
 | Milestone | Size | Status |
 |---|---|---|
-| M0 — Cleanup & foundations | ~1 wk | ⬜ not started |
+| M0 — Cleanup & foundations | ~1 wk | ✅ **complete** (2026-08-28) |
 | M1 — Overlay spike | 1–2 wk | ⬜ |
 | M2 — Vertical slice | 3–4 wk | ⬜ |
 | M3 — Systems & buddy uplift | 4–6 wk | ⬜ |
@@ -35,6 +35,31 @@ Make the repo safe to build on. No new features.
 
 **Gate:** clean Windows export boots; headless smoke test passes; no orphaned-node warnings; one
 asset has travelled the whole art pipeline.
+
+### ✅ M0 outcome (2026-08-28)
+
+Done: nine dead files deleted; engine pinned; VSync on, physics 120→60, stretch disabled, pixel
+snap on, collision layers named (Godot then normalised `project.godot` by dropping the lines
+whose values are engine defaults — the settings are still in effect); `EventBus`, `Settings`,
+`SaveManager` built and wired; `SaveSchema` and `EconomyMath` extracted as pure, testable
+modules; headless test runner added — **53 assertions passing**; boot smoke test clean.
+
+Bugs fixed: trash bin (erase-while-iterating, never-reset timer, whitelist by group instead of
+duck-typed markers); `BaseDraggable` (`_input`→`_unhandled_input`, consistent global mouse
+space); item-count slots no longer permanently burned; cursor powers found by group rather than
+absolute path; explosion nodes freed instead of leaked; the fist's stranded invisible collider;
+`Character`'s out-of-bounds check (tested the one direction gravity can't take him); explosion
+falloff deduplicated into `ExplosionUtil`; the shapeless `_attackPhysics` probe removed from both
+weapon scenes; all `print()` spam gone; tabs normalised.
+
+Two bugs the new tests caught immediately, both of which would have silently short-changed
+players at exactly the round numbers they'd notice: `max_affordable` returning 4 when the player
+could afford exactly 5, and `pow(64, 1/3)` flooring to 3 instead of 4. Both were floating-point
+slack, both fixed with an epsilon in `EconomyMath`.
+
+Deferred to M2 (documented, not forgotten): `EffectsPlayer.Character` export shadows the
+`Character` class and is referenced by five scenes; `Missle` spelling; the `_input` handler in
+`_gun.gd`.
 
 *Art needed:* none.
 

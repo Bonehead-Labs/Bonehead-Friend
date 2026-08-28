@@ -86,9 +86,27 @@ PROJ='C:\Users\George\Godot Projects\Projects\Bonehead_Friend\interactive-buddy-
 "$GODOT" --headless --path "$PROJ" --quit-after 120
 ```
 
-`--path` takes a **Windows** path because Godot is a Windows process. Verified working on
-4.7.2: the project boots headless with exit 0. Adding `--editor --quit` instead opens the
-project in the editor headlessly, which is how to verify an addon loads.
+`--path` takes a **Windows** path because Godot is a Windows process. Adding `--editor --quit`
+opens the project in the editor headlessly, which is how to verify an addon loads.
+
+**After adding any script with a new `class_name`, run the editor pass before anything else:**
+
+```bash
+"$GODOT" --headless --editor --quit --path "$PROJ"
+```
+
+Global class names are resolved through `.godot/global_script_class_cache.cfg`, which only
+the editor regenerates. Create a `class_name` script from outside the editor and the runtime
+cannot find the type — an autoload that references it fails to *instantiate*, which cascades
+into "Identifier not found" errors in unrelated scripts and a game that boots into nothing.
+It looks like a code bug and isn't.
+
+Two more constraints the test runner imposes, both already worked around:
+- Autoload singletons are **not registered under `-s`**, so a script the tests import must
+  not reference `EventBus` and friends. That is why `SaveSchema` and `EconomyMath` are pure
+  and separate from `SaveManager` / `Economy`. Keep new logic testable the same way.
+- `Unrecognized UID: "uid://..."` during a headless *editor* run is benign first-import
+  noise, not a broken main scene.
 
 Run the test suite before any commit touching `Economy`, `Progression` or `SaveManager`.
 Overlay behaviour cannot be unit-tested — work through `docs/test-matrix.md` by hand at the

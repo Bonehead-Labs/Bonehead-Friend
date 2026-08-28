@@ -1,46 +1,45 @@
 class_name Throwable
 extends BaseDraggable
 
-@export var throwable_delay: float = 3
+## Grenades, dynamite: prime with right-click while dragging, explode after a delay.
+
+@export var throwable_delay: float = 3.0
 @export var explosion_area: Area2D
 @export var max_force: float = 10000.0
+
 var is_primed: bool = false
 
 func _ready() -> void:
 	super._ready()
-	explosion_area.monitoring = false
+	if explosion_area:
+		explosion_area.monitoring = false
 
-func _input(event: InputEvent) -> void:
-	super._input(event)
-	if !is_primed:
-		if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_RIGHT and dragging:
-			prime_explosion()
-
+func _unhandled_input(event: InputEvent) -> void:
+	super._unhandled_input(event)
+	if is_primed:
+		return
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_RIGHT and dragging:
+		prime_explosion()
 
 func prime_explosion() -> void:
-	explosion_area.monitoring = true
+	if is_primed:
+		return
 	is_primed = true
-	#Effects_Player.explosion_countdown()
+	if explosion_area:
+		explosion_area.monitoring = true
 	await get_tree().create_timer(throwable_delay).timeout
-	explode()
-
+	# The player can bin a primed grenade before it goes off.
+	if is_instance_valid(self):
+		explode()
 
 func explode() -> void:
-	var cs = explosion_area.get_node("_explosionAreaShape") as CollisionShape2D
-	var radius = (cs.shape as CircleShape2D).radius
-
-	for body in explosion_area.get_overlapping_bodies():
-		print("Body found", body)
-		if body is RigidBody2D:
-			var dir = body.global_position - global_position
-			var dist = dir.length()
-			var falloff = 1.0 - clamp(dist / radius, 0.0, 1.0)
-			var strength = max_force * falloff * falloff
-			body.apply_impulse(dir.normalized() * strength, Vector2.ZERO)
-	# 4) Turn off detection and remove self
-			print("dist:", dist, " radius:", radius, " strength:", strength)
-	explosion_area.monitoring = false
-	Effects_Player.explosion_effect(global_position)
-	sprite.queue_free()
-	await get_tree().create_timer(0.5).timeout # test timer
-	queue_free()  # Remove the throwable from the scene after explosion
+	if explosion_area:
+		ExplosionUtil.apply_blast(explosion_area, global_position, max_force)
+		explosion_area.monitoring = false
+	if Effects_Player:
+		Effects_Player.explosion_effect(global_position)
+	if sprite:
+		sprite.visible = false
+	EventBus.item_despawned.emit(self)
+	await get_tree().create_timer(0.5).timeout
+	queue_free()

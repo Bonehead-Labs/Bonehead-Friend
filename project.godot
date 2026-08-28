@@ -27,7 +27,9 @@ general/command_path="C:\\Program Files (x86)\\Steam\\steamapps\\common\\Aseprit
 
 [autoload]
 
-Main="*res://Scripts/Globals/Main.gd"
+EventBus="*res://Scripts/Autoload/event_bus.gd"
+Settings="*res://Scripts/Autoload/settings.gd"
+SaveManager="*res://Scripts/Autoload/save_manager.gd"
 
 [display]
 
@@ -35,10 +37,7 @@ window/size/viewport_width=1280
 window/size/viewport_height=720
 window/size/initial_position_type=3
 window/size/transparent=true
-window/stretch/mode="viewport"
-window/stretch/aspect="expand"
 window/per_pixel_transparency/allowed=true
-window/vsync/vsync_mode=0
 
 [editor_plugins]
 
@@ -52,12 +51,18 @@ mouse_left={
 ]
 }
 
-[physics]
+[layer_names]
 
-common/physics_ticks_per_second=120
+2d_physics/layer_1="world"
+2d_physics/layer_2="buddy"
+2d_physics/layer_3="item"
+2d_physics/layer_4="handle"
+2d_physics/layer_5="pickup"
+2d_physics/layer_6="sensor"
 
 [rendering]
 
 textures/canvas_textures/default_texture_filter=0
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
+2d/snap/snap_2d_transforms_to_pixel=true
