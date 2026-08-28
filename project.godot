@@ -31,6 +31,7 @@ import/import_plugin/default_automatic_importer="SpriteFrames"
 EventBus="*res://Scripts/Autoload/event_bus.gd"
 Settings="*res://Scripts/Autoload/settings.gd"
 SaveManager="*res://Scripts/Autoload/save_manager.gd"
+OverlayManager="*res://Scripts/Autoload/overlay_manager.gd"
 
 [display]
 

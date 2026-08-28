@@ -13,6 +13,9 @@ extends SceneTree
 
 const Schema := preload("res://Scripts/Save/save_schema.gd")
 const Math := preload("res://Scripts/Economy/economy_math.gd")
+# Referenced by global class name rather than a preload alias: an enum reached through a
+# preloaded script is treated as a DIFFERENT type from the same enum on the class itself,
+# so `Alias.Corner.TOP_LEFT` will not satisfy a `Corner` parameter.
 
 var _passed := 0
 var _failed := 0
@@ -51,6 +54,20 @@ func _initialize() -> void:
 
 	_suite("mastery")
 	_test_mastery_curve_is_superlinear()
+
+	_suite("window layout")
+	_test_fullscreen_uses_usable_rect()
+	_test_play_area_snaps_to_corners()
+	_test_play_area_clamped_to_screen()
+	_test_play_area_has_a_floor_size()
+	_test_oversized_window_stays_on_screen()
+	_test_revalidation_detects_stale_rect()
+
+	_suite("passthrough polygon")
+	_test_empty_passthrough_blocks_nothing()
+	_test_passthrough_covers_padded_rect()
+	_test_passthrough_is_window_local()
+	_test_whole_window_polygon()
 
 	print("")
 	print("==========================")
@@ -184,6 +201,83 @@ func _test_mastery_curve_is_superlinear() -> void:
 	var r20: float = Math.mastery_xp_for_rank(100.0, 20)
 	_check("rank 0 needs nothing", Math.mastery_xp_for_rank(100.0, 0) == 0.0)
 	_check("doubling rank more than doubles xp", r20 > r10 * 2.0)
+
+# --- window layout ---------------------------------------------------------
+# The overlay lives on someone else's desktop; getting these wrong puts the window
+# off-screen or under the taskbar, which the genre's reviews are full of.
+
+func _test_fullscreen_uses_usable_rect() -> void:
+	# Usable rect excludes the taskbar — that is what makes the taskbar the floor.
+	var usable := Rect2i(0, 0, 1920, 1040)
+	var r: Rect2i = WindowLayout.target_rect(WindowLayout.Mode.FULLSCREEN_OVERLAY, usable, Vector2i(480, 360), WindowLayout.Corner.FREE, Vector2i.ZERO)
+	_check("fullscreen fills usable rect", r == usable)
+
+func _test_play_area_snaps_to_corners() -> void:
+	var usable := Rect2i(0, 0, 1920, 1040)
+	var size := Vector2i(480, 360)
+	var m: int = WindowLayout.DEFAULT_MARGIN
+	var tl: Rect2i = WindowLayout.target_rect(WindowLayout.Mode.PLAY_AREA, usable, size, WindowLayout.Corner.TOP_LEFT, Vector2i.ZERO)
+	var br: Rect2i = WindowLayout.target_rect(WindowLayout.Mode.PLAY_AREA, usable, size, WindowLayout.Corner.BOTTOM_RIGHT, Vector2i.ZERO)
+	_check("top-left snaps with margin", tl.position == Vector2i(m, m))
+	_check("bottom-right snaps with margin", br.position == Vector2i(1920 - 480 - m, 1040 - 360 - m))
+	_check("corner snap keeps size", br.size == size)
+
+func _test_play_area_clamped_to_screen() -> void:
+	# A monitor offset matters: secondary screens do not start at 0,0.
+	var usable := Rect2i(1920, 0, 1920, 1040)
+	var r: Rect2i = WindowLayout.target_rect(WindowLayout.Mode.PLAY_AREA, usable, Vector2i(480, 360), WindowLayout.Corner.FREE, Vector2i(9999, 9999))
+	_check("free position clamped onto monitor", usable.encloses(r))
+
+func _test_play_area_has_a_floor_size() -> void:
+	var usable := Rect2i(0, 0, 1920, 1040)
+	var r: Rect2i = WindowLayout.target_rect(WindowLayout.Mode.PLAY_AREA, usable, Vector2i(10, 10), WindowLayout.Corner.TOP_LEFT, Vector2i.ZERO)
+	_check("tiny size raised to minimum", r.size == WindowLayout.MIN_PLAY_SIZE)
+
+func _test_oversized_window_stays_on_screen() -> void:
+	# Window bigger than the monitor: naive clamping would push it off the top-left.
+	var usable := Rect2i(0, 0, 800, 600)
+	var pos: Vector2i = WindowLayout.clamp_position(Vector2i(500, 500), Vector2i(1200, 900), usable)
+	_check("oversized window pinned to origin", pos == Vector2i(0, 0))
+
+func _test_revalidation_detects_stale_rect() -> void:
+	var usable := Rect2i(0, 0, 1920, 1040)
+	_check("empty rect needs revalidation", WindowLayout.needs_revalidation(Rect2i(), usable))
+	_check("off-screen rect needs revalidation", WindowLayout.needs_revalidation(Rect2i(3000, 0, 480, 360), usable))
+	_check("contained rect is fine", not WindowLayout.needs_revalidation(Rect2i(10, 10, 480, 360), usable))
+
+# --- passthrough polygon ---------------------------------------------------
+
+func _test_empty_passthrough_blocks_nothing() -> void:
+	# An EMPTY array means "no passthrough", i.e. the window swallows every click. The
+	# nothing-interactive case must therefore be a polygon containing nothing, not [].
+	var poly: PackedVector2Array = PassthroughBuilder.build([], Vector2.ZERO)
+	_check("empty input yields a non-empty polygon", poly.size() >= 3)
+	_check("that polygon is far off-window", poly[0].x < -1000.0)
+
+func _test_passthrough_covers_padded_rect() -> void:
+	var rects: Array = [Rect2(100, 100, 50, 50)]
+	var poly: PackedVector2Array = PassthroughBuilder.build(rects, Vector2.ZERO, 10.0)
+	var bounds := Rect2(poly[0], Vector2.ZERO)
+	for p in poly:
+		bounds = bounds.expand(p)
+	_check("polygon covers the padded rect", bounds.encloses(Rect2(90, 90, 70, 70)))
+
+func _test_passthrough_is_window_local() -> void:
+	# DisplayServer wants window-local coordinates; feeding it world coordinates puts the
+	# click region somewhere else entirely on a window that is not at the origin.
+	var rects: Array = [Rect2(1000, 500, 50, 50)]
+	var poly: PackedVector2Array = PassthroughBuilder.build(rects, Vector2(900, 400), 0.0)
+	var min_x := poly[0].x
+	var min_y := poly[0].y
+	for p in poly:
+		min_x = minf(min_x, p.x)
+		min_y = minf(min_y, p.y)
+	_check("origin subtracted from polygon", is_equal_approx(min_x, 100.0) and is_equal_approx(min_y, 100.0))
+
+func _test_whole_window_polygon() -> void:
+	var poly: PackedVector2Array = PassthroughBuilder.whole_window(Vector2i(800, 600))
+	_check("whole-window polygon has 4 corners", poly.size() == 4)
+	_check("whole-window polygon spans the window", poly[2] == Vector2(800, 600))
 
 # --- harness ---------------------------------------------------------------
 

@@ -4,6 +4,29 @@ Everything about living on someone else's desktop. This is the highest-risk area
 project: it's what makes the game special, and it's what the genre's negative reviews are
 almost entirely about.
 
+## Implementation (M1)
+
+| Piece | Where |
+|---|---|
+| Window flags, monitor validation, FPS governor, passthrough service | `Scripts/Autoload/overlay_manager.gd` |
+| Mode / corner / clamping maths (pure, unit-tested) | `Scripts/Overlay/window_layout.gd` |
+| Click region construction (pure, unit-tested) | `Scripts/Overlay/passthrough_builder.gd` |
+| Runtime world walls | `Scripts/Overlay/world_bounds.gd` |
+| F3 readout + developer hotkeys | `Scripts/Overlay/debug_overlay.gd` |
+
+### Two window modes (D10)
+
+- **Fullscreen overlay** (default) — the monitor's usable rect, so the taskbar is the floor.
+- **Play area** — a small window (480x360 default) snapped to a corner or placed freely.
+  Minimum 320x240. Corner snapping uses a 16 px margin and survives resolution changes,
+  because the corner is stored rather than the absolute position.
+
+### Developer hotkeys
+
+`F3` stats · `F4` window mode · `F5` corner · `F6` monitor · `F7` low power · `F8` overlay off.
+
+These exist so the overlay can be exercised before the real Settings UI lands in M4.
+
 ## Requirements
 
 The window must be **transparent, borderless, always-on-top, click-through where the game
@@ -62,7 +85,19 @@ Implementation rules, all of them performance-driven:
 - Cap total vertices (~64). Fallback if the union gets expensive: bounding-box union.
 - When any UI panel is open, the polygon is just the panel rect(s) — no need to union the world.
 
-Edge case to test explicitly in M1: dragging the buddy *to the very edge* of the screen, and
+**Known limitation, accepted for now:** `window_set_mouse_passthrough()` accepts exactly ONE
+polygon, so genuinely disjoint regions cannot be expressed. `PassthroughBuilder` takes the
+convex hull of everything interactive, which over-includes the empty space between scattered
+items. Play-area mode makes this largely irrelevant — a small window has little area to get
+wrong. If fullscreen mode needs true per-region masking, the options are a bridged polygon
+(risky: Windows fills regions with the even-odd rule, so zero-width bridges may cancel) or a
+real Win32 region via the same GDExtension that would unlock window colliders.
+
+Two cases short-circuit the hull and make the whole window clickable, both deliberate:
+a UI panel being open, and a cursor power being armed — when you are aiming a gun at the
+desktop, every pixel is a valid target.
+
+Edge case to test explicitly: dragging the buddy *to the very edge* of the screen, and
 clicking in the gap between two nearly-touching hulls.
 
 ## Performance

@@ -6,7 +6,7 @@ start the next milestone until the current gate passes.
 | Milestone | Size | Status |
 |---|---|---|
 | M0 — Cleanup & foundations | ~1 wk | ✅ **complete** (2026-08-28) |
-| M1 — Overlay spike | 1–2 wk | ⬜ |
+| M1 — Overlay spike | 1–2 wk | 🟡 **code complete** — manual gate pending |
 | M2 — Vertical slice | 3–4 wk | ⬜ |
 | M3 — Systems & buddy uplift | 4–6 wk | ⬜ |
 | M4 — Demo / Next Fest | 2–3 wk | ⬜ |
@@ -79,8 +79,27 @@ The riskiest work, done first, in an isolated `overlay_spike.tscn` so failure is
 **Gate:** clicks pass through to apps outside the silhouette; drag feel is unchanged; **< 3% CPU
 idle measured on an export**; window survives sleep/wake and monitor unplug.
 
-If the 4K numbers are bad, the fallback (a smaller play-area window instead of full-screen) is
-decided *here*, not after content is built around a full-screen assumption.
+### 🟡 M1 status (2026-08-28) — code complete, manual gate outstanding
+
+Built: `OverlayManager` autoload (window flags, monitor validation and fallback, passthrough
+service at 12 Hz, FPS governor, low-power mode); `WindowLayout` and `PassthroughBuilder` as
+pure tested modules; `WorldBounds` regenerating the walls at runtime (the prototype's were
+hand-placed for a fixed 1280x720); **both window modes from D10**; the F3 debug overlay and
+developer hotkeys. Test suite is now **69 assertions, all passing**.
+
+Verified automatically: the project boots, a real window launches cleanly on the GPU, and
+the layout maths is correct against the actual dual-monitor setup here — fullscreen resolves
+to 2560x1380 on the secondary (the 60 px taskbar correctly excluded, so the taskbar really
+is the floor) and all four corner snaps land on-screen with their margin.
+
+**Still needs a human, and cannot be automated:** click-through over a real application,
+drag feel, and the CPU budget on an exported build. That is the actual gate. See
+`docs/test-matrix.md` for the checklist.
+
+Known limitation carried forward: `window_set_mouse_passthrough()` accepts one polygon, so
+scattered items produce a convex hull that over-includes empty space. Play-area mode makes
+this mostly moot; if fullscreen mode needs true per-region masking, the options are a bridged
+polygon or a Win32 region via GDExtension.
 
 *Art needed:* none.
 

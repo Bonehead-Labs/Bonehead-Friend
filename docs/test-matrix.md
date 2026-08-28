@@ -36,6 +36,32 @@ Coverage — these are pure functions with no excuse for being wrong:
 The boot smoke test exists to catch broken `@export` references and missing scene paths after
 scene edits — the failure mode that produced the original export bug.
 
+## M1 hands-on checklist
+
+The overlay's gate cannot be automated — click-through and CPU cost need a real window over
+real applications. Launch the game, then:
+
+| Hotkey | Does |
+|---|---|
+| `F3` | stats readout (fps, cap, process/physics ms, node and body counts, window rect, monitor) |
+| `F4` | switch fullscreen overlay ↔ play area |
+| `F5` | cycle the play-area corner |
+| `F6` | move to the next monitor |
+| `F7` | toggle Low Power Mode |
+| `F8` | turn the overlay off (normal window) — the escape hatch if anything misbehaves |
+
+1. **Click-through.** Put a browser behind the game. Click empty space — the browser should
+   receive it. Click Bonehead — the game should. Drag him to each screen edge.
+2. **Both modes.** `F4` between them; `F5` around all four corners. Check the window stays on
+   screen and the taskbar acts as the floor in fullscreen mode.
+3. **Multi-monitor.** `F6` to move; confirm the position persists across a restart.
+4. **Performance.** `F3` for in-game numbers, then Task Manager for the truth — watch
+   **Desktop Window Manager**, not just the game process. Compare idle vs. ten spawned items,
+   and default vs. `F7` Low Power. Record the numbers in `overlay-tech.md`.
+5. **Recovery.** `F8`, sleep/wake, unplug a monitor while running.
+
+Editor and debug-build numbers are indicative only; the budget is measured on an export.
+
 ## Manual overlay matrix
 
 Run at the **M1, M2 and M4** gates. Overlay behaviour cannot be unit-tested; every row here

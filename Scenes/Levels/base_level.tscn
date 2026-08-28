@@ -8,6 +8,7 @@
 [ext_resource type="PackedScene" uid="uid://dw2ubrk11wtvy" path="res://Scenes/Misc/trash_bin.tscn" id="8_hr04v"]
 [ext_resource type="PackedScene" uid="uid://2kaw0rb80tl" path="res://Scenes/Menus/pause_menu.tscn" id="8_xghcx"]
 [ext_resource type="PackedScene" uid="uid://cu3mtxhsmco6s" path="res://Scenes/Menus/item_menu.tscn" id="10_71eip"]
+[ext_resource type="Script" path="res://Scripts/Overlay/world_bounds.gd" id="99_bounds"]
 
 [sub_resource type="WorldBoundaryShape2D" id="WorldBoundaryShape2D_s0vl6"]
 distance = -14.0
@@ -36,6 +37,7 @@ size = Vector2(907.5, 2013)
 script = ExtResource("1_hr04v")
 
 [node name="Borders" type="Node" parent="."]
+script = ExtResource("99_bounds")
 
 [node name="BottomBorder" type="StaticBody2D" parent="Borders"]
 
@@ -99,7 +101,7 @@ visible = false
 process_mode = 4
 visible = false
 
-[node name="Toggle_Items" type="Button" parent="Menus"]
+[node name="Toggle_Items" type="Button" parent="Menus" groups=["interactive"]]
 anchors_preset = 1
 anchor_left = 1.0
 anchor_right = 1.0
@@ -109,7 +111,7 @@ grow_horizontal = 0
 size_flags_horizontal = 8
 text = "  Items  "
 
-[node name="Panel" type="Panel" parent="."]
+[node name="Panel" type="Panel" parent="." groups=["interactive"]]
 offset_left = 38.0
 offset_top = 23.0
 offset_right = 115.0

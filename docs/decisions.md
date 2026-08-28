@@ -142,6 +142,31 @@ export. Signals and groups fail loudly and locally instead.
 
 ---
 
+### D10 — Two window modes: fullscreen overlay and tucked play area
+**2026-08-28 · Decided**
+
+The overlay ships with two user-selectable modes:
+
+- **Fullscreen overlay** (default) — fills the monitor's usable rect, taskbar becomes the
+  floor. This is the intended way to play.
+- **Play area** — a small window (480x360 by default) the player snaps into a screen corner
+  or drags anywhere.
+
+Play area was originally only the *fallback* if DWM compositing proved too expensive at 4K.
+Promoting it to a first-class option is strictly better: some players want a quiet corner
+pet rather than a screen-wide sandbox, it is the natural mode for a second monitor, and it
+sidesteps the passthrough limitation entirely — a small window has very little area outside
+the buddy for clicks to be wrongly captured in.
+
+It also de-risks the milestone. If the 4K fullscreen numbers turn out bad, the fallback is
+already shipped and tested rather than being an emergency redesign.
+
+*Consequence:* `WindowLayout` owns mode/corner/clamping as pure functions;
+`Settings` persists mode, corner, size and last-good rect; `WorldBounds` regenerates the
+walls at runtime because the play area is resizable.
+
+---
+
 ## Recommendations not yet decided
 
 Carried in the spec, owner's call before they matter:

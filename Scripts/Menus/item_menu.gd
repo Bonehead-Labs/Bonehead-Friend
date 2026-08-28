@@ -25,6 +25,8 @@ var active_items: Array[Node2D] = []
 func _on_toggle_items_pressed() -> void:
 	visible = not visible
 	process_mode = Node.PROCESS_MODE_ALWAYS if visible else Node.PROCESS_MODE_DISABLED
+	# The overlay makes the whole window clickable while a panel is open.
+	EventBus.ui_panel_changed.emit(&"items" if visible else &"")
 
 # --- spawning --------------------------------------------------------------
 
@@ -71,8 +73,11 @@ func _toggle_power(group: StringName) -> void:
 
 	if was_active:
 		target.make_inactive()
+		# Tells the overlay to stop treating the whole window as a click target.
+		EventBus.cursor_power_changed.emit(&"")
 	else:
 		target.make_active()
+		EventBus.cursor_power_changed.emit(group)
 
 # --- button handlers -------------------------------------------------------
 

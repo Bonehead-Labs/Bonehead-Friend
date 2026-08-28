@@ -5,21 +5,36 @@ extends Node
 ## Deliberately separate from the save file and NOT synced to Steam Cloud — it holds
 ## monitor ids and window rects, which are meaningless (or actively harmful) on another
 ## machine. See docs/architecture.md.
+##
+## Window/corner values are stored as plain ints rather than WindowLayout enums: this is
+## an autoload, and an autoload that fails to parse because a global class name has not
+## been cached yet takes the whole game down with it.
 
 const CONFIG_PATH := "user://settings.cfg"
 
 ## Focus Mode: how loud the game is allowed to be while you work.
 enum Intensity { OFF, SUBTLE, NORMAL, CHAOS }
 
+# --- overlay window ---
+var overlay_enabled: bool = true
+## 0 = fullscreen overlay (taskbar is the floor), 1 = small tucked-away play area.
+## See WindowLayout.Mode.
+var window_mode: int = 0
+## 0 = free, 1..4 = top-left, top-right, bottom-left, bottom-right. See WindowLayout.Corner.
+var play_area_corner: int = 4
+var play_area_size: Vector2i = Vector2i(480, 360)
+## Last known good rect, revalidated on boot in case the monitor changed while closed.
+var play_area_rect: Rect2i = Rect2i()
+
 # --- display ---
 var monitor_id: int = 0
-var monitor_rect: Rect2i = Rect2i()  ## Expected rect of monitor_id; revalidated on boot
-var cover_taskbar: bool = false      ## false = taskbar is the floor
+var cover_taskbar: bool = false
 
 # --- performance ---
 var low_power_mode: bool = false
 var fps_idle: int = 30
 var fps_active: int = 60
+var fps_low_power: int = 20
 var hibernate_when_occluded: bool = true
 
 # --- presentation ---
@@ -42,15 +57,22 @@ func _ready() -> void:
 func load_settings() -> void:
 	var cfg := ConfigFile.new()
 	if cfg.load(CONFIG_PATH) != OK:
-		# No file yet (or unreadable): keep defaults and write them on first save.
+		# No file yet (or unreadable): keep defaults and write them on the first save.
 		return
+
+	overlay_enabled = cfg.get_value("overlay", "overlay_enabled", overlay_enabled)
+	window_mode = cfg.get_value("overlay", "window_mode", window_mode)
+	play_area_corner = cfg.get_value("overlay", "play_area_corner", play_area_corner)
+	play_area_size = cfg.get_value("overlay", "play_area_size", play_area_size)
+	play_area_rect = cfg.get_value("overlay", "play_area_rect", play_area_rect)
+
 	monitor_id = cfg.get_value("display", "monitor_id", monitor_id)
-	monitor_rect = cfg.get_value("display", "monitor_rect", monitor_rect)
 	cover_taskbar = cfg.get_value("display", "cover_taskbar", cover_taskbar)
 
 	low_power_mode = cfg.get_value("performance", "low_power_mode", low_power_mode)
 	fps_idle = cfg.get_value("performance", "fps_idle", fps_idle)
 	fps_active = cfg.get_value("performance", "fps_active", fps_active)
+	fps_low_power = cfg.get_value("performance", "fps_low_power", fps_low_power)
 	hibernate_when_occluded = cfg.get_value("performance", "hibernate_when_occluded", hibernate_when_occluded)
 
 	focus_intensity = cfg.get_value("presentation", "focus_intensity", focus_intensity)
@@ -66,13 +88,19 @@ func load_settings() -> void:
 
 func save_settings() -> void:
 	var cfg := ConfigFile.new()
+	cfg.set_value("overlay", "overlay_enabled", overlay_enabled)
+	cfg.set_value("overlay", "window_mode", window_mode)
+	cfg.set_value("overlay", "play_area_corner", play_area_corner)
+	cfg.set_value("overlay", "play_area_size", play_area_size)
+	cfg.set_value("overlay", "play_area_rect", play_area_rect)
+
 	cfg.set_value("display", "monitor_id", monitor_id)
-	cfg.set_value("display", "monitor_rect", monitor_rect)
 	cfg.set_value("display", "cover_taskbar", cover_taskbar)
 
 	cfg.set_value("performance", "low_power_mode", low_power_mode)
 	cfg.set_value("performance", "fps_idle", fps_idle)
 	cfg.set_value("performance", "fps_active", fps_active)
+	cfg.set_value("performance", "fps_low_power", fps_low_power)
 	cfg.set_value("performance", "hibernate_when_occluded", hibernate_when_occluded)
 
 	cfg.set_value("presentation", "focus_intensity", focus_intensity)
