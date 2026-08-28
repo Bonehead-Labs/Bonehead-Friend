@@ -109,8 +109,15 @@ func apply_window_configuration() -> void:
 		Settings.play_area_corner,
 		Settings.play_area_rect.position)
 
-	DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_BORDERLESS, true)
-	DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_ALWAYS_ON_TOP, true)
+	# Borderless and always-on-top are set in project.godot so the window is CREATED that
+	# way. Flipping them at runtime makes Windows leave the outer size a couple of pixels
+	# larger than the client area, and every passthrough call then makes the viewport flip
+	# between the two sizes — the whole scene shifting 2 px on most frames.
+	# Only set them here if something has cleared them.
+	if not DisplayServer.window_get_flag(DisplayServer.WINDOW_FLAG_BORDERLESS):
+		DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_BORDERLESS, true)
+	if not DisplayServer.window_get_flag(DisplayServer.WINDOW_FLAG_ALWAYS_ON_TOP):
+		DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_ALWAYS_ON_TOP, true)
 	# Deliberately NOT WINDOW_FLAG_NO_FOCUS: the game's own panels need keyboard focus.
 
 	DisplayServer.window_set_position(target.position)

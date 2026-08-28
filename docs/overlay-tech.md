@@ -168,13 +168,29 @@ and passthrough call *frequency* (free at 60 Hz with a rectangle).
 
 **Rule: never hand `window_set_mouse_passthrough()` a non-rectangular polygon.**
 
-A second bug found alongside: sizing a borderless window leaves its outer size ~2 px larger
-than its client area, and each passthrough call makes Windows re-report the outer size. The
-viewport then flipped between the two values on 159 of 165 frames, shifting the entire scene
-— UI included — by two pixels every frame. That was the reported "everything bouncing on the
-spot". `OverlayManager._reconcile_client_size()` shrinks the window to its own client size
-once, and must do so *deferred*, because the viewport does not report its new size until a
-frame has passed.
+A second bug found alongside — the "everything bouncing on the spot" report.
+
+**Create the window borderless; do not flip the flag at runtime.** Turning `BORDERLESS` on
+after the window exists leaves its outer size ~2 px larger than its client area. Every
+passthrough call then makes Windows re-report the outer size, and the viewport flips between
+the two values — measured at 159 of 165 frames, shifting the entire scene, UI included, by
+two pixels every single frame.
+
+```ini
+[display]
+window/size/borderless=true
+window/size/always_on_top=true
+window/size/transparent=true
+window/per_pixel_transparency/allowed=true
+```
+
+With the window created that way, viewport flips drop from 58 to **0** in both window modes
+and the window size matches the viewport exactly. `OverlayManager` now only sets those flags
+if something has cleared them, and keeps `_reconcile_client_size()` as a deferred safety net
+for the case where a mismatch appears anyway.
+
+Trying to correct the mismatch at runtime instead does not hold — that was attempted first
+and the oscillation came back.
 
 **Measurement method:** Windows Task Manager and PresentMon against an **exported build** —
 editor numbers are meaningless. Record baselines in this doc at each milestone gate; a
