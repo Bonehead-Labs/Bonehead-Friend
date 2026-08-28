@@ -23,6 +23,14 @@ signal window_rect_changed(rect: Rect2i)
 
 var current_rect: Rect2i
 var _passthrough_accumulator := 0.0
+## Last polygon actually handed to DisplayServer. Setting a passthrough region makes
+## Windows report a window change, which used to force another rebuild on the next frame —
+## a self-sustaining loop that called into the compositor every frame and cost ~26 ms.
+var _last_polygon := PackedVector2Array()
+var _known_size := Vector2i.ZERO
+## Seconds of no input before dropping back to the idle frame rate.
+const INTERACTION_TIMEOUT := 2.0
+var _idle_timer := 0.0
 var _panel_open := false
 var _cursor_power_active := false
 var _interacting := false
@@ -44,6 +52,20 @@ func _process(delta: float) -> void:
 	if _passthrough_accumulator >= 1.0 / PASSTHROUGH_HZ:
 		_passthrough_accumulator = 0.0
 		rebuild_passthrough()
+
+	# Drop back to the idle frame rate once the player stops touching things.
+	if _interacting:
+		_idle_timer += delta
+		if _idle_timer >= INTERACTION_TIMEOUT:
+			set_interacting(false)
+
+## Any input means the player is engaged, so spend frames on them. Nothing else calls
+## set_interacting(), which previously left the game pinned at the 30 fps idle cap forever.
+func _input(event: InputEvent) -> void:
+	if event is InputEventMouseMotion or event is InputEventMouseButton or event is InputEventKey:
+		_idle_timer = 0.0
+		if not _interacting:
+			set_interacting(true)
 
 # --- window configuration --------------------------------------------------
 
@@ -87,12 +109,28 @@ func apply_window_configuration() -> void:
 
 	DisplayServer.window_set_position(target.position)
 	DisplayServer.window_set_size(target.size)
+	target.size = _reconcile_client_size(target.size)
 
 	current_rect = target
+	_known_size = target.size
 	_applied = true
 	apply_performance_settings()
 	_force_passthrough_rebuild()
 	window_rect_changed.emit(target)
+
+## Windows can hand back a client area a couple of pixels smaller than the size we asked
+## for. Godot then reports a window/viewport mismatch every frame, which produced ~80
+## spurious size_changed events per second. Reconciling once stops the storm.
+func _reconcile_client_size(requested: Vector2i) -> Vector2i:
+	var actual := Vector2i(get_viewport().get_visible_rect().size)
+	if actual == requested or actual.x <= 0 or actual.y <= 0:
+		return requested
+	var delta := (requested - actual).abs()
+	# Only correct small discrepancies; a large one means something else resized us.
+	if delta.x > 8 or delta.y > 8:
+		return requested
+	DisplayServer.window_set_size(actual)
+	return actual
 
 func set_window_mode(mode: WindowLayout.Mode) -> void:
 	Settings.window_mode = mode
@@ -134,10 +172,17 @@ func _validated_monitor() -> int:
 	return Settings.monitor_id
 
 func _on_window_size_changed() -> void:
-	if _applied:
-		current_rect.size = DisplayServer.window_get_size()
-		window_rect_changed.emit(current_rect)
-		_force_passthrough_rebuild()
+	if not _applied:
+		return
+	var size := DisplayServer.window_get_size()
+	# Ignore no-op reports. Windows raises a window change every time the passthrough
+	# region is set, and treating that as a real resize is what created the feedback loop.
+	if size == _known_size:
+		return
+	_known_size = size
+	current_rect.size = size
+	window_rect_changed.emit(current_rect)
+	_force_passthrough_rebuild()
 
 # --- performance -----------------------------------------------------------
 
@@ -169,14 +214,32 @@ func rebuild_passthrough() -> void:
 	# While a panel is open the whole window must accept clicks, or the player cannot use
 	# the thing they just opened. Same when a cursor power is armed: the player is aiming
 	# at the desktop, so every pixel has to be a valid target.
+	var polygon: PackedVector2Array
 	if _panel_open or _cursor_power_active:
-		DisplayServer.window_set_mouse_passthrough(
-			PassthroughBuilder.whole_window(DisplayServer.window_get_size()))
-		return
+		polygon = PassthroughBuilder.whole_window(DisplayServer.window_get_size())
+	else:
+		var origin := Vector2(DisplayServer.window_get_position())
+		polygon = PassthroughBuilder.build(_collect_interaction_rects(), origin)
 
-	var rects := _collect_interaction_rects()
-	var origin := Vector2(DisplayServer.window_get_position())
-	DisplayServer.window_set_mouse_passthrough(PassthroughBuilder.build(rects, origin))
+	_apply_passthrough(polygon)
+
+## Only touches the compositor when the region actually changed. Each call builds a Win32
+## region for the whole window, so doing it per frame on a 2560x1380 overlay dominated the
+## frame time.
+func _apply_passthrough(polygon: PackedVector2Array) -> void:
+	if _polygons_equal(polygon, _last_polygon):
+		return
+	_last_polygon = polygon
+	DisplayServer.window_set_mouse_passthrough(polygon)
+
+static func _polygons_equal(a: PackedVector2Array, b: PackedVector2Array) -> bool:
+	if a.size() != b.size():
+		return false
+	for i in a.size():
+		# Sub-pixel jitter is not worth a compositor round trip.
+		if not (a[i].is_equal_approx(b[i]) or a[i].distance_squared_to(b[i]) < 1.0):
+			return false
+	return true
 
 func _collect_interaction_rects() -> Array:
 	var rects: Array = []
@@ -197,6 +260,7 @@ func _force_passthrough_rebuild() -> void:
 	_passthrough_accumulator = 1.0
 
 func _clear_passthrough() -> void:
+	_last_polygon = PackedVector2Array()
 	# Empty array = passthrough disabled = the window intercepts everything, which is the
 	# right behaviour when the overlay is turned off.
 	DisplayServer.window_set_mouse_passthrough(PackedVector2Array())

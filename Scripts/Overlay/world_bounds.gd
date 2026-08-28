@@ -18,6 +18,7 @@ const HEADROOM := 400.0
 const CONTAIN_MARGIN := 64.0
 
 var _walls: Array[StaticBody2D] = []
+var _last_size := Vector2.ZERO
 
 func _ready() -> void:
 	# Drop the hand-placed prototype borders; this node owns the walls now.
@@ -43,6 +44,11 @@ func rebuild() -> void:
 	if _walls.size() < 4:
 		return
 	var size := get_viewport().get_visible_rect().size
+	# size_changed can fire without the size actually changing; rebuilding the walls and
+	# re-containing every body on each of those is pure waste.
+	if size.is_equal_approx(_last_size):
+		return
+	_last_size = size
 	var half := size * 0.5
 	var t := WALL_THICKNESS * 0.5
 

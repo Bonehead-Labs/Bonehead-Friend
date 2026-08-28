@@ -140,6 +140,40 @@ Mitigations, all shipped in v0.1 rather than retrofitted:
 | Occlusion hibernate | When covered by a fullscreen app, stop rendering and switch to offline accrual. |
 | Window area | If 4K measurements are bad, fall back to a smaller "play area" window instead of full-screen. |
 
+### ⚠️ M1 measurement: fullscreen overlay is expensive (2026-08-28)
+
+Measured on this machine (RTX 4080 SUPER, 2560x1440 @ 60 Hz secondary), uncapped with VSync
+off, on a nearly-empty scene — 91 nodes, one active body:
+
+| Configuration | FPS |
+|---|---|
+| Overlay off, 1280x720 | **~3660** |
+| Overlay on, play area 480x360 (transparent, borderless, always-on-top) | **~4140** |
+| Overlay on, fullscreen 2560x1380 | **~20–58** (run to run) |
+
+**The overlay flags are free. The cost scales with transparent window AREA.** Ruled out by
+direct measurement, so don't re-investigate these:
+
+- *Not transparency* — fullscreen with `transparent = false` performs the same (55 vs 57 fps).
+- *Not the renderer* — `gl_compatibility`, `forward_plus` and `mobile` all land at ~20 fps
+  fullscreen, so D5's choice is not the problem.
+- *Not the passthrough polygon* — `window_set_mouse_passthrough()` costs ~1.3 ms per call and
+  only runs at 12 Hz, and is now skipped entirely when the region is unchanged.
+- *Not physics* — physics time is 0.13 ms.
+
+This is the DWM compositing cost the genre research predicted, arriving exactly where it was
+predicted: large always-on-top windows on a high-resolution display. Fullscreen mode is
+therefore playable only because of the frame cap (30 idle / 60 active); it has little headroom
+above that, and a 4K display will be worse.
+
+**Consequences to decide before M4:** either make play-area the shipped default, restrict
+fullscreen to a "performance mode" with a hard 30 fps cap and a warning, or find a cheaper
+presentation path. Play-area mode is unaffected and comfortably exceeds the budget.
+
+**Fixed alongside:** Windows returns a client area up to 2 px smaller than the requested
+window size, and Godot then reported a window/viewport mismatch roughly 80 times a second.
+`OverlayManager._reconcile_client_size()` corrects the window once so the storm stops.
+
 **Measurement method:** Windows Task Manager and PresentMon against an **exported build** —
 editor numbers are meaningless. Record baselines in this doc at each milestone gate; a
 regression is a failed gate.

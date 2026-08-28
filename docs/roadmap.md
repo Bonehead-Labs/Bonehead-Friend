@@ -92,9 +92,16 @@ the layout maths is correct against the actual dual-monitor setup here — fulls
 to 2560x1380 on the secondary (the 60 px taskbar correctly excluded, so the taskbar really
 is the floor) and all four corner snaps land on-screen with their margin.
 
-**Still needs a human, and cannot be automated:** click-through over a real application,
-drag feel, and the CPU budget on an exported build. That is the actual gate. See
-`docs/test-matrix.md` for the checklist.
+**Still needs a human, and cannot be automated:** click-through over a real application and
+the CPU budget on an exported build. That is the actual gate. See `docs/test-matrix.md`.
+
+**⚠️ The perf spike found a real problem.** Fullscreen overlay (2560x1380) runs at roughly
+20–58 fps on an RTX 4080 with an almost-empty scene, while the same overlay at 480x360 runs
+at ~4140 fps and the overlay-off baseline at ~3660. Cost scales with transparent window area;
+transparency itself, the renderer and the passthrough polygon were each ruled out by direct
+measurement. Numbers and method are in `docs/overlay-tech.md`. This is the milestone doing
+its job — it is exactly the risk M1 was front-loaded to find, and it needs a decision on
+whether play-area becomes the shipped default before content is built for fullscreen.
 
 Known limitation carried forward: `window_set_mouse_passthrough()` accepts one polygon, so
 scattered items produce a convex hull that over-includes empty space. Play-area mode makes
