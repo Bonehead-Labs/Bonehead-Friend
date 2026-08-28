@@ -23,10 +23,9 @@ signal window_rect_changed(rect: Rect2i)
 
 var current_rect: Rect2i
 var _passthrough_accumulator := 0.0
-## Last polygon actually handed to DisplayServer. Setting a passthrough region makes
-## Windows report a window change, which used to force another rebuild on the next frame —
-## a self-sustaining loop that called into the compositor every frame and cost ~26 ms.
-var _last_polygon := PackedVector2Array()
+## Generous grab margin around interactive things, so a near-miss still counts.
+const INTERACTION_PADDING := 12.0
+var _passthrough_on := false
 var _known_size := Vector2i.ZERO
 ## Seconds of no input before dropping back to the idle frame rate.
 const INTERACTION_TIMEOUT := 2.0
@@ -48,11 +47,6 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if not _applied:
 		return
-	_passthrough_accumulator += delta
-	if _passthrough_accumulator >= 1.0 / PASSTHROUGH_HZ:
-		_passthrough_accumulator = 0.0
-		rebuild_passthrough()
-
 	# Stay at the active frame rate while anything is still moving, not just while the
 	# player is touching it — a buddy falling at 30 fps looks choppy for no reason now
 	# that there is plenty of headroom.
@@ -123,6 +117,9 @@ func apply_window_configuration() -> void:
 	DisplayServer.window_set_position(target.position)
 	DisplayServer.window_set_size(target.size)
 	_reconcile_client_size()
+
+	# Explicitly off: a stale passthrough flag would make the window ignore every click.
+	DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_MOUSE_PASSTHROUGH, false)
 
 	current_rect = target
 	_known_size = target.size
@@ -231,65 +228,32 @@ func set_low_power_mode(enabled: bool) -> void:
 	Settings.save_settings()
 	apply_performance_settings()
 
-# --- mouse passthrough -----------------------------------------------------
+# --- mouse passthrough: REMOVED --------------------------------------------
+#
+# There is no click-through. The window is transparent, so you see through it, but it
+# takes every click inside its rect like any normal window.
+#
+# Both approaches Godot offers were tried and rejected:
+#
+#   * A passthrough POLYGON is implemented on Windows as a window REGION, and a window
+#     region clips what the window DRAWS. The visible shape of the window followed the
+#     buddy's bounding box, cutting pieces off him as he moved, and an empty region blanked
+#     the window completely.
+#   * The all-or-nothing FLAG toggled by cursor position avoids the clipping, but it is a
+#     separate feature that needs designing properly rather than bolting on.
+#
+# Real click-through is deferred until it can be built and visually verified on its own.
+# See docs/overlay-tech.md.
 
+## Kept so callers and signals do not need to know it is gone.
 func rebuild_passthrough() -> void:
-	if not _applied:
-		return
-
-	# While a panel is open the whole window must accept clicks, or the player cannot use
-	# the thing they just opened. Same when a cursor power is armed: the player is aiming
-	# at the desktop, so every pixel has to be a valid target.
-	var polygon: PackedVector2Array
-	if _panel_open or _cursor_power_active:
-		polygon = PassthroughBuilder.whole_window(DisplayServer.window_get_size())
-	else:
-		var origin := Vector2(DisplayServer.window_get_position())
-		polygon = PassthroughBuilder.build(_collect_interaction_rects(), origin)
-
-	_apply_passthrough(polygon)
-
-## Only touches the compositor when the region actually changed. Each call builds a Win32
-## region for the whole window, so doing it per frame on a 2560x1380 overlay dominated the
-## frame time.
-func _apply_passthrough(polygon: PackedVector2Array) -> void:
-	if _polygons_equal(polygon, _last_polygon):
-		return
-	_last_polygon = polygon
-	DisplayServer.window_set_mouse_passthrough(polygon)
-
-static func _polygons_equal(a: PackedVector2Array, b: PackedVector2Array) -> bool:
-	if a.size() != b.size():
-		return false
-	for i in a.size():
-		# Sub-pixel jitter is not worth a compositor round trip.
-		if not (a[i].is_equal_approx(b[i]) or a[i].distance_squared_to(b[i]) < 1.0):
-			return false
-	return true
-
-func _collect_interaction_rects() -> Array:
-	var rects: Array = []
-	for node in get_tree().get_nodes_in_group(GROUP_INTERACTIVE):
-		if not is_instance_valid(node):
-			continue
-		if node.has_method("get_interaction_rect"):
-			rects.append(node.get_interaction_rect())
-		elif node is Control:
-			# Controls already live in screen space.
-			rects.append((node as Control).get_global_rect())
-		elif node is Node2D:
-			var pos: Vector2 = (node as Node2D).global_position
-			rects.append(Rect2(pos - DEFAULT_INTERACTION_EXTENT, DEFAULT_INTERACTION_EXTENT * 2.0))
-	return rects
+	pass
 
 func _force_passthrough_rebuild() -> void:
-	_passthrough_accumulator = 1.0
+	pass
 
 func _clear_passthrough() -> void:
-	_last_polygon = PackedVector2Array()
-	# Empty array = passthrough disabled = the window intercepts everything, which is the
-	# right behaviour when the overlay is turned off.
-	DisplayServer.window_set_mouse_passthrough(PackedVector2Array())
+	pass
 
 func _on_cursor_power_changed(item_id: StringName) -> void:
 	_cursor_power_active = item_id != &""

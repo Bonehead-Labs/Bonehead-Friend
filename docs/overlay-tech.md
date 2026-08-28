@@ -77,45 +77,30 @@ Notes:
   borderless popup-style window achieves it; otherwise accept taskbar presence for 1.0 and
   provide the tray icon regardless.
 
-## Click-through
+## Click-through — REMOVED, deferred
 
-`WINDOW_FLAG_MOUSE_PASSTHROUGH` is all-or-nothing and therefore useless here. The working
-approach is a **passthrough polygon**:
+**There is currently no click-through.** The window is transparent so you see through it,
+but it takes every click inside its rect like a normal window. This was removed at the
+user's request after two implementations failed.
 
-```gdscript
-DisplayServer.window_set_mouse_passthrough(polygon: PackedVector2Array)
-```
+**Do not reach for `window_set_mouse_passthrough(polygon)`.** On Windows it is implemented
+as a window REGION, and a window region clips what the window *draws*, not just what it
+receives clicks from. The consequences, all observed:
 
-Clicks *inside* the polygon hit the game; everything outside falls through to whatever app is
-underneath. The polygon must cover the buddy, every spawned item, and any open UI panel.
+- The visible shape of the window followed the buddy's bounding box, so parts of him were
+  sliced off as he moved.
+- An empty region — which `PassthroughBuilder.nothing()` returned whenever no interactive
+  node was found — blanked the window entirely.
+- Region complexity cost frame time: rectangle free, 8-vertex hull 3x, 16-vertex 6.5x.
 
-Implementation rules, all of them performance-driven:
+The viable approach is the all-or-nothing `WINDOW_FLAG_MOUSE_PASSTHROUGH`, toggled from the
+OS cursor position (`DisplayServer.mouse_get_position()`, because `get_global_mouse_position()`
+stops updating once the window is passing input through). Point-test it against the same
+interaction rects the `interactive` group already provides. That does not clip rendering.
 
-- Rebuild at **10–15 Hz**, never per physics tick (physics runs at 60; a per-tick rebuild of a
-  many-vertex polygon is pure waste).
-- Rebuild only when `EventBus.interactive_shapes_dirty` fires, or on a slow timer — not
-  unconditionally.
-- Use **coarse convex hulls** per interactive node, not per-pixel silhouette tracing. A capsule
-  around the buddy plus a box per item is plenty.
-- Pad hulls generously (~8 px). A player who misses the grab because the polygon hugged the
-  sprite too tightly will file it as "the game ignores my clicks".
-- Cap total vertices (~64). Fallback if the union gets expensive: bounding-box union.
-- When any UI panel is open, the polygon is just the panel rect(s) — no need to union the world.
-
-**Known limitation, accepted for now:** `window_set_mouse_passthrough()` accepts exactly ONE
-polygon, so genuinely disjoint regions cannot be expressed. `PassthroughBuilder` takes the
-convex hull of everything interactive, which over-includes the empty space between scattered
-items. Play-area mode makes this largely irrelevant — a small window has little area to get
-wrong. If fullscreen mode needs true per-region masking, the options are a bridged polygon
-(risky: Windows fills regions with the even-odd rule, so zero-width bridges may cancel) or a
-real Win32 region via the same GDExtension that would unlock window colliders.
-
-Two cases short-circuit the hull and make the whole window clickable, both deliberate:
-a UI panel being open, and a cursor power being armed — when you are aiming a gun at the
-desktop, every pixel is a valid target.
-
-Edge case to test explicitly: dragging the buddy *to the very edge* of the screen, and
-clicking in the gap between two nearly-touching hulls.
+Whoever builds it: **verify it visually against a real running window before claiming it
+works.** Frame counters and viewport sizes looked healthy through every one of the failures
+above.
 
 ## Performance
 
