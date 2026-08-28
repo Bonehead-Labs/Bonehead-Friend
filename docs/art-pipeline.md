@@ -45,14 +45,45 @@ general/command_path="C:\\Program Files (x86)\\Steam\\steamapps\\common\\Aseprit
 
 It must be the **Windows** path — the Godot editor is a Windows process.
 
-**Verified 2026-08-28:** Aseprite **1.3.18.3** responds to `--batch --version`, and the project
-opens in the Godot **4.7.2** editor headlessly with the addon enabled and exit code 0 (the
-addon's 4.7 compatibility was the open question; it loads clean). Sanity-check the importer
-itself with a real `.aseprite` file the first time you use it — loading without errors isn't
-quite the same as importing correctly. Fallback if it ever breaks: plain spritesheet + JSON.
+`.aseprite` files import as `SpriteFrames` automatically, via:
+
+```ini
+[aseprite]
+import/import_plugin/default_automatic_importer="SpriteFrames"
+```
+
+Other importer values: `"Static Texture"`, `"Tileset Texture"`, `"SpriteFrames (Split By Layer)"`,
+`"No Import"` (the addon's default — it produces an inert resource, which is why we override it).
+
+**Verified end-to-end 2026-08-28**, on Godot 4.7.2 with Aseprite 1.3.18.3: the prototype's
+320×64 idle strip was sliced into a 5-frame tagged `.aseprite` by headless Aseprite, imported
+by the addon, and loaded back in Godot as a real `SpriteFrames` with a looping `idle`
+animation. The addon's 4.7 compatibility was the open risk in the research; it is settled.
 
 In-editor check: *Project → Tools → Aseprite Config* should print a version, not "command not
 found".
+
+### Driving Aseprite headlessly
+
+`art/src/_import_bonehead.lua` is the worked example. Two things that will waste your time:
+
+- **Pass paths with `--script-param`, never environment variables.** Aseprite is a Windows
+  process; WSL env vars do not cross the boundary without `WSLENV` plumbing. In Lua they arrive
+  as `app.params["in"]`.
+- **Every path in the argument list must be a Windows path**, including the script's own path.
+
+```bash
+ASE="/mnt/c/Program Files (x86)/Steam/steamapps/common/Aseprite/Aseprite.exe"
+P='C:\Users\George\Godot Projects\Projects\Bonehead_Friend\interactive-buddy-2'
+"$ASE" --batch \
+  --script-param "in=$P\\Assets\\base-bonehead.png" \
+  --script-param "out=$P\\art\\src\\bonehead_body.aseprite" \
+  --script "$P\\art\\src\\_import_bonehead.lua"
+```
+
+An `aseprite` MCP server (`diivi/aseprite-mcp`, 104 tools) is also registered at user scope for
+programmatic canvas, layer, frame and palette work. It runs Windows-side through
+`uv.exe --directory 'C:\Users\George\Tools\aseprite-mcp'` for the same path reason.
 
 What it buys: `.aseprite` files become first-class Godot resources. Each Aseprite **tag becomes
 an animation**, frame durations convert from milliseconds to Godot FPS automatically, and layer

@@ -24,6 +24,7 @@ config/windows_native_icon="res://Assets/base-bonehead-ICON (1).ico"
 [aseprite]
 
 general/command_path="C:\\Program Files (x86)\\Steam\\steamapps\\common\\Aseprite\\Aseprite.exe"
+import/import_plugin/default_automatic_importer="SpriteFrames"
 
 [autoload]
 
