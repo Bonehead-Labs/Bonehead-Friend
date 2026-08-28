@@ -101,6 +101,15 @@ cannot find the type — an autoload that references it fails to *instantiate*, 
 into "Identifier not found" errors in unrelated scripts and a game that boots into nothing.
 It looks like a code bug and isn't.
 
+GDScript quirks already paid for once each:
+- `PackedVector2Array(...)` and similar constructors are **not constant expressions** — a
+  `const` initialised with one fails to parse, taking the whole autoload chain with it.
+- An **enum used as a parameter type is a distinct type across script boundaries**, so a
+  caller passing `Foo.Corner.TOP_LEFT` will not satisfy a `corner: Corner` parameter in
+  `Foo`. Type such parameters as `int`.
+- `OS.get_environment()` does **not** see variables exported from WSL, because the game is a
+  Windows process. Pass values as command-line args (`-- --flag`) instead.
+
 Two more constraints the test runner imposes, both already worked around:
 - Autoload singletons are **not registered under `-s`**, so a script the tests import must
   not reference `EventBus` and friends. That is why `SaveSchema` and `EconomyMath` are pure

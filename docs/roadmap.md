@@ -67,42 +67,43 @@ Deferred to M2 (documented, not forgotten): `EffectsPlayer.Character` export sha
 
 ## M1 — Overlay spike (front-loaded risk)
 
-The riskiest work, done first, in an isolated `overlay_spike.tscn` so failure is cheap.
+**Status: 🟡 partially delivered. Click-through is cut and deferred; everything else works.**
 
-- Borderless, always-on-top, per-pixel-transparent window sized to the screen's usable rect.
-- Passthrough polygon from coarse hulls, rebuilt ≤15 Hz.
-- `StatusIndicator` tray menu; multi-monitor persistence and revalidation; FPS governor.
-- **Measure DWM CPU at 1080p and 4K on an exported build.** Record the numbers in
-  `overlay-tech.md`.
-- Answer the open spikes: taskbar hiding, tray behaviour on Win10/11.
+### What shipped and is stable
 
-**Gate:** clicks pass through to apps outside the silhouette; drag feel is unchanged; **< 3% CPU
-idle measured on an export**; window survives sleep/wake and monitor unplug.
+- Borderless, always-on-top, per-pixel-transparent window, set at **window creation** in
+  `project.godot` — not toggled at runtime, which is what caused the 2 px viewport
+  oscillation that made the whole scene judder.
+- Two window modes (D10): fullscreen overlay, and a small play area snapped to a corner.
+- `WindowLayout` — mode, corner snapping, clamping onto offset monitors, minimum size,
+  stale-rect revalidation. Pure and unit-tested.
+- `WorldBounds` — walls regenerated at runtime; the prototype's were nailed to 1280x720.
+  Also pulls stranded bodies back in when the window shrinks.
+- Monitor persistence with fallback when a saved monitor disappears.
+- FPS governor (30 idle / 60 while anything moves or on input) and Low Power Mode.
+- F3 debug overlay with developer hotkeys: F3 stats, F4 mode, F5 corner, F6 monitor,
+  F7 low power, F8 overlay off.
+- Editor-embedded-window detection, since an embedded window cannot be an overlay.
 
-### 🟡 M1 status (2026-08-28) — code complete, manual gate outstanding
+### What was cut
 
-Built: `OverlayManager` autoload (window flags, monitor validation and fallback, passthrough
-service at 12 Hz, FPS governor, low-power mode); `WindowLayout` and `PassthroughBuilder` as
-pure tested modules; `WorldBounds` regenerating the walls at runtime (the prototype's were
-hand-placed for a fixed 1280x720); **both window modes from D10**; the F3 debug overlay and
-developer hotkeys. Test suite is now **69 assertions, all passing**.
+**Click-through.** Two implementations failed and it was removed at the user's request; the
+window is transparent but takes every click in its rect. `docs/overlay-tech.md` explains why
+the polygon approach cannot work (it clips rendering) and what would work instead. Treat it
+as unstarted design work, not a bug to patch.
 
-Verified automatically: the project boots, a real window launches cleanly on the GPU, and
-the layout maths is correct against the actual dual-monitor setup here — fullscreen resolves
-to 2560x1380 on the secondary (the 60 px taskbar correctly excluded, so the taskbar really
-is the floor) and all four corner snaps land on-screen with their margin.
+### What the gate still needs
 
-**Still needs a human, and cannot be automated:** click-through over a real application and
-the CPU budget on an exported build. That is the actual gate. See `docs/test-matrix.md`.
+CPU measurement on an exported build, and the display matrix in `docs/test-matrix.md`
+(sleep/wake, monitor unplug, DPI changes). Neither is automatable.
 
-**The perf spike found a real problem — in our own code, not the platform.** A first pass
-concluded that fullscreen overlay was inherently expensive and that play-area might have to
-become the default. That was wrong. The cause was `PassthroughBuilder` handing Windows a
-convex hull: a rectangular window region is free, an 8-vertex hull costs 3x and a 16-vertex
-one 6.5x. Replacing the hull with a bounding box took fullscreen from ~20 fps to ~3598
-uncapped. A separate bug had the viewport flipping between two sizes on almost every frame,
-shifting the whole scene by 2 px each frame. Both are fixed; numbers and the ruled-out
-suspects are in `docs/overlay-tech.md`.
+Headroom measured here is ~3575 fps uncapped at 2560x1378 with a near-empty scene, so there
+is no known performance problem — but that is a debug build on one machine, not the gate.
+
+### Lesson worth carrying
+
+Frame counters, viewport sizes and assertion counts all looked healthy through every one of
+this milestone's failures. Overlay work has to be checked against a real window on screen.
 
 *Art needed:* none.
 
