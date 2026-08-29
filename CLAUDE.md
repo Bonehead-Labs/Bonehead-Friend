@@ -82,8 +82,17 @@ PROJ='C:\Users\George\Godot Projects\Projects\Bonehead_Friend\interactive-buddy-
 # Economy math, save round-trips, every migration step
 "$GODOT" --headless --path "$PROJ" -s tests/run_tests.gd
 
+# The whole loop against the real autoloads, including stepped physics
+"$GODOT" --headless --path "$PROJ" res://tests/integration/loop_check.tscn
+
+# Can the player actually click the UI? Synthetic mouse events at the real widget rects
+"$GODOT" --headless --path "$PROJ" res://tests/integration/ui_check.tscn
+
 # Boot smoke test — catches broken @export refs and missing scene paths
 "$GODOT" --headless --path "$PROJ" --quit-after 120
+
+# Seed res://Data (writes only files that do not exist; add `-- --force` to overwrite)
+"$GODOT" --headless --path "$PROJ" res://tools/seed_data.tscn
 ```
 
 `--path` takes a **Windows** path because Godot is a Windows process. Adding `--editor --quit`
@@ -109,15 +118,32 @@ GDScript quirks already paid for once each:
   `Foo`. Type such parameters as `int`.
 - `OS.get_environment()` does **not** see variables exported from WSL, because the game is a
   Windows process. Pass values as command-line args (`-- --flag`) instead.
+- **A full-rect `Container` on a `CanvasLayer` eats every click in the game.** Containers
+  default to `MOUSE_FILTER_PASS`, not `IGNORE`, and the viewport marks a mouse event handled
+  as soon as any control claims it — so one invisible full-window container on the topmost
+  layer killed the dock, both panels *and* dragging the buddy, while drawing nothing.
+  Full-rect layout Controls must be `MOUSE_FILTER_IGNORE` unless they are a modal blocker,
+  and `tests/integration/ui_check.tscn` sweeps for it.
+- **A SubViewport with no `SubViewportContainer` above it never learns the mouse is inside
+  it**, and physics picking is gated on that, so pushed input reaches GUI but never the
+  world. Send `notification(Viewport.NOTIFICATION_VP_MOUSE_ENTER)` yourself in tests.
+- **A headless viewport is 64x64**, not the project's 1280x720. Anything derived from the
+  window size — `WorldBounds`, the trash bin anchor, the buddy's out-of-bounds rescue — is
+  meaningless in a headless run, and a generated floor ends up inside the buddy rather than
+  under him. Headless physics tests must supply their own geometry.
 
 Two more constraints the test runner imposes, both already worked around:
 - Autoload singletons are **not registered under `-s`**, so a script the tests import must
-  not reference `EventBus` and friends. That is why `SaveSchema` and `EconomyMath` are pure
-  and separate from `SaveManager` / `Economy`. Keep new logic testable the same way.
+  not reference `EventBus` and friends. That is why `SaveSchema`, `EconomyMath` and
+  `AugmentMath` are pure and separate from `SaveManager` / `Economy` / `Progression`. Keep new
+  logic testable the same way. Anything that genuinely needs the autoloads runs as a **scene**
+  instead (`tests/integration/loop_check.tscn`, `tools/seed_data.tscn`), which is also why
+  loading an item scene under `-s` fails — its scripts reference `Progression`.
 - `Unrecognized UID: "uid://..."` during a headless *editor* run is benign first-import
   noise, not a broken main scene.
 
-Run the test suite before any commit touching `Economy`, `Progression` or `SaveManager`.
+Run the test suite before any commit touching `Economy`, `Progression` or `SaveManager`, and
+the UI check before any commit touching `Scripts/UI/`.
 Overlay behaviour cannot be unit-tested — work through `docs/test-matrix.md` by hand at the
 M1, M2 and M4 gates, and measure CPU on an **exported build** (editor numbers lie).
 
@@ -135,7 +161,18 @@ generation (it can double-charge — recover the result by request id instead).
 
 ## Current state
 
-The repo is mid-migration from prototype to production. `docs/roadmap.md` tracks the
-milestone; anything in `Scripts/Globals/` predates the architecture in `docs/architecture.md`
-and is being replaced. When you touch a prototype file, bring it up to the conventions above
-rather than matching its existing style.
+M2's systems are built, clicked and verified; the playtest half of its gate is not done. See
+the M2 progress note in `docs/roadmap.md` for exactly what is and is not finished — it is the
+handoff list, kept current.
+
+There is **no settings menu**: Esc is Resume / Save now / Save and quit, and the window and
+Focus Mode knobs are F3-overlay dev hotkeys until the M4 settings UI.
+
+`Scripts/Globals/` is gone — the production layout is `Scripts/{Autoload,Bodies,Buddy,Combat,
+Components,Data,Economy,Overlay,Progression,Save,UI,World}`. Remaining prototype surface worth
+knowing about: the item scenes under `Scenes/Bodies/` still carry their prototype node names
+(`_grenadeSprite`, `_handle`) and `Scenes/Bodies/base_body.tscn` is still the bat/mace base.
+
+There is **no art and no `Theme`**. `Scripts/UI/ui_style.gd` is the single placeholder styling
+file the art pass replaces; impact sounds are synthesised at boot in `AudioManager` rather than
+loaded (docs/decisions.md D12).

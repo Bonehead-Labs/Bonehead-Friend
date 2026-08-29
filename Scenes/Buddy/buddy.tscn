@@ -1,0 +1,103 @@
+[gd_scene load_steps=14 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Buddy/buddy.gd" id="1_buddy"]
+[ext_resource type="Texture2D" path="res://Assets/base-bonehead.png" id="2_sheet"]
+[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_drag"]
+[ext_resource type="Script" path="res://Scripts/Components/health_component.gd" id="4_health"]
+[ext_resource type="Script" path="res://Scripts/Components/effects_player.gd" id="5_fx"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_b0"]
+atlas = ExtResource("2_sheet")
+region = Rect2(0, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_b1"]
+atlas = ExtResource("2_sheet")
+region = Rect2(64, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_b2"]
+atlas = ExtResource("2_sheet")
+region = Rect2(128, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_b3"]
+atlas = ExtResource("2_sheet")
+region = Rect2(192, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_b4"]
+atlas = ExtResource("2_sheet")
+region = Rect2(256, 0, 64, 64)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_buddy"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_b0")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_b1")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_b2")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_b3")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_b4")
+}],
+"loop": true,
+"name": &"idle",
+"speed": 7.0
+}]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_body"]
+size = Vector2(44, 60)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_grab"]
+size = Vector2(45, 59)
+
+[node name="Buddy" type="RigidBody2D" node_paths=PackedStringArray("health", "drag_area", "handle", "sprite", "collider", "Effects_Player")]
+collision_layer = 2
+collision_mask = 5
+mass = 3.0
+center_of_mass_mode = 1
+center_of_mass = Vector2(0, 10)
+contact_monitor = true
+max_contacts_reported = 8
+script = ExtResource("1_buddy")
+health = NodePath("HealthComponent")
+drag_area = NodePath("DraggableArea")
+handle = NodePath("Handle")
+sprite = NodePath("Puppet")
+collider = NodePath("CollisionShape2D")
+Effects_Player = NodePath("EffectsPlayer")
+
+[node name="Puppet" type="AnimatedSprite2D" parent="."]
+scale = Vector2(2, 2)
+sprite_frames = SubResource("SpriteFrames_buddy")
+animation = &"idle"
+autoplay = "idle"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, 2)
+scale = Vector2(2, 2)
+shape = SubResource("RectangleShape2D_body")
+
+[node name="DraggableArea" type="Area2D" parent="."]
+script = ExtResource("3_drag")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea"]
+position = Vector2(0.5, 2.5)
+scale = Vector2(2, 2)
+shape = SubResource("RectangleShape2D_grab")
+
+[node name="Handle" type="StaticBody2D" parent="."]
+visible = false
+collision_layer = 0
+collision_mask = 0
+
+[node name="HealthComponent" type="Node" parent="."]
+script = ExtResource("4_health")
+
+[node name="EffectsPlayer" type="Node" parent="." node_paths=PackedStringArray("sprite")]
+script = ExtResource("5_fx")
+sprite = NodePath("../Puppet")

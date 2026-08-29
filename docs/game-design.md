@@ -174,6 +174,7 @@ first-draft ordering, to be tuned against `docs/economy.md`.
 | Fist | free (starter) | Punch at cursor |
 | Pistol | 600 | Single shot |
 | Shotgun | 2,200 | Spread; the exclusive-branch showcase (Buckshot / Slug / Beanbag) |
+| Missile Strike | 2,500 | Mark a spot; a missile flies in and detonates on it. Big radius, long cooldown |
 | Magnifying Glass | 4,000 | Sustained sunbeam, damage-over-time, sets him smoking |
 | Minigun | 9,000 | Sustained fire, the "numbers go up" weapon |
 | Gravity Vortex | 15,000 | Pulls him and every loose object into a spinning knot |

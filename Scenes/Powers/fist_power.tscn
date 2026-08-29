@@ -1,0 +1,33 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Bodies/Powers/fist_power.gd" id="1_fist"]
+[ext_resource type="Script" path="res://Scripts/Bodies/weapon_base.gd" id="2_weapon"]
+[ext_resource type="Texture2D" path="res://Assets/FIST.png" id="3_tex"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_fist"]
+size = Vector2(47, 53)
+
+[node name="FistPower" type="Node2D" node_paths=PackedStringArray("body")]
+script = ExtResource("1_fist")
+item_id = &"fist"
+body = NodePath("FistBody")
+
+[node name="FistBody" type="RigidBody2D" parent="."]
+visible = false
+collision_layer = 4
+collision_mask = 7
+mass = 11.5
+gravity_scale = 0.0
+freeze = true
+script = ExtResource("2_weapon")
+item_id = &"fist"
+damage_mult = 1.0
+
+[node name="FistSprite" type="Sprite2D" parent="FistBody"]
+scale = Vector2(2, 2)
+texture = ExtResource("3_tex")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="FistBody"]
+position = Vector2(3, 3)
+scale = Vector2(2, 2)
+shape = SubResource("RectangleShape2D_fist")

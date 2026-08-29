@@ -1,10 +1,9 @@
-[gd_scene load_steps=13 format=3 uid="uid://dfqst7v7bwncv"]
+[gd_scene load_steps=11 format=3 uid="uid://dfqst7v7bwncv"]
 
 [ext_resource type="PackedScene" uid="uid://f8t65apchval" path="res://Scenes/Bodies/base_body.tscn" id="1_dw3le"]
 [ext_resource type="Texture2D" uid="uid://db7aai4qgbeql" path="res://Assets/baseball bat.png" id="2_5mnlb"]
-[ext_resource type="Script" uid="uid://ua4ytm4j71yn" path="res://Scripts/Globals/WeaponClass.gd" id="2_bee53"]
-[ext_resource type="Script" uid="uid://bjsajrtuu6742" path="res://Scripts/Components/AttackBoxClass.gd" id="4_bee53"]
-[ext_resource type="Script" uid="uid://brwip17pj6yh8" path="res://Scripts/Components/EffectsPlayer.gd" id="5_myi0o"]
+[ext_resource type="Script" uid="uid://ua4ytm4j71yn" path="res://Scripts/Bodies/weapon_base.gd" id="2_bee53"]
+[ext_resource type="Script" uid="uid://brwip17pj6yh8" path="res://Scripts/Components/effects_player.gd" id="5_myi0o"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_bee53"]
 atlas = ExtResource("2_5mnlb")
@@ -29,23 +28,20 @@ height = 39.0
 size = Vector2(5.75, 15)
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_dw3le"]
-radius = 40.0
+radius = 20.0
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_bee53"]
-size = Vector2(25, 62)
+size = Vector2(12.5, 31)
 
-[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_myi0o"]
-radius = 24.0
-height = 160.0
-
-[node name="_BaseballBat" node_paths=PackedStringArray("AttackBox", "drag_area", "handle", "sprite", "collider", "Effects_Player") instance=ExtResource("1_dw3le")]
+[node name="_BaseballBat" node_paths=PackedStringArray("drag_area", "handle", "sprite", "collider", "Effects_Player") instance=ExtResource("1_dw3le")]
+collision_layer = 4
+collision_mask = 7
 mass = 8.0
 center_of_mass_mode = 1
-center_of_mass = Vector2(0, -30)
+center_of_mass = Vector2(0, -15)
 script = ExtResource("2_bee53")
-AttackBox = NodePath("AttackBox")
-min_damage = 1
-max_damage = 40
+item_id = &"baseball_bat"
+damage_mult = 1.0
 drag_area = NodePath("DraggableArea")
 handle = NodePath("StaticBody2D")
 sprite = NodePath("AnimatedSprite2D")
@@ -53,16 +49,16 @@ collider = NodePath("CollisionShape2D")
 Effects_Player = NodePath("EffectsPlayer")
 
 [node name="AnimatedSprite2D" parent="." index="0"]
-scale = Vector2(4, 4)
+scale = Vector2(2, 2)
 sprite_frames = SubResource("SpriteFrames_myi0o")
 
 [node name="CollisionShape2D" parent="." index="1"]
-position = Vector2(-4, -39)
-scale = Vector2(4, 4)
+position = Vector2(-2, -19.5)
+scale = Vector2(2, 2)
 shape = SubResource("CapsuleShape2D_dw3le")
 
 [node name="DraggableArea" parent="." index="2"]
-scale = Vector2(4, 4)
+scale = Vector2(2, 2)
 
 [node name="CollisionShape2D2" parent="DraggableArea" index="1"]
 position = Vector2(-1.125, 16.75)
@@ -70,30 +66,19 @@ shape = SubResource("RectangleShape2D_5mnlb")
 debug_color = Color(0.970795, 0.157083, 0.175347, 0.42)
 
 [node name="StaticBody2D" type="StaticBody2D" parent="." index="3"]
-collision_layer = 2
-collision_mask = 2
+collision_layer = 0
+collision_mask = 0
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="StaticBody2D" index="0"]
-position = Vector2(-3, -82)
+position = Vector2(-1.5, -41)
 shape = SubResource("CircleShape2D_dw3le")
 debug_color = Color(0.0629817, 0.629378, 0.466078, 0.42)
 
 [node name="CollisionShape2D2" type="CollisionShape2D" parent="." index="4"]
-position = Vector2(-4.5, 68)
+position = Vector2(-2.25, 34)
 shape = SubResource("RectangleShape2D_bee53")
 
-[node name="AttackBox" type="Area2D" parent="." index="5" node_paths=PackedStringArray("_Weapon")]
-script = ExtResource("4_bee53")
-_Weapon = NodePath("..")
-metadata/_custom_type_script = "uid://bjsajrtuu6742"
-
-[node name="_attackCollision" type="CollisionShape2D" parent="AttackBox" index="0"]
-position = Vector2(-5, -43)
-shape = SubResource("CapsuleShape2D_myi0o")
-debug_color = Color(0.98588, 0, 0.329313, 0.42)
-
-[node name="EffectsPlayer" type="Node" parent="." index="6"]
+[node name="EffectsPlayer" type="Node" parent="." index="5"]
 script = ExtResource("5_myi0o")
 metadata/_custom_type_script = "uid://brwip17pj6yh8"
 
-[connection signal="area_entered" from="AttackBox" to="." method="_on_attack_box_area_entered"]

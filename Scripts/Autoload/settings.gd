@@ -22,7 +22,11 @@ var overlay_enabled: bool = true
 var window_mode: int = 0
 ## 0 = free, 1..4 = top-left, top-right, bottom-left, bottom-right. See WindowLayout.Corner.
 var play_area_corner: int = 4
-var play_area_size: Vector2i = Vector2i(480, 360)
+## 480x360 was the M1 spike's placeholder and is too small to play in: a 4x-scaled item
+## sprite is two thirds of its height. Sized so the buddy and a couple of toys have room
+## without the window dominating the desktop; F9/F10 cycle it at runtime until the
+## settings UI exists (M4).
+var play_area_size: Vector2i = Vector2i(960, 640)
 ## Last known good rect, revalidated on boot in case the monitor changed while closed.
 var play_area_rect: Rect2i = Rect2i()
 

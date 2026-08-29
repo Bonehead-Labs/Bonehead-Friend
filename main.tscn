@@ -1,0 +1,29 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://Scripts/main.gd" id="1_main"]
+[ext_resource type="Script" path="res://Scripts/Overlay/world_bounds.gd" id="2_bounds"]
+[ext_resource type="Script" path="res://Scripts/World/item_spawner.gd" id="3_spawner"]
+[ext_resource type="PackedScene" path="res://Scenes/Buddy/buddy.tscn" id="4_buddy"]
+[ext_resource type="PackedScene" path="res://Scenes/Misc/trash_bin.tscn" id="5_bin"]
+
+[node name="Main" type="Node" node_paths=PackedStringArray("world", "buddy", "spawner", "trash_bin")]
+script = ExtResource("1_main")
+world = NodePath("World")
+buddy = NodePath("World/Buddy")
+spawner = NodePath("World/ItemSpawner")
+trash_bin = NodePath("World/TrashBin")
+
+[node name="World" type="Node2D" parent="."]
+
+[node name="Bounds" type="Node" parent="World"]
+script = ExtResource("2_bounds")
+
+[node name="ItemSpawner" type="Node" parent="World"]
+script = ExtResource("3_spawner")
+
+[node name="Buddy" parent="World" instance=ExtResource("4_buddy")]
+position = Vector2(640, 200)
+
+[node name="TrashBin" parent="World" instance=ExtResource("5_bin")]
+position = Vector2(80, 620)
+scale = Vector2(1.5, 1.5)

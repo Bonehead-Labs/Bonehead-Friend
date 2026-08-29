@@ -7,7 +7,7 @@ start the next milestone until the current gate passes.
 |---|---|---|
 | M0 — Cleanup & foundations | ~1 wk | ✅ **complete** (2026-08-28) |
 | M1 — Overlay spike | 1–2 wk | 🟡 **code complete** — manual gate pending |
-| M2 — Vertical slice | 3–4 wk | ⬜ |
+| M2 — Vertical slice | 3–4 wk | 🟡 **systems complete** — playtest gate pending |
 | M3 — Systems & buddy uplift | 4–6 wk | ⬜ |
 | M4 — Demo / Next Fest | 2–3 wk | ⬜ |
 | M5 — 1.0 | 4+ wk | ⬜ |
@@ -74,7 +74,8 @@ Deferred to M2 (documented, not forgotten): `EffectsPlayer.Character` export sha
 - Borderless, always-on-top, per-pixel-transparent window, set at **window creation** in
   `project.godot` — not toggled at runtime, which is what caused the 2 px viewport
   oscillation that made the whole scene judder.
-- Two window modes (D10): fullscreen overlay, and a small play area snapped to a corner.
+- Two window modes (D10): fullscreen overlay, and a small play area snapped to a corner
+  (resized from 480x360 to 960x640 during the M2 visual audit; F9/F10 step it at runtime).
 - `WindowLayout` — mode, corner snapping, clamping onto offset monitors, minimum size,
   stale-rect revalidation. Pure and unit-tested.
 - `WorldBounds` — walls regenerated at runtime; the prototype's were nailed to 1280x720.
@@ -126,6 +127,93 @@ non-developer plays for five minutes without being told what to do.
 
 *Art needed:* buddy hurt + happy frames, three item sprites + icons, shop panel 9-slice, font
 chosen, first impact sounds.
+
+### 🟡 M2 progress (2026-08-28)
+
+**The systems half is done and verified; the human half of the gate is not.**
+
+Built: `ItemData` / `AugmentNode` / `BalanceData` as typed resources under `res://Data`;
+`ItemDB`, `Economy`, `Progression` and `AudioManager` autoloads, wired in the documented boot
+order; `ItemSpawner`; receiver-side contact-impulse damage on `Buddy`; `WeaponBase`,
+`ThrowableBase` and `CursorPowerBase` with the fist and pistol on it; `FXLayer` (pooled floating
+numbers, magnitude-scaled hit-stop, Focus-Mode gated); a code-built HUD, shop, augment tree and
+Esc menu; `main.tscn` booting straight to the buddy.
+
+Deleted, as the milestone called for: `item_menu.gd` and its seven hardcoded handlers, the three
+copy-pasted cursor-power activation implementations, `AttackBoxClass`, `HitBoxComponent`, the
+duplicate `Resources/ItemData.gd`, the prototype menus and `base_level.tscn`. `Scripts/Globals/`
+is gone entirely.
+
+Roster is **seven items, not three** — bat, mace, grenade, dynamite, fist, pistol and the
+missile strike — because once the pipeline is data-driven the extras cost a `.tres` each, which
+is the point. The bat has its three-node tier-1 tree (Heavier Swing / Bone Collector / Lead Core).
+
+Verified: 103 pure-function assertions, plus a new 49-assertion `loop_check` scene that walks
+hit → earn → buy → augment → save → reload against the real autoloads, and steps real physics to
+prove the contact-impulse model attributes damage to the right item and that resting contact
+does not farm. Boot smoke test clean headless and in a real window.
+
+**Visual audit (2026-08-29).** `tools/audit_shots.tscn` drives the real game through boot,
+shop, tree, play and the Esc menu and saves a PNG of each to `user://audit/`, composited onto a
+flat colour because a transparent window otherwise gets judged against whatever is behind it.
+Four things it caught:
+
+- The knockout meter was invisible. The default theme's progress background is a dark grey on
+  our dark panel, so an empty meter read as a stray nub and the player could not see how close
+  he was to collapsing. Explicit track and fill styleboxes now.
+- Panels were 96% opaque. Over a per-pixel-transparent window that is the player's wallpaper
+  showing through the UI; D6 says opaque and now they are.
+- The play area was unplayably small (see D10).
+- **Sprite scales were inconsistent** — buddy 2x, bat and mace 4x, missile 3x, grenade and fist
+  1x, exactly as `art-direction.md` describes. A mace was taller than Bonehead. Everything is
+  standardised on 2x now, sprites and colliders together, so the change is visual and reach
+  rather than mass: contact impulse is mass times velocity, so damage per hit is unaffected and
+  the loop check confirms it.
+
+**Click audit (2026-08-29).** The shell was screenshotted but never clicked, and it turned out
+none of it was clickable. `EscMenu` built a `CenterContainer` at `PRESET_FULL_RECT` on the
+topmost `CanvasLayer`; containers default to `MOUSE_FILTER_PASS` rather than `IGNORE`, and the
+viewport marks a mouse event handled as soon as any control claims it. That one invisible,
+empty container was therefore the control under every click in the game — the dock buttons,
+both panels and dragging the buddy all silently did nothing, and it drew nothing to explain
+why. It now blocks only while the menu is open, which is the one time blocking is correct.
+
+`tests/integration/ui_check.tscn` was added so this cannot recur: 35 assertions that push real
+mouse events at the real widget rects, including a sweep asserting that **every visible button
+on every page** is the control the cursor actually lands on, and that the buddy still takes a
+drag. Confirmed in a real window as well as headless.
+
+What that pass exposed and did **not** fix: the grenade and dynamite art is drawn nearly filling
+its 64x64 cell, so at a uniform 2x a grenade is almost as tall as the buddy. That is an asset
+problem, not a scale problem — `art-direction.md` says to author at true pixel size rather than
+scale in-engine, and a per-item scale override would just reintroduce the inconsistency. Redraw
+them smaller within the cell in the art pass.
+
+**Still open before the gate:**
+
+- The playtest. A non-developer has not sat down with it, and that is half the gate.
+- No art. Everything is prototype sprites and a code-styled placeholder UI; the `Theme`, the
+  font and the shop 9-slice are unstarted. Impact sounds are **synthesised at boot** as
+  placeholders, not assets.
+- No Hearts source yet — the currency chip reads 0 because friendly items are M3. The payout
+  pipeline handles kindness already; nothing emits it.
+- Mood is fixed at neutral (0), so every payout runs through the U-curve's 0.6x trough.
+  `MoodComponent` is M3.
+- Knockout is a payout and a reset, not the animated collapse-and-reassemble beat (M3).
+- Balance is a first draft. Catalog prices are unchanged; reachability comes from the knockout
+  bonus roughly doubling a round. Retune from real play, not intuition.
+- **There is no settings menu.** Esc gives Resume / Save now / Save and quit only. The
+  settings UI — Focus Mode slider, Low Power Mode, monitor picker, streamer mode, volumes — is
+  M4 scope and unstarted; until then those knobs are the F3 overlay's dev hotkeys (F4 window
+  mode, F5 corner, F6 monitor, F7 low power, F8 overlay, F9/F10 play-area size). Worth
+  revisiting whether a minimal Focus Mode + size control should be pulled forward, because a
+  playtester cannot resize the window without knowing the hotkeys.
+- **An equipped cursor power consumes every left click**, so you cannot drag anything while the
+  fist, pistol or missile is on. The prototype behaved the same way. Whether a click on
+  something grabbable should grab rather than fire is a design question for the playtest.
+- The missile's price (2,500 Bones), blast radius (300 px), flight speed and 1 s cooldown are a
+  first guess added to the catalog in this milestone — all four are fields in
+  `Data/Items/missile.tres` and `Scenes/Powers/missile_power.tscn`, not code.
 
 ---
 

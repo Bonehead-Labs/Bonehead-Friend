@@ -73,6 +73,11 @@ func _contain_escapees(size: Vector2) -> void:
 		if not (node is Node2D) or not is_instance_valid(node):
 			continue
 		var body := node as Node2D
+		# Only contain things the player can see. A deactivated cursor power parks its
+		# body far off-screen and hides it; dragging that back into view would strand an
+		# invisible collider in the play area — the exact bug M0 removed from the fist.
+		if not body.visible:
+			continue
 		if inner.has_point(body.global_position):
 			continue
 		body.global_position = body.global_position.clamp(inner.position, inner.end)

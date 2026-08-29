@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/Missle-Crosshair.png" id="1_i2dy1"]
+[ext_resource type="PackedScene" path="res://Scenes/Powers/missile_power.tscn" id="2_vc11n"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_3l3l4"]
+
+[resource]
+script = ExtResource("3_3l3l4")
+id = &"missile"
+display_name = "Missile Strike"
+description = "Mark a spot and a missile flies in and detonates on it."
+category = 2
+cost = 2500
+scene = ExtResource("2_vc11n")
+icon = ExtResource("1_i2dy1")
+sort_order = 20

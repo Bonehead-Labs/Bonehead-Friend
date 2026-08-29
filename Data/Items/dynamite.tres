@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/base-Dynamite.png" id="1_2npn2"]
+[ext_resource type="PackedScene" path="res://Scenes/Bodies/_Dynamite.tscn" id="2_6e4oy"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_khqyv"]
+
+[resource]
+script = ExtResource("3_khqyv")
+id = &"dynamite"
+display_name = "Dynamite"
+description = "A bigger radius and a much bigger shove."
+category = 1
+cost = 800
+scene = ExtResource("2_6e4oy")
+icon = ExtResource("1_2npn2")
+sort_order = 10

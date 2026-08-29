@@ -149,8 +149,9 @@ The overlay ships with two user-selectable modes:
 
 - **Fullscreen overlay** (default) — fills the monitor's usable rect, taskbar becomes the
   floor. This is the intended way to play.
-- **Play area** — a small window (480x360 by default) the player snaps into a screen corner
-  or drags anywhere.
+- **Play area** — a small window (960x640 by default) the player snaps into a screen corner
+  or drags anywhere. 480x360 was the spike's placeholder and is unplayable: a single item
+  sprite was two thirds of its height.
 
 Play area was originally only the *fallback* if DWM compositing proved too expensive at 4K.
 Promoting it to a first-class option is strictly better: some players want a quiet corner
@@ -166,6 +167,55 @@ already shipped and tested rather than being an emergency redesign.
 walls at runtime because the play area is resizable.
 
 ---
+
+---
+
+### D11 — `effect_per_level` is a multiplier, not an addend
+**2026-08-28 · Decided**
+
+An `AugmentNode`'s `effect_per_level` is the factor applied **per level**, and levels stack as
+`pow(effect_per_level, levels)`. A damage node is `1.15`; a cooldown node is `0.95`.
+
+The alternative — storing `+0.15` and summing, or storing a percentage and branching on whether
+the effect is "good" — needs the sign of every effect encoded somewhere, and that somewhere is
+always a script. One rule with no special case means a new effect key is a `.tres` field and
+nothing else, and it makes the whole of `AugmentMath` four lines that the test runner can reach.
+
+*Consequence:* effects compound rather than accumulate, so a ten-level damage node is ×4.0 and
+not ×2.5. Cost growth is tuned against that, not against a linear ramp.
+
+---
+
+### D12 — Placeholder SFX are synthesised at boot, not committed
+**2026-08-28 · Decided**
+
+`AudioManager` generates its impact, purchase and knockout sounds procedurally in `_build_streams()`.
+
+M2 needs "first impact sounds" and there is no audio pipeline yet. Committing binary stand-ins
+invites someone to mistake them for the real thing (the art pipeline has explicit rules about
+reproducibility for exactly this reason); generating them keeps the feedback loop complete,
+costs nothing in repo size, and is obviously temporary at the call site. The pooled players,
+voice cap, pitch randomisation and mute-when-unfocused around them are real and stay.
+
+*Consequence:* the audio pass replaces one function. Nothing else changes.
+
+---
+
+### D13 — `main.tscn` is a thin scene; the UI is built in code
+**2026-08-28 · Decided**
+
+`main.tscn` holds the world, the buddy and the spawner. The HUD, panel suite, FX layer and Esc
+menu are constructed by `main.gd` at boot rather than authored as scenes.
+
+The shell is data-driven: shop tiles come from `ItemDB`, augment rows from an item's tree,
+currency chips from `Economy`'s balance dictionary. An authored scene for any of those would be
+a placeholder that has to be deleted the moment a second item exists — the exact mistake
+`item_menu.tscn` made. Styling is centralised in `UIStyle` so the real `Theme` lands in one
+file.
+
+*Consequence:* the M2 art pass replaces `UIStyle` with a `Theme` resource and a font; the
+layout code stays. UI changes are code review rather than scene diffs, which for generated
+content is the right trade.
 
 ## Recommendations not yet decided
 

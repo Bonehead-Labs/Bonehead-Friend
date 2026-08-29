@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/base-handGrenade.png" id="1_jauv4"]
+[ext_resource type="PackedScene" path="res://Scenes/Bodies/_Grenade.tscn" id="2_g4154"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_ftw36"]
+
+[resource]
+script = ExtResource("3_ftw36")
+id = &"grenade"
+display_name = "Grenade"
+description = "Right-click while holding it to pull the pin."
+category = 1
+scene = ExtResource("2_g4154")
+icon = ExtResource("1_jauv4")

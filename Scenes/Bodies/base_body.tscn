@@ -1,6 +1,6 @@
 [gd_scene load_steps=3 format=3 uid="uid://f8t65apchval"]
 
-[ext_resource type="Script" uid="uid://bbovk20fupeq4" path="res://Scripts/Globals/BaseDraggable.gd" id="1_kg7lm"]
+[ext_resource type="Script" uid="uid://bbovk20fupeq4" path="res://Scripts/Bodies/base_draggable.gd" id="1_kg7lm"]
 [ext_resource type="PackedScene" uid="uid://bx84gcmi6yqgv" path="res://Scenes/Components/draggable_area.tscn" id="2_eyy4l"]
 
 [node name="BaseBody" type="RigidBody2D"]

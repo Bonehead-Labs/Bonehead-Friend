@@ -1,0 +1,63 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Bodies/missile.gd" id="1_missile"]
+[ext_resource type="Texture2D" path="res://Assets/base-Missle.png" id="2_sprite"]
+[ext_resource type="Script" path="res://Scripts/Components/effects_player.gd" id="3_fx"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_missile"]
+atlas = ExtResource("2_sprite")
+region = Rect2(0, 0, 64, 64)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_missile"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_missile")
+}],
+"loop": true,
+"name": &"default",
+"speed": 5.0
+}]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_blast"]
+radius = 300.0
+
+[node name="Missile" type="Node2D" node_paths=PackedStringArray("explosion_area", "Effects_Player", "flame_effect", "sprite")]
+script = ExtResource("1_missile")
+speed = 1400.0
+explosion_area = NodePath("_ExplosionArea")
+Effects_Player = NodePath("EffectsPlayer")
+flame_effect = NodePath("FlameEffect")
+sprite = NodePath("MissileSprite")
+
+[node name="MissileSprite" type="AnimatedSprite2D" parent="."]
+position = Vector2(0, 57)
+scale = Vector2(2, 2)
+sprite_frames = SubResource("SpriteFrames_missile")
+
+[node name="FlameEffect" type="CPUParticles2D" parent="."]
+position = Vector2(0, 99)
+amount = 100
+lifetime = 0.5
+speed_scale = 3.71
+randomness = 0.5
+emission_shape = 2
+emission_sphere_radius = 16.0
+gravity = Vector2(0, 0)
+linear_accel_min = 82.26
+linear_accel_max = 82.26
+scale_amount_min = 3.0
+scale_amount_max = 3.0
+color = Color(1, 0.696667, 0.09, 1)
+
+[node name="_ExplosionArea" type="Area2D" parent="."]
+collision_layer = 0
+collision_mask = 6
+monitoring = false
+
+[node name="_explosionAreaShape" type="CollisionShape2D" parent="_ExplosionArea"]
+shape = SubResource("CircleShape2D_blast")
+
+[node name="EffectsPlayer" type="Node" parent="." node_paths=PackedStringArray("sprite")]
+script = ExtResource("3_fx")
+sprite = NodePath("../MissileSprite")

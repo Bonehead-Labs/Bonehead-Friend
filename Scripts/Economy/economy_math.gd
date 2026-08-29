@@ -40,6 +40,32 @@ static func max_affordable(base: float, growth: float, owned: int, cash: float) 
 		return 0
 	return int(floor(log(inner) / log(growth) + EPSILON))
 
+# --- damage and payout -----------------------------------------------------
+
+## Damage from a raw contact impulse. Below `min_impulse` nothing happens at all — that
+## threshold is what separates a swing from a body resting against him.
+static func damage_from_impulse(impulse: float, min_impulse: float, per_impulse: float, weapon_mult: float) -> float:
+	if impulse < min_impulse:
+		return 0.0
+	return impulse * per_impulse * maxf(0.0, weapon_mult)
+
+## The one payout pipeline, used by damage and kindness alike:
+##   base -> x mood -> x augments -> x mastery -> x prestige
+## Written out as a function so there is exactly one place the order can be wrong.
+static func payout_for(base: float, mood_mult: float, augment_mult: float, mastery_mult: float, prestige_mult: float) -> float:
+	return maxf(0.0, base) * mood_mult * augment_mult * mastery_mult * prestige_mult
+
+## Knockout bonus. The sub-1 exponent is a soft cap: doubling the damage in a round pays
+## less than double, so knockout-farming cannot become the only strategy worth playing.
+static func knockout_bonus(round_damage: float, mult: float, exponent: float) -> float:
+	if round_damage <= 0.0:
+		return 0.0
+	return mult * pow(round_damage, exponent)
+
+## Kindness combo: each repeat inside the window is worth a little more, up to a ceiling.
+static func kindness_combo(repeats: int, step: float, ceiling: float) -> float:
+	return minf(1.0 + step * float(maxi(0, repeats)), maxf(1.0, ceiling))
+
 # --- prestige --------------------------------------------------------------
 
 ## Total ectoplasm earned for a given lifetime income.

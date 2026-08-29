@@ -10,9 +10,13 @@ is mostly pure-function testing.
 ```bash
 GODOT="/mnt/c/Users/George/Godot Projects/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe"
 PROJ='C:\Users\George\Godot Projects\Projects\Bonehead_Friend\interactive-buddy-2'
-"$GODOT" --headless --path "$PROJ" -s tests/run_tests.gd   # asserts, non-zero exit on failure
+"$GODOT" --headless --path "$PROJ" -s tests/run_tests.gd   # pure-function asserts
+"$GODOT" --headless --path "$PROJ" res://tests/integration/loop_check.tscn  # the whole loop
+"$GODOT" --headless --path "$PROJ" res://tests/integration/ui_check.tscn    # can you click it
 "$GODOT" --headless --path "$PROJ" --quit-after 120        # boot smoke test
 ```
+
+All three test runs exit non-zero on failure.
 
 (The doubled path segment is real — the release zip was extracted into a folder named like the
 exe. `--path` must be a Windows path; Godot is a Windows process.)
@@ -35,6 +39,86 @@ Coverage — these are pure functions with no excuse for being wrong:
 
 The boot smoke test exists to catch broken `@export` references and missing scene paths after
 scene edits — the failure mode that produced the original export bug.
+
+### The loop check
+
+`tests/integration/loop_check.tscn` is the second automated run, added in M2. It is a **scene**
+rather than a `-s` script on purpose: `-s` cannot see autoload singletons, and `Economy`,
+`Progression` and `ItemDB` are exactly where a regression in the payout chain would live.
+
+It walks the M2 gate end to end — content loads, starters are owned, a hit pays Bones, an
+augment makes the same hit pay more by exactly its multiplier, the shop refuses what you cannot
+afford, the item limit holds, a knockout pays and resets, and the whole thing survives a save
+and reload. It runs against its own save slot (`SaveManager.slot_name`) and deletes it
+afterwards, so it never touches the save of whoever is running it.
+
+The part worth keeping honest is the **contact impulse** section, which steps real physics and
+asserts that a falling body produces a real `HitInfo`, that it is attributed to the right item
+id, and that a body resting on him does not farm damage. Receiver-side damage (D7) is the
+correction the whole combat model rests on; asserting it against the actual solver rather than a
+synthetic signal is the only way to know it still works.
+
+Two traps that cost time when writing it:
+
+- **A headless viewport is 64x64**, not the project's 1280x720. Anything derived from the window
+  size — `WorldBounds`, the trash bin anchor, the buddy's out-of-bounds rescue — is meaningless
+  in a headless test. The loop check supplies its own floor instead of using `WorldBounds`.
+- **Sections that never await a physics frame leave the world suspended.** Ten bats spawned by
+  the item-limit section were still hanging in the air when the physics section started, and
+  raining down mid-measurement knocked the buddy out. Physics phases have to clear the world
+  and reset the meter first.
+
+### The UI check
+
+`tests/integration/ui_check.tscn` is the third automated run, added after M2's shell shipped
+unclickable. The Esc menu's `CenterContainer` filled the window on the topmost `CanvasLayer`,
+and on its default mouse filter it was therefore the control under **every** click in the game.
+The dock, both panels and dragging the buddy all did nothing, and it drew nothing to explain
+why. The screenshot audit could not see it — the pixels were correct.
+
+So this one clicks. It loads the real `main.tscn`, pushes synthetic mouse events at the actual
+on-screen rect of each widget, and asserts what came back:
+
+- No control spans the window on any layer (the shape of the original bug).
+- Each dock button is the top control at its own centre, opens its panel, and toggles it shut.
+- The panel's tabs and close button work.
+- **Every visible button on every page** is the control the cursor lands on. A sweep rather
+  than a list, so the same class of bug is caught wherever it reappears.
+- Clicking Spawn puts an item in the world.
+- The buddy's grab area still sees the cursor and a press still starts a drag — the blocker
+  killed physics picking too, because the viewport marks a click handled the moment any control
+  claims it, and `BaseDraggable` runs on *unhandled* input.
+- The Esc menu blocks clicks while open and stops blocking when closed.
+
+Two traps, on top of the loop check's:
+
+- The scene runs inside a **SubViewport** at the play-area size, because a headless root
+  viewport is 64x64 and every widget would be off-screen.
+- **A SubViewport with no `SubViewportContainer` above it never learns the mouse is inside it**,
+  and physics picking is gated on exactly that. Without a manual
+  `notification(Viewport.NOTIFICATION_VP_MOUSE_ENTER)` the world silently ignores every
+  synthetic click and the drag assertions fail for a reason that has nothing to do with the
+  game.
+
+GUI hit-testing is the same code path in a SubViewport as in the real window, but the window
+itself is not — a real run was used to confirm the fix with `OverlayManager` actually applied.
+
+### Visual audit
+
+```bash
+"$GODOT" --path "$PROJ" res://tools/audit_shots.tscn   # NOT headless
+```
+
+Drives the game through boot, shop, tree, play and the Esc menu, and writes a PNG of each to
+`user://audit/`. Deliberately not headless: headless does not render and its viewport is 64x64.
+
+It shoots at `Settings.play_area_size`, not a convenient size — a HUD that only fits in a
+1280-wide capture is a HUD that does not fit. Each shot is composited onto a flat colour first,
+because the window is transparent and the UI would otherwise be judged against whatever the
+image viewer paints behind it. It runs against its own save slot and deletes it afterwards.
+
+Overlay *behaviour* still has to be checked against a real window on a real desktop — this
+catches layout and legibility, not always-on-top or click handling.
 
 ## M1 hands-on checklist
 

@@ -10,9 +10,20 @@ extends Node
 ## SaveSchema, which is dependency-free so the headless test runner can reach it.
 
 const SAVE_DIR := "user://save"
-const SAVE_PATH := "user://save/slot_1.json"
-const BACKUP_PATH := "user://save/slot_1.bak"
-const TMP_PATH := "user://save/slot_1.json.tmp"
+
+## Which file in SAVE_DIR is being read and written. A variable rather than a constant so
+## the headless loop check can run against its own slot instead of overwriting the save
+## of whoever is running the tests — and so multiple slots stay a one-line change.
+var slot_name := "slot_1"
+
+func save_path() -> String:
+	return "%s/%s.json" % [SAVE_DIR, slot_name]
+
+func backup_path() -> String:
+	return "%s/%s.bak" % [SAVE_DIR, slot_name]
+
+func tmp_path() -> String:
+	return "%s/%s.json.tmp" % [SAVE_DIR, slot_name]
 
 const AUTOSAVE_DELAY := 30.0
 
@@ -73,18 +84,18 @@ func save_game() -> bool:
 		push_error("SaveManager: cannot create %s" % SAVE_DIR)
 		return false
 
-	var f := FileAccess.open(TMP_PATH, FileAccess.WRITE)
+	var f := FileAccess.open(tmp_path(), FileAccess.WRITE)
 	if f == null:
-		push_error("SaveManager: cannot open %s (error %d)" % [TMP_PATH, FileAccess.get_open_error()])
+		push_error("SaveManager: cannot open %s (error %d)" % [tmp_path(), FileAccess.get_open_error()])
 		return false
 	f.store_string(JSON.stringify(data, "\t"))
 	f.close()
 
 	# Keep the previous good file as .bak before replacing it.
-	if FileAccess.file_exists(SAVE_PATH):
-		DirAccess.copy_absolute(SAVE_PATH, BACKUP_PATH)
+	if FileAccess.file_exists(save_path()):
+		DirAccess.copy_absolute(save_path(), backup_path())
 
-	var err := DirAccess.rename_absolute(TMP_PATH, SAVE_PATH)
+	var err := DirAccess.rename_absolute(tmp_path(), save_path())
 	if err != OK:
 		push_error("SaveManager: failed to commit save (error %d)" % err)
 		return false
@@ -93,12 +104,12 @@ func save_game() -> bool:
 	return true
 
 func load_game() -> Dictionary:
-	var data := _read_json(SAVE_PATH)
+	var data := _read_json(save_path())
 	if data.is_empty():
 		# Primary unreadable or corrupt — fall back to the last known good file.
-		data = _read_json(BACKUP_PATH)
+		data = _read_json(backup_path())
 		if not data.is_empty():
-			push_warning("SaveManager: primary save unreadable; recovered from %s" % BACKUP_PATH)
+			push_warning("SaveManager: primary save unreadable; recovered from %s" % backup_path())
 	if data.is_empty():
 		data = SaveSchema.new_save()
 	else:
@@ -110,7 +121,7 @@ func load_game() -> Dictionary:
 	return data
 
 func has_save() -> bool:
-	return FileAccess.file_exists(SAVE_PATH) or FileAccess.file_exists(BACKUP_PATH)
+	return FileAccess.file_exists(save_path()) or FileAccess.file_exists(backup_path())
 
 # --- internals -------------------------------------------------------------
 

@@ -145,7 +145,9 @@ to a single currency — or adding a fourth — is a data change, not a refactor
 ```
 
 Each autoload implements `to_save() -> Dictionary` and `from_save(d: Dictionary)`;
-`SaveManager` composes and decomposes. Write path: serialise → `slot_1.json.tmp` → rename over
+`SaveManager` composes and decomposes. `SaveManager.slot_name` selects the file inside
+`user://save/` — a variable rather than a constant so the headless loop check runs against its
+own slot instead of overwriting the save of whoever is running the tests. Write path: serialise → `slot_1.json.tmp` → rename over
 `slot_1.json`, previous copy kept as `.bak`. Load path: parse failure falls back to `.bak`.
 
 Migrations are an ordered chain of `_migrate_1_to_2(d)` functions. Unknown keys are preserved.
@@ -178,6 +180,10 @@ Main (Node) ── main.gd  (thin bootstrapper)
 
 The "beautiful main menu" requirement is met by the HUD dock plus the panel suite, themed with
 a real `Theme` resource and a chosen font — the prototype has neither.
+
+`main.tscn` holds only `World` (bounds, spawner, buddy, props). The four CanvasLayers are built
+by `main.gd` at boot, because every widget on them is generated from data (docs/decisions.md
+D13). `Scripts/UI/ui_style.gd` is the one place styling lives until the `Theme` exists.
 
 `ItemSpawner` is a node, not an autoload, because it needs a parent to instance into. It tags
 every spawned node into groups (`spawned_item`, `interactive`) which is how the trash bin, the

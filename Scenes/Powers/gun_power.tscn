@@ -1,0 +1,14 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Bodies/Powers/gun_power.gd" id="1_gun"]
+[ext_resource type="Texture2D" path="res://Assets/Crosshair Basic.png" id="2_crosshair"]
+
+[node name="GunPower" type="Node2D"]
+script = ExtResource("1_gun")
+item_id = &"pistol"
+cursor_texture = ExtResource("2_crosshair")
+cursor_hotspot = Vector2(32, 32)
+cooldown_seconds = 0.35
+damage_mult = 1.0
+blast_radius = 44.0
+blast_force = 3200.0

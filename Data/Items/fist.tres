@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/FIST.png" id="1_vsrxt"]
+[ext_resource type="PackedScene" path="res://Scenes/Powers/fist_power.tscn" id="2_v8ahc"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_ubexi"]
+
+[resource]
+script = ExtResource("3_ubexi")
+id = &"fist"
+display_name = "Fist"
+description = "Your hand, made of physics. Chases the cursor; click to punch."
+category = 2
+scene = ExtResource("2_v8ahc")
+icon = ExtResource("1_vsrxt")

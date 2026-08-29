@@ -1,0 +1,16 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Bodies/Powers/missile_power.gd" id="1_power"]
+[ext_resource type="Texture2D" path="res://Assets/Missle-Crosshair.png" id="2_crosshair"]
+[ext_resource type="PackedScene" path="res://Scenes/Powers/missile.tscn" id="3_missile"]
+
+[node name="MissilePower" type="Node2D"]
+script = ExtResource("1_power")
+item_id = &"missile"
+cursor_texture = ExtResource("2_crosshair")
+cursor_hotspot = Vector2(32, 32)
+cooldown_seconds = 1.0
+damage_mult = 1.0
+missile_scene = ExtResource("3_missile")
+spawn_offset = Vector2(0, -800)
+max_force = 14000.0
