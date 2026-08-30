@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="MilestoneData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/milestone_data.gd" id="1_002dr"]
+
+[resource]
+script = ExtResource("1_002dr")
+goal_key = &"items_owned"
+id = &"items_50"
+display_name = "Occupational Overkill"
+description = "Own fifty toys. There is a person under there somewhere."
+target = 50.0
+reward_dollars = 2500
+income_bonus = 1.02
+sort_order = 330

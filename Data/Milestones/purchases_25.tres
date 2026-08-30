@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="MilestoneData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/milestone_data.gd" id="1_mtakj"]
+
+[resource]
+script = ExtResource("1_mtakj")
+goal_key = &"purchase"
+id = &"purchases_25"
+display_name = "Retail Therapy"
+description = "Buy twenty-five things."
+target = 25.0
+reward_dollars = 600
+sort_order = 340

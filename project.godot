@@ -34,6 +34,7 @@ SaveManager="*res://Scripts/Autoload/save_manager.gd"
 ItemDB="*res://Scripts/Autoload/item_db.gd"
 Economy="*res://Scripts/Autoload/economy.gd"
 Progression="*res://Scripts/Autoload/progression.gd"
+Milestones="*res://Scripts/Autoload/milestones.gd"
 OverlayManager="*res://Scripts/Autoload/overlay_manager.gd"
 AudioManager="*res://Scripts/Autoload/audio_manager.gd"
 

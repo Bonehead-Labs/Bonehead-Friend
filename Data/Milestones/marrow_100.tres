@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="MilestoneData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/milestone_data.gd" id="1_67lfk"]
+
+[resource]
+script = ExtResource("1_67lfk")
+goal_key = &"marrow"
+id = &"marrow_100"
+display_name = "Fossilised"
+description = "A hundred Marrow."
+target = 100.0
+reward_dollars = 6000
+income_bonus = 1.03
+sort_order = 650

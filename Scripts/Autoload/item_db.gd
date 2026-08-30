@@ -9,6 +9,7 @@ const ITEMS_DIR := "res://Data/Items"
 const AUGMENTS_DIR := "res://Data/Augments"
 const CONTRACTS_DIR := "res://Data/Contracts"
 const PERSONALITIES_DIR := "res://Data/Personalities"
+const MILESTONES_DIR := "res://Data/Milestones"
 const BALANCE_PATH := "res://Data/balance.tres"
 
 ## The personality a save with none recorded gets. Also the fallback when a save names one
@@ -26,6 +27,8 @@ var _augments_by_item: Dictionary = {}  ## StringName -> Array[AugmentNode]
 var _items_sorted: Array[ItemData] = []
 var _contracts: Dictionary = {}         ## StringName -> ContractData
 var _contracts_sorted: Array[ContractData] = []
+var _milestones: Dictionary = {}
+var _milestones_sorted: Array[MilestoneData] = []
 var _personalities: Dictionary = {}     ## StringName -> PersonalityData
 var _personalities_sorted: Array[PersonalityData] = []
 
@@ -34,6 +37,7 @@ func _ready() -> void:
 	_load_items()
 	_load_augments()
 	_load_contracts()
+	_load_milestones()
 	_load_personalities()
 
 # --- lookup ----------------------------------------------------------------
@@ -71,6 +75,12 @@ func get_contract(id: StringName) -> ContractData:
 func all_contracts() -> Array[ContractData]:
 	return _contracts_sorted
 
+func get_milestone(id: StringName) -> MilestoneData:
+	return _milestones.get(id)
+
+func all_milestones() -> Array[MilestoneData]:
+	return _milestones_sorted
+
 func contracts_for_period(period: int) -> Array[ContractData]:
 	var out: Array[ContractData] = []
 	for contract in _contracts_sorted:
@@ -107,7 +117,7 @@ func starter_items() -> Array[ItemData]:
 ## Content directories that are allowed to be absent. Contracts and personalities were both
 ## added in M3; a checkout from before then, or a build that ships without them, should lose
 ## the contract board rather than fail to boot.
-const OPTIONAL_DIRS := [CONTRACTS_DIR, PERSONALITIES_DIR]
+const OPTIONAL_DIRS := [CONTRACTS_DIR, PERSONALITIES_DIR, MILESTONES_DIR]
 
 func _load_balance() -> void:
 	var res := ResourceLoader.load(BALANCE_PATH) if ResourceLoader.exists(BALANCE_PATH) else null
@@ -136,6 +146,29 @@ func _load_items() -> void:
 	_items_sorted.sort_custom(func(a: ItemData, b: ItemData) -> bool:
 		if a.category != b.category:
 			return a.category < b.category
+		if a.sort_order != b.sort_order:
+			return a.sort_order < b.sort_order
+		return String(a.id) < String(b.id))
+
+## Milestones (docs/decisions.md D34). Optional like the contract board: a build without
+## them loses the board rather than failing to boot.
+func _load_milestones() -> void:
+	for res in _load_directory(MILESTONES_DIR):
+		var milestone := res as MilestoneData
+		if milestone == null:
+			push_error("ItemDB: %s is not a MilestoneData" % res.resource_path)
+			continue
+		var err := milestone.validation_error()
+		if not err.is_empty():
+			push_error("ItemDB: %s — %s" % [milestone.resource_path, err])
+			continue
+		if _milestones.has(milestone.id):
+			push_error("ItemDB: duplicate milestone id '%s'" % milestone.id)
+			continue
+		_milestones[milestone.id] = milestone
+
+	_milestones_sorted.assign(_milestones.values())
+	_milestones_sorted.sort_custom(func(a: MilestoneData, b: MilestoneData) -> bool:
 		if a.sort_order != b.sort_order:
 			return a.sort_order < b.sort_order
 		return String(a.id) < String(b.id))

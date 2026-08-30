@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="MilestoneData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/milestone_data.gd" id="1_wv1as"]
+
+[resource]
+script = ExtResource("1_wv1as")
+goal_key = &"reincarnations"
+id = &"resets_5"
+display_name = "Serial Reincarnator"
+description = "Reincarnate five times."
+target = 5.0
+reward_dollars = 1800
+income_bonus = 1.02
+sort_order = 610

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="MilestoneData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/milestone_data.gd" id="1_1nb5m"]
+
+[resource]
+script = ExtResource("1_1nb5m")
+goal_key = &"deal_damage"
+id = &"damage_10m"
+display_name = "Load Bearing"
+description = "Ten million damage. Structurally, he should not still be here."
+target = 10000000.0
+reward_dollars = 1400
+income_bonus = 1.02
+sort_order = 890

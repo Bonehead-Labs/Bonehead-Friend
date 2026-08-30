@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="MilestoneData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/milestone_data.gd" id="1_twbpq"]
+
+[resource]
+script = ExtResource("1_twbpq")
+goal_key = &"automation_rate"
+id = &"automation_1000"
+display_name = "Fully Staffed"
+description = "A thousand per second, while you are not even here."
+target = 1000.0
+reward_dollars = 2600
+income_bonus = 1.02
+sort_order = 520

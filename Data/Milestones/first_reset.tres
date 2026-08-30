@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="MilestoneData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/milestone_data.gd" id="1_uwu3b"]
+
+[resource]
+script = ExtResource("1_uwu3b")
+goal_key = &"reincarnations"
+id = &"first_reset"
+display_name = "Second Life"
+description = "Reincarnate once."
+reward_dollars = 1000
+income_bonus = 1.02
+sort_order = 600

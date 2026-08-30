@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="MilestoneData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/milestone_data.gd" id="1_66jh1"]
+
+[resource]
+script = ExtResource("1_66jh1")
+goal_key = &"reincarnations"
+id = &"ladder_resets"
+display_name = "Lives Lived"
+description = "Every five Reincarnations."
+target = 5.0
+repeat_every = 5.0
+reward_dollars = 900
+sort_order = 1100

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="MilestoneData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/milestone_data.gd" id="1_tqiy1"]
+
+[resource]
+script = ExtResource("1_tqiy1")
+goal_key = &"items_owned"
+id = &"items_5"
+display_name = "Starting a Collection"
+description = "Own five toys."
+target = 5.0
+reward_dollars = 400
+sort_order = 300

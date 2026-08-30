@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="MilestoneData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/milestone_data.gd" id="1_81x2b"]
+
+[resource]
+script = ExtResource("1_81x2b")
+goal_key = &"knockout"
+id = &"knockouts_500"
+display_name = "Attrition"
+description = "Five hundred knockouts."
+target = 500.0
+reward_dollars = 1400
+sort_order = 880

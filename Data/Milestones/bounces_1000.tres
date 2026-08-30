@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="MilestoneData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/milestone_data.gd" id="1_riydq"]
+
+[resource]
+script = ExtResource("1_riydq")
+goal_key = &"bounce"
+id = &"bounces_1000"
+display_name = "Frequent Flyer"
+description = "Bounce him a thousand times."
+target = 1000.0
+reward_dollars = 1200
+sort_order = 810

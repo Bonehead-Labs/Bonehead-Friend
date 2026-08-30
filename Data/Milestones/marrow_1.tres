@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="MilestoneData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/milestone_data.gd" id="1_acr1o"]
+
+[resource]
+script = ExtResource("1_acr1o")
+goal_key = &"marrow"
+id = &"marrow_1"
+display_name = "In The Bone"
+description = "Earn your first whole point of Marrow — a doubling of everything, permanently."
+reward_dollars = 1200
+income_bonus = 1.02
+sort_order = 630

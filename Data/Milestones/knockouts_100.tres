@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="MilestoneData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/milestone_data.gd" id="1_25exm"]
+
+[resource]
+script = ExtResource("1_25exm")
+goal_key = &"knockout"
+id = &"knockouts_100"
+display_name = "Century"
+description = "Knock him out a hundred times."
+target = 100.0
+reward_dollars = 800
+sort_order = 140

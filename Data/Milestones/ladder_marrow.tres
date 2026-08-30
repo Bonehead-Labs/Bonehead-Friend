@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="MilestoneData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/milestone_data.gd" id="1_teo40"]
+
+[resource]
+script = ExtResource("1_teo40")
+goal_key = &"marrow"
+id = &"ladder_marrow"
+display_name = "Denser Still"
+description = "Every doubling of Marrow."
+repeat_every = 2.0
+repeat_multiplies = true
+reward_dollars = 800
+sort_order = 1110

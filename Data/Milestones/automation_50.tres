@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="MilestoneData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/milestone_data.gd" id="1_ctyu8"]
+
+[resource]
+script = ExtResource("1_ctyu8")
+goal_key = &"automation_rate"
+id = &"automation_50"
+display_name = "Night Shift"
+description = "Reach fifty per second of automated income."
+target = 50.0
+reward_dollars = 1200
+sort_order = 510

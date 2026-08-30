@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="MilestoneData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/milestone_data.gd" id="1_pf04n"]
+
+[resource]
+script = ExtResource("1_pf04n")
+goal_key = &"mastery_pool"
+id = &"pool_10"
+display_name = "Broad Interests"
+description = "Reach ten Mastery Pool points."
+target = 10.0
+sort_order = 430

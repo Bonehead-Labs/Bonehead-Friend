@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="MilestoneData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/milestone_data.gd" id="1_mm5ug"]
+
+[resource]
+script = ExtResource("1_mm5ug")
+goal_key = &"deal_damage"
+id = &"damage_1"
+display_name = "Curiosity"
+description = "You hit a skeleton on your desktop to see what would happen."
+reward_dollars = 100
+income_bonus = 1.0
+hidden = true
+sort_order = 840

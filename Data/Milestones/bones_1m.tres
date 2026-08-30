@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="MilestoneData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/milestone_data.gd" id="1_3covc"]
+
+[resource]
+script = ExtResource("1_3covc")
+goal_key = &"lifetime_bones"
+id = &"bones_1m"
+display_name = "Seven Figures"
+description = "Earn a million Bones."
+target = 1000000.0
+reward_dollars = 1000
+sort_order = 720

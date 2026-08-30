@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="MilestoneData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/milestone_data.gd" id="1_dpdbs"]
+
+[resource]
+script = ExtResource("1_dpdbs")
+goal_key = &"automation_rate"
+id = &"first_device"
+display_name = "It Does It Itself"
+description = "Buy your first automation capstone. The desk starts working without you."
+target = 0.5
+reward_dollars = 800
+income_bonus = 1.02
+sort_order = 500

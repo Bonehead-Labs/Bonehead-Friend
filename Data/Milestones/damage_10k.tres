@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="MilestoneData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/milestone_data.gd" id="1_er1o1"]
+
+[resource]
+script = ExtResource("1_er1o1")
+goal_key = &"deal_damage"
+id = &"damage_10k"
+display_name = "Occupational Hazard"
+description = "Deal ten thousand damage."
+target = 10000.0
+sort_order = 100

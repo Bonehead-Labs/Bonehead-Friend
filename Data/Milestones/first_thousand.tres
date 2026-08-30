@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="MilestoneData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/milestone_data.gd" id="1_bhm7d"]
+
+[resource]
+script = ExtResource("1_bhm7d")
+goal_key = &"lifetime_bones"
+id = &"first_thousand"
+display_name = "Four Figures"
+description = "Earn a thousand Bones."
+target = 1000.0
+reward_dollars = 400
+sort_order = 40

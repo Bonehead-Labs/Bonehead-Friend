@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="MilestoneData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/milestone_data.gd" id="1_wv0uk"]
+
+[resource]
+script = ExtResource("1_wv0uk")
+goal_key = &"lifetime_hearts"
+id = &"first_hearts"
+display_name = "Bedside"
+description = "Earn a thousand Hearts."
+target = 1000.0
+reward_dollars = 400
+sort_order = 50

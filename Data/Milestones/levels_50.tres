@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="MilestoneData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/milestone_data.gd" id="1_mbuvs"]
+
+[resource]
+script = ExtResource("1_mbuvs")
+goal_key = &"augment_levels"
+id = &"levels_50"
+display_name = "Tinkerer"
+description = "Buy fifty upgrade levels."
+target = 50.0
+sort_order = 400

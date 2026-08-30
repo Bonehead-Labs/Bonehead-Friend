@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="MilestoneData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/milestone_data.gd" id="1_kdbu1"]
+
+[resource]
+script = ExtResource("1_kdbu1")
+goal_key = &"lifetime_dollars"
+id = &"dollars_100k"
+display_name = "Comfortable"
+description = "Hold a hundred thousand Dollars."
+target = 100000.0
+reward_dollars = 1500
+income_bonus = 1.02
+sort_order = 710

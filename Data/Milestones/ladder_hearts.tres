@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MilestoneData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/milestone_data.gd" id="1_gs5ir"]
+
+[resource]
+script = ExtResource("1_gs5ir")
+goal_key = &"lifetime_hearts"
+id = &"ladder_hearts"
+display_name = "Growing Fondness"
+description = "Every tenfold of Hearts ever earned."
+target = 5000.0
+repeat_every = 10.0
+repeat_multiplies = true
+reward_dollars = 600
+sort_order = 1010

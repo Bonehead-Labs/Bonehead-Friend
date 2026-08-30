@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="MilestoneData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/milestone_data.gd" id="1_m17x0"]
+
+[resource]
+script = ExtResource("1_m17x0")
+goal_key = &"use:open_hand"
+id = &"use_hand_500"
+display_name = "Hands On"
+description = "Use the open hand five hundred times."
+target = 500.0
+reward_dollars = 600
+sort_order = 830

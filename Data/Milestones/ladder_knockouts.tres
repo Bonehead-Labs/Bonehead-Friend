@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="MilestoneData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/milestone_data.gd" id="1_yfmei"]
+
+[resource]
+script = ExtResource("1_yfmei")
+goal_key = &"knockout"
+id = &"ladder_knockouts"
+display_name = "Rounds Fought"
+description = "Every hundred knockouts."
+target = 100.0
+repeat_every = 100.0
+reward_dollars = 350
+sort_order = 1030

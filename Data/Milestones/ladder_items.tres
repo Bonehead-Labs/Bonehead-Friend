@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="MilestoneData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/milestone_data.gd" id="1_5arak"]
+
+[resource]
+script = ExtResource("1_5arak")
+goal_key = &"items_owned"
+id = &"ladder_items"
+display_name = "Wider Desk"
+description = "Every five toys owned."
+target = 5.0
+repeat_every = 5.0
+reward_dollars = 400
+sort_order = 1070

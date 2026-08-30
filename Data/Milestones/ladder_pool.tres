@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="MilestoneData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/milestone_data.gd" id="1_w47uf"]
+
+[resource]
+script = ExtResource("1_w47uf")
+goal_key = &"mastery_pool"
+id = &"ladder_pool"
+display_name = "Broadening"
+description = "Every twenty-five Mastery Pool points."
+target = 25.0
+repeat_every = 25.0
+reward_dollars = 450
+sort_order = 1090

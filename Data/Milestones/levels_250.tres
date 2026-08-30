@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="MilestoneData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/milestone_data.gd" id="1_qyela"]
+
+[resource]
+script = ExtResource("1_qyela")
+goal_key = &"augment_levels"
+id = &"levels_250"
+display_name = "Engineer"
+description = "Buy two hundred and fifty upgrade levels."
+target = 250.0
+reward_dollars = 1000
+sort_order = 410

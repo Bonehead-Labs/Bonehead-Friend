@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="MilestoneData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/milestone_data.gd" id="1_opmha"]
+
+[resource]
+script = ExtResource("1_opmha")
+goal_key = &"kindness"
+id = &"ladder_kindness"
+display_name = "Kept Up"
+description = "Every thousand kind acts."
+target = 1000.0
+repeat_every = 1000.0
+reward_dollars = 300
+sort_order = 1050

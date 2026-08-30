@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="MilestoneData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/milestone_data.gd" id="1_qsdpi"]
+
+[resource]
+script = ExtResource("1_qsdpi")
+goal_key = &"deal_damage"
+id = &"ladder_damage"
+display_name = "Escalation"
+description = "Every tenfold of damage dealt."
+target = 50000.0
+repeat_every = 10.0
+repeat_multiplies = true
+sort_order = 1020

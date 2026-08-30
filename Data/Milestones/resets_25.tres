@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="MilestoneData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/milestone_data.gd" id="1_sfvei"]
+
+[resource]
+script = ExtResource("1_sfvei")
+goal_key = &"reincarnations"
+id = &"resets_25"
+display_name = "He Has Been Everyone"
+description = "Reincarnate twenty-five times."
+target = 25.0
+reward_dollars = 4000
+income_bonus = 1.03
+sort_order = 620

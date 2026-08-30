@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MilestoneData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/milestone_data.gd" id="1_g2wpy"]
+
+[resource]
+script = ExtResource("1_g2wpy")
+goal_key = &"lifetime_bones"
+id = &"ladder_bones"
+display_name = "Bone Market"
+description = "Every tenfold of Bones ever earned."
+target = 10000.0
+repeat_every = 10.0
+repeat_multiplies = true
+reward_dollars = 600
+sort_order = 1000

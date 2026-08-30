@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="MilestoneData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/milestone_data.gd" id="1_fvgt4"]
+
+[resource]
+script = ExtResource("1_fvgt4")
+goal_key = &"items_owned"
+id = &"items_all_kind"
+display_name = "Everything He Likes"
+description = "Own ten kind things at once."
+target = 10.0
+reward_dollars = 600
+sort_order = 870

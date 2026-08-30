@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="MilestoneData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/milestone_data.gd" id="1_vwoya"]
+
+[resource]
+script = ExtResource("1_vwoya")
+goal_key = &"deal_damage"
+id = &"damage_100m"
+display_name = "Bone Meal"
+description = "Deal a hundred million damage."
+target = 100000000.0
+reward_dollars = 1800
+income_bonus = 1.02
+sort_order = 120

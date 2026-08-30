@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="MilestoneData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/milestone_data.gd" id="1_thhcq"]
+
+[resource]
+script = ExtResource("1_thhcq")
+goal_key = &"deal_damage"
+id = &"damage_1m"
+display_name = "Structural Concerns"
+description = "Deal a million damage. He is fine. He is always fine."
+target = 1000000.0
+reward_dollars = 900
+sort_order = 110

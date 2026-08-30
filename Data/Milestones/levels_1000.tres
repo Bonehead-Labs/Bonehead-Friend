@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="MilestoneData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/milestone_data.gd" id="1_umpif"]
+
+[resource]
+script = ExtResource("1_umpif")
+goal_key = &"augment_levels"
+id = &"levels_1000"
+display_name = "Over-Engineered"
+description = "A thousand upgrade levels."
+target = 1000.0
+reward_dollars = 2200
+income_bonus = 1.02
+sort_order = 420

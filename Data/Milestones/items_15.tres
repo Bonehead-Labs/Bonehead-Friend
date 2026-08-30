@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="MilestoneData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/milestone_data.gd" id="1_lv2w6"]
+
+[resource]
+script = ExtResource("1_lv2w6")
+goal_key = &"items_owned"
+id = &"items_15"
+display_name = "Cluttered Desk"
+description = "Own fifteen toys."
+target = 15.0
+reward_dollars = 700
+sort_order = 310

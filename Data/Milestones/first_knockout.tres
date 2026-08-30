@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="MilestoneData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/milestone_data.gd" id="1_ubwb3"]
+
+[resource]
+script = ExtResource("1_ubwb3")
+goal_key = &"knockout"
+id = &"first_knockout"
+display_name = "Lights Out"
+description = "Knock him down for the first time."
+reward_dollars = 400
+sort_order = 20

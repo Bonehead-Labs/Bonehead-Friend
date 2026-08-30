@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="MilestoneData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/milestone_data.gd" id="1_6m5dq"]
+
+[resource]
+script = ExtResource("1_6m5dq")
+goal_key = &"deal_damage"
+id = &"first_blood"
+display_name = "First Blood"
+description = "Hit him. That is the whole game, and you have found it."
+reward_dollars = 250

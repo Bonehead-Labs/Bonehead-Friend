@@ -111,6 +111,15 @@ func _unlock(item_id: StringName) -> void:
 func augment_level(node_id: StringName) -> int:
 	return int(_augment_levels.get(node_id, 0))
 
+## Every level of every node, summed. Read by the milestone board, which pays a rung for
+## each twenty-five of them — a ladder that rewards depth across the whole tree rather than
+## maxing one node.
+func total_augment_levels() -> int:
+	var total := 0
+	for node_id in _augment_levels:
+		total += int(_augment_levels[node_id])
+	return total
+
 ## Cost of the next level. Returns -1 when the node is maxed, so callers cannot
 ## accidentally charge for a level that does not exist.
 func next_augment_cost(node_id: StringName) -> float:

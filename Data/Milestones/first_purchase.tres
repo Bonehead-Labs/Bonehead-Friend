@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="MilestoneData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/milestone_data.gd" id="1_kgnvf"]
+
+[resource]
+script = ExtResource("1_kgnvf")
+goal_key = &"purchase"
+id = &"first_purchase"
+display_name = "Retail Debut"
+description = "Buy something. Anything."
+reward_dollars = 300
+sort_order = 30

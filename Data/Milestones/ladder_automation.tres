@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MilestoneData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/milestone_data.gd" id="1_lcrdf"]
+
+[resource]
+script = ExtResource("1_lcrdf")
+goal_key = &"automation_rate"
+id = &"ladder_automation"
+display_name = "Compounding"
+description = "Every doubling of automated income."
+target = 10.0
+repeat_every = 2.0
+repeat_multiplies = true
+reward_dollars = 400
+sort_order = 1080

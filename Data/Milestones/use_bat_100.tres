@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="MilestoneData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/milestone_data.gd" id="1_n0dhs"]
+
+[resource]
+script = ExtResource("1_n0dhs")
+goal_key = &"use:baseball_bat"
+id = &"use_bat_100"
+display_name = "Old Faithful"
+description = "Use the baseball bat a hundred times. The first toy is still a good toy."
+target = 100.0
+sort_order = 820

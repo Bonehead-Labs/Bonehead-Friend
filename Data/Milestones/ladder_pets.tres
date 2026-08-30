@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="MilestoneData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/milestone_data.gd" id="1_tqp64"]
+
+[resource]
+script = ExtResource("1_tqp64")
+goal_key = &"pet"
+id = &"ladder_pets"
+display_name = "Attentive"
+description = "Every thousand pets."
+target = 1000.0
+repeat_every = 1000.0
+reward_dollars = 300
+sort_order = 1040

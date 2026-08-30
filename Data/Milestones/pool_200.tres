@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="MilestoneData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/milestone_data.gd" id="1_kkap1"]
+
+[resource]
+script = ExtResource("1_kkap1")
+goal_key = &"mastery_pool"
+id = &"pool_200"
+display_name = "Renaissance"
+description = "Two hundred Mastery Pool points."
+target = 200.0
+reward_dollars = 2400
+income_bonus = 1.02
+sort_order = 450

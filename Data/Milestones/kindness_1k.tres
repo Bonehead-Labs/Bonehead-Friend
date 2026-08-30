@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="MilestoneData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/milestone_data.gd" id="1_0mmkl"]
+
+[resource]
+script = ExtResource("1_0mmkl")
+goal_key = &"kindness"
+id = &"kindness_1k"
+display_name = "Bedside Manner"
+description = "A thousand kind acts."
+target = 1000.0
+reward_dollars = 700
+sort_order = 220
