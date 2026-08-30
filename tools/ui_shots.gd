@@ -55,8 +55,8 @@ func _ready() -> void:
 
 	panels.call("show_panel", &"contracts")
 	await _shot("06-jobs")
-	panels.call("show_panel", &"prestige")
-	await _shot("07-rebirth")
+	panels.call("show_panel", &"arcade")
+	await _shot("07-arcade")
 	panels.call("show_panel", &"settings")
 	await _shot("08-settings")
 

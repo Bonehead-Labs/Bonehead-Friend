@@ -32,9 +32,9 @@ extends PanelPage
 ## nothing. A missing machine leaves a gap in the room instead. Case is exact — `res://` paths
 ## are case-sensitive in an exported build and resolve fine in the editor until they ship.
 const MACHINES: Array[String] = [
-	"res://Scripts/UI/Arcade/wheel_game.gd",
-	"res://Scripts/UI/Arcade/slots_game.gd",
-	"res://Scripts/UI/Arcade/blackjack_game.gd",
+	"res://Scripts/UI/Arcade/spin_wheel.gd",
+	"res://Scripts/UI/Arcade/slot_machine.gd",
+	"res://Scripts/UI/Arcade/blackjack.gd",
 ]
 
 ## Repaint interval for the boost countdown, in seconds. Fast enough that the seconds digit
