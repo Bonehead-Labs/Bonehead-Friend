@@ -1,7 +1,8 @@
 class_name ItemData
 extends Resource
 
-## One buyable thing: a weapon, a throwable, a cursor power, a friendly item or a toy.
+## One buyable thing: a weapon, a throwable, a cursor power, a friendly item, a toy or a
+## turret.
 ##
 ## This is the whole definition. Adding an item to the game is adding a .tres file under
 ## res://Data/Items/ — no script edits anywhere (docs/decisions.md D8). The prototype
@@ -16,6 +17,12 @@ const CATEGORY_THROWABLE := 1
 const CATEGORY_CURSOR_POWER := 2
 const CATEGORY_FRIENDLY := 3
 const CATEGORY_TOY := 4
+## A gun you place on the desk that fires by itself while the game is open. It is a shop
+## category rather than a flag on a weapon because the two are bought for different reasons
+## and belong on different tabs: a weapon is a thing you swing, a turret is a thing you set
+## down and walk away from. See `Scripts/Bodies/turret_base.gd` for why the item is priced
+## in Bones while its automation capstone is priced in Hearts.
+const CATEGORY_TURRET := 5
 
 const CURRENCY_BONES := 0
 const CURRENCY_HEARTS := 1
@@ -27,7 +34,7 @@ const CURRENCY_HEARTS := 1
 @export var display_name: String
 @export_multiline var description: String
 
-@export_enum("Weapon", "Throwable", "CursorPower", "Friendly", "Toy") var category: int = CATEGORY_WEAPON
+@export_enum("Weapon", "Throwable", "CursorPower", "Friendly", "Toy", "Turret") var category: int = CATEGORY_WEAPON
 
 ## One-time, hand-authored price. **Zero or less means a free starter**, owned from the
 ## first boot — that is how the catalog's "free (starter)" entries are expressed.

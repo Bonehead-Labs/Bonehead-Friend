@@ -22,8 +22,14 @@ const PERIOD_WEEKLY := 1
 ##                     nobody at the keyboard
 ##   &"pet"          — the open hand specifically
 ##   &"knockout"     — one per collapse
-##   &"purchase"     — one per item bought
-##   &"use:<item_id>"— one per use of a specific item
+##   &"purchase"     — one per **shop item** bought, so it runs dry on a completed catalog
+##                     and refills on a Reincarnation
+##   &"pick_up"      — Bonehead lifted off the desk by hand. The one key that needs nothing
+##                     bought and no aim, which is what makes it the board's floor
+##   &"use:<item_id>"— one use of a named item. "Use" is per family and deliberately not the
+##                     same gesture: a shot for a cursor power, a landed hit for a melee
+##                     weapon (past the impulse floor and the per-source cooldown, so a
+##                     weapon leaning on him counts nothing), a detonation for an explosive
 ##
 ## A contract whose key nothing emits is dead weight the player can never finish, so
 ## ItemDB validates this against the list above at boot rather than at 3am on day four.

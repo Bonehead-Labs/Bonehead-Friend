@@ -27,6 +27,7 @@ func _ready() -> void:
 
 	_build_ui()
 	_build_devices()
+	_build_world_fx()
 	_install_tuning_log()
 
 	# A tree purchase has to reach weapons already lying on the desktop, or the upgrade
@@ -87,6 +88,13 @@ func _build_ui() -> void:
 	_esc.name = "EscMenu"
 	_esc.world = world
 	add_child(_esc)
+
+## Bursts at the point of contact — bone chips off a hit, hearts off a kind act. The
+## floating numbers say how much; this says where, which is the half that was missing.
+func _build_world_fx() -> void:
+	var fx := WorldFX.new()
+	fx.name = "WorldFX"
+	world.add_child(fx)
 
 ## The automation the player has bought, standing on the desk doing it. In the world rather
 ## than on a CanvasLayer: a device is furniture at world scale, beside the toys it is made

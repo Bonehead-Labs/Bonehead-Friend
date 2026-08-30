@@ -21,6 +21,7 @@ const CATEGORY_NAMES := {
 	ItemData.CATEGORY_CURSOR_POWER: "Cursor",
 	ItemData.CATEGORY_FRIENDLY: "Kind",
 	ItemData.CATEGORY_TOY: "Props",
+	ItemData.CATEGORY_TURRET: "Turret",
 }
 
 ## Wide enough for the longest item name at the reading size, narrow enough to leave the
