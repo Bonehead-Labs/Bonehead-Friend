@@ -349,6 +349,14 @@ func _physics_process(delta: float) -> void:
 func _walk(direction: float) -> void:
 	if is_zero_approx(direction):
 		return
+	# Tell his art which way he is going before the early-out below. He is still walking when
+	# he is already at top speed and needs no push this tick — that is precisely when he is
+	# walking hardest — and reporting travel only on the frames that happened to need force
+	# made the bob stutter at exactly the moment it should have been steadiest.
+	if _buddy.art:
+		var top := _walk_speed()
+		var effort := 1.0 if top <= 0.0 else clampf(absf(_buddy.linear_velocity.x) / top, 0.35, 1.0)
+		_buddy.art.travel(direction, effort)
 	var gap := direction * _walk_speed() - _buddy.linear_velocity.x
 	if absf(gap) < 1.0:
 		return

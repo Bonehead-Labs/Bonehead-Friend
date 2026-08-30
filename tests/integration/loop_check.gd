@@ -58,6 +58,7 @@ func _ready() -> void:
 	await _the_knockout_beat_runs_and_ends_upright()
 	await _the_sponge_cleans_him_and_pays()
 	await _real_physics_produces_hits()
+	await _he_goes_and_plays_with_his_toys()
 	await _save_survives_a_restart()
 	# Last: it wipes the run, so every suite that needs an owned item has to come first.
 	_prestige_resets_the_run_and_keeps_the_meta()
@@ -1330,6 +1331,129 @@ func _buddy() -> Buddy:
 ## The one piece that cannot be checked with a synthetic signal: whether
 ## _integrate_forces turns a real collision into a real HitInfo. This is the correction
 ## D7 exists for, so it is worth simulating rather than trusting.
+## He walks over to his own toys and uses them. The one feature in the game that is entirely
+## invisible unless you leave the room, which is exactly why it shipped broken twice: once
+## because a running turret reset his idle timer forever, and once because the routine filter
+## only recognised a single category. Neither failed a test, because there was no test.
+##
+## Stepped physics against real geometry. A headless viewport is 64x64, so nothing here may
+## lean on WorldBounds — he is placed on the scene's own floor exactly as the contact-impulse
+## suite does it.
+## How many of one item are on the desk. Spawning is gated on ownership and silently does
+## nothing when an item is not owned, which is a failure mode worth naming rather than
+## discovering three assertions later.
+func spawner_count_of(item_id: StringName) -> int:
+	var count := 0
+	for node in get_tree().get_nodes_in_group(&"spawned_item"):
+		if node is BaseDraggable and (node as BaseDraggable).item_id == item_id:
+			count += 1
+	return count
+
+func _he_goes_and_plays_with_his_toys() -> void:
+	_suite("idle brain — he goes and plays")
+	var buddy := get_tree().get_first_node_in_group(&"buddy") as Buddy
+	if buddy == null:
+		_check("buddy present", false)
+		return
+	# `main.gd` installs the brain; this scene builds its own tree, so the suite installs one
+	# the same way the game does. It finds its buddy through the group, so where it hangs
+	# does not matter — which is the property that makes this possible at all.
+	var brain := get_tree().get_first_node_in_group(&"idle_brain") as IdleBrain
+	if brain == null:
+		brain = IdleBrain.install(self)
+		await get_tree().process_frame
+	_check("the idle brain is installed", brain != null)
+	if brain == null:
+		return
+
+	_clear_spawned()
+	buddy.health.reset_meter()
+	buddy.global_position = Vector2(200, 100)
+	buddy.linear_velocity = Vector2.ZERO
+	buddy.angular_velocity = 0.0
+	for i in 90:
+		await get_tree().physics_frame
+
+	# A beanbag, well off to his **left**. Three deliberate choices:
+	#
+	#   Comfort, because that category did not exist when `_routine_for` was written and is
+	#   exactly what would have gone silently unplayed had the filter stayed on
+	#   CATEGORY_FRIENDLY.
+	#   The beanbag specifically, because it is gated by price alone — the hot tub sits
+	#   behind a requires chain, and a test that has to buy four things to reach the one it
+	#   is testing breaks whenever the chain is re-authored.
+	#   To the left, because that is the direction that exercises the face mirroring. His
+	#   per-frame face offsets are authored for one facing, so walking left is the path that
+	#   can put his face on the back of his head; walking right would prove nothing.
+	Economy.grant(Economy.HEARTS, 10000.0)
+	_check("the beanbag can be bought", Progression.purchase_item(&"beanbag"))
+	var toy_x := buddy.global_position.x - 260.0
+	EventBus.spawn_requested.emit(&"beanbag", Vector2(toy_x, 100.0))
+	for i in 40:
+		await get_tree().physics_frame
+	_check("and it reaches the desk", spawner_count_of(&"beanbag") > 0)
+
+	# **Pin Focus Mode, and put it back.** With it Off he is *designed* to skip the walk and
+	# simply be there (D21: a player in a meeting keeps the income without the desktop
+	# moving), so a run that inherits Off from the developer's own settings.cfg tests the one
+	# path that has no travel in it — which is how this suite first came out green on every
+	# assertion that mattered and still proved nothing.
+	var focus_before := Settings.focus_intensity
+	Settings.focus_intensity = Settings.Intensity.NORMAL
+
+	# Spawning counts as the player being at the desk, so the pretend must come after it —
+	# this is the same ordering that makes the feature look broken to anyone testing it by
+	# putting things on the desk.
+	brain.pretend_idle()
+	brain.think_now()
+	_check("he picks something to go and do (target '%s', phase '%s')"
+		% [brain.target_id(), brain.phase_name()], brain.target_id() == &"beanbag")
+	_check("and the routine is one he can actually perform",
+		brain.current_routine() != 0)
+
+	var started_at := buddy.global_position.x
+	var hearts_before := Economy.balance_of(Economy.HEARTS)
+	var closest := absf(toy_x - started_at)
+	# Sampled *during* the walk, not after it. Facing is a property of travelling, and by the
+	# time he has arrived he has usually slid a little past the middle of the beanbag and is
+	# nudging back the other way — so a snapshot at the end asks about the correction rather
+	# than the journey, and fails for a buddy who did everything right.
+	var faced_left_while_walking := false
+	for i in 420:
+		await get_tree().physics_frame
+		closest = minf(closest, absf(toy_x - buddy.global_position.x))
+		if brain.phase_name() == &"travelling" and buddy.art and buddy.art.body \
+				and buddy.art.body.flip_h:
+			faced_left_while_walking = true
+
+	# Distance closed, not "x increased": he can overshoot a target he is standing in, and
+	# asserting on the raw coordinate would then fail for a buddy who did exactly the right
+	# thing and slid past the middle of the tub.
+	_check("he travels toward it (started %.0f px away, got within %.0f)"
+		% [absf(toy_x - started_at), closest], closest < absf(toy_x - started_at) - 40.0)
+	_check("he actually arrives (phase '%s')" % brain.phase_name(),
+		brain.phase_name() == &"playing")
+	_check("and being in it pays Hearts (+%.2f)"
+		% (Economy.balance_of(Economy.HEARTS) - hearts_before),
+		Economy.balance_of(Economy.HEARTS) > hearts_before)
+
+	# The art half. He has no walk tag, so travel is carried by facing and a bob — and the
+	# bob is a heartbeat that decays, so nothing can leave him bobbing on the spot.
+	_check("he faced the way he was walking (left, so flipped)", faced_left_while_walking)
+
+	# Autonomous damage must not stand him up. This is the M3.7-D fix, asserted through the
+	# real signal rather than through the flag: a turret shooting him while he soaks is the
+	# turret working, not the player coming back.
+	var phase_before := brain.phase_name()
+	EventBus.damage_dealt.emit(HitInfo.new(1.0, &"pellet_turret", buddy.global_position, 1.0))
+	_check("a turret shooting him does not end his soak (was '%s', now '%s')"
+		% [phase_before, brain.phase_name()], brain.phase_name() == phase_before)
+	EventBus.damage_dealt.emit(HitInfo.new(1.0, &"baseball_bat", buddy.global_position, 1.0))
+	_check("but the player swinging a bat does", brain.phase_name() == &"watching")
+
+	Settings.focus_intensity = focus_before
+	_clear_spawned()
+
 func _real_physics_produces_hits() -> void:
 	_suite("contact impulse")
 	var buddy := get_tree().get_first_node_in_group(&"buddy") as Buddy

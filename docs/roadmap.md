@@ -923,9 +923,14 @@ front end on the desk. Not costed against the M3.5 balance.
 
 Found in the first real session with the M3.6 sandbox. Full brief in `docs/uplift-m3.7.md`.
 
-The idle brain (M3.7-D) is fixed and tested — a running turret used to pin him awake forever,
-so he never played with anything. The other three are specified and not started: a findable
-way to clear the desk (both mechanisms already exist and neither can be found, and fourteen
-explosives cannot be right-clicked away at all), two-tile Harm/Kind navigation with about
-twenty new leisure items behind it, and the animation families that let him walk over and use
-one. B blocks C; A is independent.
+All four parts are built and tested. A running turret used to pin him awake forever so he
+never played with anything; both ways of clearing the desk existed and neither could be
+found, and fourteen explosives could not be right-clicked away at all; the shop had five
+drawers of weapons and one of everything nice. The roster is now **68 harm to 32 kind**, up
+from 73 to 7, behind two front doors — and he walks over and uses it, which `loop_check`
+now proves with stepped physics rather than leaving to a playtest.
+
+**What is left is art**: the twenty leisure items fall back to placeholder silhouettes, and
+he still has no walk cycle (travel is carried by facing and a bob behind `BuddyArt.travel()`,
+which a real stride replaces without changing a call site). The animation family table — six
+animations covering all twenty items — is in `docs/uplift-m3.7.md`.
