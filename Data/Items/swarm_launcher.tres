@@ -15,3 +15,4 @@ scene = ExtResource("2_0w4hh")
 icon = ExtResource("1_esfhq")
 requires = Array[StringName]([&"laser_lattice"])
 sort_order = 80
+is_autonomous = true

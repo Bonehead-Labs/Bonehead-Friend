@@ -15,3 +15,4 @@ scene = ExtResource("2_6nnan")
 icon = ExtResource("1_tkubn")
 requires = Array[StringName]([&"tesla_coil"])
 sort_order = 40
+is_autonomous = true

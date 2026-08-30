@@ -15,3 +15,4 @@ scene = ExtResource("2_wblnx")
 icon = ExtResource("1_1lrjh")
 requires = Array[StringName]([&"flamethrower"])
 sort_order = 50
+is_autonomous = true

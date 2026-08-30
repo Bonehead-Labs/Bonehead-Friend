@@ -15,3 +15,4 @@ scene = ExtResource("2_44d50")
 icon = ExtResource("1_kjwgm")
 requires = Array[StringName]([&"nail_gun"])
 sort_order = 30
+is_autonomous = true

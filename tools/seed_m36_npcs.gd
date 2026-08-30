@@ -321,6 +321,9 @@ func _item(id: StringName, row: Dictionary, requires: StringName, sort_order: in
 	item.currency = ItemDataScript.CURRENCY_BONES
 	item.scene = _require("%s/%s.tscn" % [NPCS_DIR, id])
 	item.sort_order = sort_order
+	# It attacks on its own, so its damage is not the player being at the desk. Filed as Toy
+	# for the shop, which is exactly why `ItemData.is_autonomous` is a separate field.
+	item.is_autonomous = true
 	var gate: Array[StringName] = []
 	gate.assign([requires])
 	item.requires = gate

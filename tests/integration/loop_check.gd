@@ -48,6 +48,7 @@ func _ready() -> void:
 	_grime_suppresses_bones()
 	_shop_refuses_what_you_cannot_afford()
 	_spawning_and_the_item_limit()
+	_the_idle_brain_knows_who_is_at_the_desk()
 	_knockout_pays_and_resets()
 	_the_buddy_art_is_wired()
 	_dragging_him_is_a_state()
@@ -743,6 +744,57 @@ func _shop_refuses_what_you_cannot_afford() -> void:
 	_check("and it is now owned", Progression.is_unlocked(&"mace"))
 	_check("buying twice is refused", not Progression.purchase_item(&"mace"))
 	_check("the price was actually deducted", Economy.balance_of(Economy.BONES) < 1.0)
+
+## The idle brain is what makes him wander off and use a toy when nobody is watching, and it
+## is driven entirely by "how long since the player did something". That makes the question
+## of what counts as the player load-bearing, and it is asked of `ItemData.is_autonomous`.
+##
+## This suite exists because the feature was dead on arrival and nothing noticed. A turret
+## fires every couple of seconds forever, its shots arrive as ordinary `damage_dealt`, and
+## the brain read every one of them as somebody sitting down at the desk — so with a single
+## turret running he never reached the twenty-five idle seconds a routine needs, and the
+## player who bought automation specifically to watch him potter about got a buddy who
+## never moved again. No test failed, because there was no test.
+func _the_idle_brain_knows_who_is_at_the_desk() -> void:
+	_suite("idle brain")
+
+	# Data first: the flag is the whole mechanism, and it is set by two seed tools that skip
+	# files which already exist. A tool run without `--force` leaves the flag off and the
+	# feature silently dead again — which is exactly how this shipped the first time.
+	var autonomous := 0
+	var hand_driven := 0
+	for item in ItemDB.all_items():
+		if item.is_autonomous:
+			autonomous += 1
+		else:
+			hand_driven += 1
+	_check("something is marked autonomous", autonomous > 0)
+	_check("and most of the roster is not", hand_driven > autonomous)
+
+	for id in [&"pellet_turret", &"tesla_coil", &"mortar", &"gorilla", &"goose", &"raccoon"]:
+		var item := ItemDB.get_item(id)
+		if item == null:
+			_check("'%s' exists" % id, false)
+			continue
+		_check("'%s' acts on its own" % id, item.is_autonomous)
+
+	# The other half, and the one a careless edit breaks: a bat is the player's arm. If
+	# everything were tagged autonomous the brain would ignore the player entirely and
+	# potter off mid-swing, which reads as a much worse bug than the one this fixes.
+	for id in [&"baseball_bat", &"trampoline", &"open_hand", &"sponge"]:
+		var item := ItemDB.get_item(id)
+		if item == null:
+			_check("'%s' exists" % id, false)
+			continue
+		_check("'%s' is somebody's hand" % id, not item.is_autonomous)
+
+	# Every turret, by category rather than by the list above, so a ninth turret added later
+	# is covered without anybody remembering to come back here.
+	var untagged: Array[String] = []
+	for item in ItemDB.all_items():
+		if item.category == ItemData.CATEGORY_TURRET and not item.is_autonomous:
+			untagged.append(String(item.id))
+	_check("every turret is tagged (missing: %s)" % ", ".join(untagged), untagged.is_empty())
 
 func _spawning_and_the_item_limit() -> void:
 	_suite("spawning")

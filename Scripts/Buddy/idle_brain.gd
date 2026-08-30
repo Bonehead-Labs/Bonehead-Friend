@@ -503,13 +503,28 @@ func _disturb() -> void:
 		_stand_down()
 
 func _on_damage_dealt(info: HitInfo) -> void:
-	# Two exemptions, both about his own doing rather than the player's. A trampoline landing
-	# is a contact impulse like any other, and treating the toy he is playing with as the
-	# player arriving would make bouncing the one routine he can never finish; `&"world"` is
-	# the floor he comes down on after a climb.
+	# Three exemptions, all of them damage that nobody's hand caused. A trampoline landing is
+	# a contact impulse like any other, and treating the toy he is playing with as the player
+	# arriving would make bouncing the one routine he can never finish; `&"world"` is the
+	# floor he comes down on after a climb.
+	#
+	# The third is the one that matters most, because without it the whole feature was dead:
+	# a turret and an angry goose fire on their own schedule forever, so **one turret on the
+	# desk meant the idle timer was reset every couple of seconds for the rest of the
+	# session** and he never reached the twenty-five seconds a routine needs to start. The
+	# player who bought automation to watch him potter about got the opposite.
 	if info.source_id == &"world" or _is_current_toy(info.source_id):
 		return
+	if _is_autonomous(info.source_id):
+		return
 	_disturb()
+
+## Damage from something that acts by itself is not somebody arriving. Asked of the data
+## rather than of a list of ids here, so a turret added next month is covered by the seed
+## tool that writes it and never by an edit to this file.
+func _is_autonomous(source_id: StringName) -> bool:
+	var item := ItemDB.get_item(source_id)
+	return item != null and item.is_autonomous
 
 func _on_kindness_given(source_id: StringName, _value: float, _world_pos: Vector2) -> void:
 	# The toy he is playing with paying him is not somebody arriving. Anything else is — a pet

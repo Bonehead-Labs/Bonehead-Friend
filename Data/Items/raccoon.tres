@@ -1,6 +1,7 @@
 [gd_resource type="Resource" script_class="ItemData" format=3]
 
 [ext_resource type="PackedScene" path="res://Scenes/NPCs/raccoon.tscn" id="1_edr6w"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/raccoon.png" id="1_jl248"]
 [ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="2_jl248"]
 
 [resource]
@@ -11,5 +12,7 @@ description = "Arms itself with whatever you left on the desk. Including the bow
 category = 4
 cost = 14000
 scene = ExtResource("1_edr6w")
+icon = ExtResource("1_jl248")
 requires = Array[StringName]([&"hornet"])
 sort_order = 50
+is_autonomous = true

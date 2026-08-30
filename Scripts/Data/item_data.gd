@@ -59,6 +59,22 @@ const CURRENCY_HEARTS := 1
 ## the second one — as a data field, so it never becomes a per-item branch in a script.
 @export var equips_as_cursor_power: bool = false
 
+## Acts on its own once placed, rather than being swung, thrown or aimed by the player. A
+## turret firing and a gorilla swinging are the item working; a bat landing is the player
+## being at the desk. **Nothing can tell those apart from the damage event** — `HitInfo`
+## carries an item id and no more — so the distinction has to live here.
+##
+## Category cannot answer it: the gorilla, the goose and the hornet are all filed as Toy
+## next to the trampoline and the beach ball, because that is where a player looks for
+## them. Where a thing sits in the shop and whether it has a mind of its own are two
+## different questions.
+##
+## What reads it is `IdleBrain`, which treats damage as the player arriving and stands him
+## up. Before this existed, one pellet turret on the desk meant he could never be idle for
+## the twenty-five seconds his routines need — so he never touched a toy again, for as long
+## as that turret ran.
+@export var is_autonomous: bool = false
+
 func is_starter() -> bool:
 	return cost <= 0
 

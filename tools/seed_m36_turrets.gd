@@ -379,6 +379,10 @@ func _item(id: StringName, row: Dictionary, requires: StringName, sort_order: in
 	item.currency = ItemDataScript.CURRENCY_BONES
 	item.scene = _require("%s/%s.tscn" % [TURRETS_DIR, id])
 	item.sort_order = sort_order
+	# It shoots by itself, so its damage is not the player being at the desk. See
+	# `ItemData.is_autonomous` — without this a single running turret pins IdleBrain awake
+	# forever and he never plays with anything again.
+	item.is_autonomous = true
 	var gate: Array[StringName] = []
 	gate.assign([requires])
 	item.requires = gate

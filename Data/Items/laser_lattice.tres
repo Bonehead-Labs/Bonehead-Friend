@@ -15,3 +15,4 @@ scene = ExtResource("2_nvqhv")
 icon = ExtResource("1_gp463")
 requires = Array[StringName]([&"mortar"])
 sort_order = 70
+is_autonomous = true
