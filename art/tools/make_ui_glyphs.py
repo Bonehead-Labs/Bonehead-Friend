@@ -28,17 +28,23 @@ CANVAS = 16
 # '#' opaque, '.' transparent. Drawn small, centred on the canvas by _centre().
 GLYPHS = {
     # --- currencies: the three things the player counts ---------------------
-    # The waist has to be long relative to the knobs or the silhouette reads as a
-    # dumbbell — which is what the first pass did.
+    # **The notch is the whole glyph.** Two passes read as a dumbbell before this one, and
+    # lengthening the waist did not fix it: a dumbbell and a bone have the same silhouette
+    # apart from one thing, which is that a bone's ends are *split into two lobes*. Cutting
+    # two pixels out of each outer edge is what separates them, and nothing else does —
+    # not proportion, not roundness, not the width of the shaft.
+    #
+    # It is the most-read shape in the game (every Bones price, every payout number), so it
+    # is worth the four pixels.
     "bone": [
-        ".###.......###.",
-        "#####.....#####",
-        "#####.....#####",
-        "###############",
-        "###############",
-        "#####.....#####",
-        "#####.....#####",
-        ".###.......###.",
+        ".##.........##.",
+        "####.......####",
+        "####.......####",
+        "..###########..",
+        "..###########..",
+        "####.......####",
+        "####.......####",
+        ".##.........##.",
     ],
     "heart": [
         ".###...###.",
