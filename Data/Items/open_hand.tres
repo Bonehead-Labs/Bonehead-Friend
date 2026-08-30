@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="ItemData" format=3]
 
 [ext_resource type="PackedScene" path="res://Scenes/Powers/open_hand_power.tscn" id="1_i8a42"]
-[ext_resource type="Texture2D" path="res://Assets/sprites/icons/open_hand.png" id="3_ohicn"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/open_hand.png" id="1_jfcfo"]
 [ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="2_jfcfo"]
 
 [resource]
@@ -12,5 +12,5 @@ description = "Hold the button on Bonehead and stroke. He likes it."
 category = 3
 currency = 1
 scene = ExtResource("1_i8a42")
-icon = ExtResource("3_ohicn")
+icon = ExtResource("1_jfcfo")
 equips_as_cursor_power = true

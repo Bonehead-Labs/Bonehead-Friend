@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_djuir"]
+
+[resource]
+script = ExtResource("1_djuir")
+id = &"ice_cream_van"
+item_id = &"ice_cream"
+display_name = "Van"
+description = "Parked on the desk with its jingle on a loop."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 1300
+currency = 1
+is_automation = true
+automation_rate = 1.17
+device_mount = &"tripod"
+requires_mastery = 25

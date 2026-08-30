@@ -15,5 +15,5 @@ cost_base = 6800
 currency = 1
 is_automation = true
 automation_rate = 8.5
-device_mount = &"pedestal"
+device_mount = &"tripod"
 requires_mastery = 25

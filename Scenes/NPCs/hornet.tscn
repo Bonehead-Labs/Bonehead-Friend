@@ -3,20 +3,20 @@
 [ext_resource type="Script" path="res://Scripts/World/npc_base.gd" id="1_0dsdf"]
 [ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="2_0p8s4"]
 
-[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_6f6oo"]
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_0dsdf"]
 friction = 0.95
 
-[sub_resource type="CircleShape2D" id="CircleShape2D_6br6v"]
+[sub_resource type="CircleShape2D" id="CircleShape2D_0p8s4"]
 radius = 14.0
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_qvfjo"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_6f6oo"]
 size = Vector2(34, 34)
 
-[node name="_Hornets" type="RigidBody2D" unique_id=975662871 node_paths=PackedStringArray("drag_area", "handle", "collider")]
+[node name="_Hornets" type="RigidBody2D" unique_id=1958409975 node_paths=PackedStringArray("drag_area", "handle", "collider")]
 collision_layer = 4
 collision_mask = 7
 mass = 0.5
-physics_material_override = SubResource("PhysicsMaterial_6f6oo")
+physics_material_override = SubResource("PhysicsMaterial_0dsdf")
 script = ExtResource("1_0dsdf")
 lifetime_seconds = 55.0
 move_speed = 400.0
@@ -33,16 +33,16 @@ drag_area = NodePath("DraggableArea")
 handle = NodePath("Handle")
 collider = NodePath("CollisionShape2D")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1791879596]
-shape = SubResource("CircleShape2D_6br6v")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=508625301]
+shape = SubResource("CircleShape2D_0p8s4")
 
-[node name="DraggableArea" type="Area2D" parent="." unique_id=1867361642]
+[node name="DraggableArea" type="Area2D" parent="." unique_id=337437153]
 script = ExtResource("2_0p8s4")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=1202694362]
-shape = SubResource("RectangleShape2D_qvfjo")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=810220356]
+shape = SubResource("RectangleShape2D_6f6oo")
 
-[node name="Handle" type="StaticBody2D" parent="." unique_id=1871393516]
+[node name="Handle" type="StaticBody2D" parent="." unique_id=1091362529]
 visible = false
 collision_layer = 0
 collision_mask = 0

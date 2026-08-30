@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_amgdj"]
+
+[resource]
+script = ExtResource("1_amgdj")
+id = &"recliner_valet"
+item_id = &"recliner"
+display_name = "Valet"
+description = "Reclines the chair. Then reclines it a bit further."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 60800
+currency = 1
+is_automation = true
+automation_rate = 80.5
+device_mount = &"tripod"
+requires_mastery = 25

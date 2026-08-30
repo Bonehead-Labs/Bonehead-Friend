@@ -66,6 +66,48 @@ const TREES := {
 	&"boombox": ["Better Speakers", "Royalties", ""],
 	&"chocolate_fountain": ["Richer Chocolate", "Fondue Rates", ""],
 	&"hot_tub": ["Hotter Water", "Spa Membership", ""],
+
+	# --- the M3.7 leisure roster ---
+	# Comfort and ambience take two nodes, not three. The third lever is either weight or
+	# rate, and a hammock has no meaningful amount of either — which is why the sponge, the
+	# boombox and the hot tub have always stopped at two. An invented third node would be a
+	# number nobody can feel, priced as though they could.
+	&"beanbag": ["Deeper Fill", "Lounge Rates", ""],
+	&"foot_spa": ["Hotter Jets", "Pedicure Rates", ""],
+	&"hammock": ["Softer Weave", "Siesta Rates", ""],
+	&"paddling_pool": ["Warmer Water", "Lido Rates", ""],
+	&"heated_blanket": ["Higher Setting", "Tog Rating", ""],
+	&"recliner": ["Deeper Recline", "Upholstery Rates", ""],
+
+	&"cup_of_tea": ["Stronger Brew", "Service Charge", "Faster Steeping"],
+	&"donut_box": ["Extra Glaze", "Baker's Dozen", "Quicker Boxing"],
+	&"ice_cream": ["More Scoops", "Parlour Rates", "Faster Churn"],
+	&"noodle_bowl": ["Richer Broth", "House Special", "Quicker Service"],
+	&"birthday_cake": ["More Candles", "Party Rates", "Faster Baking"],
+
+	&"houseplant": ["Better Soil", "Nursery Rates", ""],
+	&"fairy_lights": ["Warmer Bulbs", "Festive Rates", ""],
+	&"wind_chimes": ["Longer Tubes", "Tuning Fees", ""],
+	&"lava_lamp": ["Thicker Wax", "Ambience Rates", ""],
+	&"record_player": ["Better Stylus", "Pressing Royalties", ""],
+	&"fish_tank": ["More Fish", "Aquarist Rates", ""],
+
+	&"rubber_duck": ["Louder Squeak", "Bath Time Rates", "Faster Squeeze"],
+	&"jigsaw_puzzle": ["More Pieces", "Completion Bonus", ""],
+	&"bubble_machine": ["Bigger Bubbles", "Soap Rates", ""],
+}
+
+## The items whose third lever is **weight**. Everything else with a third node gets a rate.
+##
+## Named outright rather than derived from the category, which is what this used to do and
+## could not keep doing. M3.7 moved the massage chair into Comfort and the balls into Play,
+## and any category rule then disagreed with the names already authored above: the chair's
+## third node is called "Shorter Cycle" and would have been given mass, while the bowling
+## ball's is "Lead Core" and would have been given a cooldown. The names are the design; a
+## rule that contradicts them is wrong however tidy it looks.
+const WEIGHTED := {
+	&"dynamite": true, &"katana": true, &"mine": true, &"firework": true,
+	&"bowling_ball": true, &"beach_ball": true, &"trampoline": true, &"desk_fan": true,
 }
 
 var _written := 0
@@ -108,10 +150,10 @@ func _tree_for(item: ItemData) -> void:
 	_node("%s_third" % item.id, item, names[2], third_key, third_effect,
 		int(round(base * THIRD_FRACTION)), 1.09, 2, currency)
 
-## Whether the item's third lever is a rate rather than a weight. A cursor power has no
-## mass at all, and a friendly item that pays on contact has a cooldown between helpings.
+## Whether the item's third lever is a rate rather than a weight. A cursor power has no mass
+## at all, and anything that pays on contact has a cooldown between helpings.
 func _wants_rate(item: ItemData) -> bool:
-	return item.is_cursor_power() or item.category == ItemData.CATEGORY_FRIENDLY
+	return not WEIGHTED.has(item.id)
 
 func _node(id: String, item: ItemData, display_name: String, effect_key: StringName,
 		effect_per_level: float, cost_base: int, cost_growth: float, sort_order: int,

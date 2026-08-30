@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_k0hwd"]
+
+[resource]
+script = ExtResource("1_k0hwd")
+id = &"heated_blanket_damage"
+item_id = &"heated_blanket"
+display_name = "Higher Setting"
+effect_key = &"damage_mult"
+effect_per_level = 1.15
+cost_base = 3650
+cost_growth = 1.12
+currency = 1

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_aan12"]
+
+[resource]
+script = ExtResource("1_aan12")
+id = &"jigsaw_puzzle_payout"
+item_id = &"jigsaw_puzzle"
+display_name = "Completion Bonus"
+effect_key = &"payout_mult"
+effect_per_level = 1.12
+cost_base = 144
+currency = 1
+sort_order = 1

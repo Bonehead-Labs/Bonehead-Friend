@@ -66,10 +66,11 @@ const CAPSTONE_COST_GROWTH := 1.10
 ## menagerie does not turn up in a first-afternoon shop full of things nobody can afford.
 const LADDER_ROOT := &"desk_fan"
 
-## Filed under Props (`CATEGORY_TOY`). They are not weapons, they are not kind, and they are
-## not turrets; a category of their own would be better and is a one-line change to
-## `ItemData` that this tool does not own — see the note in the handoff.
-const CATEGORY := ItemDataScript.CATEGORY_TOY
+## Their own category, as the note here used to ask for. While they sat under Props they
+## shared a drawer with the beach ball and the trampoline, which meant no rule over
+## categories could tell the harm half of the shop from the kind half — and a player opening
+## the nice drawer found a gorilla in it.
+const CATEGORY := ItemDataScript.CATEGORY_CRITTER
 
 ## The roster, cheapest first. The order **is** the `requires` chain and the sort order.
 ##

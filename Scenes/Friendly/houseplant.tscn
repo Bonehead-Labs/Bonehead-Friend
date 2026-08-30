@@ -1,0 +1,40 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Bodies/friendly_base.gd" id="1_3q7ux"]
+[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="2_4bpcv"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_o1qf1"]
+size = Vector2(30, 40)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_cn34w"]
+size = Vector2(42, 52)
+
+[node name="Houseplant" type="RigidBody2D" unique_id=1692414490 node_paths=PackedStringArray("drag_area", "handle", "collider")]
+collision_layer = 4
+collision_mask = 7
+mass = 1.5
+contact_monitor = true
+max_contacts_reported = 4
+script = ExtResource("1_3q7ux")
+hearts_per_second_placed = 0.15
+drag_area = NodePath("DraggableArea")
+handle = NodePath("Handle")
+collider = NodePath("CollisionShape2D")
+
+[node name="Placeholder" type="Polygon2D" parent="." unique_id=959387171]
+color = Color(0.34, 0.56, 0.32, 1)
+polygon = PackedVector2Array(-7.5, -20, 7.5, -20, 15, -12.5, 15, 12.5, 7.5, 20, -7.5, 20, -15, 12.5, -15, -12.5)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1866142814]
+shape = SubResource("RectangleShape2D_o1qf1")
+
+[node name="DraggableArea" type="Area2D" parent="." unique_id=69516803]
+script = ExtResource("2_4bpcv")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=755837402]
+shape = SubResource("RectangleShape2D_cn34w")
+
+[node name="Handle" type="StaticBody2D" parent="." unique_id=516610789]
+visible = false
+collision_layer = 0
+collision_mask = 0

@@ -256,8 +256,12 @@ const CATEGORY_GLYPHS := {
 	ItemData.CATEGORY_WEAPON: &"bone",
 	ItemData.CATEGORY_THROWABLE: &"bolt",
 	ItemData.CATEGORY_CURSOR_POWER: &"hand",
-	ItemData.CATEGORY_FRIENDLY: &"heart",
+	ItemData.CATEGORY_FRIENDLY: &"hand",
 	ItemData.CATEGORY_TOY: &"crate",
+	ItemData.CATEGORY_CRITTER: &"bolt",
+	ItemData.CATEGORY_COMFORT: &"heart",
+	ItemData.CATEGORY_FOOD: &"heart",
+	ItemData.CATEGORY_AMBIENCE: &"star",
 }
 
 # --- the size contract -----------------------------------------------------

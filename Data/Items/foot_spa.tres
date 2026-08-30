@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="PackedScene" path="res://Scenes/Friendly/foot_spa.tscn" id="1_b6dhj"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="2_nlomx"]
+
+[resource]
+script = ExtResource("2_nlomx")
+id = &"foot_spa"
+display_name = "Foot Spa"
+description = "Warm, bubbling, and exactly the right size for a skeleton's feet."
+category = 7
+cost = 2200
+currency = 1
+scene = ExtResource("1_b6dhj")
+sort_order = 20

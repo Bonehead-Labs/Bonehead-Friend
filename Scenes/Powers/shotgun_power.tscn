@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://Scripts/Bodies/Powers/gun_power.gd" id="1_lw4pa"]
 [ext_resource type="Texture2D" path="res://Assets/sprites/cursors/shotgun.png" id="2_8jj67"]
 
-[node name="ShotgunPower" type="Node2D" unique_id=1874982885]
+[node name="ShotgunPower" type="Node2D" unique_id=215306930]
 script = ExtResource("1_lw4pa")
 blast_radius = 40.0
 blast_force = 2200.0

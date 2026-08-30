@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="PackedScene" path="res://Scenes/Friendly/heated_blanket.tscn" id="1_x15yh"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="2_mhdxl"]
+
+[resource]
+script = ExtResource("2_mhdxl")
+id = &"heated_blanket"
+display_name = "Heated Blanket"
+description = "He has no skin to warm and loves it anyway."
+category = 7
+cost = 80000
+currency = 1
+scene = ExtResource("1_x15yh")
+sort_order = 50

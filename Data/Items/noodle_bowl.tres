@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="PackedScene" path="res://Scenes/Friendly/noodle_bowl.tscn" id="1_iri6b"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="2_o1vq4"]
+
+[resource]
+script = ExtResource("2_o1vq4")
+id = &"noodle_bowl"
+display_name = "Noodle Bowl"
+description = "Still steaming. He has no stomach and no restraint."
+category = 8
+cost = 3600
+currency = 1
+scene = ExtResource("1_iri6b")
+sort_order = 40

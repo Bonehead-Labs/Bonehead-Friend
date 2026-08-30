@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_qjwxq"]
+
+[resource]
+script = ExtResource("1_qjwxq")
+id = &"pool_filler"
+item_id = &"paddling_pool"
+display_name = "Filler"
+description = "Tops it up, warms it, and nudges him back in."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 28300
+currency = 1
+is_automation = true
+automation_rate = 37.17
+device_mount = &"tripod"
+requires_mastery = 25

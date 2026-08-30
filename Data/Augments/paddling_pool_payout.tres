@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_phh7v"]
+
+[resource]
+script = ExtResource("1_phh7v")
+id = &"paddling_pool_payout"
+item_id = &"paddling_pool"
+display_name = "Lido Rates"
+effect_key = &"payout_mult"
+effect_per_level = 1.12
+cost_base = 1970
+currency = 1
+sort_order = 1

@@ -1,0 +1,42 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Bodies/friendly_base.gd" id="1_sb8iq"]
+[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="2_303k1"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_u1ini"]
+size = Vector2(40, 30)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_pikpc"]
+size = Vector2(52, 42)
+
+[node name="BirthdayCake" type="RigidBody2D" unique_id=363908371 node_paths=PackedStringArray("drag_area", "handle", "collider")]
+collision_layer = 4
+collision_mask = 7
+mass = 1.2
+contact_monitor = true
+max_contacts_reported = 4
+script = ExtResource("1_sb8iq")
+hearts_per_contact = 900.0
+contact_cooldown = 0.5
+consume_on_use = true
+drag_area = NodePath("DraggableArea")
+handle = NodePath("Handle")
+collider = NodePath("CollisionShape2D")
+
+[node name="Placeholder" type="Polygon2D" parent="." unique_id=1214875613]
+color = Color(0.94, 0.7, 0.76, 1)
+polygon = PackedVector2Array(-12.5, -15, 12.5, -15, 20, -7.5, 20, 7.5, 12.5, 15, -12.5, 15, -20, 7.5, -20, -7.5)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1002949021]
+shape = SubResource("RectangleShape2D_u1ini")
+
+[node name="DraggableArea" type="Area2D" parent="." unique_id=1639032571]
+script = ExtResource("2_303k1")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=224391984]
+shape = SubResource("RectangleShape2D_pikpc")
+
+[node name="Handle" type="StaticBody2D" parent="." unique_id=1644019220]
+visible = false
+collision_layer = 0
+collision_mask = 0

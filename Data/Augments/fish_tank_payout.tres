@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_0puwg"]
+
+[resource]
+script = ExtResource("1_0puwg")
+id = &"fish_tank_payout"
+item_id = &"fish_tank"
+display_name = "Aquarist Rates"
+effect_key = &"payout_mult"
+effect_per_level = 1.12
+cost_base = 952
+currency = 1
+sort_order = 1

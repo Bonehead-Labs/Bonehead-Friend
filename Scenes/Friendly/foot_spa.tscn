@@ -1,0 +1,40 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Bodies/friendly_base.gd" id="1_281ff"]
+[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="2_j5nkn"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_p3edp"]
+size = Vector2(40, 22)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_hlgte"]
+size = Vector2(52, 34)
+
+[node name="FootSpa" type="RigidBody2D" unique_id=1127160249 node_paths=PackedStringArray("drag_area", "handle", "collider")]
+collision_layer = 4
+collision_mask = 7
+mass = 2.0
+contact_monitor = true
+max_contacts_reported = 4
+script = ExtResource("1_281ff")
+hearts_per_second_touching = 1.4
+drag_area = NodePath("DraggableArea")
+handle = NodePath("Handle")
+collider = NodePath("CollisionShape2D")
+
+[node name="Placeholder" type="Polygon2D" parent="." unique_id=332398296]
+color = Color(0.36, 0.6, 0.72, 1)
+polygon = PackedVector2Array(-14.5, -11, 14.5, -11, 20, -5.5, 20, 5.5, 14.5, 11, -14.5, 11, -20, 5.5, -20, -5.5)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=772204215]
+shape = SubResource("RectangleShape2D_p3edp")
+
+[node name="DraggableArea" type="Area2D" parent="." unique_id=1298866873]
+script = ExtResource("2_j5nkn")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=1235332679]
+shape = SubResource("RectangleShape2D_hlgte")
+
+[node name="Handle" type="StaticBody2D" parent="." unique_id=862322882]
+visible = false
+collision_layer = 0
+collision_mask = 0

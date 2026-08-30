@@ -445,7 +445,11 @@ func _routine_for(body: BaseDraggable) -> int:
 	if friendly == null:
 		return ROUTINE_NONE
 	var item := ItemDB.get_item(body.item_id)
-	if item == null or item.category != ItemData.CATEGORY_FRIENDLY:
+	# The whole kind half, not one drawer of it. This read `category != CATEGORY_FRIENDLY`
+	# while Friendly was the only kind category there was, so the moment M3.7 split comfort,
+	# food and ambience out of it, every hot tub and every plate of food would have become
+	# invisible to him — and the twenty new leisure items would have arrived dead.
+	if item == null or not item.is_kind():
 		return ROUTINE_NONE
 	# He cannot throw himself. The baseball's catch pays only above a closing speed he has no
 	# way to produce on foot, so walking to it would be a wasted trip every time.

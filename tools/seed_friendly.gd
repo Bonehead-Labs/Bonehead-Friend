@@ -40,6 +40,101 @@ const LAYER_BUDDY := 2
 const LAYER_ITEM := 4
 const ITEM_MASK := LAYER_WORLD | LAYER_BUDDY | LAYER_ITEM
 
+## The leisure roster — twenty things that are nice to him, added in M3.7 because the shop
+## had thirty-four ways to hit him and seven to be good to him, and a game about a buddy you
+## can also be kind to cannot be that lopsided.
+##
+## Every row is a `FriendlyBase` with different switches, never a new script (D8). The
+## switches are also what `IdleBrain` reads to decide what he would *do* with a thing, so
+## the fourth column is a design statement and not decoration:
+##
+##   `touching`  he gets in / on it and stays — the comfort drawer
+##   `contact`   he has a bite and it is gone — the food drawer
+##   `placed`    it pays whether he is there or not, and he goes and enjoys it anyway
+##
+## Prices are Hearts and extend the existing kind ladder past the massage chair, which was
+## its top rung at 30k. Note the rates rise faster than value-per-Heart does: the desk holds
+## about a dozen things, so the number that matters is output **per slot**, and a later item
+## being worse per Heart while better per slot is the correct shape.
+##
+## [id, name, description, cost, sort, category, colour, extent, mass, switches]
+const LEISURE := [
+	# --- comfort: he climbs in and stays -----------------------------------
+	[&"beanbag", "Beanbag", "Sags around him. He disappears into it and does not hurry.",
+		600, 10, "comfort", Color(0.72, 0.32, 0.38), Vector2(44, 30), 1.2,
+		{"hearts_per_second_touching": 0.8}],
+	[&"foot_spa", "Foot Spa", "Warm, bubbling, and exactly the right size for a skeleton's feet.",
+		2200, 20, "comfort", Color(0.36, 0.60, 0.72), Vector2(40, 22), 2.0,
+		{"hearts_per_second_touching": 1.4}],
+	[&"hammock", "Hammock", "Strung between nothing in particular. He sways in it for hours.",
+		6000, 30, "comfort", Color(0.80, 0.72, 0.48), Vector2(60, 26), 1.0,
+		{"hearts_per_second_touching": 2.5}],
+	[&"paddling_pool", "Paddling Pool", "Knee deep and faintly green. He sits down in it fully.",
+		55000, 40, "comfort", Color(0.30, 0.66, 0.66), Vector2(72, 26), 4.0,
+		{"hearts_per_second_touching": 5.0}],
+	[&"heated_blanket", "Heated Blanket", "He has no skin to warm and loves it anyway.",
+		80000, 50, "comfort", Color(0.66, 0.34, 0.30), Vector2(54, 20), 0.8,
+		{"hearts_per_second_touching": 6.5}],
+	[&"recliner", "Recliner", "Fully reclined, permanently. The last chair he will ever need.",
+		120000, 60, "comfort", Color(0.44, 0.30, 0.26), Vector2(52, 44), 5.0,
+		{"hearts_per_second_touching": 9.0}],
+
+	# --- food: one bite, then gone -----------------------------------------
+	[&"cup_of_tea", "Cup of Tea", "It goes straight through him. He drinks it anyway.",
+		150, 10, "food", Color(0.86, 0.80, 0.68), Vector2(20, 22), 0.4,
+		{"hearts_per_contact": 18.0, "contact_cooldown": 0.5, "consume_on_use": true}],
+	[&"donut_box", "Box of Donuts", "Six. He is going to have all six.",
+		350, 20, "food", Color(0.88, 0.60, 0.70), Vector2(34, 18), 0.5,
+		{"hearts_per_contact": 30.0, "contact_cooldown": 0.5, "consume_on_use": true}],
+	[&"ice_cream", "Ice Cream", "Melting faster than he can eat it, which is part of the fun.",
+		1000, 30, "food", Color(0.92, 0.84, 0.90), Vector2(20, 30), 0.3,
+		{"hearts_per_contact": 60.0, "contact_cooldown": 0.5, "consume_on_use": true}],
+	[&"noodle_bowl", "Noodle Bowl", "Still steaming. He has no stomach and no restraint.",
+		3600, 40, "food", Color(0.90, 0.74, 0.42), Vector2(32, 22), 0.7,
+		{"hearts_per_contact": 140.0, "contact_cooldown": 0.5, "consume_on_use": true}],
+	[&"birthday_cake", "Birthday Cake", "Nobody is sure whose. He is delighted regardless.",
+		40000, 50, "food", Color(0.94, 0.70, 0.76), Vector2(40, 30), 1.2,
+		{"hearts_per_contact": 900.0, "contact_cooldown": 0.5, "consume_on_use": true}],
+
+	# --- ambience: pays while it sits there --------------------------------
+	[&"houseplant", "Houseplant", "Low light, low needs. It is company, and that counts.",
+		250, 10, "ambience", Color(0.34, 0.56, 0.32), Vector2(30, 40), 1.5,
+		{"hearts_per_second_placed": 0.15}],
+	[&"fairy_lights", "Fairy Lights", "Draped over the edge of the desk. Everything is softer.",
+		900, 20, "ambience", Color(0.94, 0.86, 0.56), Vector2(56, 16), 0.3,
+		{"hearts_per_second_placed": 0.35}],
+	[&"wind_chimes", "Wind Chimes", "There is no wind indoors. They ring anyway, for him.",
+		1600, 30, "ambience", Color(0.74, 0.76, 0.80), Vector2(24, 44), 0.6,
+		{"hearts_per_second_placed": 0.5}],
+	[&"lava_lamp", "Lava Lamp", "He watches the blob go up. He watches the blob come down.",
+		8000, 40, "ambience", Color(0.82, 0.38, 0.62), Vector2(22, 44), 1.0,
+		{"hearts_per_second_placed": 1.2}],
+	[&"record_player", "Record Player", "Something warm and scratchy, on repeat, forever.",
+		20000, 50, "ambience", Color(0.52, 0.36, 0.28), Vector2(46, 28), 3.0,
+		{"hearts_per_second_placed": 2.4}],
+	[&"fish_tank", "Fish Tank", "Four fish. He has named all of them and tells you often.",
+		26000, 60, "ambience", Color(0.30, 0.58, 0.70), Vector2(54, 38), 6.0,
+		{"hearts_per_second_placed": 3.0}],
+
+	# --- play: the toy drawer ----------------------------------------------
+	[&"rubber_duck", "Rubber Duck", "Squeaks. Not consumed, unlike everything else he loves.",
+		60, 40, "play", Color(0.94, 0.82, 0.28), Vector2(24, 20), 0.3,
+		{"hearts_per_contact": 10.0, "contact_cooldown": 0.8}],
+	[&"jigsaw_puzzle", "Jigsaw Puzzle", "Two thousand pieces of a lighthouse. He is on the edges.",
+		3000, 50, "play", Color(0.62, 0.58, 0.72), Vector2(40, 30), 0.8,
+		{"hearts_per_second_touching": 0.6}],
+	[&"bubble_machine", "Bubble Machine", "He cannot catch them and has not stopped trying.",
+		15000, 60, "play", Color(0.58, 0.78, 0.86), Vector2(36, 30), 2.0,
+		{"hearts_per_second_placed": 1.8}],
+]
+
+const LEISURE_CATEGORIES := {
+	"comfort": ItemDataScript.CATEGORY_COMFORT,
+	"food": ItemDataScript.CATEGORY_FOOD,
+	"ambience": ItemDataScript.CATEGORY_AMBIENCE,
+	"play": ItemDataScript.CATEGORY_TOY,
+}
+
 var _force := false
 var _written := 0
 var _skipped := 0
@@ -69,6 +164,10 @@ func _seed_scenes() -> void:
 	_save_scene(_build_friendly(
 		"Boombox", &"boombox", Color(0.35, 0.36, 0.44), Vector2(46, 30), 4.0,
 		{"hearts_per_second_placed": 0.6}), "%s/boombox.tscn" % SCENES_DIR)
+	for row in LEISURE:
+		_save_scene(_build_friendly(
+			String(row[0]).to_pascal_case(), row[0], row[6], row[7], row[8], row[9]),
+			"%s/%s.tscn" % [SCENES_DIR, row[0]])
 
 func _build_open_hand() -> Node:
 	var root := Node2D.new()
@@ -209,13 +308,19 @@ func _seed_items() -> void:
 		0, "%s/open_hand_power.tscn" % POWERS_DIR, 0, true)
 	_item(&"sponge", "Sponge", "Scrubs the soot off. Grime quietly suppresses your Bones income.",
 		40, "%s/sponge.tscn" % SCENES_DIR, 10, false)
+	# Care keeps only what you do with your own hands. The pizza is food and the boombox is
+	# ambience — both were Friendly when Friendly was the only kind drawer there was.
 	_item(&"pizza", "Pizza", "A whole one, for him. Instant Hearts and a very good mood.",
-		400, "%s/pizza.tscn" % SCENES_DIR, 20, false)
+		400, "%s/pizza.tscn" % SCENES_DIR, 5, false, ItemDataScript.CATEGORY_FOOD)
 	_item(&"boombox", "Boombox", "Leave it playing. He dances, and Hearts trickle in on their own.",
-		1200, "%s/boombox.tscn" % SCENES_DIR, 30, false)
+		1200, "%s/boombox.tscn" % SCENES_DIR, 5, false, ItemDataScript.CATEGORY_AMBIENCE)
+	for row in LEISURE:
+		_item(row[0], row[1], row[2], row[3], "%s/%s.tscn" % [SCENES_DIR, row[0]],
+			row[4], false, int(LEISURE_CATEGORIES[row[5]]))
 
 func _item(id: StringName, display_name: String, description: String, cost: int,
-		scene_path: String, sort_order: int, as_power: bool) -> void:
+		scene_path: String, sort_order: int, as_power: bool,
+		category: int = ItemDataScript.CATEGORY_FRIENDLY) -> void:
 	var path := "%s/%s.tres" % [ITEMS_DIR, id]
 	if not _should_write(path):
 		return
@@ -223,7 +328,7 @@ func _item(id: StringName, display_name: String, description: String, cost: int,
 	item.id = id
 	item.display_name = display_name
 	item.description = description
-	item.category = ItemDataScript.CATEGORY_FRIENDLY
+	item.category = category
 	item.cost = cost
 	item.currency = ItemDataScript.CURRENCY_HEARTS
 	item.scene = _require(scene_path)

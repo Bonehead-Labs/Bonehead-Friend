@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://Scripts/Bodies/Powers/open_hand_power.gd" id="1_lsmu3"]
 [ext_resource type="Texture2D" path="res://Assets/sprites/icons/open_hand.png" id="2_6ebxm"]
 
-[node name="OpenHandPower" type="Node2D" unique_id=272280641]
+[node name="OpenHandPower" type="Node2D" unique_id=402717900]
 script = ExtResource("1_lsmu3")
 item_id = &"open_hand"
 cursor_texture = ExtResource("2_6ebxm")

@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_1vrcw"]
+
+[resource]
+script = ExtResource("1_1vrcw")
+id = &"duck_squeaker"
+item_id = &"rubber_duck"
+display_name = "Squeaker"
+description = "Squeezes it at a steady rate. He has not tired of it yet."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 830
+currency = 1
+is_automation = true
+automation_rate = 0.54
+device_mount = &"tripod"
+requires_mastery = 25

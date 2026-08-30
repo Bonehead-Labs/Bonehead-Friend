@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_no2md"]
+
+[resource]
+script = ExtResource("1_no2md")
+id = &"birthday_cake_third"
+item_id = &"birthday_cake"
+display_name = "Faster Baking"
+effect_key = &"cooldown_mult"
+effect_per_level = 0.94
+cost_base = 1129
+cost_growth = 1.09
+currency = 1
+sort_order = 2

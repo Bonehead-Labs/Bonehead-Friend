@@ -186,19 +186,52 @@ func _shop_tiles_are_clickable() -> void:
 	_check("the shop page exists", shop != null)
 	if shop == null:
 		return
-	for caption in ["Melee", "Boom", "Cursor", "Kind", "Props"]:
-		var tab := _button_labelled(caption, shop)
-		_check("shop offers the '%s' category" % caption, tab != null)
-		if tab and _is_on_screen(tab):
-			_check("'%s' takes the cursor (got %s)"
-				% [caption, _describe(_hovered_at(_centre_of(tab)))],
-				_hovered_at(_centre_of(tab)) == tab)
-			await _click(_centre_of(tab))
-			_check("clicking '%s' shows its page" % caption,
-				int(shop.get("_category")) >= 0)
+	# Two front doors, then a strip of about five tabs behind each. Ten categories will not
+	# fit across this card, which is why the sides exist at all — so the assertion that
+	# matters is not that every tab is present but that the *other* side's tabs are away.
+	for side_caption in ["Harm", "Kind"]:
+		_check("shop offers the '%s' side" % side_caption,
+			_button_labelled(side_caption, shop) != null)
+
+	for pair in [["Harm", ["Melee", "Boom", "Cursor", "Turret", "Critters"]],
+			["Kind", ["Care", "Play", "Comfort", "Food", "Mood"]]]:
+		var side_tile := _button_labelled(String(pair[0]), shop)
+		if side_tile == null:
+			continue
+		await _click(_centre_of(side_tile))
+		for caption in pair[1]:
+			var tab := _button_labelled(String(caption), shop)
+			_check("the %s side offers '%s'" % [pair[0], caption], tab != null)
+			if tab == null:
+				continue
+			_check("'%s' is on screen under the %s side" % [caption, pair[0]], tab.visible)
+			if _is_on_screen(tab):
+				_check("'%s' takes the cursor (got %s)"
+					% [caption, _describe(_hovered_at(_centre_of(tab)))],
+					_hovered_at(_centre_of(tab)) == tab)
+				await _click(_centre_of(tab))
+				_check("clicking '%s' shows its page" % caption,
+					int(shop.get("_category")) >= 0)
+
+	# The whole point of the split: standing on one side hides the other side's tabs. Without
+	# this the two-tile nav could be doing nothing at all and every assertion above would
+	# still pass, because a flat strip of ten offers all ten captions too.
+	var kind_tile := _button_labelled("Kind", shop)
+	if kind_tile:
+		await _click(_centre_of(kind_tile))
+		# `_button_labelled` only returns what is visible in the tree, so a null here *is*
+		# the assertion — the Melee tab is still built and still counting its badge, it is
+		# simply not on this side.
+		_check("standing on Kind puts the Melee tab away",
+			_button_labelled("Melee", shop) == null)
+		_check("and brings Comfort out", _button_labelled("Comfort", shop) != null)
 
 	# Back to the starters. The bat is a free starter, so selecting it puts a Spawn button
-	# in the detail pane — the shop's one action button, whichever item is selected.
+	# in the detail pane — the shop's one action button, whichever item is selected. Reaching
+	# it now takes two clicks: the side, then the category.
+	var harm_tile := _button_labelled("Harm", shop)
+	if harm_tile:
+		await _click(_centre_of(harm_tile))
 	var melee := _button_labelled("Melee", shop)
 	if melee:
 		await _click(_centre_of(melee))

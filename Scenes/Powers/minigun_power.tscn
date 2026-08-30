@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://Scripts/Bodies/Powers/gun_power.gd" id="1_w0inx"]
 [ext_resource type="Texture2D" path="res://Assets/sprites/cursors/minigun.png" id="2_s2hss"]
 
-[node name="MinigunPower" type="Node2D" unique_id=1916392024]
+[node name="MinigunPower" type="Node2D" unique_id=1291839390]
 script = ExtResource("1_w0inx")
 blast_radius = 34.0
 blast_force = 1500.0

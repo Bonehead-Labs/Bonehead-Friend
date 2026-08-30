@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_2m1p7"]
+
+[resource]
+script = ExtResource("1_2m1p7")
+id = &"blanket_tucker"
+item_id = &"heated_blanket"
+display_name = "Tucker"
+description = "Tucks him in on a schedule. He has never asked it to stop."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 40800
+currency = 1
+is_automation = true
+automation_rate = 53.83
+device_mount = &"tripod"
+requires_mastery = 25

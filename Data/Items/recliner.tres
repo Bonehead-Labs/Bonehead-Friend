@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="PackedScene" path="res://Scenes/Friendly/recliner.tscn" id="1_bqo62"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="2_ipsba"]
+
+[resource]
+script = ExtResource("2_ipsba")
+id = &"recliner"
+display_name = "Recliner"
+description = "Fully reclined, permanently. The last chair he will ever need."
+category = 7
+cost = 120000
+currency = 1
+scene = ExtResource("1_bqo62")
+sort_order = 60

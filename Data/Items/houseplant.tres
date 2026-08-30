@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="PackedScene" path="res://Scenes/Friendly/houseplant.tscn" id="1_ty8k0"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="2_usmw0"]
+
+[resource]
+script = ExtResource("2_usmw0")
+id = &"houseplant"
+display_name = "Houseplant"
+description = "Low light, low needs. It is company, and that counts."
+category = 9
+cost = 250
+currency = 1
+scene = ExtResource("1_ty8k0")
+sort_order = 10

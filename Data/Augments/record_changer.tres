@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_36y86"]
+
+[resource]
+script = ExtResource("1_36y86")
+id = &"record_changer"
+item_id = &"record_player"
+display_name = "Changer"
+description = "Drops the next record before the last one has finished."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 10800
+currency = 1
+is_automation = true
+automation_rate = 13.83
+device_mount = &"tripod"
+requires_mastery = 25

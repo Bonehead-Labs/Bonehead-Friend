@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_vv8tn"]
+
+[resource]
+script = ExtResource("1_vv8tn")
+id = &"tank_feeder"
+item_id = &"fish_tank"
+display_name = "Feeder"
+description = "Feeds all four on a timer and reminds him of their names."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 13800
+currency = 1
+is_automation = true
+automation_rate = 17.83
+device_mount = &"tripod"
+requires_mastery = 25

@@ -1,0 +1,40 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Bodies/friendly_base.gd" id="1_vf673"]
+[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="2_afv15"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_8cd62"]
+size = Vector2(56, 16)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_u0dsb"]
+size = Vector2(68, 28)
+
+[node name="FairyLights" type="RigidBody2D" unique_id=1881597704 node_paths=PackedStringArray("drag_area", "handle", "collider")]
+collision_layer = 4
+collision_mask = 7
+mass = 0.3
+contact_monitor = true
+max_contacts_reported = 4
+script = ExtResource("1_vf673")
+hearts_per_second_placed = 0.35
+drag_area = NodePath("DraggableArea")
+handle = NodePath("Handle")
+collider = NodePath("CollisionShape2D")
+
+[node name="Placeholder" type="Polygon2D" parent="." unique_id=763372440]
+color = Color(0.94, 0.86, 0.56, 1)
+polygon = PackedVector2Array(-24, -8, 24, -8, 28, -4, 28, 4, 24, 8, -24, 8, -28, 4, -28, -4)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1605134976]
+shape = SubResource("RectangleShape2D_8cd62")
+
+[node name="DraggableArea" type="Area2D" parent="." unique_id=1082672589]
+script = ExtResource("2_afv15")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=859789515]
+shape = SubResource("RectangleShape2D_u0dsb")
+
+[node name="Handle" type="StaticBody2D" parent="." unique_id=2017762033]
+visible = false
+collision_layer = 0
+collision_mask = 0

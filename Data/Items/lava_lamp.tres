@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="PackedScene" path="res://Scenes/Friendly/lava_lamp.tscn" id="1_nmyva"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="2_6u0bk"]
+
+[resource]
+script = ExtResource("2_6u0bk")
+id = &"lava_lamp"
+display_name = "Lava Lamp"
+description = "He watches the blob go up. He watches the blob come down."
+category = 9
+cost = 8000
+currency = 1
+scene = ExtResource("1_nmyva")
+sort_order = 40

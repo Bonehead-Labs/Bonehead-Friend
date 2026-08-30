@@ -1,8 +1,9 @@
 class_name ItemData
 extends Resource
 
-## One buyable thing: a weapon, a throwable, a cursor power, a friendly item, a toy or a
-## turret.
+## One buyable thing. Ten categories across two sides: five ways to hurt him (melee,
+## explosives, cursor powers, turrets, critters) and five to be good to him (care, play,
+## comfort, food, ambience).
 ##
 ## This is the whole definition. Adding an item to the game is adding a .tres file under
 ## res://Data/Items/ — no script edits anywhere (docs/decisions.md D8). The prototype
@@ -23,6 +24,39 @@ const CATEGORY_TOY := 4
 ## down and walk away from. See `Scripts/Bodies/turret_base.gd` for why the item is priced
 ## in Bones while its automation capstone is priced in Hearts.
 const CATEGORY_TURRET := 5
+## Something alive that turns up and goes for him on its own. Filed apart from Toy, where
+## the gorilla, the goose and the hornet used to sit beside the beach ball and the
+## trampoline — which made "is this thing on his side" unanswerable from the data, and put
+## four things that attack him in the same drawer a player opens looking for something nice.
+const CATEGORY_CRITTER := 6
+## The kind half's own drawers. Before these, everything nice was Friendly or Toy — two
+## buckets for a side of the game that is meant to grow, next to five for the other side.
+const CATEGORY_COMFORT := 7
+const CATEGORY_FOOD := 8
+const CATEGORY_AMBIENCE := 9
+
+## The two halves of the game. Every category belongs to exactly one, which is the whole
+## reason `CATEGORY_CRITTER` had to exist: while the critters lived under Toy, no rule over
+## categories could sort the shop, and the shop is where a player decides what kind of
+## session they are having.
+const SIDE_HARM := 0
+const SIDE_KIND := 1
+
+## Which half each category sits in. A table rather than a `category >= N` test, because the
+## constants are append-only ints and any ordering rule breaks the first time a category is
+## added to the middle of the list.
+const CATEGORY_SIDE := {
+	CATEGORY_WEAPON: SIDE_HARM,
+	CATEGORY_THROWABLE: SIDE_HARM,
+	CATEGORY_CURSOR_POWER: SIDE_HARM,
+	CATEGORY_TURRET: SIDE_HARM,
+	CATEGORY_CRITTER: SIDE_HARM,
+	CATEGORY_FRIENDLY: SIDE_KIND,
+	CATEGORY_TOY: SIDE_KIND,
+	CATEGORY_COMFORT: SIDE_KIND,
+	CATEGORY_FOOD: SIDE_KIND,
+	CATEGORY_AMBIENCE: SIDE_KIND,
+}
 
 const CURRENCY_BONES := 0
 const CURRENCY_HEARTS := 1
@@ -34,7 +68,7 @@ const CURRENCY_HEARTS := 1
 @export var display_name: String
 @export_multiline var description: String
 
-@export_enum("Weapon", "Throwable", "CursorPower", "Friendly", "Toy", "Turret") var category: int = CATEGORY_WEAPON
+@export_enum("Weapon", "Throwable", "CursorPower", "Friendly", "Toy", "Turret", "Critter", "Comfort", "Food", "Ambience") var category: int = CATEGORY_WEAPON
 
 ## One-time, hand-authored price. **Zero or less means a free starter**, owned from the
 ## first boot — that is how the catalog's "free (starter)" entries are expressed.
@@ -74,6 +108,15 @@ const CURRENCY_HEARTS := 1
 ## the twenty-five seconds his routines need — so he never touched a toy again, for as long
 ## as that turret ran.
 @export var is_autonomous: bool = false
+
+## Harm or kind. Read from the category, so an item is filed once and every system that
+## cares — the shop's two front doors, the idle brain deciding what he would enjoy — agrees
+## by construction rather than by two lists kept in step by hand.
+func side() -> int:
+	return int(CATEGORY_SIDE.get(category, SIDE_HARM))
+
+func is_kind() -> bool:
+	return side() == SIDE_KIND
 
 func is_starter() -> bool:
 	return cost <= 0

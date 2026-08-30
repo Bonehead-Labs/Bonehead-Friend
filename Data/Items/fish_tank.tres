@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="PackedScene" path="res://Scenes/Friendly/fish_tank.tscn" id="1_reglp"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="2_237ea"]
+
+[resource]
+script = ExtResource("2_237ea")
+id = &"fish_tank"
+display_name = "Fish Tank"
+description = "Four fish. He has named all of them and tells you often."
+category = 9
+cost = 26000
+currency = 1
+scene = ExtResource("1_reglp")
+sort_order = 60

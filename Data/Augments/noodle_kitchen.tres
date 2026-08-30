@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_78lfa"]
+
+[resource]
+script = ExtResource("1_78lfa")
+id = &"noodle_kitchen"
+item_id = &"noodle_bowl"
+display_name = "Kitchen"
+description = "A tiny kitchen that makes one dish, extremely well."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 2600
+currency = 1
+is_automation = true
+automation_rate = 2.9
+device_mount = &"tripod"
+requires_mastery = 25

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="PackedScene" path="res://Scenes/Friendly/beanbag.tscn" id="1_rtcuc"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="2_xg4ui"]
+
+[resource]
+script = ExtResource("2_xg4ui")
+id = &"beanbag"
+display_name = "Beanbag"
+description = "Sags around him. He disappears into it and does not hurry."
+category = 7
+cost = 600
+currency = 1
+scene = ExtResource("1_rtcuc")
+sort_order = 10

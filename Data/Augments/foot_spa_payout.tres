@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_ggwv6"]
+
+[resource]
+script = ExtResource("1_ggwv6")
+id = &"foot_spa_payout"
+item_id = &"foot_spa"
+display_name = "Pedicure Rates"
+effect_key = &"payout_mult"
+effect_per_level = 1.12
+cost_base = 116
+currency = 1
+sort_order = 1

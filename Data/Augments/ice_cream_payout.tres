@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_ifwgg"]
+
+[resource]
+script = ExtResource("1_ifwgg")
+id = &"ice_cream_payout"
+item_id = &"ice_cream"
+display_name = "Parlour Rates"
+effect_key = &"payout_mult"
+effect_per_level = 1.12
+cost_base = 74
+currency = 1
+sort_order = 1

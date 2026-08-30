@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_2n0rs"]
+
+[resource]
+script = ExtResource("1_2n0rs")
+id = &"bubble_machine_damage"
+item_id = &"bubble_machine"
+display_name = "Bigger Bubbles"
+effect_key = &"damage_mult"
+effect_per_level = 1.15
+cost_base = 725
+cost_growth = 1.12
+currency = 1

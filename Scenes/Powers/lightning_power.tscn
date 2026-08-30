@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://Scripts/Bodies/Powers/lightning_power.gd" id="1_vtx0s"]
 [ext_resource type="Texture2D" path="res://Assets/sprites/cursors/lightning.png" id="2_m6bjr"]
 
-[node name="LightningPower" type="Node2D" unique_id=848427286]
+[node name="LightningPower" type="Node2D" unique_id=10171066]
 script = ExtResource("1_vtx0s")
 item_id = &"lightning"
 cursor_texture = ExtResource("2_m6bjr")

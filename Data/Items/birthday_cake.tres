@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="PackedScene" path="res://Scenes/Friendly/birthday_cake.tscn" id="1_nhoqg"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="2_mipgv"]
+
+[resource]
+script = ExtResource("2_mipgv")
+id = &"birthday_cake"
+display_name = "Birthday Cake"
+description = "Nobody is sure whose. He is delighted regardless."
+category = 8
+cost = 40000
+currency = 1
+scene = ExtResource("1_nhoqg")
+sort_order = 50

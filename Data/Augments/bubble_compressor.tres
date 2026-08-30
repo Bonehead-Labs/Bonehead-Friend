@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_aok40"]
+
+[resource]
+script = ExtResource("1_aok40")
+id = &"bubble_compressor"
+item_id = &"bubble_machine"
+display_name = "Compressor"
+description = "More bubbles per second than he can possibly chase."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 8300
+currency = 1
+is_automation = true
+automation_rate = 10.5
+device_mount = &"tripod"
+requires_mastery = 25

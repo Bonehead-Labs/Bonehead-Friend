@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_2dfiq"]
+
+[resource]
+script = ExtResource("1_2dfiq")
+id = &"cup_of_tea_payout"
+item_id = &"cup_of_tea"
+display_name = "Service Charge"
+effect_key = &"payout_mult"
+effect_per_level = 1.12
+cost_base = 44
+currency = 1
+sort_order = 1

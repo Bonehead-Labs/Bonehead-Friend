@@ -4,13 +4,13 @@
 [ext_resource type="Texture2D" path="res://Assets/sprites/items/hot_tub.png" id="2_n86i1"]
 [ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_bxjka"]
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_m4fnn"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_bhg2i"]
 size = Vector2(144, 140)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_n4kdu"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_n86i1"]
 size = Vector2(156, 152)
 
-[node name="HotTub" type="RigidBody2D" unique_id=851530469 node_paths=PackedStringArray("drag_area", "handle", "sprite", "collider")]
+[node name="HotTub" type="RigidBody2D" unique_id=350588732 node_paths=PackedStringArray("drag_area", "handle", "sprite", "collider")]
 collision_layer = 4
 collision_mask = 7
 mass = 14.0
@@ -25,20 +25,20 @@ handle = NodePath("Handle")
 sprite = NodePath("Sprite")
 collider = NodePath("CollisionShape2D")
 
-[node name="Sprite" type="Sprite2D" parent="." unique_id=2009805317]
+[node name="Sprite" type="Sprite2D" parent="." unique_id=1226153233]
 scale = Vector2(2, 2)
 texture = ExtResource("2_n86i1")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=106391546]
-shape = SubResource("RectangleShape2D_m4fnn")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=564599633]
+shape = SubResource("RectangleShape2D_bhg2i")
 
-[node name="DraggableArea" type="Area2D" parent="." unique_id=224989719]
+[node name="DraggableArea" type="Area2D" parent="." unique_id=464614793]
 script = ExtResource("3_bxjka")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=139879104]
-shape = SubResource("RectangleShape2D_n4kdu")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=208371770]
+shape = SubResource("RectangleShape2D_n86i1")
 
-[node name="Handle" type="StaticBody2D" parent="." unique_id=1024434331]
+[node name="Handle" type="StaticBody2D" parent="." unique_id=1582611699]
 visible = false
 collision_layer = 0
 collision_mask = 0

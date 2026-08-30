@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_y87y8"]
+
+[resource]
+script = ExtResource("1_y87y8")
+id = &"houseplant_payout"
+item_id = &"houseplant"
+display_name = "Nursery Rates"
+effect_key = &"payout_mult"
+effect_per_level = 1.12
+cost_base = 48
+currency = 1
+sort_order = 1

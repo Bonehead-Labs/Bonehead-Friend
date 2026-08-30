@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="PackedScene" path="res://Scenes/Friendly/paddling_pool.tscn" id="1_yaik6"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="2_w28vt"]
+
+[resource]
+script = ExtResource("2_w28vt")
+id = &"paddling_pool"
+display_name = "Paddling Pool"
+description = "Knee deep and faintly green. He sits down in it fully."
+category = 7
+cost = 55000
+currency = 1
+scene = ExtResource("1_yaik6")
+sort_order = 40

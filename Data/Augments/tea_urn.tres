@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_mci4p"]
+
+[resource]
+script = ExtResource("1_mci4p")
+id = &"tea_urn"
+item_id = &"cup_of_tea"
+display_name = "Tea Urn"
+description = "Brews another the moment the last one is gone."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 875
+currency = 1
+is_automation = true
+automation_rate = 0.6
+device_mount = &"tripod"
+requires_mastery = 25

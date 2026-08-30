@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_r3ypm"]
+
+[resource]
+script = ExtResource("1_r3ypm")
+id = &"wind_chimes_damage"
+item_id = &"wind_chimes"
+display_name = "Longer Tubes"
+effect_key = &"damage_mult"
+effect_per_level = 1.15
+cost_base = 122
+cost_growth = 1.12
+currency = 1

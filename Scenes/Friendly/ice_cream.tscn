@@ -1,0 +1,42 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Bodies/friendly_base.gd" id="1_lvpbi"]
+[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="2_rfib8"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_nduyg"]
+size = Vector2(20, 30)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_s0dmo"]
+size = Vector2(32, 42)
+
+[node name="IceCream" type="RigidBody2D" unique_id=742375122 node_paths=PackedStringArray("drag_area", "handle", "collider")]
+collision_layer = 4
+collision_mask = 7
+mass = 0.3
+contact_monitor = true
+max_contacts_reported = 4
+script = ExtResource("1_lvpbi")
+hearts_per_contact = 60.0
+contact_cooldown = 0.5
+consume_on_use = true
+drag_area = NodePath("DraggableArea")
+handle = NodePath("Handle")
+collider = NodePath("CollisionShape2D")
+
+[node name="Placeholder" type="Polygon2D" parent="." unique_id=311320669]
+color = Color(0.92, 0.84, 0.9, 1)
+polygon = PackedVector2Array(-5, -15, 5, -15, 10, -10, 10, 10, 5, 15, -5, 15, -10, 10, -10, -10)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1693937988]
+shape = SubResource("RectangleShape2D_nduyg")
+
+[node name="DraggableArea" type="Area2D" parent="." unique_id=100321327]
+script = ExtResource("2_rfib8")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=1137987993]
+shape = SubResource("RectangleShape2D_s0dmo")
+
+[node name="Handle" type="StaticBody2D" parent="." unique_id=386141652]
+visible = false
+collision_layer = 0
+collision_mask = 0

@@ -19,15 +19,41 @@ const CATEGORY_NAMES := {
 	ItemData.CATEGORY_WEAPON: "Melee",
 	ItemData.CATEGORY_THROWABLE: "Boom",
 	ItemData.CATEGORY_CURSOR_POWER: "Cursor",
-	ItemData.CATEGORY_FRIENDLY: "Kind",
-	ItemData.CATEGORY_TOY: "Props",
 	ItemData.CATEGORY_TURRET: "Turret",
+	ItemData.CATEGORY_CRITTER: "Critters",
+	# "Kind" was this drawer's name back when it was the only kind drawer. It is now the name
+	# of the whole side, and this one holds what you do with your own hands.
+	ItemData.CATEGORY_FRIENDLY: "Care",
+	ItemData.CATEGORY_TOY: "Play",
+	ItemData.CATEGORY_COMFORT: "Comfort",
+	ItemData.CATEGORY_FOOD: "Food",
+	ItemData.CATEGORY_AMBIENCE: "Mood",
+}
+
+## The two front doors.
+##
+## Ten categories will not fit across a card this narrow, and they should not have to: the
+## first decision a player makes is not "melee or turrets", it is what kind of session they
+## are having. Splitting that off means each side gets a strip of about five, which is the
+## width the tabs were designed for — and the kind half stops being one tab hiding at the
+## end of a row of weapons.
+const SIDE_NAMES := {
+	ItemData.SIDE_HARM: "Harm",
+	ItemData.SIDE_KIND: "Kind",
+}
+
+const SIDE_GLYPHS := {
+	ItemData.SIDE_HARM: &"bone",
+	ItemData.SIDE_KIND: &"heart",
 }
 
 ## Wide enough for the longest item name at the reading size, narrow enough to leave the
 ## detail pane the larger half.
 const LIST_WIDTH := 232
 
+var _side_row: HBoxContainer
+var _side_tabs: Dictionary = {}   ## int (side) -> Button
+var _side: int = ItemData.SIDE_HARM
 var _tab_row: HBoxContainer
 var _list: VBoxContainer
 var _rows: Dictionary = {}   ## StringName -> Button
@@ -63,6 +89,14 @@ func _build_page() -> void:
 			_by_category[item.category] = []
 		_by_category[item.category].append(item)
 
+	_side_row = HBoxContainer.new()
+	_side_row.add_theme_constant_override("separation", 3)
+	add_child(_side_row)
+	for side in [ItemData.SIDE_HARM, ItemData.SIDE_KIND]:
+		var tile := _make_side_tile(side)
+		_side_tabs[side] = tile
+		_side_row.add_child(tile)
+
 	_tab_row = HBoxContainer.new()
 	_tab_row.add_theme_constant_override("separation", 3)
 	add_child(_tab_row)
@@ -97,7 +131,7 @@ func _build_page() -> void:
 	split.add_child(_detail_pane())
 
 	if not categories.is_empty():
-		show_category(int(categories[0]))
+		show_side(_side)
 
 func _rule() -> Control:
 	var rule := ColorRect.new()
@@ -156,6 +190,47 @@ func _has_art(items: Array) -> bool:
 		if item.icon != null:
 			return true
 	return false
+
+## The side tile is a tab, not a picture: same variation as the category tabs, so it picks up
+## the theme's `hover_pressed` like everything else. A variation the theme does not define
+## falls through to Godot's stock dark theme rather than to anything neutral, which is how
+## every toggled-on button in the shell once drew dark ink on a dark box.
+func _make_side_tile(side: int) -> Button:
+	var tile := UIStyle.button(String(SIDE_NAMES.get(side, "Other")), UIStyle.BODY)
+	tile.theme_type_variation = &"IconTab"
+	tile.toggle_mode = true
+	tile.custom_minimum_size = Vector2(0, 44)
+	tile.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	# Boxed, like every other picture in the shell: a Button *grows* to fit its icon, so an
+	# unboxed one sets the tile's height rather than the other way round (D27).
+	tile.icon = UIStyle.boxed(UIStyle.glyph(StringName(SIDE_GLYPHS.get(side, &"crate"))),
+		UIStyle.GLYPH)
+	tile.pressed.connect(func() -> void: show_side(side))
+	return tile
+
+## Switches which half of the shop the tab strip is showing. The tabs are all built once and
+## hidden rather than rebuilt, so the unread badges keep counting on the side you are not
+## looking at — which is the entire point of a badge.
+func show_side(side: int) -> void:
+	_side = side
+	for key in _side_tabs:
+		(_side_tabs[key] as Button).button_pressed = key == side
+	var first := -1
+	var categories := _by_category.keys()
+	categories.sort()
+	for category in categories:
+		var visible_here: bool = ItemData.CATEGORY_SIDE.get(category, ItemData.SIDE_HARM) == side
+		if _tabs.has(category):
+			(_tabs[category]["button"] as Button).visible = visible_here
+		if visible_here and first < 0:
+			first = int(category)
+	# Only move off the current category if it belongs to the other side now. Coming back to
+	# a side you were already on should land where you left it.
+	if _category < 0 or ItemData.CATEGORY_SIDE.get(_category, ItemData.SIDE_HARM) != side:
+		if first >= 0:
+			show_category(first)
+	else:
+		show_category(_category)
 
 func show_category(category: int) -> void:
 	if not _by_category.has(category):

@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_862qe"]
+
+[resource]
+script = ExtResource("1_862qe")
+id = &"lights_timer"
+item_id = &"fairy_lights"
+display_name = "Timer"
+description = "Switches them on at dusk, and dusk is whenever he wants."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 1250
+currency = 1
+is_automation = true
+automation_rate = 1.1
+device_mount = &"tripod"
+requires_mastery = 25

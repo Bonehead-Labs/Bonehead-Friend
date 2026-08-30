@@ -323,7 +323,7 @@ func _seed_items() -> void:
 		ItemDataScript.CATEGORY_TOY, 100, ItemDataScript.CURRENCY_BONES,
 		"%s/beach_ball.tscn" % PROPS_DIR, 0)
 	_item(&"baseball", "Baseball", "Throw it and he catches it without moving. Harder throws are worth more.",
-		ItemDataScript.CATEGORY_FRIENDLY, 120, ItemDataScript.CURRENCY_HEARTS,
+		ItemDataScript.CATEGORY_TOY, 120, ItemDataScript.CURRENCY_HEARTS,
 		"%s/baseball.tscn" % PROPS_DIR, 15)
 
 func _item(id: StringName, display_name: String, description: String, category: int,

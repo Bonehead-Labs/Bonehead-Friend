@@ -315,6 +315,10 @@ func _seed_items() -> void:
 	var C := ItemDataScript.CATEGORY_CURSOR_POWER
 	var F := ItemDataScript.CATEGORY_FRIENDLY
 	var Y := ItemDataScript.CATEGORY_TOY
+	# M3.7 split the kind half into drawers of its own. Care keeps the things you do with
+	# your hands; a chocolate fountain is food and a hot tub is somewhere to sit.
+	var CM := ItemDataScript.CATEGORY_COMFORT
+	var FD := ItemDataScript.CATEGORY_FOOD
 	var HEARTS := ItemDataScript.CURRENCY_HEARTS
 
 	_item(&"katana", "Katana", "Fast, precise and unreasonably sharp. Cuts where the bat clubs.",
@@ -338,11 +342,11 @@ func _seed_items() -> void:
 
 	_item(&"chocolate_fountain", "Chocolate Fountain",
 		"Pays Hearts just for running. Runs out, eventually.",
-		F, 5000, "%s/chocolate_fountain.tscn" % FRIENDLY_DIR, 40, [&"boombox"], HEARTS)
+		FD, 5000, "%s/chocolate_fountain.tscn" % FRIENDLY_DIR, 40, [&"boombox"], HEARTS)
 	_item(&"hot_tub", "Hot Tub", "Put him in it. He will not want to come out.",
-		F, 12000, "%s/hot_tub.tscn" % FRIENDLY_DIR, 50, [&"chocolate_fountain"], HEARTS)
+		CM, 12000, "%s/hot_tub.tscn" % FRIENDLY_DIR, 50, [&"chocolate_fountain"], HEARTS)
 	_item(&"massage_chair", "Massage Chair", "The best thing that has ever happened to him.",
-		F, 30000, "%s/massage_chair.tscn" % FRIENDLY_DIR, 60, [&"hot_tub"], HEARTS)
+		CM, 30000, "%s/massage_chair.tscn" % FRIENDLY_DIR, 60, [&"hot_tub"], HEARTS)
 
 	_item(&"trampoline", "Trampoline", "Everything that lands on it leaves faster than it arrived.",
 		Y, 1800, "%s/trampoline.tscn" % PROPS_DIR, 20, [&"bowling_ball"])

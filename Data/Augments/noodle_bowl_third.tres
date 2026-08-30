@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_ia8cv"]
+
+[resource]
+script = ExtResource("1_ia8cv")
+id = &"noodle_bowl_third"
+item_id = &"noodle_bowl"
+display_name = "Quicker Service"
+effect_key = &"cooldown_mult"
+effect_per_level = 0.94
+cost_base = 129
+cost_growth = 1.09
+currency = 1
+sort_order = 2

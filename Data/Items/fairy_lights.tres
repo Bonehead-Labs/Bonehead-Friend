@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="PackedScene" path="res://Scenes/Friendly/fairy_lights.tscn" id="1_j4jik"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="2_2tk3u"]
+
+[resource]
+script = ExtResource("2_2tk3u")
+id = &"fairy_lights"
+display_name = "Fairy Lights"
+description = "Draped over the edge of the desk. Everything is softer."
+category = 9
+cost = 900
+currency = 1
+scene = ExtResource("1_j4jik")
+sort_order = 20

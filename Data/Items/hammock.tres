@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="PackedScene" path="res://Scenes/Friendly/hammock.tscn" id="1_4wfv2"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="2_xa4yr"]
+
+[resource]
+script = ExtResource("2_xa4yr")
+id = &"hammock"
+display_name = "Hammock"
+description = "Strung between nothing in particular. He sways in it for hours."
+category = 7
+cost = 6000
+currency = 1
+scene = ExtResource("1_4wfv2")
+sort_order = 30

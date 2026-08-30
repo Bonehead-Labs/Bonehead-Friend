@@ -4,13 +4,13 @@
 [ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="2_keqqy"]
 [ext_resource type="Texture2D" path="res://Assets/sprites/items/sponge.png" id="2_otfga"]
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_mobw0"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_keqqy"]
 size = Vector2(30, 22)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_1up1n"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_otfga"]
 size = Vector2(42, 34)
 
-[node name="Sponge" type="RigidBody2D" unique_id=1665062972 node_paths=PackedStringArray("drag_area", "handle", "collider")]
+[node name="Sponge" type="RigidBody2D" unique_id=944499964 node_paths=PackedStringArray("drag_area", "handle", "collider")]
 collision_layer = 4
 collision_mask = 7
 mass = 0.6
@@ -22,20 +22,20 @@ drag_area = NodePath("DraggableArea")
 handle = NodePath("Handle")
 collider = NodePath("CollisionShape2D")
 
-[node name="Sprite" type="Sprite2D" parent="." unique_id=1591539877]
+[node name="Sprite" type="Sprite2D" parent="." unique_id=690002668]
 scale = Vector2(2, 2)
 texture = ExtResource("2_otfga")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1562564594]
-shape = SubResource("RectangleShape2D_mobw0")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=521648459]
+shape = SubResource("RectangleShape2D_keqqy")
 
-[node name="DraggableArea" type="Area2D" parent="." unique_id=1932466391]
+[node name="DraggableArea" type="Area2D" parent="." unique_id=1852767865]
 script = ExtResource("2_keqqy")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=379016411]
-shape = SubResource("RectangleShape2D_1up1n")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=470864048]
+shape = SubResource("RectangleShape2D_otfga")
 
-[node name="Handle" type="StaticBody2D" parent="." unique_id=111153762]
+[node name="Handle" type="StaticBody2D" parent="." unique_id=192024180]
 visible = false
 collision_layer = 0
 collision_mask = 0

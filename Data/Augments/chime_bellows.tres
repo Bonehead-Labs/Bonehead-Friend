@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_8v0ss"]
+
+[resource]
+script = ExtResource("1_8v0ss")
+id = &"chime_bellows"
+item_id = &"wind_chimes"
+display_name = "Bellows"
+description = "A small bellows, because there is no wind indoors."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 1600
+currency = 1
+is_automation = true
+automation_rate = 1.57
+device_mount = &"tripod"
+requires_mastery = 25

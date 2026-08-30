@@ -1,0 +1,42 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Bodies/friendly_base.gd" id="1_864si"]
+[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="2_086kb"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_xatuk"]
+size = Vector2(20, 22)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_dgxc6"]
+size = Vector2(32, 34)
+
+[node name="CupOfTea" type="RigidBody2D" unique_id=832314732 node_paths=PackedStringArray("drag_area", "handle", "collider")]
+collision_layer = 4
+collision_mask = 7
+mass = 0.4
+contact_monitor = true
+max_contacts_reported = 4
+script = ExtResource("1_864si")
+hearts_per_contact = 18.0
+contact_cooldown = 0.5
+consume_on_use = true
+drag_area = NodePath("DraggableArea")
+handle = NodePath("Handle")
+collider = NodePath("CollisionShape2D")
+
+[node name="Placeholder" type="Polygon2D" parent="." unique_id=1217998048]
+color = Color(0.86, 0.8, 0.68, 1)
+polygon = PackedVector2Array(-5, -11, 5, -11, 10, -6, 10, 6, 5, 11, -5, 11, -10, 6, -10, -6)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1705760223]
+shape = SubResource("RectangleShape2D_xatuk")
+
+[node name="DraggableArea" type="Area2D" parent="." unique_id=137337215]
+script = ExtResource("2_086kb")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=1465212846]
+shape = SubResource("RectangleShape2D_dgxc6")
+
+[node name="Handle" type="StaticBody2D" parent="." unique_id=1971815276]
+visible = false
+collision_layer = 0
+collision_mask = 0

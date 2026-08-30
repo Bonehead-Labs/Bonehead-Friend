@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="PackedScene" path="res://Scenes/Friendly/ice_cream.tscn" id="1_gwmsc"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="2_j43kq"]
+
+[resource]
+script = ExtResource("2_j43kq")
+id = &"ice_cream"
+display_name = "Ice Cream"
+description = "Melting faster than he can eat it, which is part of the fun."
+category = 8
+cost = 1000
+currency = 1
+scene = ExtResource("1_gwmsc")
+sort_order = 30

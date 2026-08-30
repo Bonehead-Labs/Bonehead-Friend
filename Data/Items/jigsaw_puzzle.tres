@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="PackedScene" path="res://Scenes/Friendly/jigsaw_puzzle.tscn" id="1_djrbc"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="2_mcmfi"]
+
+[resource]
+script = ExtResource("2_mcmfi")
+id = &"jigsaw_puzzle"
+display_name = "Jigsaw Puzzle"
+description = "Two thousand pieces of a lighthouse. He is on the edges."
+category = 4
+cost = 3000
+currency = 1
+scene = ExtResource("1_djrbc")
+sort_order = 50

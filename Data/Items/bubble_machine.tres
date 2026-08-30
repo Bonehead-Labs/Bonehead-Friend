@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="PackedScene" path="res://Scenes/Friendly/bubble_machine.tscn" id="1_y8bhy"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="2_cg7vy"]
+
+[resource]
+script = ExtResource("2_cg7vy")
+id = &"bubble_machine"
+display_name = "Bubble Machine"
+description = "He cannot catch them and has not stopped trying."
+category = 4
+cost = 15000
+currency = 1
+scene = ExtResource("1_y8bhy")
+sort_order = 60

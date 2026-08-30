@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_jsyvi"]
+
+[resource]
+script = ExtResource("1_jsyvi")
+id = &"cake_bakery"
+item_id = &"birthday_cake"
+display_name = "Bakery"
+description = "Every day is his birthday now. Nobody has told him otherwise."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 20800
+currency = 1
+is_automation = true
+automation_rate = 27.17
+device_mount = &"tripod"
+requires_mastery = 25

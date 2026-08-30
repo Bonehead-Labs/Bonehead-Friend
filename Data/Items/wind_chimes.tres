@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="PackedScene" path="res://Scenes/Friendly/wind_chimes.tscn" id="1_rakq1"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="2_8lh3a"]
+
+[resource]
+script = ExtResource("2_8lh3a")
+id = &"wind_chimes"
+display_name = "Wind Chimes"
+description = "There is no wind indoors. They ring anyway, for him."
+category = 9
+cost = 1600
+currency = 1
+scene = ExtResource("1_rakq1")
+sort_order = 30
