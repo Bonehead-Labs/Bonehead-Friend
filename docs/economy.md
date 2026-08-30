@@ -285,6 +285,24 @@ They appear in the tree page under a chip of their own, last in the picker — t
 not a toy, and putting it first made it the default selection for a player who had come to
 upgrade their bat.
 
+## The rest of the pipeline
+
+Two multipliers were added after the five in the diagram above, and both are applied by
+`Economy.payout_for` rather than by `EconomyMath.payout_for` — which stays pure and
+five-argument so the headless `-s` runner can reach it:
+
+- **the milestone bonus**, the product of `income_bonus` over every rung ever claimed
+  (docs/decisions.md D34). It is the third income axis: not damage, not kindness, but
+  breadth.
+- **one shared timed slot**, `Economy.temp_multiplier()`. One slot and not one per feature:
+  the arcade pays into it today and the Dream Journal and Overtime Pay both want the same
+  thing, and three multipliers applied in three places is how a pipeline drifts. Its
+  deadlines are engine ticks, so a buff cannot survive a restart even by accident, and a
+  weaker offer can never cancel a stronger one.
+
+Neither reaches Dollars, which do not go through the pipeline at all, and neither reaches
+offline income, which pays the stable multipliers only.
+
 ## Dollars
 
 The third and last currency (docs/decisions.md D31). **There is no Ectoplasm** — Dollars

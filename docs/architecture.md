@@ -189,7 +189,7 @@ Main (Node) ── main.gd  (thin bootstrapper)
 │  └─ Props (trash bin, contract board, automation devices)
 ├─ FXLayer   (CanvasLayer 5)     # floating numbers, impact sparks — Focus-Mode gated
 ├─ HUD       (CanvasLayer 10)    # currency chips, knockout + mood meters, toast, dock
-├─ PanelLayer(CanvasLayer 20)    # Toys / Upgrades / Jobs / Rebirth / Settings — opaque panels
+├─ PanelLayer(CanvasLayer 20)    # Toys / Upgrades / Jobs / Arcade / Settings — opaque panels
 ├─ EscMenu   (CanvasLayer 30)
 └─ Tray (StatusIndicator)        # Show/Hide, Pause, Settings, Quit
 ```

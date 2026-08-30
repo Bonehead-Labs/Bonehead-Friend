@@ -747,6 +747,79 @@ Three findings handed forward to **M3.5-B**, all from the simulator:
 Art spend: **$0.98** of $8.43 (twelve items with icons, two retries judged at icon size,
 three mounts, five plotted reticles at no cost). Remaining: **$7.46**.
 
+### M3.6 — the content explosion (2026-08-30)
+
+Not in the original plan. The owner's read was "we need more features, the game is slack",
+and they were right: M3.5 built the *systems* and left the game with 28 items, 6 contracts
+and four global upgrades to hang off them.
+
+Built by three fleets of agents working in parallel over partitioned file ownership, with a
+central verification and integration pass afterwards.
+
+| | was | now |
+|---|---|---|
+| Items | 28 | **80** |
+| Melee weapons | 4 | **34** |
+| Explosives | 4 | **14** |
+| Turrets | — | **8** (a new category) |
+| NPCs | — | **4** (a new *kind* of content) |
+| Contracts | 6 | **50** |
+| Augment nodes | 115 | **~430** |
+| The "Everything" tree | 4 | **24** |
+| Personalities | 5 | **12** |
+| Milestones | — | **62** |
+| Impact sounds | 1 | **5**, by material |
+
+**Melee physics is authored per weapon** (D25), which is the part that matters: a rapier is
+light and pivots at the hand, a greatsword carries its weight out in the blade, and a
+sledgehammer is 22kg of head on a stick. Half the blunt category is the desk itself — a
+stapler, a mechanical keyboard, a hole punch, an office mug, a monitor — because "beaten
+with a stapler" is the game's actual sense of humour and nothing in the roster did it.
+
+**Turrets and NPCs are both new content shapes, and both had to be built without breaking
+D2.** Automation is Hearts-priced, always; a Bones-bought thing that earns while you are
+away walks straight around the bargain the whole design rests on. So a turret costs Bones,
+fires only while the game is open, and its *capstone* — the upgrade that makes it work while
+you are away — costs Hearts. NPCs are summoned, cost Bones and are temporary, so they
+amplify active play rather than becoming a second idle engine.
+
+**The Rebirth tab is the Arcade**, with Reincarnation nested inside it as the back-room
+machine — a better home than the tab it had, since it is the biggest gamble in the game. The
+wheel, a slot machine and blackjack, all played with Dollars, all paying Dollars, time and
+hats. Games never touch `Economy`: they describe an outcome and the page grants it, because
+three games each minting currency is three places for a bug that prints money.
+
+**He uses his own toys now.** Left alone for 25 seconds he finds something he likes and goes
+and uses it — a form of AFK income that sits on top of automation and is deliberately worth
+less than it. `_physics_process` is off unless he is actually walking somewhere.
+
+**Milestones** (D34) are the third income axis and the main source of Dollars: 50 named ones
+that carry the first week and 12 ladders that never run out.
+
+Four integration bugs, all found by the central pass rather than by the agents:
+
+- `fx_layer` drew a "+1" at world (0,0) in the *Hearts* ramp on every single hit, because
+  Dollars are granted with no position. Found by the arcade agent, who noticed the arcade
+  made it worse and reported it rather than editing a file it did not own.
+- The arcade's machine registry named three files that did not exist — the shell agent and
+  the game agents had been given different filenames by the orchestrator. The page skips a
+  missing machine deliberately, so it failed silently and looked like three unwritten games.
+- `_reference_hit` had to start normalising by the milestone multiplier: the first reference
+  hit in a run completes "First Blood", so two identical hits paid differently for reasons
+  that had nothing to do with the augment under test.
+- The nested Rebirth page sat flagged visible under a shut card. Behaviour was right —
+  `PanelPage` guards on `is_visible_in_tree()` — but a flag that lies is what the original
+  D28 bug was made of.
+
+Suites: **730 assertions** (206 unit / 349 loop / 165 UI / 10 window) plus the pacing
+simulator's four targets, which still pass at 80 items: first automation at 9:52 of play,
+worst purchase gap 2:20, first Reincarnation at 7:03, and five resets ramping by at most
+1.3x.
+
+**Still open:** cosmetics have a currency and a milestone board paying into them but no page
+to spend on and no hats yet; the Séance boons are unbuilt; the gorilla has a walk cycle but
+no attack animation; and the two human playtests remain the M3 gate.
+
 **Gate:** per sub-milestone, in `uplift-m3.5.md`.
 
 *Art needed:* ~$4.60 of the $8.43 balance — 12 item sprites + icons, 6 buddy tags, the
