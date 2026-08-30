@@ -22,8 +22,16 @@ extends VBoxContainer
 ## and abbreviated past that, so a big number stays a big number instead of collapsing into
 ## "1.20k" the moment it gets interesting.
 
-## Currencies in the order they are earned, which is also the order they are learned.
-const ORDER: Array[StringName] = [&"bones", &"hearts", &"dollars"]
+## **Dollars first, and bigger.** They were last, in the order the currencies are earned,
+## which was right when they were a prestige token nobody saw for eight hours and is wrong
+## now: Dollars buy every cosmetic and everything in the arcade, and the owner's word for
+## them is "a big focus". Bones and Hearts are what the game *does*; Dollars are what the
+## player is *collecting*, and the purse should say so on sight.
+const ORDER: Array[StringName] = [&"dollars", &"bones", &"hearts"]
+
+## The one currency that gets its own line, centred, in the hero face — the treatment the
+## rest of the shell reserves for the single number a page is about (UIStyle.HERO).
+const HEADLINE := &"dollars"
 
 const GLYPHS := {
 	&"bones": &"bone",
@@ -62,10 +70,15 @@ func _ready() -> void:
 	set_process(false)
 
 func _make_chip(currency: StringName) -> Control:
+	var headline := currency == HEADLINE
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 8)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	# Centred rather than left-aligned, and only this one: a headline that shares the
+	# stack's left rule is just a bigger version of the rows under it.
+	if headline:
+		row.alignment = BoxContainer.ALIGNMENT_CENTER
 
 	var chip: Control = row
 	if boxed:
@@ -74,18 +87,32 @@ func _make_chip(currency: StringName) -> Control:
 		chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		chip.add_child(row)
 
-	var mark := UIStyle.icon(GLYPHS[currency], glyph_size, UIStyle.currency_colour(currency))
+	# Whole multiples of the 16px glyph canvas only: `UIStyle.boxed()` enlarges by 2x or 3x
+	# exactly and leaves anything else at 16 inside a larger box (D27).
+	var mark_size := glyph_size * 2 if headline else glyph_size
+	var mark := UIStyle.icon(GLYPHS[currency], mark_size, UIStyle.currency_colour(currency))
 	mark.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(mark)
 
-	var value := UIStyle.label("0", value_size, UIStyle.currency_colour(currency))
+	var value := UIStyle.label("0", UIStyle.HERO if headline else value_size,
+		UIStyle.currency_colour(currency))
 	value.theme_type_variation = &"Numeral"
 	# The figure owns the rest of the line and grows to the right. It cannot reflow anything
 	# by getting longer, because there is nothing to its right to push — which is the other
-	# half of why these are stacked rather than sitting in a row together.
-	value.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	value.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	value.clip_text = true
+	# half of why these are stacked rather than sitting in a row together. The headline is
+	# the exception: it is centred, so it grows from the middle outwards and the mark beside
+	# it travels — which is the point of centring it.
+	value.size_flags_horizontal = Control.SIZE_SHRINK_CENTER if headline \
+		else Control.SIZE_EXPAND_FILL
+	value.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER if headline \
+		else HORIZONTAL_ALIGNMENT_LEFT
+	# **Not clipped on the headline.** `clip_text` tells a Label its minimum size does not
+	# depend on its text — which is what keeps the stacked rows from widening the HUD, and
+	# which on a SHRINK_CENTER control means a minimum width of zero. The centred figure
+	# came out as a one-pixel sliver beside a large dollar sign. It does not need clipping
+	# anyway: it is centred with nothing beside it to push, and `format_purse` already
+	# abbreviates before it can get long.
+	value.clip_text = not headline
 	row.add_child(value)
 
 	_chips[currency] = chip

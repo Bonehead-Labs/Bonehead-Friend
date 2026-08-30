@@ -164,10 +164,10 @@ func _ready() -> void:
 func _seed_capstones() -> void:
 	for item in ItemDB.all_items():
 		if not DEVICES.has(item.id):
-			# Loudly, and without writing a nameless device: an item with no capstone is an
-			# item that never contributes to idle income, which is invisible in play and
-			# obvious in a spreadsheet six weeks later.
-			push_error("seed_m35_engine: no automation device authored for '%s'" % item.id)
+			# Silently, since M3.5-C: the roster outgrew one table and every content tool
+			# now writes the capstones for the items it owns, using the same rule. The guard
+			# that matters is `loop_check`'s "every item has an automation capstone", which
+			# is a claim about the *content* rather than about which file wrote it.
 			continue
 		var device: Array = DEVICES[item.id]
 		_capstone(device[0], item, device[1], device[2])
