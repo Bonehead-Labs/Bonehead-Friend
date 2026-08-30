@@ -15,4 +15,5 @@ cost_base = 1400
 currency = 1
 is_automation = true
 automation_rate = 1.3
+device_mount = &"pedestal"
 requires_mastery = 25

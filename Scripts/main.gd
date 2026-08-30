@@ -26,6 +26,7 @@ func _ready() -> void:
 	spawner.add_to_group(&"item_spawner")
 
 	_build_ui()
+	_build_devices()
 	_install_tuning_log()
 
 	# A tree purchase has to reach weapons already lying on the desktop, or the upgrade
@@ -86,6 +87,14 @@ func _build_ui() -> void:
 	_esc.name = "EscMenu"
 	_esc.world = world
 	add_child(_esc)
+
+## The automation the player has bought, standing on the desk doing it. In the world rather
+## than on a CanvasLayer: a device is furniture at world scale, beside the toys it is made
+## of, and the shell scales in whole numbers independently of it (D23).
+func _build_devices() -> void:
+	var devices := DeviceLayer.new()
+	devices.name = "DeviceLayer"
+	world.add_child(devices)
 
 ## Debug builds only. The M3 gate is "a 30-minute session with no dead ends", which is a
 ## claim about pacing that nobody can check from memory — this writes the CSV that makes it

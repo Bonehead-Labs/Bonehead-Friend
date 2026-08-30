@@ -93,6 +93,12 @@ func _ready() -> void:
 	tree.call("scroll_to_end")
 	await _shot("11-upgrades-automation")
 
+	# And the thing it bought, standing on the desk. The panel says 4.00 Bones/s; this is
+	# the only shot that shows what that looks like from across the room, which is where
+	# the player is (D6).
+	panels.call("close")
+	await _shot("12-devices")
+
 	_clear_slot()
 	print("ui_shots: wrote %s" % ProjectSettings.globalize_path(OUT))
 	get_tree().quit()

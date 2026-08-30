@@ -926,6 +926,25 @@ func _automation_earns_and_toggles() -> void:
 			float(node.cost_base), node.cost_growth, Progression.augment_level(&"bat_sentry") - 2, 2))
 	rate = Progression.automation_rate_per_second(Economy.BONES)
 
+	# The device on the desk. It earns nothing and is drawn from three mount sprites
+	# composited with the item's own art, so what is asserted is that buying automation puts
+	# something on screen and switching it off takes it away — "an idle desktop still looks
+	# alive" was the one pillar the whole automation system did not deliver.
+	var devices := DeviceLayer.new()
+	devices.name = "DeviceLayer"
+	add_child(devices)
+	_check("buying a capstone puts a device on the desk", devices.device_count() >= 1)
+	Progression.set_automation_enabled(&"bat_sentry", false)
+	_check("switching it off takes the device away", devices.device_count() == 0)
+	_check("and the income stops with it",
+		is_equal_approx(Progression.automation_rate_per_second(Economy.BONES), 0.0))
+	Progression.set_automation_enabled(&"bat_sentry", true)
+	_check("switching it back on brings it back", devices.device_count() >= 1)
+	var device := devices.get_node_or_null("Device_bat_sentry")
+	_check("the device is named after its capstone, not @Node2D@41", device != null)
+	_check("and it is a picture, not a body", device != null and not (device is RigidBody2D))
+	devices.queue_free()
+
 	# Offline accrual, including the clamp that matters most.
 	var before := Economy.balance_of(Economy.BONES)
 	var earned := Economy.apply_offline_earnings(int(Time.get_unix_time_from_system()) - 600)

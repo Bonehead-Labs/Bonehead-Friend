@@ -15,4 +15,5 @@ cost_base = 800
 currency = 1
 is_automation = true
 automation_rate = 1.0
+device_mount = &"tripod"
 requires_mastery = 25

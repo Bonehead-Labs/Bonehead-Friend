@@ -197,7 +197,18 @@ func _capstone(id: StringName, item: ItemData, display_name: String, description
 	var rate := float(BASE_RATE[currency]) + float(item.cost) * float(RATE_SLOPE[currency])
 	node.automation_rate = round(rate * 100.0) / 100.0
 	node.requires_mastery = ItemDB.balance.mastery_automation_rank
+	node.device_mount = _mount_for(item)
 	_save(node, "%s/%s.tres" % [AUGMENTS_DIR, id])
+
+## What the device stands on, by what the item is. A weapon or a prop goes on a tripod, a
+## kind thing on a pedestal, and a cursor power — which has no world sprite at all — is held
+## out by a claw arm.
+func _mount_for(item: ItemData) -> StringName:
+	if item.is_cursor_power():
+		return &"arm"
+	if item.category == ItemData.CATEGORY_FRIENDLY:
+		return &"pedestal"
+	return &"tripod"
 
 func _seed_globals() -> void:
 	for entry in GLOBALS:

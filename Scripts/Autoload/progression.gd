@@ -330,6 +330,7 @@ func set_automation_enabled(node_id: StringName, enabled: bool) -> void:
 	else:
 		_automation_off[node_id] = true
 	_automation_rates.clear()
+	EventBus.automation_toggled.emit(node_id, enabled)
 	EventBus.save_requested.emit()
 
 ## Currency per second from every switched-on capstone of that currency. A weapon automates

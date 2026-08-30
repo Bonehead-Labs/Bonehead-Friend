@@ -182,3 +182,26 @@ Four more reticles were plotted rather than generated, one per new cursor power:
 that dwells (magnifying glass), stacked rate bars (minigun), a pinwheel (vortex) and
 chevrons closing on a point (lightning). Free, and each says what its power does before it
 is fired once.
+
+## Automation mounts — three pictures for twenty-eight devices
+
+`Assets/sprites/devices/`, seeds 30060-30062, $0.153 the lot. A device on the desk is a
+mount composited with the item's own sprite at runtime (`DeviceLayer`), so the roster's
+twenty-eight capstones cost three generations rather than twenty-eight — and the twenty-eight
+would all have been the same idea drawn again.
+
+| Mount | px | Seed | Take | Holds |
+|---|---|---|---|---|
+| tripod | 34 | 30060 | 1 | weapons, throwables, props |
+| pedestal | 20 | 30061 | 1 | the kind things |
+| arm | 30 | 30062 | 2 | cursor powers, which have no world sprite of their own |
+
+Each was prompted **empty** — "an empty camera tripod... no camera on it" — because the
+generator will happily put a camera on a tripod, and a mount with something already on it
+cannot hold anything else.
+
+Where the item sits is measured, not authored: both pictures are centred in their cells by
+`item_postprocess.py`, so the stack is (half the mount) + (half the item) - a five-pixel
+overlap, read off each texture's own opaque bounds. A table of hand-tuned offsets would be
+twenty-eight numbers to maintain across art that ranges from a 10px baseball to a 76px
+massage chair.

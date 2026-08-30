@@ -29,6 +29,11 @@ signal cursor_power_changed(item_id: StringName)  ## &"" clears; powers self-dea
 signal item_purchased(item_id: StringName)
 signal augment_purchased(node_id: StringName, level: int)
 signal mastery_rank_up(item_id: StringName, rank: int)
+## An automation capstone was switched on or off. Its income already follows from
+## `Progression`; this exists so what is *on screen* can follow too — before M3.5-A a
+## toggle changed a number and nothing else, so the device on the desk kept working after
+## the player had switched it off.
+signal automation_toggled(node_id: StringName, enabled: bool)
 signal contract_event(key: StringName, count: int)
 signal contract_completed(contract_id: StringName)          ## target reached, reward unclaimed
 signal contract_claimed(contract_id: StringName, ectoplasm: int)

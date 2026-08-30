@@ -15,4 +15,5 @@ cost_base = 4400
 currency = 1
 is_automation = true
 automation_rate = 19.0
+device_mount = &"arm"
 requires_mastery = 25

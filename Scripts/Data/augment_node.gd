@@ -56,6 +56,12 @@ const GLOBAL := &"global"
 ## Hearts. Ignored unless `is_automation`.
 @export var automation_rate: float = 0.0
 
+## Which mount this capstone's device stands on: &"tripod", &"pedestal" or &"arm". Empty
+## means no device is drawn. Three pictures serve twenty-eight devices — `DeviceLayer`
+## composites the mount with the item's own sprite, because twenty-eight bespoke devices
+## would be most of an art budget spent drawing the same idea again.
+@export var device_mount: StringName
+
 @export var requires: Array[StringName] = []
 @export var requires_mastery: int = 0
 @export var requires_prestige: int = 0
