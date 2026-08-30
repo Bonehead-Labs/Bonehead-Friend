@@ -169,6 +169,11 @@ python3 tools/pack_check.py /mnt/c/path/to/check.pck
 "$GODOT" --headless --path "$PROJ" res://tools/seed_friendly.tscn
 "$GODOT" --headless --path "$PROJ" res://tools/seed_m3_content.tscn
 
+# A playable sandbox: the real game with everything unlocked and money to burn, on its own
+# save slot so slot_1 is never touched. NOT headless — this one is for playing.
+# `-- --keep` continues the last sandbox instead of staging a fresh one.
+"$GODOT" --path "$PROJ" res://tools/sandbox.tscn
+
 # Visual audit. NOT headless — headless does not render and its viewport is 64x64.
 # --screen N picks the monitor, --overlay runs the real fullscreen overlay instead of a
 # play-area window. Shots land in user://audit/ and are suffixed with the screen.
