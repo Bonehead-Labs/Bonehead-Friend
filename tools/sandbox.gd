@@ -102,6 +102,7 @@ func _stage() -> void:
 	var owned := _unlock_everything()
 	var nodes := _buy_upgrades()
 	var devices := _buy_automation()
+	var toys := _put_toys_out()
 
 	print("")
 	print("Bonehead Friend — sandbox")
@@ -118,7 +119,12 @@ func _stage() -> void:
 		% [Economy.marrow, Economy.marrow_multiplier(), Economy.prestige_count])
 	print("  contracts     %d templates, %d milestones"
 		% [ItemDB.all_contracts().size(), ItemDB.all_milestones().size()])
+	print("  on the desk   %s" % ", ".join(toys))
 	print("")
+	print("  Leave him alone for about half a minute and he should walk to one of them.")
+	print("  Spawning, hitting and petting all count as you being there and reset that")
+	print("  clock — which is the feature working, and also why it is invisible while you")
+	print("  are busy testing everything else.")
 	print("  Exclusive branches are deliberately NOT bought — they are a permanent")
 	print("  pick-one and choosing for you would hide the gate strip that says so.")
 	print("")
@@ -172,6 +178,23 @@ func _buy_automation() -> int:
 			bought += 1
 			Progression.set_automation_enabled(node.id, bought <= DEVICES_RUNNING)
 	return bought
+
+## A few things on the floor for him to find, because the idle brain needs a target and the
+## desk starts empty. Chosen for the three routines that read most clearly from across the
+## room: something he bounces on, something he stands next to, something he sits in.
+##
+## Spawned through the real signal rather than by instancing scenes here, so the item limit,
+## the desk counter and `item_spawned` all behave exactly as they do in play.
+func _put_toys_out() -> Array[String]:
+	var out: Array[String] = []
+	var x := 260.0
+	for id in [&"trampoline", &"boombox", &"hot_tub"]:
+		if ItemDB.get_item(id) == null:
+			continue
+		EventBus.spawn_requested.emit(id, Vector2(x, 120.0))
+		out.append(String(id))
+		x += 220.0
+	return out
 
 ## Every augment in the game: each owned item's tree, plus the global tree, which belongs to
 ## no item and would otherwise be missed.
