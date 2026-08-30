@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_tav8w"]
+
+[resource]
+script = ExtResource("1_tav8w")
+id = &"lightning_storm_cell"
+item_id = &"lightning"
+display_name = "Storm Cell"
+description = "A weather system that has taken a personal interest in one skeleton."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 16800
+currency = 1
+is_automation = true
+automation_rate = 81.0
+requires_mastery = 25

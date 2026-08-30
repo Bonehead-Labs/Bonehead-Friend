@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/magnifying_glass.png" id="1_t2ler"]
+[ext_resource type="PackedScene" path="res://Scenes/Powers/magnifying_glass_power.tscn" id="2_gl3nf"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_8sroo"]
+
+[resource]
+script = ExtResource("3_8sroo")
+id = &"magnifying_glass"
+display_name = "Magnifying Glass"
+description = "Hold the beam on him and he cooks. Hurts without ever shoving him."
+category = 2
+cost = 4000
+scene = ExtResource("2_gl3nf")
+icon = ExtResource("1_t2ler")
+requires = Array[StringName]([&"shotgun"])
+sort_order = 25

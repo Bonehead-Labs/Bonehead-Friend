@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_uucuf"]
+
+[resource]
+script = ExtResource("1_uucuf")
+id = &"hot_tub_timer"
+item_id = &"hot_tub"
+display_name = "Jet Timer"
+description = "The jets come on by themselves now, whether or not he is in there."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 6800
+currency = 1
+is_automation = true
+automation_rate = 8.5
+requires_mastery = 25

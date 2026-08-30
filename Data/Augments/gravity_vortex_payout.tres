@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_e7mwp"]
+
+[resource]
+script = ExtResource("1_e7mwp")
+id = &"gravity_vortex_payout"
+item_id = &"gravity_vortex"
+display_name = "Event Horizon Fees"
+effect_key = &"payout_mult"
+effect_per_level = 1.12
+cost_base = 566
+sort_order = 1

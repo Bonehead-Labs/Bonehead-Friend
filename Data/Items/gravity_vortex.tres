@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/gravity_vortex.png" id="1_0qtcm"]
+[ext_resource type="PackedScene" path="res://Scenes/Powers/gravity_vortex_power.tscn" id="2_fykla"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_yxxq4"]
+
+[resource]
+script = ExtResource("3_yxxq4")
+id = &"gravity_vortex"
+display_name = "Gravity Vortex"
+description = "Drags him and every loose thing on the desk into one spinning knot."
+category = 2
+cost = 15000
+scene = ExtResource("2_fykla")
+icon = ExtResource("1_0qtcm")
+requires = Array[StringName]([&"minigun"])
+sort_order = 35

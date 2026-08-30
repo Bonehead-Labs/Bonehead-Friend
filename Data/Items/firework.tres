@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/firework.png" id="1_3lyu2"]
+[ext_resource type="PackedScene" path="res://Scenes/Bodies/firework.tscn" id="2_60txm"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_fc3nf"]
+
+[resource]
+script = ExtResource("3_fc3nf")
+id = &"firework"
+display_name = "Firework Rocket"
+description = "Lights, flies where it likes, and goes off there."
+category = 1
+cost = 6000
+scene = ExtResource("2_60txm")
+icon = ExtResource("1_3lyu2")
+requires = Array[StringName]([&"mine"])
+sort_order = 30

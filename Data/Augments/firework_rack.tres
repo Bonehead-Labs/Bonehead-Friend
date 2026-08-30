@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_6r5yj"]
+
+[resource]
+script = ExtResource("1_6r5yj")
+id = &"firework_rack"
+item_id = &"firework"
+display_name = "Display Rack"
+description = "A rack of rockets on a timer. It is not aimed at anything in particular."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 3200
+currency = 1
+is_automation = true
+automation_rate = 13.0
+requires_mastery = 25

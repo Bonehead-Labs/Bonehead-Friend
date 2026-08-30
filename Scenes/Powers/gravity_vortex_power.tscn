@@ -1,0 +1,10 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Bodies/Powers/vortex_power.gd" id="1_0boag"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/cursors/gravity_vortex.png" id="2_cmlgd"]
+
+[node name="GravityVortexPower" type="Node2D" unique_id=1996987331]
+script = ExtResource("1_0boag")
+item_id = &"gravity_vortex"
+cursor_texture = ExtResource("2_cmlgd")
+cursor_hotspot = Vector2(32, 32)

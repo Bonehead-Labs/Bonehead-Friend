@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_4ah2d"]
+
+[resource]
+script = ExtResource("1_4ah2d")
+id = &"fountain_refill"
+item_id = &"chocolate_fountain"
+display_name = "Refill Line"
+description = "A pipe from somewhere. Nobody has asked where."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 3300
+currency = 1
+is_automation = true
+automation_rate = 3.83
+requires_mastery = 25

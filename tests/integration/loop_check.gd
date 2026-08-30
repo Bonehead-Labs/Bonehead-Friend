@@ -374,6 +374,37 @@ func _content_loaded() -> void:
 		func(i: ItemData) -> bool:
 			return ItemDB.augments_for(i.id).all(
 				func(n: AugmentNode) -> bool: return not n.is_automation or n.automation_rate > 0.0)))
+	# --- the ladder (M3.5-A) ---
+	#
+	# Every item needs a reason to keep being used after the next one is affordable, and
+	# that reason is its tree. Nine of sixteen items had none: bought once, used once, gone.
+	var treeless: Array[String] = []
+	for item in ItemDB.all_items():
+		if not ItemDB.augments_for(item.id).any(func(n: AugmentNode) -> bool: return n.tier == 1):
+			treeless.append(String(item.id))
+	_check("every item has upgrades to buy%s" % ("" if treeless.is_empty()
+		else " (bare: " + ", ".join(treeless) + ")"), treeless.is_empty())
+
+	# The finding that forced this milestone, as an assertion: the whole catalog cost 9,810
+	# and the dearest thing in it was 2,500, so a player was out of things to buy inside two
+	# hours. The numbers below are the committed catalog's own top and total.
+	var dearest := 0
+	var catalog := 0
+	for item in ItemDB.all_items():
+		dearest = maxi(dearest, item.cost)
+		catalog += item.cost
+	_check("the ladder reaches the top of the committed catalog (%d)" % dearest, dearest >= 40000)
+	_check("and the whole catalog is not an afternoon's income (%d)" % catalog, catalog > 100000)
+
+	# Progressive disclosure: a 28-item shop on hour one is noise. `ItemData.requires` has
+	# existed since M2 and was empty on every item until M3.5-A.
+	var gated := ItemDB.all_items().filter(func(i: ItemData) -> bool: return not i.requires.is_empty())
+	_check("the top of each ladder is gated behind the rung below (%d gated)" % gated.size(),
+		gated.size() >= 10)
+	var locked := ItemDB.get_item(&"lightning")
+	_check("and the gate is real: the top item cannot be bought first",
+		locked != null and not Progression.can_purchase(&"lightning"))
+
 	_check("personalities loaded", ItemDB.all_personalities().size() >= 5)
 	_check("contracts loaded", ItemDB.all_contracts().size() >= 4)
 	_check("every item has a scene or is a power", ItemDB.all_items().all(

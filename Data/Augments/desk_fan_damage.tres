@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_31j8q"]
+
+[resource]
+script = ExtResource("1_31j8q")
+id = &"desk_fan_damage"
+item_id = &"desk_fan"
+display_name = "Higher Setting"
+effect_key = &"damage_mult"
+effect_per_level = 1.15
+cost_base = 185
+cost_growth = 1.12

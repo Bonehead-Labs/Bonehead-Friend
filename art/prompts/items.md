@@ -140,3 +140,45 @@ points where it did. Free, and reproducible.
 The shotgun's is four corner brackets around a centre dot — *this shot covers an area* —
 against the pistol's single point. The open hand takes its own 32px icon as its cursor
 rather than a reticle: it is a touch, not a shot.
+
+## M3.5-A — the twelve missing catalog items
+
+Same recipe as the M3 batch: `rd_fast__low_res`, 48x48, three takes, magenta background,
+`remove_bg`, then `item_postprocess.py` at the scale table's size. Seeds 30039-30052,
+$0.051 each.
+
+| Item | px | Seed | Take | Item | px | Seed | Take |
+|---|---|---|---|---|---|---|---|
+| katana | 56 | 30039 | 0 | hot_tub | 70 (128) | 30044 | 0 |
+| mine | 20 | 30040 | 0 | massage_chair | 76 (128) | 30045 | 0 |
+| firework | 34 | 30041 | 0 | trampoline | 40 (128) | 30046 | 0 |
+| desk_fan | 28 | 30042 | 2 | magnifying_glass | 34 | 30047 | 0 |
+| chocolate_fountain | 50 | 30043 | 0 | lightning | 34 | 30050 | 2 |
+| minigun | 40 | **30051** | 0 | gravity_vortex | 34 | 30049 | 2 |
+
+Cursor powers have no world scale (art-direction.md), so their sprites are written at a
+size that survives the downscale to a 32px icon and would be right if they ever gained a
+body.
+
+**Two takes were rejected at *icon* size, not at generation size.** Judging a 48px render
+at 4x is judging a picture nobody will ever see: every item in this game is met as a 28px
+row in a shop list first. Both failures only appeared there.
+
+- **minigun (30048) — a dark blob.** The first prompt asked for "dark gunmetal on a boxy
+  receiver", which is a single value across the whole silhouette; at 28px it was one grey
+  smear with no gun in it. Regenerated at seed 30051 asking for a *brass* barrel cluster
+  and a *teal* ammunition drum — two of the palette's own colours, on separate parts — and
+  it reads instantly. The lesson is not "add contrast"; it is that a subject described in
+  one material has no internal edges to survive a downscale.
+- **gravity_vortex (30052) — the cyan retry lost.** The original (30049) came back a deep
+  violet, and violet is not in the palette, so the snap sent it to the blue-greys: a dark
+  whirlpool, which is what a gravity vortex should look like. Asking for cyan instead
+  produced a bright ring that read as a portal or a petri dish, and the pink the snap put
+  in the arms made it noisy. **Kept the original.** A colour the palette lacks is not
+  automatically a problem — it is a problem when the subject needs that hue to be
+  recognisable, and "dark" was the recognisable part here.
+
+Four more reticles were plotted rather than generated, one per new cursor power: a ring
+that dwells (magnifying glass), stacked rate bars (minigun), a pinwheel (vortex) and
+chevrons closing on a point (lightning). Free, and each says what its power does before it
+is fired once.

@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/desk_fan.png" id="1_8ef2r"]
+[ext_resource type="PackedScene" path="res://Scenes/Props/desk_fan.tscn" id="2_6l4s1"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_sye7f"]
+
+[resource]
+script = ExtResource("3_sye7f")
+id = &"desk_fan"
+display_name = "Desk Fan"
+description = "Changes the arc of everything you throw. Including the miss."
+category = 4
+cost = 3000
+scene = ExtResource("2_6l4s1")
+icon = ExtResource("1_8ef2r")
+requires = Array[StringName]([&"trampoline"])
+sort_order = 30

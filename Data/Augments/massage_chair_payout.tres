@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_osjp6"]
+
+[resource]
+script = ExtResource("1_osjp6")
+id = &"massage_chair_payout"
+item_id = &"massage_chair"
+display_name = "Spa Rates"
+effect_key = &"payout_mult"
+effect_per_level = 1.12
+cost_base = 1092
+currency = 1
+sort_order = 1

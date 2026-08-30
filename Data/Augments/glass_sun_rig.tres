@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_heefp"]
+
+[resource]
+script = ExtResource("1_heefp")
+id = &"glass_sun_rig"
+item_id = &"magnifying_glass"
+display_name = "Sun Rig"
+description = "A lens on a gantry that follows the sun. And him."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 2400
+currency = 1
+is_automation = true
+automation_rate = 9.0
+requires_mastery = 25

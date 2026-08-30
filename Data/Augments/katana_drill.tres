@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_eixs6"]
+
+[resource]
+script = ExtResource("1_eixs6")
+id = &"katana_drill"
+item_id = &"katana"
+display_name = "Iaido Drill"
+description = "A rack that draws, cuts and sheathes. Over, and over, and over."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 2200
+currency = 1
+is_automation = true
+automation_rate = 8.0
+requires_mastery = 25

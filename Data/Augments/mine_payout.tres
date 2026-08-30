@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_11h0p"]
+
+[resource]
+script = ExtResource("1_11h0p")
+id = &"mine_payout"
+item_id = &"mine"
+display_name = "Scrap Rights"
+effect_key = &"payout_mult"
+effect_per_level = 1.12
+cost_base = 127
+sort_order = 1

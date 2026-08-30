@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/lightning.png" id="1_i644s"]
+[ext_resource type="PackedScene" path="res://Scenes/Powers/lightning_power.tscn" id="2_8mo31"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_imgof"]
+
+[resource]
+script = ExtResource("3_imgof")
+id = &"lightning"
+display_name = "Lightning"
+description = "Strikes where you point and jumps to whatever is standing nearby."
+category = 2
+cost = 40000
+scene = ExtResource("2_8mo31")
+icon = ExtResource("1_i644s")
+requires = Array[StringName]([&"gravity_vortex"])
+sort_order = 40

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_yxcot"]
+
+[resource]
+script = ExtResource("1_yxcot")
+id = &"hot_tub_payout"
+item_id = &"hot_tub"
+display_name = "Spa Membership"
+effect_key = &"payout_mult"
+effect_per_level = 1.12
+cost_base = 460
+currency = 1
+sort_order = 1

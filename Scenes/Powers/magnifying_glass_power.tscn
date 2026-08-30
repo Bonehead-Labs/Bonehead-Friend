@@ -1,0 +1,10 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Bodies/Powers/beam_power.gd" id="1_mi021"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/cursors/magnifying_glass.png" id="2_qlnjt"]
+
+[node name="MagnifyingGlassPower" type="Node2D" unique_id=1464500860]
+script = ExtResource("1_mi021")
+item_id = &"magnifying_glass"
+cursor_texture = ExtResource("2_qlnjt")
+cursor_hotspot = Vector2(32, 32)

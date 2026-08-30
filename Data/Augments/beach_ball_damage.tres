@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_e54o5"]
+
+[resource]
+script = ExtResource("1_e54o5")
+id = &"beach_ball_damage"
+item_id = &"beach_ball"
+display_name = "Firmer Inflation"
+effect_key = &"damage_mult"
+effect_per_level = 1.15
+cost_base = 55
+cost_growth = 1.12

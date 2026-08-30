@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/hot_tub.png" id="1_7pkkk"]
+[ext_resource type="PackedScene" path="res://Scenes/Friendly/hot_tub.tscn" id="2_edpng"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_ym4ay"]
+
+[resource]
+script = ExtResource("3_ym4ay")
+id = &"hot_tub"
+display_name = "Hot Tub"
+description = "Put him in it. He will not want to come out."
+category = 3
+cost = 12000
+currency = 1
+scene = ExtResource("2_edpng")
+icon = ExtResource("1_7pkkk")
+requires = Array[StringName]([&"chocolate_fountain"])
+sort_order = 50

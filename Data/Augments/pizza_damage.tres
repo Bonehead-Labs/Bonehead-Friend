@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_bkglx"]
+
+[resource]
+script = ExtResource("1_bkglx")
+id = &"pizza_damage"
+item_id = &"pizza"
+display_name = "Extra Toppings"
+effect_key = &"damage_mult"
+effect_per_level = 1.15
+cost_base = 68
+cost_growth = 1.12
+currency = 1

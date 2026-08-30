@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/katana.png" id="1_8payu"]
+[ext_resource type="PackedScene" path="res://Scenes/Bodies/katana.tscn" id="2_6oa2p"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_dewkh"]
+
+[resource]
+script = ExtResource("3_dewkh")
+id = &"katana"
+display_name = "Katana"
+description = "Fast, precise and unreasonably sharp. Cuts where the bat clubs."
+cost = 3500
+scene = ExtResource("2_6oa2p")
+icon = ExtResource("1_8payu")
+requires = Array[StringName]([&"mace"])
+sort_order = 15

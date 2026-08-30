@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/mine.png" id="1_lf200"]
+[ext_resource type="PackedScene" path="res://Scenes/Bodies/mine.tscn" id="2_mexwn"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_fl217"]
+
+[resource]
+script = ExtResource("3_fl217")
+id = &"mine"
+display_name = "Mine"
+description = "Place it, then put him on it. The only explosive he sets off himself."
+category = 1
+cost = 2500
+scene = ExtResource("2_mexwn")
+icon = ExtResource("1_lf200")
+requires = Array[StringName]([&"dynamite"])
+sort_order = 20

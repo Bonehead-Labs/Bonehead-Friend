@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_7ih60"]
+
+[resource]
+script = ExtResource("1_7ih60")
+id = &"sponge_payout"
+item_id = &"sponge"
+display_name = "Valet Rates"
+effect_key = &"payout_mult"
+effect_per_level = 1.12
+cost_base = 40
+currency = 1
+sort_order = 1

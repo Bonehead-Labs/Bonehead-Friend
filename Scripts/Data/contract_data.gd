@@ -45,6 +45,10 @@ const PERIOD_WEEKLY := 1
 ## adding the emit AND this entry, which is the point: the two must not drift.
 const KNOWN_KEYS: Array[StringName] = [
 	&"deal_damage", &"kindness", &"pet", &"knockout", &"purchase",
+	# M3.5-A. The trampoline is the first thing in the roster that produces an event of its
+	# own rather than damage or kindness, and a key nothing can watch is a mechanic nobody
+	# will ever be asked to use.
+	&"bounce",
 ]
 const ITEM_KEY_PREFIX := "use:"
 

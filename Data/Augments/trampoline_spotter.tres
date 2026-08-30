@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_65bmn"]
+
+[resource]
+script = ExtResource("1_65bmn")
+id = &"trampoline_spotter"
+item_id = &"trampoline"
+display_name = "Spotter"
+description = "Catches him and puts him back on. All day."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 1520
+currency = 1
+is_automation = true
+automation_rate = 4.6
+requires_mastery = 25

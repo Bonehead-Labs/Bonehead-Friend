@@ -73,24 +73,31 @@ func _physics_process(delta: float) -> void:
 		_despawn()
 		return
 
+	var value := value_multiplier()
 	if hearts_per_second_placed > 0.0:
-		_bank(hearts_per_second_placed * delta, global_position)
+		_bank(hearts_per_second_placed * value * delta, global_position)
 
 	var buddy := _touching_buddy()
 	if buddy != null:
 		if hearts_per_second_touching > 0.0:
-			_bank(hearts_per_second_touching * delta, buddy.global_position)
+			_bank(hearts_per_second_touching * value * delta, buddy.global_position)
 
 		if cleans_grime and buddy.grime:
 			var removed := buddy.grime.clean(ItemDB.balance.sponge_clean_rate * delta)
 			if removed > 0.0:
-				_bank(removed * ItemDB.balance.hearts_per_grime_cleaned, buddy.global_position)
+				# The *pay* scales, not the scrubbing. Scrubbing faster would be a nerf
+				# dressed as an upgrade: grime is finite, so a sponge that removes it twice
+				# as fast earns the same Hearts in half the time and then has nothing left
+				# to clean.
+				_bank(removed * ItemDB.balance.hearts_per_grime_cleaned * value,
+					buddy.global_position)
 
 		if hearts_per_contact > 0.0 and _approach_speed() >= min_contact_speed:
 			var now := Time.get_ticks_msec()
 			if now >= _next_contact_msec:
-				_next_contact_msec = now + int(contact_cooldown * 1000.0)
-				_pay_event(hearts_per_contact, buddy.global_position)
+				var gap := contact_cooldown * Progression.get_modifier(item_id, &"cooldown_mult")
+				_next_contact_msec = now + int(gap * 1000.0)
+				_pay_event(hearts_per_contact * value, buddy.global_position)
 				if consume_on_use:
 					_flush()
 					_despawn()
@@ -100,6 +107,19 @@ func _physics_process(delta: float) -> void:
 	_since_flush += delta
 	if _since_flush >= FLUSH_SECONDS:
 		_flush()
+
+## The kindness-value multiplier, which on this side of the economy is what `damage_mult`
+## means (docs/economy.md).
+##
+## It scales the *value* emitted rather than the Hearts paid, so it is a different node from
+## the flat payout multiplier beside it in the tree: MoodComponent nudges his mood by the
+## same number, so a better-loved item buys mood as well as Hearts. Without this every
+## friendly item's damage node was a placebo — which two of them shipped as in M3, and is
+## half the reason M3.5 exists.
+func value_multiplier() -> float:
+	if item_id == &"":
+		return 1.0
+	return Progression.get_modifier(item_id, &"damage_mult")
 
 ## Kindness goes on the bus as a *value*, not as Hearts. Economy is the only thing allowed
 ## to mint currency, and it is what applies the combo, the mood curve, the augments and

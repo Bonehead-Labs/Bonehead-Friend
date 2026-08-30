@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_rxt8y"]
+
+[resource]
+script = ExtResource("1_rxt8y")
+id = &"fan_oscillator"
+item_id = &"desk_fan"
+display_name = "Oscillator"
+description = "The fan sweeps on its own, and something is always going flying."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 2000
+currency = 1
+is_automation = true
+automation_rate = 7.0
+requires_mastery = 25

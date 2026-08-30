@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_eggv1"]
+
+[resource]
+script = ExtResource("1_eggv1")
+id = &"chair_full_program"
+item_id = &"massage_chair"
+display_name = "Full Program"
+description = "Cycle four. Indefinitely."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 15800
+currency = 1
+is_automation = true
+automation_rate = 20.5
+requires_mastery = 25

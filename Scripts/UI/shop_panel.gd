@@ -202,6 +202,13 @@ func _make_row(item: ItemData) -> Button:
 	row.icon = UIStyle.item_face(item, ROW_ICON)
 	row.custom_minimum_size = Vector2(0, ROW_HEIGHT)
 	row.clip_text = true
+	# An ellipsis rather than a hard cut. The row has always clipped — `ui_stress` even
+	# tests it with the name "Chocolate Fountain" — but until M3.5-A no real item was long
+	# enough to hit it, and a name sheared mid-word ("Chocolate Fou") reads as a broken
+	# label rather than as a name that did not fit. Three of the twelve new items are over
+	# the budget, and the shortest honest name for a massage chair is "Massage Chair".
+	row.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	row.tooltip_text = item.display_name
 	if UIStyle.has_art(item):
 		UIStyle.art_icons(row)
 	row.pressed.connect(func() -> void: select(item.id))

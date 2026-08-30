@@ -17,6 +17,8 @@ extends Node
 
 const WeaponBaseScript := preload("res://Scripts/Bodies/weapon_base.gd")
 const ThrowableBaseScript := preload("res://Scripts/Bodies/throwable_base.gd")
+const ProximityMineScript := preload("res://Scripts/Bodies/proximity_mine.gd")
+const FireworkScript := preload("res://Scripts/Bodies/firework.gd")
 const DraggableAreaScript := preload("res://Scripts/Bodies/draggable_area.gd")
 const EffectsPlayerScript := preload("res://Scripts/Components/effects_player.gd")
 
@@ -48,6 +50,18 @@ const PHYSICS := {
 		"com": Vector2(0, -12),
 		"grip": Vector2(0, 18),
 		"grab": {"size": Vector2(16, 28), "at": Vector2(0, 14)},
+	},
+	# Drawn on the diagonal, so every piece of it is rotated to match: a capsule down the
+	# blade, a short rect on the grip, weight two thirds of the way out and the pin at the
+	# handle. It is the bat's argument with a longer lever arm.
+	&"katana": {
+		"shapes": [
+			{"capsule": Vector2(8, 46), "at": Vector2(7, -7), "rot": 45.0},
+			{"rect": Vector2(6, 16), "at": Vector2(-17, 17), "rot": 45.0},
+		],
+		"com": Vector2(8, -8),
+		"grip": Vector2(-19, 19),
+		"grab": {"size": Vector2(18, 18), "at": Vector2(-16, 16)},
 	},
 	&"mace": {
 		"shapes": [
@@ -81,6 +95,15 @@ func _ready() -> void:
 		{"damage_mult": 1.0, "throwable_delay": 3.0, "max_force": 10000.0}, 120.0)
 	_body("_Dynamite", &"dynamite", ThrowableBaseScript, 1.6,
 		{"damage_mult": 1.5, "throwable_delay": 3.0, "max_force": 16000.0}, 180.0)
+
+	# M3.5-A. The katana is a faster, sharper bat; the mine and the firework are both
+	# ThrowableBase subclasses, because what differs is only *when* the charge goes off —
+	# he sets one off himself and the other decides for itself, mid-flight.
+	_body("_Katana", &"katana", WeaponBaseScript, 5.0, {"damage_mult": 1.8}, 0.0)
+	_body("_Mine", &"mine", ProximityMineScript, 2.4,
+		{"damage_mult": 1.4, "max_force": 15000.0}, 150.0)
+	_body("_Firework", &"firework", FireworkScript, 0.9,
+		{"damage_mult": 0.7, "max_force": 9000.0}, 130.0)
 
 	print("seed_bodies: %d written, %d already present" % [_written, _skipped])
 	get_tree().quit()
@@ -125,6 +148,11 @@ func _body(node_name: String, item_id: StringName, script: Script, body_mass: fl
 			piece.name = "CollisionShape2D" if collider == null else "CollisionShape2D%d" % root.get_child_count()
 			piece.shape = _shape_from(entry)
 			piece.position = (entry["at"] as Vector2) * ART_SCALE
+			# Degrees, because the table is read by people. The katana is the first item
+			# whose art is not axis-aligned — its blade runs corner to corner — and a
+			# capsule that cannot be turned would have to be a box around the diagonal,
+			# which is a bounding box around a sword: exactly the plank D25 exists to stop.
+			piece.rotation = deg_to_rad(float(entry.get("rot", 0.0)))
 			root.add_child(piece)
 			if collider == null:
 				collider = piece

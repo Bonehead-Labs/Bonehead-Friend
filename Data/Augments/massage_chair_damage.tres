@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_anj2u"]
+
+[resource]
+script = ExtResource("1_anj2u")
+id = &"massage_chair_damage"
+item_id = &"massage_chair"
+display_name = "Deeper Kneading"
+effect_key = &"damage_mult"
+effect_per_level = 1.15
+cost_base = 1400
+cost_growth = 1.12
+currency = 1
