@@ -60,6 +60,11 @@ is disabled, so one world pixel is one screen pixel), so these ratios hold ident
 | Fist | 34 | 0.54 | Massage Chair | 76 (128 cell) | 1.21 |
 | | | | Trampoline | 40 (128 cell, wide) | 0.63 |
 
+**Automation mounts** are not items and are not in the table above: tripod 34, pedestal 20,
+claw arm 30, in `Assets/sprites/devices/`. A device on the desk is one of those three
+composited with the item's own sprite at runtime, so the size that matters is the *item's* —
+the mount only has to look like it could hold one.
+
 Furniture he sits in or on uses the 128×128 cell and is legitimately taller than he is.
 Cursor powers (Pistol, Shotgun, Magnifying Glass, Minigun, Gravity Vortex, Lightning) have
 no world sprite — a crosshair and a 32 px icon each.
