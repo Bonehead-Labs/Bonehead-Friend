@@ -25,20 +25,22 @@ const MAX_RANK := 100
 ## Solved rather than looped. xp_to_rank is base * rank^1.6, so the inverse is
 ## (xp/base)^(1/1.6); walking up from zero would be a hundred pow() calls on every payout,
 ## and this runs inside the payout pipeline.
-static func rank_for_xp(base: float, xp: float) -> int:
-	if xp <= 0.0 or base <= 0.0:
+static func rank_for_xp(base: float, xp: float, exponent: float = 1.6) -> int:
+	if xp <= 0.0 or base <= 0.0 or exponent <= 0.0:
 		return 0
-	var rank := int(floor(pow(xp / base, 1.0 / 1.6) + Econ.EPSILON))
+	var rank := int(floor(pow(xp / base, 1.0 / exponent) + Econ.EPSILON))
 	return clampi(rank, 0, MAX_RANK)
 
 ## Progress toward the next rank, 0..1, for a progress bar. Returns 1.0 at the cap so a
 ## maxed track reads as complete rather than as never-quite-there.
-static func rank_progress(base: float, xp: float) -> float:
-	var rank := rank_for_xp(base, xp)
+static func rank_progress(base: float, xp: float, exponent: float = 1.6) -> float:
+	var rank := rank_for_xp(base, xp, exponent)
 	if rank >= MAX_RANK:
 		return 1.0
-	var floor_xp := Econ.mastery_xp_for_rank(base, rank)
-	var next_xp := Econ.mastery_xp_for_rank(base, rank + 1)
+	# The same exponent the rank was solved with. Two different ones here is a bar that
+	# fills to 40% and then jumps a rank, which reads as the meter being broken.
+	var floor_xp := Econ.mastery_xp_for_rank(base, rank, exponent)
+	var next_xp := Econ.mastery_xp_for_rank(base, rank + 1, exponent)
 	if next_xp <= floor_xp:
 		return 0.0
 	return clampf((xp - floor_xp) / (next_xp - floor_xp), 0.0, 1.0)

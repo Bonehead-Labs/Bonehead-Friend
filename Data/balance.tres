@@ -9,4 +9,5 @@ point_count = 5
 
 [resource]
 script = ExtResource("1_p3nur")
+mastery_xp_per_damage = 4.0
 mood_curve = SubResource("Curve_ccrar")

@@ -143,6 +143,11 @@ PROJ='C:\Users\George\Godot Projects\Projects\Bonehead_Friend\interactive-buddy-
 # The whole loop against the real autoloads, including stepped physics
 "$GODOT" --headless --path "$PROJ" res://tests/integration/loop_check.tscn
 
+# Is the game still paced the way docs/economy.md says? Plays 72 hours of a modelled
+# player against the real content in about a second. `-- --csv` dumps the timeline;
+# `-- --divisor 5e7` tries a prestige divisor without editing balance.tres.
+"$GODOT" --headless --path "$PROJ" res://tests/integration/pacing_sim.tscn
+
 # Can the player actually click the UI? Synthetic mouse events at the real widget rects
 "$GODOT" --headless --path "$PROJ" res://tests/integration/ui_check.tscn
 
@@ -292,7 +297,11 @@ Two more constraints the test runner imposes, both already worked around:
   noise, not a broken main scene.
 
 Run the test suite before any commit touching `Economy`, `Progression` or `SaveManager`, and
-the UI check before any commit touching `Scripts/UI/`.
+the UI check before any commit touching `Scripts/UI/`. **Run the pacing simulator before any
+commit touching `balance.tres`, an item price, or an augment's numbers** — it is the only
+thing in the project that can check a target stated in hours, and every balance number it
+prints can be argued with because the player it models is a page of named constants at the
+top of the file.
 
 **Signal handler order is load-bearing in the payout pipeline.** Autoloads connect to
 `EventBus` before scene nodes do, so `Economy` pays at the mood and grime in force *when the

@@ -238,13 +238,15 @@ func mastery_xp(item_id: StringName) -> float:
 func mastery_rank(item_id: StringName) -> int:
 	if _mastery_rank_cache.has(item_id):
 		return int(_mastery_rank_cache[item_id])
-	var rank := MasteryMath.rank_for_xp(ItemDB.balance.mastery_base, mastery_xp(item_id))
+	var b := ItemDB.balance
+	var rank := MasteryMath.rank_for_xp(b.mastery_base, mastery_xp(item_id), b.mastery_exponent)
 	_mastery_rank_cache[item_id] = rank
 	return rank
 
 ## Fraction of the way to the next rank, for a progress bar.
 func mastery_progress(item_id: StringName) -> float:
-	return MasteryMath.rank_progress(ItemDB.balance.mastery_base, mastery_xp(item_id))
+	var b := ItemDB.balance
+	return MasteryMath.rank_progress(b.mastery_base, mastery_xp(item_id), b.mastery_exponent)
 
 func mastery_pool() -> int:
 	return _mastery_pool
@@ -257,7 +259,8 @@ func add_mastery_xp(item_id: StringName, amount: float) -> void:
 		return
 	var before := mastery_rank(item_id)
 	_mastery_xp[item_id] = mastery_xp(item_id) + amount
-	var after := MasteryMath.rank_for_xp(ItemDB.balance.mastery_base, _mastery_xp[item_id])
+	var after := MasteryMath.rank_for_xp(ItemDB.balance.mastery_base, _mastery_xp[item_id],
+		ItemDB.balance.mastery_exponent)
 	_mastery_rank_cache[item_id] = after
 	if after <= before:
 		return

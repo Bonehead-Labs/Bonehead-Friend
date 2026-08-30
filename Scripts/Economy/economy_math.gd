@@ -69,27 +69,41 @@ static func kindness_combo(repeats: int, step: float, ceiling: float) -> float:
 # --- prestige --------------------------------------------------------------
 
 ## Total ectoplasm earned for a given lifetime income.
-## Cube root: doubling your prestige takes roughly 8x the run. See docs/economy.md.
-static func ectoplasm_for_lifetime(lifetime: float, divisor: float = 1e12) -> int:
-	if lifetime <= 0.0 or divisor <= 0.0:
+##
+## A root, so each point costs more lifetime than the last: at the default exponent of 3
+## doubling your ectoplasm takes roughly 8x the run. The exponent is a parameter rather
+## than a literal because it is a *balance* number — `BalanceData.prestige_exponent` is the
+## authority, and it lived in this file where nobody tuning the game would find it
+## (M3.5-A).
+static func ectoplasm_for_lifetime(lifetime: float, divisor: float = 1e12, exponent: float = 3.0) -> int:
+	if lifetime <= 0.0 or divisor <= 0.0 or exponent <= 0.0:
 		return 0
-	return int(floor(pow(lifetime / divisor, 1.0 / 3.0) + EPSILON))
+	return int(floor(pow(lifetime / divisor, 1.0 / exponent) + EPSILON))
 
 ## Ectoplasm gained by resetting now. Never negative.
-static func prestige_gain(lifetime: float, already_held: int, divisor: float = 1e12) -> int:
-	return maxi(0, ectoplasm_for_lifetime(lifetime, divisor) - already_held)
+static func prestige_gain(lifetime: float, already_held: int, divisor: float = 1e12, exponent: float = 3.0) -> int:
+	return maxi(0, ectoplasm_for_lifetime(lifetime, divisor, exponent) - already_held)
 
-## Income multiplier from held ectoplasm: +1% per point.
-static func prestige_multiplier(ectoplasm_held: int) -> float:
-	return 1.0 + 0.01 * float(maxi(0, ectoplasm_held))
+## Income multiplier from held ectoplasm.
+##
+## **Compounding, not additive.** Every other multiplier in the game compounds per level
+## (D11), and this one did not: at +1% a point, and a point count that grows as the *cube
+## root* of lifetime, the fifth Reincarnation was worth 5% and each one cost eight times the
+## run before it. The pacing simulator makes that visible as a ramp that never flattens.
+## `pow(1 + per_point, points)` at the old 0.01 is within a hair of the old line for the
+## first few points, so this is a change of shape rather than of early-game feel.
+static func prestige_multiplier(ectoplasm_held: int, per_point: float = 0.01) -> float:
+	return pow(1.0 + maxf(0.0, per_point), float(maxi(0, ectoplasm_held)))
 
 # --- mastery ---------------------------------------------------------------
 
 ## XP required to reach `rank`, superlinear so late ranks are a real commitment.
-static func mastery_xp_for_rank(base: float, rank: int) -> float:
+## The exponent is `BalanceData.mastery_exponent`; the default keeps every existing call
+## honest. `MasteryMath.rank_for_xp` inverts this and must be given the same value.
+static func mastery_xp_for_rank(base: float, rank: int, exponent: float = 1.6) -> float:
 	if rank <= 0:
 		return 0.0
-	return base * pow(float(rank), 1.6)
+	return base * pow(float(rank), exponent)
 
 # --- offline ---------------------------------------------------------------
 

@@ -124,20 +124,32 @@ const DEVICES := {
 ## since M2 (`Progression.get_modifier` folds `&"global"` into every lookup) and had no
 ## content in it.
 ##
-## [id, name, description, effect, levels, cost, growth, currency, tier, requires]
+## [id, name, description, effect, levels, cost, growth, currency, tier, requires, prestige]
+##
+## **These numbers were set by the pacing simulator, not by eye.** The first draft was four
+## nodes at 1.10 and 1.12 over ten to fifteen levels each — which reads modest and is not:
+## every one of them multiplies every payout in the game, so the four together came to
+## **x169**, on top of the item's own x3.1, and `pacing_sim` showed the whole 28-item catalog
+## bought out in sixty-six minutes. A global node has to be worth buying and must not be
+## worth more than the toy it multiplies.
+##
+## The two big ones are behind a Reincarnation as well. That is where they belong on their
+## own merits — a cross-*run* multiplier that a first run can max is not a cross-run
+## multiplier — and it gives `requires_prestige`, implemented since M2 and never used, its
+## first content.
 const GLOBALS := [
 	[&"global_technique", "Technique",
 		"You have done this a lot. Everything lands better.",
-		1.10, 15, 3000, 1.13, AugmentNodeScript.CURRENCY_BONES, 1, []],
+		1.06, 10, 5000, 1.25, AugmentNodeScript.CURRENCY_BONES, 1, [], 0],
 	[&"global_showmanship", "Showmanship",
 		"He plays to the crowd. There is no crowd.",
-		1.10, 15, 1500, 1.13, AugmentNodeScript.CURRENCY_HEARTS, 1, []],
+		1.06, 10, 2500, 1.25, AugmentNodeScript.CURRENCY_HEARTS, 1, [], 0],
 	[&"global_momentum", "Momentum",
 		"Nothing about this is a hobby any more.",
-		1.12, 10, 25000, 1.18, AugmentNodeScript.CURRENCY_BONES, 2, [&"global_technique"]],
+		1.08, 10, 50000, 1.28, AugmentNodeScript.CURRENCY_BONES, 2, [&"global_technique"], 1],
 	[&"global_devotion", "Devotion",
 		"He would do this for free. You are paying him in attention.",
-		1.12, 10, 12000, 1.18, AugmentNodeScript.CURRENCY_HEARTS, 2, [&"global_showmanship"]],
+		1.08, 10, 25000, 1.28, AugmentNodeScript.CURRENCY_HEARTS, 2, [&"global_showmanship"], 1],
 ]
 
 var _written := 0
@@ -189,9 +201,10 @@ func _capstone(id: StringName, item: ItemData, display_name: String, description
 
 func _seed_globals() -> void:
 	for entry in GLOBALS:
+		# Rewritten rather than skipped, for the same reason the capstones are: the table
+		# above is the authority on these four, and the first version of it was wrong by a
+		# factor of fifty.
 		var path: String = "%s/%s.tres" % [AUGMENTS_DIR, entry[0]]
-		if ResourceLoader.exists(path):
-			continue
 		var node := AugmentNodeScript.new()
 		node.id = entry[0]
 		node.item_id = AugmentNodeScript.GLOBAL
@@ -207,6 +220,7 @@ func _seed_globals() -> void:
 		var requires: Array[StringName] = []
 		requires.assign(entry[9])
 		node.requires = requires
+		node.requires_prestige = entry[10]
 		node.sort_order = _written
 		_save(node, path)
 

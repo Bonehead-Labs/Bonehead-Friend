@@ -1,0 +1,27 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://tests/integration/pacing_sim.gd" id="1_check"]
+[ext_resource type="Script" path="res://Scripts/World/item_spawner.gd" id="2_spawner"]
+[ext_resource type="PackedScene" path="res://Scenes/Buddy/buddy.tscn" id="3_buddy"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_floor"]
+size = Vector2(1600, 200)
+
+[node name="PacingSim" type="Node"]
+script = ExtResource("1_check")
+
+[node name="World" type="Node2D" parent="."]
+
+[node name="ItemSpawner" type="Node" parent="World" groups=["item_spawner"]]
+script = ExtResource("2_spawner")
+
+[node name="Floor" type="StaticBody2D" parent="World"]
+position = Vector2(320, 600)
+collision_layer = 1
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="World/Floor"]
+shape = SubResource("RectangleShape2D_floor")
+
+[node name="Buddy" parent="World" instance=ExtResource("3_buddy")]
+position = Vector2(320, 100)

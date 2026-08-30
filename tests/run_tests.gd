@@ -362,20 +362,32 @@ func _test_max_affordable_edges() -> void:
 
 func _test_prestige_cube_root() -> void:
 	# Doubling prestige should take ~8x the run.
-	_check("below threshold yields nothing", Math.ectoplasm_for_lifetime(1e11) == 0)
-	_check("1e12 yields 1", Math.ectoplasm_for_lifetime(1e12) == 1)
-	_check("8e12 yields 2 (8x to double)", Math.ectoplasm_for_lifetime(8e12) == 2)
+	_check("below threshold yields nothing", Math.ectoplasm_for_lifetime(1e11, 1e12) == 0)
+	_check("1e12 yields 1", Math.ectoplasm_for_lifetime(1e12, 1e12) == 1)
+	_check("8e12 yields 2 (8x to double)", Math.ectoplasm_for_lifetime(8e12, 1e12) == 2)
 	# Exact cube: pow(64, 1/3) lands at 3.9999999999999996 in floating point.
-	_check("64e12 yields 4 (exact cube)", Math.ectoplasm_for_lifetime(64e12) == 4)
-	_check("zero lifetime yields nothing", Math.ectoplasm_for_lifetime(0.0) == 0)
+	_check("64e12 yields 4 (exact cube)", Math.ectoplasm_for_lifetime(64e12, 1e12) == 4)
+	_check("zero lifetime yields nothing", Math.ectoplasm_for_lifetime(0.0, 1e12) == 0)
+	# The root is a balance number now (BalanceData.prestige_exponent), so the shape has to
+	# follow it rather than being baked in here.
+	_check("a square root doubles at 4x, not 8x",
+		Math.ectoplasm_for_lifetime(4e12, 1e12, 2.0) == 2)
 
 func _test_prestige_gain_never_negative() -> void:
-	_check("gain over held amount", Math.prestige_gain(8e12, 1) == 1)
-	_check("no gain when already ahead", Math.prestige_gain(1e12, 5) == 0)
+	_check("gain over held amount", Math.prestige_gain(8e12, 1, 1e12) == 1)
+	_check("no gain when already ahead", Math.prestige_gain(1e12, 5, 1e12) == 0)
 
+## Compounding since M3.5-A, not additive: `(1 + per_point) ^ points`. A linear multiplier
+## cannot keep up with a threshold that grows as a cube, which the pacing simulator shows
+## as a Reincarnation ramp that never flattens.
 func _test_prestige_multiplier() -> void:
 	_check("zero ectoplasm is 1x", is_equal_approx(Math.prestige_multiplier(0), 1.0))
-	_check("100 ectoplasm is 2x", is_equal_approx(Math.prestige_multiplier(100), 2.0))
+	_check("one point is one step", is_equal_approx(Math.prestige_multiplier(1, 0.25), 1.25))
+	_check("points compound", is_equal_approx(Math.prestige_multiplier(3, 0.25), 1.953125))
+	_check("and the default is still near the old line early on",
+		absf(Math.prestige_multiplier(5) - 1.05) < 0.002)
+	_check("a negative rate cannot make income vanish",
+		is_equal_approx(Math.prestige_multiplier(4, -1.0), 1.0))
 
 # --- mastery ---------------------------------------------------------------
 

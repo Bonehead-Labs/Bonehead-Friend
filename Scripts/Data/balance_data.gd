@@ -112,10 +112,22 @@ extends Resource
 
 # --- prestige / mastery ----------------------------------------------------
 
-@export var prestige_divisor: float = 1e12
+## ectoplasm = floor((lifetime / divisor) ^ (1 / prestige_exponent)).
+##
+## Set by `tests/integration/pacing_sim.tscn`, not by eye: the shipped 1e12 was five orders
+## of magnitude out of reach — roughly forty years of play — because nothing in the project
+## could check a target stated in hours until M3.5-A built something that could.
+@export var prestige_divisor: float = 1e7
+@export var prestige_exponent: float = 3.0
 
-## xp_to_rank(r) = mastery_base * r^1.6. Rank 1 costs 100 XP, rank 10 costs ~3,981.
+## Income multiplier per point of Ectoplasm held, compounding: `(1 + this) ^ points`.
+## Compounding rather than additive because every other multiplier in the game compounds
+## (D11), and because a linear one cannot keep up with a threshold that grows as a cube.
+@export var prestige_income_per_point: float = 0.01
+
+## xp_to_rank(r) = mastery_base * r^mastery_exponent. Rank 1 costs 100 XP, rank 10 ~3,981.
 @export var mastery_base: float = 100.0
+@export var mastery_exponent: float = 1.6
 
 ## XP per point of damage dealt, and per unit of kindness value. Kindness values are an
 ## order of magnitude smaller than damage numbers, so the two rates differ by roughly that

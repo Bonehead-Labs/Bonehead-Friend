@@ -383,6 +383,33 @@ earnings = automation_rate_per_second × elapsed × balance.offline_efficiency
 - **Always clamp negative elapsed to zero** — clock changes, timezone shifts and cloud-sync skew
   are all real and all exploitable.
 
+## The pacing simulator
+
+`tests/integration/pacing_sim.tscn` plays seventy-two hours of a modelled player against the
+real content in about a second, and asserts the targets below. It exists because every one of
+them is a statement about *hours* and nothing in the project could check one — which is how
+`prestige_divisor` came to ship at 1e12, about forty years of play, with nobody noticing.
+
+The player it models is a page of named constants: twelve minutes of play an hour, 60/40
+between hitting and being kind, mood held at 70, and 60% of attention on a favourite toy with
+the rest spread across the roster. **That last number decides whether the engine starts at
+all** — mastery is per item and rank 25 gates automation, so a sim that swings one weapon buys
+one device forever, and a sim that spreads evenly across sixteen weapons masters none of them
+and buys nothing on the Bones side. Both were tried; the findings are in `roadmap.md`.
+
+A human playtest remains the ground truth for whether the game is *fun*. This is the
+instrument for whether it is *reachable*, and when the two disagree the session wins and the
+model gets fixed.
+
+Four numbers it set, none of which were arrived at by eye:
+
+| Knob | Was | Is | Because |
+|---|---|---|---|
+| `prestige_divisor` | 1e12 | **1e7** | a first Reincarnation at 8:07 rather than never |
+| `prestige_income_per_point` | +1% additive, hard-coded | **compounding**, in `BalanceData` | a linear multiplier cannot keep up with a threshold that grows as a cube |
+| `mastery_xp_per_damage` | 1.0 | **4.0** | weapons never reached rank 25, so twelve hours ended with 1,095 Hearts/s of idle income and **zero Bones/s** |
+| the global tree | four nodes stacking to x169 | x3.2 (x15 after a reset) | the whole 28-item catalog was bought out in sixty-six minutes |
+
 ## Balance targets
 
 Rough shape of a healthy first session:

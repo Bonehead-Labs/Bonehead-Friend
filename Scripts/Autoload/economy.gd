@@ -101,7 +101,7 @@ func mood_multiplier() -> float:
 	return ItemDB.mood_multiplier_for(StringName(personality), mood)
 
 func prestige_multiplier() -> float:
-	return EconomyMath.prestige_multiplier(ectoplasm)
+	return EconomyMath.prestige_multiplier(ectoplasm, ItemDB.balance.prestige_income_per_point)
 
 ## Bones only. Letting him get filthy costs damage income, and the sponge — the cheapest
 ## Hearts item in the game — is the only thing that removes it. That is the dual-currency
@@ -232,7 +232,9 @@ func apply_offline_earnings(last_played_unix: int) -> Dictionary:
 # --- prestige --------------------------------------------------------------
 
 func pending_ectoplasm() -> int:
-	return EconomyMath.prestige_gain(lifetime_of(BONES) + lifetime_of(HEARTS), ectoplasm, ItemDB.balance.prestige_divisor)
+	var b := ItemDB.balance
+	return EconomyMath.prestige_gain(lifetime_of(BONES) + lifetime_of(HEARTS), ectoplasm,
+		b.prestige_divisor, b.prestige_exponent)
 
 ## Contracts pay in Ectoplasm directly rather than through the payout pipeline — it is a
 ## prestige currency, not an income one, so no multiplier applies to it.
