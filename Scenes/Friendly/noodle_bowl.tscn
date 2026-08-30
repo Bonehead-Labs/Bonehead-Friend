@@ -2,14 +2,15 @@
 
 [ext_resource type="Script" path="res://Scripts/Bodies/friendly_base.gd" id="1_rnbak"]
 [ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="2_5oo5s"]
-
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_nw2cj"]
-size = Vector2(32, 22)
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/noodle_bowl.png" id="2_nw2cj"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_y7so2"]
+size = Vector2(32, 22)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ph4su"]
 size = Vector2(44, 34)
 
-[node name="NoodleBowl" type="RigidBody2D" unique_id=1621529205 node_paths=PackedStringArray("drag_area", "handle", "collider")]
+[node name="NoodleBowl" type="RigidBody2D" unique_id=1508262933 node_paths=PackedStringArray("drag_area", "handle", "collider")]
 collision_layer = 4
 collision_mask = 7
 mass = 0.7
@@ -23,20 +24,20 @@ drag_area = NodePath("DraggableArea")
 handle = NodePath("Handle")
 collider = NodePath("CollisionShape2D")
 
-[node name="Placeholder" type="Polygon2D" parent="." unique_id=596781388]
-color = Color(0.9, 0.74, 0.42, 1)
-polygon = PackedVector2Array(-10.5, -11, 10.5, -11, 16, -5.5, 16, 5.5, 10.5, 11, -10.5, 11, -16, 5.5, -16, -5.5)
+[node name="Sprite" type="Sprite2D" parent="." unique_id=225427518]
+scale = Vector2(2, 2)
+texture = ExtResource("2_nw2cj")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=2143110247]
-shape = SubResource("RectangleShape2D_nw2cj")
-
-[node name="DraggableArea" type="Area2D" parent="." unique_id=995280432]
-script = ExtResource("2_5oo5s")
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=54554844]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=990451796]
 shape = SubResource("RectangleShape2D_y7so2")
 
-[node name="Handle" type="StaticBody2D" parent="." unique_id=1369165125]
+[node name="DraggableArea" type="Area2D" parent="." unique_id=1461067304]
+script = ExtResource("2_5oo5s")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=677344326]
+shape = SubResource("RectangleShape2D_ph4su")
+
+[node name="Handle" type="StaticBody2D" parent="." unique_id=554711575]
 visible = false
 collision_layer = 0
 collision_mask = 0

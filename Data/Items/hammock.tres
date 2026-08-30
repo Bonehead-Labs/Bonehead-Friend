@@ -1,6 +1,7 @@
 [gd_resource type="Resource" script_class="ItemData" format=3]
 
 [ext_resource type="PackedScene" path="res://Scenes/Friendly/hammock.tscn" id="1_4wfv2"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/hammock.png" id="1_xa4yr"]
 [ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="2_xa4yr"]
 
 [resource]
@@ -12,4 +13,5 @@ category = 7
 cost = 6000
 currency = 1
 scene = ExtResource("1_4wfv2")
+icon = ExtResource("1_xa4yr")
 sort_order = 30

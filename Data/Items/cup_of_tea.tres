@@ -1,5 +1,6 @@
 [gd_resource type="Resource" script_class="ItemData" format=3]
 
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/cup_of_tea.png" id="1_7mm5t"]
 [ext_resource type="PackedScene" path="res://Scenes/Friendly/cup_of_tea.tscn" id="1_r3eau"]
 [ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="2_7mm5t"]
 
@@ -12,4 +13,5 @@ category = 8
 cost = 150
 currency = 1
 scene = ExtResource("1_r3eau")
+icon = ExtResource("1_7mm5t")
 sort_order = 10

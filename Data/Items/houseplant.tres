@@ -1,6 +1,7 @@
 [gd_resource type="Resource" script_class="ItemData" format=3]
 
 [ext_resource type="PackedScene" path="res://Scenes/Friendly/houseplant.tscn" id="1_ty8k0"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/houseplant.png" id="1_usmw0"]
 [ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="2_usmw0"]
 
 [resource]
@@ -12,4 +13,5 @@ category = 9
 cost = 250
 currency = 1
 scene = ExtResource("1_ty8k0")
+icon = ExtResource("1_usmw0")
 sort_order = 10

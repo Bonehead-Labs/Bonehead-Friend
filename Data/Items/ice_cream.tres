@@ -1,6 +1,7 @@
 [gd_resource type="Resource" script_class="ItemData" format=3]
 
 [ext_resource type="PackedScene" path="res://Scenes/Friendly/ice_cream.tscn" id="1_gwmsc"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/ice_cream.png" id="1_j43kq"]
 [ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="2_j43kq"]
 
 [resource]
@@ -12,4 +13,5 @@ category = 8
 cost = 1000
 currency = 1
 scene = ExtResource("1_gwmsc")
+icon = ExtResource("1_j43kq")
 sort_order = 30

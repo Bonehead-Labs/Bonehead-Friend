@@ -10,7 +10,7 @@ size = Vector2(34, 24)
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_r78fh"]
 size = Vector2(46, 36)
 
-[node name="Pizza" type="RigidBody2D" unique_id=1907596540 node_paths=PackedStringArray("drag_area", "handle", "collider")]
+[node name="Pizza" type="RigidBody2D" unique_id=1759356727 node_paths=PackedStringArray("drag_area", "handle", "collider")]
 collision_layer = 4
 collision_mask = 7
 mass = 0.5
@@ -24,20 +24,20 @@ drag_area = NodePath("DraggableArea")
 handle = NodePath("Handle")
 collider = NodePath("CollisionShape2D")
 
-[node name="Sprite" type="Sprite2D" parent="." unique_id=1441956403]
+[node name="Sprite" type="Sprite2D" parent="." unique_id=1049023832]
 scale = Vector2(2, 2)
 texture = ExtResource("2_r78fh")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=2047142083]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=897954501]
 shape = SubResource("RectangleShape2D_rentg")
 
-[node name="DraggableArea" type="Area2D" parent="." unique_id=2091731453]
+[node name="DraggableArea" type="Area2D" parent="." unique_id=1785841330]
 script = ExtResource("2_rentg")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=251372745]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=445714065]
 shape = SubResource("RectangleShape2D_r78fh")
 
-[node name="Handle" type="StaticBody2D" parent="." unique_id=544265979]
+[node name="Handle" type="StaticBody2D" parent="." unique_id=175685171]
 visible = false
 collision_layer = 0
 collision_mask = 0

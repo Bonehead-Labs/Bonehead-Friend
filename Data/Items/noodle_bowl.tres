@@ -1,6 +1,7 @@
 [gd_resource type="Resource" script_class="ItemData" format=3]
 
 [ext_resource type="PackedScene" path="res://Scenes/Friendly/noodle_bowl.tscn" id="1_iri6b"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/noodle_bowl.png" id="1_o1vq4"]
 [ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="2_o1vq4"]
 
 [resource]
@@ -12,4 +13,5 @@ category = 8
 cost = 3600
 currency = 1
 scene = ExtResource("1_iri6b")
+icon = ExtResource("1_o1vq4")
 sort_order = 40

@@ -138,5 +138,18 @@ catches a tag added without offsets.
 
 ---
 
-*Still to do:* art for the twenty leisure items (they fall back to placeholder silhouettes,
-which is designed for and playable), and the walk cycle plus the five families above.
+## Art (DONE)
+
+All twenty leisure items are drawn, on the recorded recipe — `rd_fast__low_res`, three takes,
+magenta background, `item_postprocess.py` to the scale table. Seeds and prompts are in
+`art/prompts/items.md`; $1.02 for the batch. Every one of the 100 items now has a sprite and
+an icon, and `pack_check` confirms all 1033 runtime resources reach the export.
+
+One prompt clause was added for this batch: **state the viewing angle**. A teacup, a record
+player and a fish tank each have an obvious "correct" view and they are not the same view;
+leaving it unsaid produced three-quarter renders that fought the flat side-on read of the
+existing roster.
+
+---
+
+*Still to do:* the walk cycle and the five animation families above. Nothing else in M3.7.

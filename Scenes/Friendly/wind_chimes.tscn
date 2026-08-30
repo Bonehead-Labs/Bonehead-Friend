@@ -1,15 +1,16 @@
 [gd_scene format=3]
 
 [ext_resource type="Script" path="res://Scripts/Bodies/friendly_base.gd" id="1_w3paj"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/wind_chimes.png" id="2_2b2q1"]
 [ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="2_uv8ms"]
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_2b2q1"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_t8bdc"]
 size = Vector2(24, 44)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_t8bdc"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_v0ch2"]
 size = Vector2(36, 56)
 
-[node name="WindChimes" type="RigidBody2D" unique_id=1245925906 node_paths=PackedStringArray("drag_area", "handle", "collider")]
+[node name="WindChimes" type="RigidBody2D" unique_id=1203122904 node_paths=PackedStringArray("drag_area", "handle", "collider")]
 collision_layer = 4
 collision_mask = 7
 mass = 0.6
@@ -21,20 +22,20 @@ drag_area = NodePath("DraggableArea")
 handle = NodePath("Handle")
 collider = NodePath("CollisionShape2D")
 
-[node name="Placeholder" type="Polygon2D" parent="." unique_id=809406515]
-color = Color(0.74, 0.76, 0.8, 1)
-polygon = PackedVector2Array(-6, -22, 6, -22, 12, -16, 12, 16, 6, 22, -6, 22, -12, 16, -12, -16)
+[node name="Sprite" type="Sprite2D" parent="." unique_id=1665652450]
+scale = Vector2(2, 2)
+texture = ExtResource("2_2b2q1")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=951791804]
-shape = SubResource("RectangleShape2D_2b2q1")
-
-[node name="DraggableArea" type="Area2D" parent="." unique_id=487781011]
-script = ExtResource("2_uv8ms")
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=1103818458]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=375878333]
 shape = SubResource("RectangleShape2D_t8bdc")
 
-[node name="Handle" type="StaticBody2D" parent="." unique_id=154125242]
+[node name="DraggableArea" type="Area2D" parent="." unique_id=541181307]
+script = ExtResource("2_uv8ms")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=120936058]
+shape = SubResource("RectangleShape2D_v0ch2")
+
+[node name="Handle" type="StaticBody2D" parent="." unique_id=1151089280]
 visible = false
 collision_layer = 0
 collision_mask = 0

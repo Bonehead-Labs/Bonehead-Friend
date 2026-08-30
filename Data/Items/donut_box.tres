@@ -1,6 +1,7 @@
 [gd_resource type="Resource" script_class="ItemData" format=3]
 
 [ext_resource type="PackedScene" path="res://Scenes/Friendly/donut_box.tscn" id="1_a6aag"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/donut_box.png" id="1_n6hta"]
 [ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="2_n6hta"]
 
 [resource]
@@ -12,4 +13,5 @@ category = 8
 cost = 350
 currency = 1
 scene = ExtResource("1_a6aag")
+icon = ExtResource("1_n6hta")
 sort_order = 20

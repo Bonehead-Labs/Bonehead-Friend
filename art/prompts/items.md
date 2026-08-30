@@ -248,3 +248,39 @@ are not attached to the subject: frames 5, 6 and 7 carried them, one an 84-pixel
 beside the head. `NpcBase` slices the sheet itself because the generator produces a PNG and
 the Aseprite Wizard route needs an Aseprite source; the cleanup is a connected-component
 pass that keeps only the largest mass in each frame.
+
+---
+
+## The M3.7 leisure batch (20 items)
+
+Same recipe as above — `rd_fast__low_res`, 48x48, 3 takes, magenta + `remove_bg`, then
+`item_postprocess.py`. Seeds 37001-37020, $1.02 for the batch.
+
+Prompts follow the same shape and add one clause the earlier batch did not need: **state the
+viewing angle**. A teacup, a record player and a fish tank have obvious "correct" views that
+differ from each other, and leaving it unsaid gave three-quarter views that fought the flat
+side-on read of the existing roster.
+
+| Item | px | Seed | Item | px | Seed |
+|---|---|---|---|---|---|
+| cup_of_tea | 18 | 37001 | houseplant | 44 | 37012 |
+| donut_box | 22 | 37002 | lava_lamp | 40 | 37013 |
+| ice_cream | 26 | 37003 | record_player | 38 | 37014 |
+| noodle_bowl | 24 | 37004 | fish_tank | 44 | 37015 |
+| birthday_cake | 34 | 37005 | wind_chimes | 40 | 37016 |
+| beanbag | 44 | 37006 | fairy_lights | 22 | 37017 |
+| foot_spa | 22 | 37007 | rubber_duck | 20 | 37018 |
+| hammock | 38 (128 cell) | 37008 | jigsaw_puzzle | 30 | 37019 |
+| paddling_pool | 40 (128 cell) | 37009 | bubble_machine | 34 | 37020 |
+| heated_blanket | 30 | 37010 | | | |
+| recliner | 72 (128 cell) | 37011 | | | |
+
+Furniture he gets into uses the 128 cell, as the hot tub and massage chair do — the recliner
+is legitimately taller than he is.
+
+**A third thing learned the expensive way:** the presigned S3 URLs the API returns are bound
+to their exact `Expires` value, and a three-take batch can straddle a second boundary — take 0
+signed for `...368` and takes 1 and 2 for `...369`. Reusing one expiry for the whole batch
+silently returns an XML error body saved as a `.png`. The session token also rotates between
+requests. `dl.sh` in the scratchpad handles both by trying each token it has seen and checking
+for the PNG magic number.

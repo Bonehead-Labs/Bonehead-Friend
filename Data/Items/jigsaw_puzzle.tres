@@ -1,6 +1,7 @@
 [gd_resource type="Resource" script_class="ItemData" format=3]
 
 [ext_resource type="PackedScene" path="res://Scenes/Friendly/jigsaw_puzzle.tscn" id="1_djrbc"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/jigsaw_puzzle.png" id="1_mcmfi"]
 [ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="2_mcmfi"]
 
 [resource]
@@ -12,4 +13,5 @@ category = 4
 cost = 3000
 currency = 1
 scene = ExtResource("1_djrbc")
+icon = ExtResource("1_mcmfi")
 sort_order = 50

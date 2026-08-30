@@ -1,15 +1,16 @@
 [gd_scene format=3]
 
 [ext_resource type="Script" path="res://Scripts/Bodies/friendly_base.gd" id="1_fp34o"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/rubber_duck.png" id="2_22ifl"]
 [ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="2_tl23t"]
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_22ifl"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_o5vqk"]
 size = Vector2(24, 20)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_o5vqk"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_xay1m"]
 size = Vector2(36, 32)
 
-[node name="RubberDuck" type="RigidBody2D" unique_id=405981209 node_paths=PackedStringArray("drag_area", "handle", "collider")]
+[node name="RubberDuck" type="RigidBody2D" unique_id=458612024 node_paths=PackedStringArray("drag_area", "handle", "collider")]
 collision_layer = 4
 collision_mask = 7
 mass = 0.3
@@ -22,20 +23,20 @@ drag_area = NodePath("DraggableArea")
 handle = NodePath("Handle")
 collider = NodePath("CollisionShape2D")
 
-[node name="Placeholder" type="Polygon2D" parent="." unique_id=1939344623]
-color = Color(0.94, 0.82, 0.28, 1)
-polygon = PackedVector2Array(-7, -10, 7, -10, 12, -5, 12, 5, 7, 10, -7, 10, -12, 5, -12, -5)
+[node name="Sprite" type="Sprite2D" parent="." unique_id=1367524433]
+scale = Vector2(2, 2)
+texture = ExtResource("2_22ifl")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=271294677]
-shape = SubResource("RectangleShape2D_22ifl")
-
-[node name="DraggableArea" type="Area2D" parent="." unique_id=1039701401]
-script = ExtResource("2_tl23t")
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=190104751]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1583456132]
 shape = SubResource("RectangleShape2D_o5vqk")
 
-[node name="Handle" type="StaticBody2D" parent="." unique_id=1652774316]
+[node name="DraggableArea" type="Area2D" parent="." unique_id=766313493]
+script = ExtResource("2_tl23t")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=772846746]
+shape = SubResource("RectangleShape2D_xay1m")
+
+[node name="Handle" type="StaticBody2D" parent="." unique_id=724201419]
 visible = false
 collision_layer = 0
 collision_mask = 0

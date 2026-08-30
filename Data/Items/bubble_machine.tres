@@ -1,5 +1,6 @@
 [gd_resource type="Resource" script_class="ItemData" format=3]
 
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/bubble_machine.png" id="1_cg7vy"]
 [ext_resource type="PackedScene" path="res://Scenes/Friendly/bubble_machine.tscn" id="1_y8bhy"]
 [ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="2_cg7vy"]
 
@@ -12,4 +13,5 @@ category = 4
 cost = 15000
 currency = 1
 scene = ExtResource("1_y8bhy")
+icon = ExtResource("1_cg7vy")
 sort_order = 60

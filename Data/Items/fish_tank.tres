@@ -1,5 +1,6 @@
 [gd_resource type="Resource" script_class="ItemData" format=3]
 
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/fish_tank.png" id="1_237ea"]
 [ext_resource type="PackedScene" path="res://Scenes/Friendly/fish_tank.tscn" id="1_reglp"]
 [ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="2_237ea"]
 
@@ -12,4 +13,5 @@ category = 9
 cost = 26000
 currency = 1
 scene = ExtResource("1_reglp")
+icon = ExtResource("1_237ea")
 sort_order = 60

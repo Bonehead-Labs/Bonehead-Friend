@@ -1,5 +1,6 @@
 [gd_resource type="Resource" script_class="ItemData" format=3]
 
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/wind_chimes.png" id="1_8lh3a"]
 [ext_resource type="PackedScene" path="res://Scenes/Friendly/wind_chimes.tscn" id="1_rakq1"]
 [ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="2_8lh3a"]
 
@@ -12,4 +13,5 @@ category = 9
 cost = 1600
 currency = 1
 scene = ExtResource("1_rakq1")
+icon = ExtResource("1_8lh3a")
 sort_order = 30
