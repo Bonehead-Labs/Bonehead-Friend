@@ -77,6 +77,7 @@ func _ready() -> void:
 	await _the_tabs_are_one_width()
 	await _every_page_is_readable()
 	await _the_purse_can_count_high()
+	await _the_payouts_are_visible()
 	await _the_shell_hides_until_hovered()
 	await _nothing_overflows_its_box()
 	await _closed_pages_do_no_work()
@@ -563,6 +564,62 @@ func _the_purse_can_count_high() -> void:
 	_check("and the card did not change width to fit them",
 		is_equal_approx((hud.call("shell_rect") as Rect2).size.x, width_before),
 		"%.0f -> %.0f" % [width_before, (hud.call("shell_rect") as Rect2).size.x])
+
+## The payout number is the game's only reward for most of a session, and it is drawn on a
+## layer nothing else touches — so when it silently stopped existing, nothing noticed.
+##
+## It stopped because four `EventBus.connect` calls ended up after a `return` in the middle
+## of `_ready()`. No parse error, no warning, no missing node: the pool was built, the layer
+## was in the tree, and the game simply never showed a number, took a hit-stop, or played
+## its knockout fountain again. A connection that is not made is invisible, so it is asserted.
+func _the_payouts_are_visible() -> void:
+	_suite("payouts")
+	var fx := _find(_main, "FXLayer")
+	_check("the FX layer exists and is named", fx != null)
+	if fx == null:
+		return
+
+	for signal_name in ["payout", "damage_dealt", "knockout_payout", "buddy_state_changed"]:
+		var wired := false
+		for connection in EventBus.get_signal_connection_list(signal_name):
+			if connection["callable"].get_object() == fx:
+				wired = true
+		_check("the FX layer is listening to %s" % signal_name, wired)
+
+	# Focus Mode Off means the game still earns and stops shouting about it, so the gate is
+	# asserted from both sides — the suite runs with it Off, which is why the payout below
+	# has to turn it on deliberately.
+	var before := _visible_numbers(fx)
+	EventBus.payout.emit(Economy.BONES, 480.0, Vector2(VIEW_SIZE) * 0.5)
+	await _settle()
+	_check("with Focus Mode Off a payout draws nothing", _visible_numbers(fx) == before)
+
+	Settings.focus_intensity = Settings.Intensity.NORMAL
+	EventBus.payout.emit(Economy.BONES, 480.0, Vector2(VIEW_SIZE) * 0.5)
+	EventBus.payout.emit(Economy.HEARTS, 7300.0, Vector2(VIEW_SIZE) * 0.5)
+	await _settle()
+	_check("and with it on, a payout puts a number on screen",
+		_visible_numbers(fx) >= before + 2, "%d -> %d" % [before, _visible_numbers(fx)])
+	Settings.focus_intensity = Settings.Intensity.OFF
+
+	# The two economies must stay apart at every magnitude — including the top tier, where
+	# running both ramps to white would make them identical exactly where it matters most.
+	var same: Array[String] = []
+	for tier in FXLayer.BONES_RAMP.size():
+		var bones: Color = FXLayer.BONES_RAMP[tier]
+		var hearts: Color = FXLayer.HEARTS_RAMP[tier]
+		if UIStyle.contrast(bones, hearts) < 1.25 and absf(bones.h - hearts.h) < 0.08:
+			same.append("tier %d" % tier)
+	_check("Bones and Hearts are distinguishable at every tier%s"
+		% ("" if same.is_empty() else ": " + ", ".join(same)), same.is_empty())
+
+func _visible_numbers(fx: Node) -> int:
+	var count := 0
+	for child in fx.get_children():
+		var label := child as Label
+		if label and label.visible:
+			count += 1
+	return count
 
 ## The one that keeps coming back, closed at the only level that actually closes it.
 ##

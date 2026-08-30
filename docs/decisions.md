@@ -582,6 +582,38 @@ motion, and asserts each half parks off screen, leaves an arrow that stays on sc
 back when that arrow is hovered, leaves again when it is not, and returns to the window when
 the setting is switched off.
 
+### D30 — A payout number escalates with its own magnitude
+
+The floating numbers are the game's only reward for most of a session, so they are treated as
+the reward rather than as a readout. Three rules, in `FXLayer`:
+
+**Colour separates the two economies.** Bones and Hearts were both a pale cream differing only
+in tint. They are now a gold and a rose at full saturation — and, as everywhere else here, the
+colour reinforces rather than carries: the two are also different sizes and throw differently
+coloured sparks, because about one player in twelve cannot use the hue. Both ramps stay
+saturated at the top; running them to white was the obvious way to say "hotter" and would have
+made the two economies identical at the tier a player works hardest to reach. The heat is
+carried by the *core* instead, which goes white inside an outline that keeps its hue.
+
+**The treatment escalates with `log10` of the amount**, not against a tuning constant. Size,
+outline weight, rise distance, scatter and spark count all step up per digit, so a five-figure
+payout is visibly a bigger event than a two-figure one — forever, with nothing to outgrow. That
+is the appeal of the genre made visible, and it is why the ramp is logarithmic rather than a
+table of thresholds.
+
+**Tier 0 stays cheap.** It fires on every hit for eight hours. It throws no particles, uses the
+smallest face, and a game that shouts at every tap stops being ignorable — which is the whole
+premise (D6).
+
+Numbers are drawn in the display face, loaded rather than themed: a `CanvasLayer` does not
+inherit a `Theme`, so these had been quietly drawing in Godot's default sans while the rest of
+the game was in Jersey.
+
+*Consequence:* `ui_check`'s `payouts` suite asserts the layer is listening to all four of its
+signals, that Focus Mode Off draws nothing and Focus Mode Normal draws something, and that the
+two ramps stay distinguishable at every tier. `tools/fx_shots.tscn` renders the specimen sheet,
+because whether a reward is satisfying cannot be reviewed from source.
+
 ## Recommendations not yet decided
 
 Carried in the spec, owner's call before they matter:

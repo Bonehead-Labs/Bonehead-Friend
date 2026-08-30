@@ -64,19 +64,26 @@ func _report_offline(offline: Dictionary) -> void:
 	_hud.show_toast("While you were out (%.1f h): %s" % [hours, ", ".join(parts)])
 
 func _build_ui() -> void:
+	# Named, not left as `@CanvasLayer@24`. These are built in code rather than authored in
+	# the scene, and a node with a generated name cannot be found by a test or read in the
+	# remote scene tree.
 	_fx = FXLayer.new()
+	_fx.name = "FXLayer"
 	add_child(_fx)
 
 	_panels = PanelLayer.new()
+	_panels.name = "PanelLayer"
 	add_child(_panels)
 
 	_hud = HUD.new()
+	_hud.name = "HUD"
 	add_child(_hud)
 	if buddy and buddy.health:
 		_hud.bind_health(buddy.health)
 	_hud.bind_spawner(spawner)
 
 	_esc = EscMenu.new()
+	_esc.name = "EscMenu"
 	_esc.world = world
 	add_child(_esc)
 

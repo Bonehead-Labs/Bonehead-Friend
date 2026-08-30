@@ -217,6 +217,12 @@ GDScript quirks already paid for once each:
 - **A `StyleBox` with no content margins has no minimum size**, and a scrollbar's thickness
   *is* its track stylebox's minimum size — so a themed `VScrollBar` came out zero pixels wide
   and a panel that scrolled perfectly looked like it was cut off.
+- **A `connect()` that never runs is invisible.** Four `EventBus.connect` calls ended up after
+  a `return` in the middle of `FXLayer._ready()` — no parse error, no warning, no missing node,
+  and the game simply stopped showing payout numbers, taking hit-stops and playing its knockout
+  fountain. `ui_check` now asserts the connections exist and that a payout draws something.
+  Build UI nodes with an explicit `name`, too: `FXLayer.new()` came out as `@CanvasLayer@24`,
+  which no test can find and nobody can read in the remote scene tree.
 - **A child of a plain `Control` is never laid out**, so it keeps the zero size it was created
   with — and, just as importantly, keeps its *old* size when its minimum later shrinks. Own
   both halves of its rect (`size` **and** `position`) and `reset_size()` deferred as well as
@@ -306,7 +312,7 @@ generation (it can double-charge — recover the result by request id instead).
 playtests — neither of which can be done from a keyboard.** Mood, grime, the Hearts economy, the knockout beat, mastery and the shared pool,
 automation capstones, the contract board, Reincarnation with five personalities, a 16-item
 roster and the debug CSV tuning log are done and verified — 660 assertions across the four
-suites (193 unit / 309 loop / 148 UI / 10 window), save schema at v3.
+suites (193 unit / 309 loop / 156 UI / 10 window), save schema at v3.
 
 The shell was then hardened against the content still to come (roadmap M3 pass five): the art
 size contract (D27), `PanelPage` (D28), auto-hide with pinning (D29), a `hover_pressed` state on
