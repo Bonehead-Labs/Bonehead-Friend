@@ -154,6 +154,11 @@ PROJ='C:\Users\George\Godot Projects\Projects\Bonehead_Friend\interactive-buddy-
 # exists because Overlay -> Play area silently stopped working and nothing could catch it.
 "$GODOT" --path "$PROJ" res://tools/window_check.tscn
 
+# Does the export still contain its art? Export a pack, then read its file table. Templates
+# are NOT needed for --export-pack, which is why this is the check that runs from here.
+"$GODOT" --headless --path "$PROJ" --export-pack "Windows Desktop" 'C:\path\to\check.pck'
+python3 tools/pack_check.py /mnt/c/path/to/check.pck
+
 # Seed res://Data (writes only files that do not exist; add `-- --force` to overwrite)
 "$GODOT" --headless --path "$PROJ" res://tools/seed_data.tscn
 "$GODOT" --headless --path "$PROJ" res://tools/seed_friendly.tscn
@@ -172,6 +177,10 @@ comparison in M3.
 
 `--path` takes a **Windows** path because Godot is a Windows process. Adding `--editor --quit`
 opens the project in the editor headlessly, which is how to verify an addon loads.
+
+A new PNG, `.aseprite` or font is invisible to `ResourceLoader.exists()` until the editor has
+imported it, so a seed tool that wires art written in the same session silently skips it. Run the
+editor pass after adding an asset, then re-run the tool.
 
 **After adding any script with a new `class_name`, run the editor pass before anything else:**
 

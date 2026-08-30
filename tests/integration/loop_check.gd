@@ -42,6 +42,7 @@ func _ready() -> void:
 	var earned := _hitting_him_pays()
 	_augments_change_the_payout(earned)
 	_being_kind_pays_hearts()
+	_the_kindness_augments_do_something()
 	_mood_swings_the_payout()
 	_grime_suppresses_bones()
 	_shop_refuses_what_you_cannot_afford()
@@ -382,10 +383,37 @@ func _content_loaded() -> void:
 		var item := ItemDB.get_item(id)
 		_check("the %s is in the catalog" % id, item != null)
 		_check("the %s costs Hearts" % id, item != null and item.currency_id() == Economy.HEARTS)
+	# Equipping a cursor power has to change what the player sees, or the tool with no world
+	# sprite is invisible and the ordinary arrow keeps lying about what a click will do. Two
+	# honest ways to satisfy it: replace the pointer (pistol, shotgun, open hand) or draw
+	# yourself in the world (the fist, which is a rigid body that chases the mouse). The
+	# shotgun shipped with neither and nothing noticed; five more cursor powers are coming.
+	var invisible: Array[String] = []
+	for item in ItemDB.all_items():
+		if not item.is_cursor_power() or item.scene == null:
+			continue
+		var power := item.scene.instantiate()
+		if power.get(&"cursor_texture") == null and not _draws_itself(power):
+			invisible.append(String(item.id))
+		power.free()
+	_check("every cursor power shows the player what it is%s" % ("" if invisible.is_empty()
+		else " (bare: " + ", ".join(invisible) + ")"), invisible.is_empty())
+
 	_check("the open hand equips like a cursor power",
 		ItemDB.get_item(&"open_hand").is_cursor_power())
 	_check("but is filed with the friendly items",
 		ItemDB.get_item(&"open_hand").category == ItemData.CATEGORY_FRIENDLY)
+
+## Whether a power has a picture of its own anywhere in its scene. Searched by type rather
+## than by node name — a power rebuilt from script comes back with different names, and
+## looking one up across a scene boundary is the same bug as an absolute node path (D9).
+func _draws_itself(node: Node) -> bool:
+	if node is Sprite2D or node is AnimatedSprite2D:
+		return true
+	for child in node.get_children():
+		if _draws_itself(child):
+			return true
+	return false
 
 func _starters_are_owned() -> void:
 	_suite("starters")
@@ -488,6 +516,51 @@ func _being_kind_pays_hearts() -> void:
 	EventBus.kindness_sustained.emit(&"boombox", 1.0, Vector2(100, 100))
 	var sustained := Economy.balance_of(Economy.HEARTS) - sustained_before
 	_check("a generator's Hearts skip the combo entirely", is_equal_approx(sustained, expected))
+
+## Two of the three augments a kindness-first player can buy were placebos: OpenHandPower
+## sets its own pet interval and emits a flat `pet_value`, so neither `cooldown_mult` nor
+## `damage_mult` reached it and both nodes charged Hearts for nothing (M3.5-0). A modifier
+## that exists in Progression proves nothing — the assertion has to be that the power
+## behaves differently, so this fires a real one.
+func _the_kindness_augments_do_something() -> void:
+	_suite("the kindness augments")
+	var scene := load("res://Scenes/Powers/open_hand_power.tscn") as PackedScene
+	if scene == null:
+		_check("open hand power scene loads", false)
+		return
+
+	# Two instances rather than one: each starts with its cooldown clear, so the second pet
+	# can be measured without either awaiting the interval or reaching into a private field.
+	var before_power := scene.instantiate() as OpenHandPower
+	add_child(before_power)
+	var emitted: Array[float] = []
+	var watch := func(_id: StringName, value: float, _at: Vector2) -> void: emitted.append(value)
+	EventBus.kindness_given.connect(watch)
+	before_power.fire(Vector2(100, 100))
+	var base_interval := before_power.pet_interval()
+
+	Economy.grant(Economy.HEARTS, 5000.0)
+	var bought_value := Progression.purchase_augment(&"open_hand_damage", 1)
+	var bought_rate := Progression.purchase_augment(&"open_hand_third", 1)
+	_check("both kindness augments are purchasable", bought_value == 1 and bought_rate == 1)
+
+	var after_power := scene.instantiate() as OpenHandPower
+	add_child(after_power)
+	after_power.fire(Vector2(100, 100))
+	EventBus.kindness_given.disconnect(watch)
+
+	_check("both pets were seen on the bus", emitted.size() == 2)
+	if emitted.size() == 2:
+		var value_node := ItemDB.get_augment(&"open_hand_damage")
+		_check("Gentler Touch makes each stroke worth more kindness",
+			is_equal_approx(emitted[1], emitted[0] * value_node.effect_per_level))
+
+	var rate_node := ItemDB.get_augment(&"open_hand_third")
+	_check("Faster Strokes shortens the gap between pets",
+		is_equal_approx(after_power.pet_interval(), base_interval * rate_node.effect_per_level))
+
+	before_power.queue_free()
+	after_power.queue_free()
 
 ## The U-curve is the reason to swing him, so the test is that the *same* event pays
 ## differently at the two extremes and worst in the middle (docs/economy.md).

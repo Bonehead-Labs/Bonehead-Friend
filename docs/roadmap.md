@@ -9,6 +9,7 @@ start the next milestone until the current gate passes.
 | M1 — Overlay spike | 1–2 wk | 🟡 **code complete** — manual gate pending |
 | M2 — Vertical slice | 3–4 wk | 🟡 **systems complete** — playtest gate pending |
 | M3 — Systems & buddy uplift | 4–6 wk | 🟡 **systems, art and shell complete** — playtest gate pending |
+| M3.5 — Content & systems uplift ([uplift-m3.5.md](uplift-m3.5.md)) | 4–6 wk | ⬜ **planned** (2026-08-30) |
 | M4 — Demo / Next Fest | 2–3 wk | ⬜ |
 | M5 — 1.0 | 4+ wk | ⬜ |
 
@@ -622,6 +623,86 @@ Assertions went from 414 to **660** across four suites (193 unit / 309 loop / 14
 
 ---
 
+## M3.5 — Content & systems uplift
+
+Planned 2026-08-30, spec'd in full in [`uplift-m3.5.md`](uplift-m3.5.md) — the loop-depth
+findings, the content budget and every gate live there; this is the index.
+
+| Sub-milestone | One line | Schema |
+|---|---|---|
+| M3.5-0 — Prove the base | The two playtests, the export check in a real `.exe`, retune pass 1, the small confirmed defects. **Blocking** — rebalancing after a content expansion is strictly worse than before one. | none |
+| M3.5-A — The engine and the ladder | Leveled automation capstones on every item (the exponential engine), augment coverage for all 28 items, roster 16→~28, visible devices, a headless pacing simulator, `prestige_divisor` retuned to reality | none |
+| M3.5-B — The long game | Ectoplasm meta-shop (the Séance), milestones + stats page, Dream Journal, contracts to ~30, +2 personalities, prestige-gated automation tier 2, the hat layer | **v4 — one bump** |
+| M3.5-C — Live on the desktop | Taskbar mechanics, Overtime Pay, hibernate/hazard pay, and the timeboxed Win32 spike → Working Hours if it lands. Occupational Hazard stays post-1.0. | none |
+
+The findings that force the milestone (verified against the code and `.tres` files):
+first prestige is unreachable by ~5 orders of magnitude (`prestige_divisor` 1e12 against
+~10³ Bones/s peak income, and no exponential income engine exists at any divisor); the
+whole shop is bought out in under two hours (total catalog spend 9,810, top item 2,500);
+Ectoplasm has no sink, so the contract board pays into a void; 9 of 16 items have no
+augments, two of the three kindness augments are dead code, and the offline-cap upgrade
+the docs promise was never built.
+
+### M3.5-0 progress — the engineering half is done (2026-08-30)
+
+Everything in M3.5-0 that does not need a person in front of the game is finished; the
+suites are at **673 assertions** (193 unit / 314 loop / 156 UI / 10 window).
+
+- **The two dead kindness augments are alive.** `OpenHandPower` set its own pet interval and
+  emitted a flat `pet_value`, so neither `cooldown_mult` nor `damage_mult` ever reached it —
+  two of the three nodes a kindness-first player can buy charged Hearts for nothing. The rate
+  now goes through `pet_interval()` (a named seam, so it can be asserted without reaching into
+  a private field) and the value through `effective_damage_mult()`. `damage_mult` is the
+  *kindness value* on this side of the economy, which is what makes it a different node from
+  the flat payout multiplier: `MoodComponent` nudges his mood by the same number, so a stronger
+  touch buys mood as well as Hearts. Two instances of the power, one fired before the purchase
+  and one after, is how `loop_check` proves it without awaiting a cooldown.
+- **The augment tree stops saying "Bones earned" on the kindness half.** `_effect_text` reads
+  the owning item's currency, so a Hearts item's `payout_mult` is Hearts and its `damage_mult`
+  is kindness — the same treatment the automation rows already got.
+- **The export contains its art, and now a tool says so.** The fixed `exclude_filter` was
+  verified by exporting a real pack and booting it: clean. `tools/pack_check.py` reads a pack's
+  own file table and checks every `res://` path the shipping scripts name, every `.tres` under
+  `Data/`, every sprite, and every `ext_resource` of every scene — resolving each through the
+  `.remap` or `.import` + `.godot/imported/` form the export actually stores, which is the
+  reason a naive check reports a perfectly good pack as empty. Re-exported with the *old*
+  broken filter it names all three assets that used to ship missing (`bonehead`,
+  `bonehead_face`, `explosion`), the third of which no script mentions at all — it is an
+  ext_resource of `Explosion.tscn`.
+- **Every item in the catalog has art.** The shotgun (seed 30037) and, unbid, the pistol
+  (seed 30038) — with the shotgun drawn, the pistol was the only row in the Cursor category
+  still labelled with the prototype's crosshair PNG. $0.102 of the $8.43. `loop_check`'s art
+  backlog line now prints "none".
+- **Every cursor power shows the player what it is.** The shotgun equipped to an unchanged
+  arrow; the open hand did too. The shotgun has a plotted reticle — four corner brackets
+  around a centre dot, *this shot covers an area*, against the pistol's single point — and the
+  open hand now wears its own icon as the cursor, because it is a touch rather than a shot.
+  Reticles are hand-plotted like the UI glyphs (`art/tools/make_crosshairs.py`): geometry that
+  must land on the pixel grid and be identical every build, and free. The assertion that keeps
+  it true accepts either a cursor texture *or* a sprite in the scene, because the fist is a
+  rigid body that draws itself — five more cursor powers arrive in M3.5-A.
+- **The baseball is no longer a white polygon.** Its scene predated its sprite; regenerating it
+  picked the sprite up, which is what the seed tools are for.
+- `settings.gd`'s F9/F10 comment no longer promises a settings UI that shipped in M3.
+
+**Not done, and not doable from a keyboard:**
+
+- **Both playtests** — M2's five-minute non-developer test and M3's 30-minute no-dead-ends
+  session. Still the gate.
+- **CPU on a real `.exe`.** Export templates for 4.7.2 are not installed on this machine
+  (`%APPDATA%/Godot/export_templates/` holds 4.6.1 and 4.6.2-mono), so the pack was verified
+  by exporting and booting a `.pck` rather than a binary. The 3%/8% measurement needs the
+  templates downloaded first.
+- **Retune pass 1**, which is downstream of the playtest CSVs by design.
+
+**Gate:** per sub-milestone, in `uplift-m3.5.md`.
+
+*Art needed:* ~$4.60 of the $8.43 balance — 12 item sprites + icons, 6 buddy tags, the
+VFX set, 3 automation-device mounts, crosshairs, 6 hats. The balance does **not** cover
+M4's capsule or trailer.
+
+---
+
 ## M4 — Demo / Next Fest
 
 Re-scoped 2026-08-30, after M3's shell work delivered more of this milestone than planned and
@@ -635,7 +716,7 @@ uncovered one item that has to come first.
   parks off screen and leaves a mark. What streamer mode still owes beyond it is the chroma-key
   background and hiding figures a viewer should not see.
 
-**Do first, before anything is built for release:**
+**Do first, before anything is built for release:** *(pulled into M3.5-0)*
 
 - **Export an actual build and check it.** `export_presets.cfg` excluded `art/*` while the buddy
   animation and the explosion load from `res://art/src/` — so every build produced so far has

@@ -20,6 +20,14 @@ const EFFECT_WORDS := {
 	&"cooldown_mult": "time between uses",
 }
 
+## The same keys, worded for the kindness half of the roster. A Hearts item's `damage_mult`
+## is the size of its kindness and its `payout_mult` pays Hearts — printing "+15% damage" on
+## the open hand names a currency it never earns and a verb it never does.
+const HEARTS_EFFECT_WORDS := {
+	&"damage_mult": "kindness",
+	&"payout_mult": "Hearts earned",
+}
+
 ## Past this many levels the pips stop being countable at a glance and the figure is
 ## clearer. Ten-level nodes — which is every tier-1 node in the game — stay pips.
 const PIP_LIMIT := 12
@@ -693,14 +701,16 @@ func _wear_lock(buy: Button, reason: String) -> void:
 ## "+15% damage per level" / "-5% time between uses per level", derived from the data so a
 ## new augment needs no copy written for it.
 func _effect_text(node: AugmentNode) -> String:
+	var item := ItemDB.get_item(node.item_id)
+	var hearts := item != null and item.currency == ItemData.CURRENCY_HEARTS
 	if node.is_automation:
 		# A capstone's effect is a rate, not a multiplier (AugmentNode.automation_rate), so
 		# the multiplier wording would read "+0% Bones earned per level" — technically true
 		# of a field it does not use, and meaningless.
-		var item := ItemDB.get_item(node.item_id)
-		var currency := "Hearts" if item and item.currency == ItemData.CURRENCY_HEARTS else "Bones"
-		return "%.2f %s per second, on its own" % [node.automation_rate, currency]
-	var word: String = EFFECT_WORDS.get(node.effect_key, String(node.effect_key))
+		return "%.2f %s per second, on its own" % [
+			node.automation_rate, "Hearts" if hearts else "Bones"]
+	var fallback: String = EFFECT_WORDS.get(node.effect_key, String(node.effect_key))
+	var word: String = HEARTS_EFFECT_WORDS.get(node.effect_key, fallback) if hearts else fallback
 	var percent := (node.effect_per_level - 1.0) * 100.0
 	var sign_text := "+" if percent >= 0.0 else ""
 	# "per level" on a one-level node promises levels that do not exist — every exclusive

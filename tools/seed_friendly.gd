@@ -75,6 +75,14 @@ func _build_open_hand() -> Node:
 	root.name = "OpenHandPower"
 	root.set_script(OpenHandScript)
 	root.set(&"item_id", &"open_hand")
+	# The cursor becomes the hand. Every other power says what it is by replacing the
+	# pointer, and the one that reaches out to touch him was the one still showing an
+	# arrow — the kindness half of the game with no affordance at all. Its own icon,
+	# hotspot at the middle of the palm.
+	var hand := "res://Assets/sprites/icons/open_hand.png"
+	if ResourceLoader.exists(hand):
+		root.set(&"cursor_texture", ResourceLoader.load(hand))
+		root.set(&"cursor_hotspot", Vector2(16, 16))
 	return root
 
 ## One FriendlyBase body with a placeholder shape, a grab region and a drag handle — the

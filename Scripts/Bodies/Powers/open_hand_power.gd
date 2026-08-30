@@ -62,8 +62,15 @@ func _pet_if_ready(at: Vector2) -> void:
 	var now := Time.get_ticks_msec()
 	if now < _next_pet_msec:
 		return
-	_next_pet_msec = now + int(ItemDB.balance.pet_interval * 1000.0)
+	_next_pet_msec = now + int(pet_interval() * 1000.0)
 	_pet(at)
+
+## Seconds between pets, after augments. This power sets its own interval rather than going
+## through CursorPowerBase's cooldown, so "Faster Strokes" has to be applied here or the
+## node is a placebo — which it was until M3.5-0. Read live rather than cached: an augment
+## bought mid-stroke takes effect on the next pet.
+func pet_interval() -> float:
+	return ItemDB.balance.pet_interval * Progression.get_modifier(item_id, &"cooldown_mult")
 
 func can_fire_at(at: Vector2) -> bool:
 	var buddy := _buddy()
@@ -71,8 +78,12 @@ func can_fire_at(at: Vector2) -> bool:
 		return false
 	return buddy.get_interaction_rect().grow(reach_padding).has_point(at)
 
+## `damage_mult` is the *kindness value* on this side of the economy. Scaling the emitted
+## amount rather than the payout is what makes "Gentler Touch" a different node from the
+## flat payout multiplier: MoodComponent nudges his mood by the same number, so a stronger
+## touch buys mood as well as Hearts.
 func _pet(at: Vector2) -> void:
-	EventBus.kindness_given.emit(item_id, ItemDB.balance.pet_value, at)
+	EventBus.kindness_given.emit(item_id, ItemDB.balance.pet_value * effective_damage_mult(), at)
 	EventBus.contract_event.emit(&"pet", 1)
 
 ## By group, never by path — the buddy lives in a different scene from this power

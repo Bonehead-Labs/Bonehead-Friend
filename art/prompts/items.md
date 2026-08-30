@@ -51,7 +51,8 @@ All at `rd_fast__low_res`, 3 takes each, magenta background, `remove_bg`, seeds 
 | beach_ball | 34 | 30013 | baseball | 10 | 30034 |
 | bowling_ball | 20 | 30014 | missile | 28 | 30035 |
 | grenade | 14 | 30015 | explosion (VFX) | 64 | 30020 |
-| open_hand | 56 | 30036 | | | |
+| open_hand | 56 | 30036 | shotgun | 18 | 30037 |
+| | | | pistol | 20 | 30038 |
 
 Icons are **not** generated — `art/tools/make_icons.py` downscales each sprite into a 32 px
 cell. Free, and the icon is guaranteed to be the item it labels. Icons fit the cell rather
@@ -86,3 +87,56 @@ ramp (`#fcfcee` / `#d8d6c4` / `#c3cad8` / `#9aa3b8`) that Bonehead himself is dr
 is the right answer for a cursor hand anyway — it is *his* world reaching onto the desktop.
 
 Take 0 of 3 was used: takes 1 and 2 both merged or broke the fingers.
+
+## shotgun — M3.5-0
+
+The one item in the M3 roster that shipped with no icon at all, so its shop row and its
+augment tree both drew a category glyph where the toy should be.
+
+```
+shotgun (18px, seed 30037)
+a pump-action shotgun seen from the side, dark steel barrel and receiver with a warm brown
+wooden stock and fore-end, simple bold shapes, thick dark outline, on a plain magenta
+background
+```
+
+Take 0 of 3 was used: a clean horizontal side view. Takes 1 and 2 both came back on a
+diagonal with the muzzle running off the canvas — fine as a picture, wrong for a 32px shop
+row, where a horizontal silhouette is the only one that survives the downscale.
+
+Cost $0.051. It is a cursor power, so it has no world scale in the table; the sprite is
+written at 18px purely so `make_icons.py` has something to derive from, which is also the
+size it would take if it ever gained a body.
+
+## pistol — M3.5-0
+
+Not on the defect list, and generated anyway: with the shotgun drawn, the pistol was the
+only row in the Cursor category still labelled by the prototype's crosshair PNG. Four rows,
+three toys and one reticle pretending to be a toy.
+
+```
+pistol (20px, seed 30038)
+a small revolver handgun seen from the side, dark steel barrel and cylinder with a warm
+brown wooden grip, short barrel pointing right, simple bold shapes, thick dark outline, on
+a plain magenta background
+```
+
+Take 0 of 3, chosen at icon size rather than at generation size — all three read as a
+revolver at 4x, and only two survived the downscale to a 28px cell. Take 2 kept a stray red
+pixel in the grip after the palette snap, which at icon size is a wound rather than a wood
+grain. Cost $0.051.
+
+The crosshair stays as the pistol's *cursor*: a single point is the right reticle for a
+shot that lands exactly where it is aimed, which is the thing the shotgun's brackets exist
+to contrast with.
+
+## Cursors are plotted, not generated
+
+`art/tools/make_crosshairs.py` draws the reticles the same way `make_ui_glyphs.py` draws
+the UI symbols, and for the same reasons: they are geometry, they must land exactly on the
+pixel grid, and a cursor that shifts by a pixel between builds is a cursor that no longer
+points where it did. Free, and reproducible.
+
+The shotgun's is four corner brackets around a centre dot — *this shot covers an area* —
+against the pistol's single point. The open hand takes its own 32px icon as its cursor
+rather than a reticle: it is a touch, not a shot.

@@ -162,6 +162,15 @@ func _seed_scenes() -> void:
 	shotgun.set(&"pellets", 5)
 	shotgun.set(&"spread", 64.0)
 	shotgun.set(&"cooldown_seconds", 0.75)
+	# Its own reticle, and not the pistol's: four brackets around an area rather than a
+	# point on one (art/tools/make_crosshairs.py). Equipping it used to leave the ordinary
+	# arrow on screen, so the one cursor power whose shot does *not* land where you point
+	# was also the one with no aiming affordance at all. The hotspot is the reticle's centre
+	# dot; get it wrong and every pellet spread is offset from where the player aimed.
+	var reticle := "res://Assets/sprites/cursors/shotgun.png"
+	if ResourceLoader.exists(reticle):
+		shotgun.set(&"cursor_texture", ResourceLoader.load(reticle))
+		shotgun.set(&"cursor_hotspot", Vector2(32, 32))
 	_save_scene(shotgun, "%s/shotgun_power.tscn" % POWERS_DIR)
 
 ## One draggable body with a placeholder shape, a grab region and a drag handle — the same

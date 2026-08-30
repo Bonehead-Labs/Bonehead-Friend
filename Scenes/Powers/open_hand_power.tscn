@@ -1,7 +1,10 @@
 [gd_scene format=3]
 
-[ext_resource type="Script" path="res://Scripts/Bodies/Powers/open_hand_power.gd" id="1_413li"]
+[ext_resource type="Script" path="res://Scripts/Bodies/Powers/open_hand_power.gd" id="1_lsmu3"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/open_hand.png" id="2_6ebxm"]
 
-[node name="OpenHandPower" type="Node2D" unique_id=1810291632]
-script = ExtResource("1_413li")
+[node name="OpenHandPower" type="Node2D" unique_id=272280641]
+script = ExtResource("1_lsmu3")
 item_id = &"open_hand"
+cursor_texture = ExtResource("2_6ebxm")
+cursor_hotspot = Vector2(16, 16)
