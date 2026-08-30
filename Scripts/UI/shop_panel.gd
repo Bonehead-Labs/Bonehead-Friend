@@ -212,6 +212,18 @@ func _make_side_tile(side: int) -> Button:
 ## hidden rather than rebuilt, so the unread badges keep counting on the side you are not
 ## looking at — which is the entire point of a badge.
 func show_side(side: int) -> void:
+	var first := _apply_side(side)
+	# Only move off the current category if it belongs to the other side now. Coming back to
+	# a side you were already on should land where you left it.
+	if _category >= 0 and ItemData.CATEGORY_SIDE.get(_category, ItemData.SIDE_HARM) == side:
+		show_category(_category)
+	elif first >= 0:
+		show_category(first)
+
+## Puts one side's tabs on screen and the other's away, and answers with that side's first
+## category. Split out from `show_side` because `show_category` has to be able to do this
+## half without recursing back into the half that picks a category.
+func _apply_side(side: int) -> int:
 	_side = side
 	for key in _side_tabs:
 		(_side_tabs[key] as Button).button_pressed = key == side
@@ -224,17 +236,19 @@ func show_side(side: int) -> void:
 			(_tabs[category]["button"] as Button).visible = visible_here
 		if visible_here and first < 0:
 			first = int(category)
-	# Only move off the current category if it belongs to the other side now. Coming back to
-	# a side you were already on should land where you left it.
-	if _category < 0 or ItemData.CATEGORY_SIDE.get(_category, ItemData.SIDE_HARM) != side:
-		if first >= 0:
-			show_category(first)
-	else:
-		show_category(_category)
+	return first
 
 func show_category(category: int) -> void:
 	if not _by_category.has(category):
 		return
+	# A category carries its own side, so asking for one directly has to bring that side's
+	# strip with it. Without this the two halves of the header disagree: the capture tool
+	# calls this to reach the kind list, and the screenshot came back showing Care items
+	# under a row of tabs reading Melee, Boom, Cursor, Turret, Critters. The strip was
+	# describing a page nobody was looking at.
+	var side: int = int(ItemData.CATEGORY_SIDE.get(category, ItemData.SIDE_HARM))
+	if side != _side:
+		_apply_side(side)
 	_category = category
 	for key in _tabs:
 		(_tabs[key]["button"] as Button).button_pressed = key == category

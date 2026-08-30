@@ -226,6 +226,21 @@ func _shop_tiles_are_clickable() -> void:
 			_button_labelled("Melee", shop) == null)
 		_check("and brings Comfort out", _button_labelled("Comfort", shop) != null)
 
+	# Asking for a category directly must bring its side's strip with it. The two halves of
+	# the header disagreed exactly once and a screenshot caught it: the capture tool calls
+	# `show_category` to reach the kind list, and the shot came back showing Care items under
+	# a row of tabs reading Melee, Boom, Cursor, Turret, Critters — a strip describing a page
+	# nobody was looking at. Nothing above this catches it, because every assertion up there
+	# arrives through a side tile.
+	shop.call("show_category", ItemData.CATEGORY_WEAPON)
+	await _settle()
+	_check("reaching Melee directly also shows the Harm strip",
+		_button_labelled("Melee", shop) != null and _button_labelled("Comfort", shop) == null)
+	shop.call("show_category", ItemData.CATEGORY_FRIENDLY)
+	await _settle()
+	_check("and reaching Care directly shows the Kind strip",
+		_button_labelled("Comfort", shop) != null and _button_labelled("Melee", shop) == null)
+
 	# Back to the starters. The bat is a free starter, so selecting it puts a Spawn button
 	# in the detail pane — the shop's one action button, whichever item is selected. Reaching
 	# it now takes two clicks: the side, then the category.
