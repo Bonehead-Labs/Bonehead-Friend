@@ -48,6 +48,16 @@ func _ready() -> void:
 			_hud.show_toast("Contract ready to claim: %s" % contract.display_name, 8.0))
 	EventBus.prestige_performed.connect(func(gained: float) -> void:
 		_hud.show_toast("Reincarnated. +%.2f marrow, and he is somebody new." % gained, 8.0))
+	# Milestones claim themselves (docs/decisions.md D34) — a board of forty unclaimed
+	# collect buttons is homework, so the toast IS the reward moment and there is nowhere
+	# else the player finds out. A rung count is printed when several land at once, which
+	# happens whenever one payout carries a tenfold ladder past two rungs.
+	Milestones.milestone_claimed.connect(func(id: StringName, rungs: int, dollars: int) -> void:
+		var milestone := ItemDB.get_milestone(id)
+		var name_text: String = milestone.display_name if milestone else String(id)
+		var suffix := "" if rungs <= 1 else " x%d" % rungs
+		_hud.show_toast("%s%s  ·  $%s" % [name_text, suffix,
+			UIStyle.format_amount(float(dollars))], 6.0))
 
 ## "You earned this while you were away" — shown once, after the UI exists to show it in.
 ## Silent when nothing accrued, which is every session until the first automation capstone:
