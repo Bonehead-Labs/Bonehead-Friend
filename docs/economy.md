@@ -225,8 +225,65 @@ apply to it. Every capstone has an on/off toggle, which is not a convenience: a 
 meeting must be able to stop the desktop moving without giving up the income, and that is exactly
 what the Focus Mode promise requires.
 
-Shipped rates are a first draft — Bat Sentry 2.5 Bones/s for 900 Hearts, Endless Playlist
-0.8 Hearts/s for 1,400 Hearts.
+### Capstones are levelled — this is the game's exponential engine
+
+Every capstone is `max_levels 30` at `cost_growth 1.10`, and the rate paid is
+`automation_rate x levels owned`. **Linear rate against exponential cost** is the shape the genre
+converged on (AdVenture Capitalist's businesses), and it is the only thing in this economy that
+makes income grow without bound.
+
+That matters more than it looks. M3 shipped two capstones, both single-level, so idle income was a
+flat line no matter how long anyone played — and a flat line cannot reach a prestige threshold
+built on a cube root of *lifetime* earnings, at any divisor. Levels, plus a capstone on every item,
+plus the global tree below, are what give lifetime earnings the curvature the prestige formula
+assumes (M3.5-A).
+
+Numbers are **derived from the item's shop price**, in `tools/seed_m35_engine.gd`, so a retune is
+two constants rather than twenty-eight resources:
+
+```
+rate per level  = 1.0 + cost/500     (a Bones item)
+                = 0.5 + cost/1500    (a Hearts item)
+price in Hearts = 800 + cost x 0.4   (a Bones item)
+                = 800 + cost x 0.5   (a Hearts item)
+```
+
+Both currencies have their own line because they are earned at different speeds: Bones arrive in
+the hundreds from a knockout round, Hearts in ones and twos from petting. Every capstone is priced
+in **Hearts** whatever it automates — D2's spine, and the reason automation demand scales the
+kindness half of the economy alongside the damage half.
+
+### Two rules about what automation income is multiplied by
+
+Both were accidents of implementation before M3.5-A and are now decisions:
+
+- **Per-item payout augments do not reach automation income.** Automation pays as source
+  `&"automation"`, so only global nodes, mood, mastery pool and prestige apply. Keep it: active
+  play with a levelled item beats that item's own automation, which is what preserves the
+  60/40 split the design wants between playing and idling.
+- **Offline pays the stable multipliers only** — prestige and the Mastery Pool — never mood, item
+  augments or an item's own rank. Mood is a live value the player was not there to maintain;
+  paying eight hours at whatever mood he was left in either rewards parking him at an extreme
+  before quitting, or punishes a session that ended mid-swing. Prestige and the pool are
+  properties of the save, so they are honest to apply while nobody is watching.
+
+### The global tree
+
+Four `item_id = &"global"` nodes multiply **every** payout in the game, automation included
+(`Progression.get_modifier` folds them into every lookup — the hook has existed since M2 and had
+no content in it until M3.5-A). They are the cross-run ladder: without them a run's total
+multiplier is bounded by how many items are owned.
+
+| Node | Effect | Levels | Price | Gate |
+|---|---|---|---|---|
+| Technique | x1.10 payout | 15 | 3,000 Bones, growth 1.13 | — |
+| Showmanship | x1.10 payout | 15 | 1,500 Hearts, growth 1.13 | — |
+| Momentum | x1.12 payout | 10 | 25,000 Bones, growth 1.18 | Technique |
+| Devotion | x1.12 payout | 10 | 12,000 Hearts, growth 1.18 | Showmanship |
+
+They appear in the tree page under a chip of their own, last in the picker — the global tree is
+not a toy, and putting it first made it the default selection for a player who had come to
+upgrade their bat.
 
 ## Contracts
 
@@ -288,6 +345,8 @@ elapsed  = clamp(now − last_played, 0, cap_hours × 3600)     # negative delta
 earnings = automation_rate_per_second × elapsed × balance.offline_efficiency
 ```
 
+- Offline pays `rate x elapsed x efficiency x prestige x pool` — the **stable** multipliers, and
+  deliberately not mood, item augments or item rank (see Automation above).
 - `offline_efficiency` starts at **0.5** — idle-while-closed should be worse than idle-while-open,
   or the game's own pitch (keep it on your desktop) is undermined.
 - Cap starts at **2 hours**, upgradeable with Hearts to 8 then 24. Capping is load-bearing: an

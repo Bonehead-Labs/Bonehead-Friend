@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_yna6r"]
+
+[resource]
+script = ExtResource("1_yna6r")
+id = &"global_showmanship"
+display_name = "Showmanship"
+description = "He plays to the crowd. There is no crowd."
+effect_key = &"payout_mult"
+effect_per_level = 1.1
+max_levels = 15
+cost_base = 1500
+cost_growth = 1.13
+currency = 1
+sort_order = 17

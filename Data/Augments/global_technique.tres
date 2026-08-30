@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_up4nt"]
+
+[resource]
+script = ExtResource("1_up4nt")
+id = &"global_technique"
+display_name = "Technique"
+description = "You have done this a lot. Everything lands better."
+effect_key = &"payout_mult"
+effect_per_level = 1.1
+max_levels = 15
+cost_base = 3000
+cost_growth = 1.13
+sort_order = 16

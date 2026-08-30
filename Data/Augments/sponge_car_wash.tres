@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_85ujk"]
+
+[resource]
+script = ExtResource("1_85ujk")
+id = &"sponge_car_wash"
+item_id = &"sponge"
+display_name = "Car Wash"
+description = "Rollers, suds, and a skeleton who has stopped resisting."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 820
+currency = 1
+is_automation = true
+automation_rate = 0.53
+requires_mastery = 25

@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_uqi5b"]
+
+[resource]
+script = ExtResource("1_uqi5b")
+id = &"shotgun_trap"
+item_id = &"shotgun"
+display_name = "Trap Bench"
+description = "Bench-mounted, and it fires whenever he wanders in front of it."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 1680
+currency = 1
+is_automation = true
+automation_rate = 5.4
+requires_mastery = 25

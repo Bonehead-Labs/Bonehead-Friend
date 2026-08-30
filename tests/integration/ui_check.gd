@@ -72,6 +72,7 @@ func _ready() -> void:
 	await _the_card_is_one_size()
 	await _shop_tiles_are_clickable()
 	await _every_visible_button_is_reachable()
+	await _the_capstone_levels_and_switches()
 	await _the_settings_page_works()
 	await _the_rebirth_page_refuses_an_empty_reset()
 	await _the_tabs_are_one_width()
@@ -220,6 +221,86 @@ func _shop_tiles_are_clickable() -> void:
 		int(spawner.call("item_count")) > before)
 	panels.call("close")
 	await _settle()
+
+## The capstone card is the one card in the shell that is both a purchase and a switch, and
+## until M3.5-A it was the *same button* for both: buying level 1 turned the button into the
+## on/off toggle, so a levelled capstone would have sold the player one level and hidden the
+## other twenty-nine behind it forever. This clicks both controls on a real card.
+func _the_capstone_levels_and_switches() -> void:
+	_suite("the capstone")
+	var panels := _find(_main, "PanelLayer")
+	var tree := _find(_main, "AugmentPanel")
+	if tree == null:
+		_check("the tree page exists", false)
+		return
+
+	# Staged here rather than shared: this is the only suite that needs an unlocked
+	# capstone, and mastery XP granted globally would change what every other page shows.
+	var node := ItemDB.get_augment(&"bat_sentry")
+	Progression.add_mastery_xp(&"baseball_bat",
+		EconomyMath.mastery_xp_for_rank(ItemDB.balance.mastery_base, node.requires_mastery))
+	Economy.grant(Economy.HEARTS, float(node.cost_base) * 20.0)
+
+	panels.call("show_panel", &"tree")
+	tree.call("select", &"baseball_bat")
+	await _settle()
+	tree.call("scroll_to_end")
+	await _settle()
+
+	var card := _card_for(tree, &"bat_sentry")
+	_check("the bat's capstone is on the page", card != null)
+	if card == null:
+		return
+	var buy := card.get_meta(&"buy") as Button
+	var toggle := card.get_meta(&"toggle") as Button
+	_check("its price and its switch are two different buttons", buy != null and toggle != null
+		and buy != toggle)
+	if buy == null or toggle == null:
+		return
+
+	_check("the switch is hidden until something is running", not toggle.visible)
+	if _is_on_screen(buy):
+		await _click(_centre_of(buy))
+		await _settle()
+	else:
+		Progression.purchase_augment(&"bat_sentry", 1)
+		await _settle()
+	_check("buying gives it a level", Progression.augment_level(&"bat_sentry") == 1)
+	_check("and it is running", Progression.is_automation_enabled(&"bat_sentry"))
+	_check("the switch appears once it exists", toggle.visible)
+
+	# The regression, stated directly: pressing the price again must be a second level and
+	# not a pause.
+	if _is_on_screen(buy):
+		await _click(_centre_of(buy))
+		await _settle()
+		_check("pressing the price again buys another level",
+			Progression.augment_level(&"bat_sentry") == 2)
+		_check("and does not switch it off", Progression.is_automation_enabled(&"bat_sentry"))
+
+	if _is_on_screen(toggle):
+		await _click(_centre_of(toggle))
+		await _settle()
+		_check("the switch pauses it", not Progression.is_automation_enabled(&"bat_sentry"))
+		_check("without refunding a level", Progression.augment_level(&"bat_sentry") == 2)
+		await _click(_centre_of(toggle))
+		await _settle()
+		_check("and starts it again", Progression.is_automation_enabled(&"bat_sentry"))
+
+	panels.call("close")
+	await _settle()
+
+## The card for one augment, found by the meta every card carries rather than by its
+## position in the tree — the tree's shape is data and changes with the content.
+func _card_for(root: Node, node_id: StringName) -> Control:
+	var control := root as Control
+	if control and control.has_meta(&"node_id") and control.get_meta(&"node_id") == node_id:
+		return control
+	for child in root.get_children():
+		var found := _card_for(child, node_id)
+		if found:
+			return found
+	return null
 
 func _escape_menu_opens_and_closes() -> void:
 	_suite("escape menu")

@@ -28,6 +28,16 @@ const HEARTS_EFFECT_WORDS := {
 	&"payout_mult": "Hearts earned",
 }
 
+## And for a node attached to no item at all: it multiplies every payout in the game, so
+## naming either currency is wrong in one direction.
+const GLOBAL_EFFECT_WORDS := {
+	&"payout_mult": "everything earned",
+}
+
+## What the global tree is called on screen. It is not an item, so it has no display_name
+## to borrow.
+const GLOBAL_NAME := "Everything"
+
 ## Past this many levels the pips stop being countable at a glance and the figure is
 ## clearer. Ten-level nodes — which is every tier-1 node in the game — stay pips.
 const PIP_LIMIT := 12
@@ -36,6 +46,9 @@ signal content_changed
 
 var _weapons: VBoxContainer
 var _tree: VBoxContainer
+## Held for `scroll_to_end()`: an item's capstone is the last thing on a tall page, and the
+## capture tools cannot review what they cannot scroll to.
+var _scroll: ScrollContainer
 var _selected: StringName = &""
 var _bulk: int = 1
 var _bulk_row: HBoxContainer
@@ -47,6 +60,9 @@ var _bulk_row: HBoxContainer
 var _hero_sprite: TextureRect
 var _hero_name: Label
 var _hero_rank: Label
+## Held so it can be hidden: a mastery star over a tree with no mastery is a promise the
+## page cannot keep.
+var _rank_star: TextureRect
 var _mastery_bar: ProgressBar
 var _unlocks: HBoxContainer
 var _pool_label: Label
@@ -105,6 +121,7 @@ func _build_page() -> void:
 	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	split.add_child(scroll)
+	_scroll = scroll
 
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 8)
@@ -141,7 +158,8 @@ func _build_page() -> void:
 	_hero_name.theme_type_variation = &"NameLabel"
 	_hero_name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	name_row.add_child(_hero_name)
-	name_row.add_child(UIStyle.icon(&"star", 16, UIStyle.BONES))
+	_rank_star = UIStyle.icon(&"star", 16, UIStyle.BONES)
+	name_row.add_child(_rank_star)
 	_hero_rank = UIStyle.label("0", UIStyle.LABEL, UIStyle.BONES)
 	_hero_rank.theme_type_variation = &"Numeral"
 	name_row.add_child(_hero_rank)
@@ -213,25 +231,47 @@ func _rebuild() -> void:
 		child.queue_free()
 
 	var owned := _items_with_trees()
-	if owned.is_empty():
-		_selected = &""
-	elif not owned.any(func(i: ItemData) -> bool: return i.id == _selected):
-		_selected = owned[0].id
-
+	var ids: Array[StringName] = []
 	for item in owned:
+		ids.append(item.id)
+	# Last, not first. The picker is ordered by what the player owns, and the global tree is
+	# the one entry that is not a toy — putting it at the top made it the default selection,
+	# so opening Upgrades showed a stranger two unaffordable nodes instead of showing them
+	# their bat.
+	if not ItemDB.augments_for(AugmentNode.GLOBAL).is_empty():
+		ids.append(AugmentNode.GLOBAL)
+
+	if ids.is_empty():
+		_selected = &""
+	elif not ids.has(_selected):
+		_selected = ids[0]
+
+	for id in ids:
+		var item := ItemDB.get_item(id)
 		var chip := UIStyle.button("", UIStyle.MICRO)
 		chip.theme_type_variation = &"IconTab"
 		chip.toggle_mode = true
-		chip.button_pressed = item.id == _selected
+		chip.button_pressed = id == _selected
 		chip.custom_minimum_size = Vector2(UIStyle.WELL_TILE, UIStyle.WELL_TILE)
 		chip.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		# The chip is WELL_TILE square and its picture is CHIP_ICON square, always. A chip
 		# whose icon set its own size made the toy column a different width per category.
-		chip.icon = UIStyle.item_face(item, CHIP_ICON)
-		if UIStyle.has_art(item):
-			UIStyle.art_icons(chip)
-		chip.tooltip_text = item.display_name
-		var id := item.id
+		if item == null:
+			# The global tree has no ItemData and never will: it is not a thing you own, it
+			# is what you have learned. It rides the same picker because it is the same
+			# question — what do I upgrade next — and inventing a second tree UI for four
+			# nodes would be four nodes' worth of content and a page's worth of code.
+			# Boxed to the chip's own icon size like every other picture in the shell (D27):
+			# a bare 16px glyph handed to a Button draws at 16px inside a 32px box, which
+			# here read as an empty chip. And *not* `art_icons` — this is a glyph, so it
+			# takes the theme's ink rather than the full white item art needs.
+			chip.icon = UIStyle.boxed(UIStyle.glyph(&"bolt"), CHIP_ICON)
+			chip.tooltip_text = GLOBAL_NAME
+		else:
+			chip.icon = UIStyle.item_face(item, CHIP_ICON)
+			if UIStyle.has_art(item):
+				UIStyle.art_icons(chip)
+			chip.tooltip_text = item.display_name
 		chip.set_meta(&"item_id", id)
 		chip.pressed.connect(func() -> void: select(id))
 		_weapons.add_child(chip)
@@ -249,6 +289,14 @@ func select(item_id: StringName) -> void:
 	_rebuild_tree()
 	UIMotion.page_in(_tree)
 	content_changed.emit()
+
+## Scrolls the tree to its bottom, where the automation capstone lives. Exists for the
+## capture tools: the capstone is the one card in the shell with four states (locked,
+## affordable, running, paused) and it is always below the fold on an item with a full tree.
+func scroll_to_end() -> void:
+	if _scroll == null:
+		return
+	_scroll.scroll_vertical = int(_scroll.get_v_scroll_bar().max_value)
 
 func _items_with_trees() -> Array[ItemData]:
 	var out: Array[ItemData] = []
@@ -466,26 +514,51 @@ func _capstone(node: AugmentNode) -> Control:
 	effect.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	column.add_child(effect)
 
+	# What it is producing right now, at the level owned. A capstone with thirty levels is
+	# the one node in the game whose *current* output is the number the player is buying
+	# against, and "1.00 Bones per second, on its own" above it describes a single level.
+	var output := UIStyle.label("", UIStyle.MICRO, UIStyle.TEAL)
+	output.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	column.add_child(output)
+
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 5)
+	column.add_child(row)
+
+	# The switch is its own control, and this is the whole reason the card was rebuilt.
+	# While capstones were single-level the buy button could *become* the switch once
+	# owned — with thirty levels that would sell the player level 1 and then hide levels
+	# 2-30 behind the off switch forever.
+	var toggle := UIStyle.button("", UIStyle.MICRO)
+	toggle.theme_type_variation = &"GhostButton"
+	toggle.custom_minimum_size = Vector2(64, 34)
+	toggle.pressed.connect(func() -> void: _toggle_automation(node, card))
+	row.add_child(toggle)
+
 	var buy := UIStyle.button("", UIStyle.LABEL)
 	buy.theme_type_variation = &"BuyButton"
 	buy.custom_minimum_size = Vector2(0, 34)
+	buy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	buy.pressed.connect(func() -> void: _buy(node, card))
-	column.add_child(buy)
+	row.add_child(buy)
 	UIMotion.hook(buy, card)
 
 	card.set_meta(&"node_id", node.id)
 	card.set_meta(&"buy", buy)
+	card.set_meta(&"toggle", toggle)
+	card.set_meta(&"output", output)
 	return card
 
-func _buy(node: AugmentNode, card: Control) -> void:
-	# An owned capstone's button is its switch, not a purchase.
-	if node.is_automation and Progression.augment_level(node.id) > 0:
-		var running := not Progression.is_automation_enabled(node.id)
-		Progression.set_automation_enabled(node.id, running)
-		UIMotion.flash(card, Color(1.3, 1.45, 1.4) if running else Color(1.1, 1.1, 1.1), 0.3)
-		_refresh()
+## Running / paused. Never a purchase — the two were the same button until M3.5-A.
+func _toggle_automation(node: AugmentNode, card: Control) -> void:
+	if Progression.augment_level(node.id) <= 0:
 		return
+	var running := not Progression.is_automation_enabled(node.id)
+	Progression.set_automation_enabled(node.id, running)
+	UIMotion.flash(card, Color(1.3, 1.45, 1.4) if running else Color(1.1, 1.1, 1.1), 0.3)
+	_refresh()
 
+func _buy(node: AugmentNode, card: Control) -> void:
 	var wanted := node.max_levels if _bulk < 0 else _bulk
 	var buy_button := card.get_meta(&"buy") as Control if card.has_meta(&"buy") else null
 	# Measured rather than re-derived: the bulk price depends on the level the purchase
@@ -557,25 +630,37 @@ func _refresh_card(card: Control) -> void:
 		card.theme_type_variation = &"TileDead" if struck \
 			else (&"TileHot" if owned > 0 else &"Tile")
 
-	# An owned capstone shows its switch instead of a price.
-	if node.is_automation and owned > 0:
-		var on := Progression.is_automation_enabled(node.id)
-		buy.text = "Running" if on else "Paused"
-		buy.icon = UIStyle.glyph(&"bolt" if on else &"lock")
-		buy.disabled = false
-		UIStyle.tint_button(buy, UIStyle.TEAL if on else UIStyle.TEXT_DIM)
-		return
+	var toggle := card.get_meta(&"toggle") as Button if card.has_meta(&"toggle") else null
+	var output := card.get_meta(&"output") as Label if card.has_meta(&"output") else null
+	if node.is_automation:
+		var running := owned > 0 and Progression.is_automation_enabled(node.id)
+		if toggle:
+			# Nothing to switch until something is running, and a live switch over a device
+			# that does not exist yet is a button that does nothing when pressed.
+			toggle.visible = owned > 0
+			toggle.text = "ON" if running else "OFF"
+			toggle.icon = UIStyle.glyph(&"bolt" if running else &"lock")
+			UIStyle.tint_button(toggle, UIStyle.TEAL if running else UIStyle.TEXT_DIM)
+		if output:
+			var item := ItemDB.get_item(node.item_id)
+			var unit := "HEARTS" if item and item.currency == ItemData.CURRENCY_HEARTS else "BONES"
+			output.visible = owned > 0
+			output.text = "LEVEL %d  ·  %.2f %s/S" % [
+				owned, node.automation_rate * float(owned), unit]
+			output.add_theme_color_override("font_color",
+				UIStyle.TEAL if running else UIStyle.TEXT_DIM)
 
 	if not reason.is_empty():
 		_wear_lock(buy, reason)
 		return
 
 	var want := node.max_levels if _bulk < 0 else _bulk
-	var can_buy := AugmentMath.purchasable_levels(
-		float(node.cost_base), node.cost_growth, owned, node.max_levels,
-		Economy.balance_of(node.currency_id()), want)
+	# Progression answers with the discount applied, which is the number the purchase will
+	# actually honour; `want` is only ever 1, 10 or the whole node, never negative.
+	var can_buy := mini(Progression.affordable_augment_levels(node.id), want)
 	var quoted := maxi(1, mini(want, node.max_levels - owned))
-	var cost := EconomyMath.bulk_cost(float(node.cost_base), node.cost_growth, owned, quoted)
+	# Through Progression, so the quote carries the Mastery Pool discount the charge does.
+	var cost := Progression.augment_bulk_cost(node.id, quoted)
 
 	# The button always quotes the price of what it would buy, even when the player cannot
 	# afford it — a disabled button with no number tells them nothing. It also stays live,
@@ -595,12 +680,28 @@ func _refresh_hero() -> void:
 		_hero_name.text = "No toys yet"
 		_hero_rank.text = "0"
 		_hero_sprite.texture = null
+		_rank_star.visible = true
+		_mastery_bar.visible = true
+		_unlocks.visible = true
 		_mastery_bar.value = 0.0
+	elif _selected == AugmentNode.GLOBAL:
+		# No mastery, because there is no item to master. The bar and the three unlock marks
+		# would each be answering a question nobody asked of this tree, so they go away
+		# rather than showing zeroes.
+		_hero_name.text = GLOBAL_NAME
+		_hero_rank.text = ""
+		_rank_star.visible = false
+		UIStyle.set_sprite(_hero_sprite, UIStyle.glyph(&"bolt"))
+		_mastery_bar.visible = false
+		_unlocks.visible = false
 	else:
 		var item := ItemDB.get_item(_selected)
 		var rank := Progression.mastery_rank(_selected)
 		_hero_name.text = item.display_name if item else String(_selected)
 		UIStyle.set_sprite(_hero_sprite, _hero_texture(item))
+		_rank_star.visible = true
+		_mastery_bar.visible = true
+		_unlocks.visible = true
 		_mastery_bar.value = Progression.mastery_progress(_selected)
 		if rank != _shown_rank or _shown_rank_for != _selected:
 			# Only when it actually moves, and only for the toy it moved on. _refresh() runs
@@ -711,6 +812,8 @@ func _effect_text(node: AugmentNode) -> String:
 			node.automation_rate, "Hearts" if hearts else "Bones"]
 	var fallback: String = EFFECT_WORDS.get(node.effect_key, String(node.effect_key))
 	var word: String = HEARTS_EFFECT_WORDS.get(node.effect_key, fallback) if hearts else fallback
+	if node.item_id == AugmentNode.GLOBAL:
+		word = GLOBAL_EFFECT_WORDS.get(node.effect_key, fallback)
 	var percent := (node.effect_per_level - 1.0) * 100.0
 	var sign_text := "+" if percent >= 0.0 else ""
 	# "per level" on a one-level node promises levels that do not exist — every exclusive

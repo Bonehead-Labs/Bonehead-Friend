@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_frdwd"]
+
+[resource]
+script = ExtResource("1_frdwd")
+id = &"baseball_pitching_machine"
+item_id = &"baseball"
+display_name = "Pitching Machine"
+description = "It throws, he catches. Neither of them gets tired."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 860
+currency = 1
+is_automation = true
+automation_rate = 0.58
+requires_mastery = 25

@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_rkcug"]
+
+[resource]
+script = ExtResource("1_rkcug")
+id = &"hand_petting_machine"
+item_id = &"open_hand"
+display_name = "Petting Machine"
+description = "A mechanical hand on a rail, stroking him while you work."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 800
+currency = 1
+is_automation = true
+automation_rate = 0.5
+requires_mastery = 25

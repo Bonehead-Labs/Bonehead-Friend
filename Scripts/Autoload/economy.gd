@@ -200,9 +200,16 @@ func _process(delta: float) -> void:
 
 # --- offline ---------------------------------------------------------------
 
-## Accrual for time the game was closed. Only automation earns offline, so this is zero
-## until the first capstone is bought in M3 — the plumbing is here now so the clamping
-## and the cap are exercised from the start rather than bolted on later.
+## Accrual for time the game was closed. Only automation earns offline.
+##
+## **Offline pays the stable multipliers and not the volatile ones** — prestige and the
+## Mastery Pool, never mood, per-item augments or an item's own mastery rank. That is a
+## decision, not an omission (docs/economy.md): mood is a live value the player was not
+## there to maintain, so paying eight hours of income at whatever mood he happened to be
+## left in either rewards parking him at an extreme before quitting or punishes a session
+## that ended mid-swing. Prestige and the pool are properties of the save, so they are
+## honest to apply while nobody is watching. Until M3.5-A this called `grant()` directly
+## and offline income got *none* of the four, while online automation got all of them.
 ##
 ## Returns {currency: amount} for what was earned, so the caller can show a summary.
 func apply_offline_earnings(last_played_unix: int) -> Dictionary:
@@ -211,10 +218,11 @@ func apply_offline_earnings(last_played_unix: int) -> Dictionary:
 	# Negative deltas are real — clock changes, timezone shifts, cloud-sync skew — and
 	# must never pay out.
 	var elapsed := SaveSchema.offline_seconds(last_played_unix, int(Time.get_unix_time_from_system()), cap)
+	var stable := prestige_multiplier() * Progression.mastery_pool_bonus()
 	var earned := {}
 	for currency in [BONES, HEARTS]:
 		var rate := Progression.automation_rate_per_second(currency)
-		var amount := EconomyMath.offline_earnings(rate, elapsed, b.offline_efficiency)
+		var amount := EconomyMath.offline_earnings(rate, elapsed, b.offline_efficiency) * stable
 		earned[currency] = amount
 		if amount > 0.0:
 			grant(currency, amount)

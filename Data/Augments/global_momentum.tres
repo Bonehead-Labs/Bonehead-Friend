@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_3f5k1"]
+
+[resource]
+script = ExtResource("1_3f5k1")
+id = &"global_momentum"
+display_name = "Momentum"
+description = "Nothing about this is a hobby any more."
+tier = 2
+effect_key = &"payout_mult"
+effect_per_level = 1.12
+cost_base = 25000
+cost_growth = 1.18
+requires = Array[StringName]([&"global_technique"])
+sort_order = 18

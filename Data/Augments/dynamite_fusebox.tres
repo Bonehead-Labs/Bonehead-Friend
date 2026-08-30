@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_51x7s"]
+
+[resource]
+script = ExtResource("1_51x7s")
+id = &"dynamite_fusebox"
+item_id = &"dynamite"
+display_name = "Fuse Box"
+description = "A crate of dynamite wired to a very reliable clock."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 1120
+currency = 1
+is_automation = true
+automation_rate = 2.6
+requires_mastery = 25

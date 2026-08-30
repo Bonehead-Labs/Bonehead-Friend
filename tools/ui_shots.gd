@@ -80,6 +80,19 @@ func _ready() -> void:
 	Settings.ui_scale = pinned
 	EventBus.ui_scale_changed.emit(pinned)
 
+	# The automation capstone, owned and running. It is the only card in the shell with
+	# four states and it sits below the fold of any item with a full tree, so it went
+	# unreviewed for the whole of M3 — and then M3.5-A gave it levels, an output line and a
+	# switch of its own. Staged last: buying it needs a purse that would change what every
+	# earlier shot says about affordability.
+	Economy.grant(Economy.HEARTS, 20000.0)
+	Progression.purchase_augment(&"bat_sentry", 4)
+	panels.call("show_panel", &"tree")
+	tree.call("select", &"baseball_bat")
+	await _idle(20)
+	tree.call("scroll_to_end")
+	await _shot("11-upgrades-automation")
+
 	_clear_slot()
 	print("ui_shots: wrote %s" % ProjectSettings.globalize_path(OUT))
 	get_tree().quit()

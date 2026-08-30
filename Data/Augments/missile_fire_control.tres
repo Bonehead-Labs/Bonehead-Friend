@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_ksd7g"]
+
+[resource]
+script = ExtResource("1_ksd7g")
+id = &"missile_fire_control"
+item_id = &"missile"
+display_name = "Fire Control"
+description = "A launcher that picks its own targets. There is only the one."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 1800
+currency = 1
+is_automation = true
+automation_rate = 6.0
+requires_mastery = 25

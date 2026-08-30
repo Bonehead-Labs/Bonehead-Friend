@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_ss1dl"]
+
+[resource]
+script = ExtResource("1_ss1dl")
+id = &"global_devotion"
+display_name = "Devotion"
+description = "He would do this for free. You are paying him in attention."
+tier = 2
+effect_key = &"payout_mult"
+effect_per_level = 1.12
+cost_base = 12000
+cost_growth = 1.18
+currency = 1
+requires = Array[StringName]([&"global_showmanship"])
+sort_order = 19

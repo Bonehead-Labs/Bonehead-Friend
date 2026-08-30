@@ -839,11 +839,75 @@ func _automation_earns_and_toggles() -> void:
 	_check("and switching it back on restores it",
 		is_equal_approx(Progression.automation_rate_per_second(Economy.BONES), rate))
 
+	# --- the engine (M3.5-A) ---
+	#
+	# A capstone is a *levelled* device: linear rate against exponential cost. While every
+	# capstone was max_levels 1 the game's idle income was a flat line no matter how long
+	# anyone played, which is the shape that puts a cube-root prestige threshold out of
+	# reach at any divisor.
+	_check("a capstone has levels to buy", node.max_levels > 1)
+	Economy.grant(Economy.HEARTS, EconomyMath.bulk_cost(
+		float(node.cost_base), node.cost_growth, 1, 3) * 2.0)
+	var levelled := Progression.purchase_augment(&"bat_sentry", 3)
+	_check("more levels can be bought", levelled == 3)
+	_check("and the rate is the level's multiple, not a flat one",
+		is_equal_approx(Progression.automation_rate_per_second(Economy.BONES),
+			node.automation_rate * float(Progression.augment_level(&"bat_sentry"))))
+	rate = Progression.automation_rate_per_second(Economy.BONES)
+
+	# Every item automates, or idle income cannot grow with the roster — which is the other
+	# half of the engine, and the half that makes buying a new toy an idle decision as well
+	# as an active one.
+	var bare: Array[String] = []
+	for item in ItemDB.all_items():
+		if not ItemDB.augments_for(item.id).any(func(n: AugmentNode) -> bool: return n.is_automation):
+			bare.append(String(item.id))
+	_check("every item has an automation capstone%s" % ("" if bare.is_empty()
+		else " (without: " + ", ".join(bare) + ")"), bare.is_empty())
+
+	# The global tree reaches automation income, which per-item payout nodes deliberately
+	# do not — that is what makes it the cross-run ladder rather than another item's tree.
+	var globals := ItemDB.augments_for(AugmentNode.GLOBAL)
+	_check("the global tree has content", not globals.is_empty())
+	if not globals.is_empty():
+		var g: AugmentNode = globals[0]
+		Economy.grant(g.currency_id(), float(g.cost_base) * 2.0)
+		var before_global := Economy.payout_for(100.0, &"automation")
+		_check("a global node is purchasable", Progression.purchase_augment(g.id, 1) == 1)
+		_check("and it multiplies automation income too",
+			is_equal_approx(Economy.payout_for(100.0, &"automation"),
+				before_global * g.effect_per_level))
+		_check("as well as a swing", Progression.get_modifier(&"baseball_bat", &"payout_mult")
+			> Progression.get_modifier(&"baseball_bat", &"mass_mult"))
+
+	# The tree quotes with the Mastery Pool discount applied, because the purchase charges
+	# with it. Quoting `cost_base` directly made every checkpoint widen the gap between the
+	# number on the button and the number taken from the wallet.
+	var quote := Progression.augment_bulk_cost(&"bat_sentry", 2)
+	var wallet := Economy.balance_of(Economy.HEARTS)
+	Economy.grant(Economy.HEARTS, quote * 2.0)
+	wallet = Economy.balance_of(Economy.HEARTS)
+	Progression.purchase_augment(&"bat_sentry", 2)
+	_check("the quoted bulk price is the price charged",
+		is_equal_approx(wallet - Economy.balance_of(Economy.HEARTS), quote))
+	_check("and it is under the undiscounted price when the pool has paid out",
+		Progression.augment_cost_multiplier() >= 1.0 or quote < EconomyMath.bulk_cost(
+			float(node.cost_base), node.cost_growth, Progression.augment_level(&"bat_sentry") - 2, 2))
+	rate = Progression.automation_rate_per_second(Economy.BONES)
+
 	# Offline accrual, including the clamp that matters most.
 	var before := Economy.balance_of(Economy.BONES)
 	var earned := Economy.apply_offline_earnings(int(Time.get_unix_time_from_system()) - 600)
 	_check("ten minutes away pays Bones", float(earned.get(Economy.BONES, 0.0)) > 0.0)
 	_check("and the wallet actually received it", Economy.balance_of(Economy.BONES) > before)
+
+	# Offline pays the stable multipliers — prestige and the pool — and none of the
+	# volatile ones. It used to pay *nothing*, while online automation paid all four.
+	var stable := Economy.prestige_multiplier() * Progression.mastery_pool_bonus()
+	_check("offline pays prestige and the pool, and not mood",
+		is_equal_approx(float(earned.get(Economy.BONES, 0.0)),
+			rate * 600.0 * ItemDB.balance.offline_efficiency * stable))
+
 	var future := Economy.apply_offline_earnings(int(Time.get_unix_time_from_system()) + 99999)
 	_check("a clock skewed into the future pays nothing",
 		is_equal_approx(float(future.get(Economy.BONES, 0.0)), 0.0))

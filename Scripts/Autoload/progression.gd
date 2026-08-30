@@ -128,6 +128,20 @@ func next_augment_cost(node_id: StringName) -> float:
 func _discounted_base(node: AugmentNode) -> float:
 	return float(node.cost_base) * augment_cost_multiplier()
 
+## Cost of buying `levels` more, from where the player is now — the discounted price, which
+## is the one they will actually be charged. The tree quoted `node.cost_base` directly and
+## therefore printed the *undiscounted* bulk price: every pool checkpoint made the button
+## lie by a little more, always in the direction of asking for money it was not going to
+## take. Clamped to what is left, so a x10 on a node with three levels remaining quotes
+## three.
+func augment_bulk_cost(node_id: StringName, levels: int) -> float:
+	var node := ItemDB.get_augment(node_id)
+	if node == null or levels <= 0:
+		return 0.0
+	var owned := augment_level(node_id)
+	var count := mini(levels, maxi(0, node.max_levels - owned))
+	return EconomyMath.bulk_cost(_discounted_base(node), node.cost_growth, owned, count)
+
 ## Everything that gates a node except money: the owning item, prerequisite nodes, an
 ## already-taken exclusive branch, mastery and prestige. Reasons are returned as text so
 ## the UI can say *why* a node is locked instead of just greying it out.

@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_5svob"]
+
+[resource]
+script = ExtResource("1_5svob")
+id = &"bowling_ball_return"
+item_id = &"bowling_ball"
+display_name = "Ball Return"
+description = "A rail that sends it back down the lane at him. Forever."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 1080
+currency = 1
+is_automation = true
+automation_rate = 2.4
+requires_mastery = 25

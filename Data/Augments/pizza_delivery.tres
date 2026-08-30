@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_rpc1k"]
+
+[resource]
+script = ExtResource("1_rpc1k")
+id = &"pizza_delivery"
+item_id = &"pizza"
+display_name = "Delivery Route"
+description = "A slice arrives every so often, whether he asked for one or not."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 1000
+currency = 1
+is_automation = true
+automation_rate = 0.77
+requires_mastery = 25
