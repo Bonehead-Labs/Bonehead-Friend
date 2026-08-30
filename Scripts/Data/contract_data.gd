@@ -64,6 +64,10 @@ const KNOWN_KEYS: Array[StringName] = [
 	&"pick_up",
 ]
 const ITEM_KEY_PREFIX := "use:"
+## `damage:<item_id>` — the same idea one step along: `use:` counts swings, this counts the
+## damage they did. Emitted by Economy on every hit, so it covers every weapon in the game
+## without a line of content per weapon.
+const DAMAGE_KEY_PREFIX := "damage:"
 
 func currency_id() -> StringName:
 	return &"hearts" if reward_currency == 1 else &"bones"
@@ -80,6 +84,8 @@ func validation_error() -> String:
 		return "contract '%s' has target %d" % [id, target]
 	if goal_key == &"":
 		return "contract '%s' has no goal_key" % id
-	if not KNOWN_KEYS.has(goal_key) and not String(goal_key).begins_with(ITEM_KEY_PREFIX):
+	var key := String(goal_key)
+	if not KNOWN_KEYS.has(goal_key) and not key.begins_with(ITEM_KEY_PREFIX) \
+			and not key.begins_with(DAMAGE_KEY_PREFIX):
 		return "contract '%s' watches '%s', which nothing emits" % [id, goal_key]
 	return ""

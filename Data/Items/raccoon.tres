@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="PackedScene" path="res://Scenes/NPCs/raccoon.tscn" id="1_edr6w"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="2_jl248"]
+
+[resource]
+script = ExtResource("2_jl248")
+id = &"raccoon"
+display_name = "Raccoon"
+description = "Arms itself with whatever you left on the desk. Including the bowling ball."
+category = 4
+cost = 14000
+scene = ExtResource("1_edr6w")
+requires = Array[StringName]([&"hornet"])
+sort_order = 50

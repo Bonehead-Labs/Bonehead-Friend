@@ -1,0 +1,47 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/World/npc_base.gd" id="1_vjgbu"]
+[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="2_74lmp"]
+
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_d2vpq"]
+friction = 0.95
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_wone1"]
+size = Vector2(60, 92)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_2jlio"]
+size = Vector2(80, 108)
+
+[node name="_Goose" type="RigidBody2D" unique_id=383728391 node_paths=PackedStringArray("drag_area", "handle", "collider")]
+collision_layer = 4
+collision_mask = 7
+mass = 6.0
+physics_material_override = SubResource("PhysicsMaterial_d2vpq")
+script = ExtResource("1_vjgbu")
+lifetime_seconds = 70.0
+move_speed = 330.0
+steer_gain = 6.0
+hop_speed = 260.0
+attack_range = 78.0
+attack_impulse = 4200.0
+windup_seconds = 0.25
+attack_period = 2.4
+grapple_seconds = 1.8
+item_id = &"goose"
+drag_area = NodePath("DraggableArea")
+handle = NodePath("Handle")
+collider = NodePath("CollisionShape2D")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1203863883]
+shape = SubResource("RectangleShape2D_wone1")
+
+[node name="DraggableArea" type="Area2D" parent="." unique_id=25309663]
+script = ExtResource("2_74lmp")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=346625590]
+shape = SubResource("RectangleShape2D_2jlio")
+
+[node name="Handle" type="StaticBody2D" parent="." unique_id=610153838]
+visible = false
+collision_layer = 0
+collision_mask = 0

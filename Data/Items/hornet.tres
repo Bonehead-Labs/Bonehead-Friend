@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="PackedScene" path="res://Scenes/NPCs/hornet.tscn" id="1_h6t66"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="2_cbaa6"]
+
+[resource]
+script = ExtResource("2_cbaa6")
+id = &"hornet"
+display_name = "Hornets"
+description = "Four of them, and not one can be reasoned with."
+category = 4
+cost = 7500
+scene = ExtResource("1_h6t66")
+requires = Array[StringName]([&"desk_fan"])
+sort_order = 40

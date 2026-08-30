@@ -28,6 +28,10 @@ func _ready() -> void:
 	_build_ui()
 	_build_devices()
 	_build_world_fx()
+	# What he does when nobody is watching: finds a toy he likes and uses it. Installed
+	# rather than exported because he resolves the buddy lazily on his first think tick —
+	# the buddy joins his group in his own _ready(), which has not run yet here.
+	IdleBrain.install(self)
 	_install_tuning_log()
 
 	# A tree purchase has to reach weapons already lying on the desktop, or the upgrade

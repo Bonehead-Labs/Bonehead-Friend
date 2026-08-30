@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="PackedScene" path="res://Scenes/NPCs/goose.tscn" id="1_5ptih"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="2_qp3ry"]
+
+[resource]
+script = ExtResource("2_qp3ry")
+id = &"goose"
+display_name = "Goose"
+description = "It has decided this is personal. It was always going to be personal."
+category = 4
+cost = 22000
+scene = ExtResource("1_5ptih")
+requires = Array[StringName]([&"raccoon"])
+sort_order = 60

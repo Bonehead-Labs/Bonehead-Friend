@@ -466,8 +466,14 @@ func _starters_are_owned() -> void:
 ## legitimately pay different amounts. A raw before/after comparison would be measuring the
 ## mood swing rather than whatever the test is actually about — normalising here is what
 ## keeps the augment assertions honest.
+## Normalised by every multiplier that is not the one under test, read **before** the emit
+## because several of them move as a result of it: mood rises with the hit, and the
+## milestone board can claim a rung off this very hit — the first reference hit in a run
+## completes "First Blood" — which would otherwise make two identical hits pay differently
+## for reasons that have nothing to do with the augment being measured.
 func _reference_hit(source_id: StringName, damage: float = 40.0) -> float:
-	var multipliers := Economy.mood_multiplier() * Economy.grime_multiplier()
+	var multipliers := Economy.mood_multiplier() * Economy.grime_multiplier() \
+		* Milestones.income_multiplier() * Economy.temp_multiplier()
 	var before := Economy.balance_of(Economy.BONES)
 	EventBus.damage_dealt.emit(HitInfo.new(damage, source_id, Vector2(100, 100), 4000.0))
 	return (Economy.balance_of(Economy.BONES) - before) / multipliers
@@ -539,11 +545,13 @@ func _being_kind_pays_hearts() -> void:
 	var combo_total := Economy.balance_of(Economy.HEARTS) - combo_before
 	_check("repeat pets inside the window compound", combo_total > earned * 6.0)
 
-	# The multiplier has to be read BEFORE the emit. Economy is connected to the bus first
+	# Every multiplier has to be read BEFORE the emit. Economy is connected to the bus first
 	# (it is an autoload; MoodComponent is a scene child), so it pays at the mood in force
-	# when the event fired and the component raises that mood immediately afterwards.
+	# when the event fired and the component raises that mood immediately afterwards — and
+	# the milestone board can claim a rung off this very event, after the payout is granted.
 	var expected := 1.0 * ItemDB.balance.hearts_per_kindness \
-		* Economy.mood_multiplier() * Economy.marrow_multiplier()
+		* Economy.mood_multiplier() * Economy.marrow_multiplier() \
+		* Milestones.income_multiplier() * Economy.temp_multiplier()
 	var sustained_before := Economy.balance_of(Economy.HEARTS)
 	EventBus.kindness_sustained.emit(&"boombox", 1.0, Vector2(100, 100))
 	var sustained := Economy.balance_of(Economy.HEARTS) - sustained_before

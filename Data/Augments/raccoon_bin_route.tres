@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_uhkxn"]
+
+[resource]
+script = ExtResource("1_uhkxn")
+id = &"raccoon_bin_route"
+item_id = &"raccoon"
+display_name = "Bin Route"
+description = "Your desk is now a scheduled stop on a nightly round."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 6400
+currency = 1
+is_automation = true
+automation_rate = 29.0
+device_mount = &"pedestal"
+requires_mastery = 25

@@ -175,6 +175,14 @@ func _spark_material() -> ParticleProcessMaterial:
 func _on_payout(currency: StringName, amount: float, world_pos: Vector2) -> void:
 	if amount < 0.01:
 		return
+	# **Not everything that is granted is a moment.** Dollars are minted flat on every hit
+	# and every kind act (D31), and an arcade win or a contract claim is granted from a
+	# panel with no world position at all — so both were drawing a "+1" at world (0,0), in
+	# the *Hearts* ramp, in the corner of the play area, on every single swing. Two guards
+	# rather than one: the currency has no floating treatment of its own, and a payout that
+	# does not know where it happened has nowhere to float from.
+	if currency == Economy.DOLLARS or world_pos == Vector2.ZERO:
+		return
 	var tier := _tier(amount)
 	var ramp := BONES_RAMP if currency == &"bones" else HEARTS_RAMP
 	# Hearts sit a touch below the hit so the two economies do not stack on the same pixel

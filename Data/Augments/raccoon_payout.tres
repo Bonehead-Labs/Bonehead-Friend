@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_282f6"]
+
+[resource]
+script = ExtResource("1_282f6")
+id = &"raccoon_payout"
+item_id = &"raccoon"
+display_name = "Bin Rights"
+effect_key = &"payout_mult"
+effect_per_level = 1.12
+cost_base = 530
+sort_order = 1

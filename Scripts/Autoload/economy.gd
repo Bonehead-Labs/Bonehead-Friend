@@ -5,7 +5,7 @@ extends Node
 ## Every Bone and every Heart in the game is created here and nowhere else. Damage and
 ## kindness take the identical path (docs/economy.md):
 ##
-##   raw event -> base value -> x mood -> x augments -> x mastery -> x prestige -> payout
+##   raw event -> base -> x mood -> x augments -> x mastery -> x prestige -> x timed -> payout
 ##
 ## The maths itself lives in EconomyMath, which is pure and unit-tested; this autoload is
 ## the state and the wiring around it.
@@ -96,7 +96,11 @@ func grant(currency: StringName, amount: float, world_pos: Vector2 = Vector2.ZER
 		# Letting them into either total would make cosmetics pay for prestige.
 		_lifetime[currency] = lifetime_of(currency) + amount
 		run_earnings += amount
-	_last_payout_pos = world_pos
+	# Only a payout that happened *somewhere* moves it. Contract claims and arcade wins are
+	# granted from a panel and carry no world position at all, and letting their Vector2.ZERO
+	# through parks the knockout fountain in the corner of the screen until the next hit.
+	if world_pos != Vector2.ZERO:
+		_last_payout_pos = world_pos
 	EventBus.payout.emit(currency, amount, world_pos)
 	EventBus.currency_changed.emit(currency, balance_of(currency))
 
@@ -118,14 +122,108 @@ func marrow_multiplier() -> float:
 func grime_multiplier() -> float:
 	return MoodMath.grime_penalty(grime, ItemDB.balance.grime_max_penalty)
 
+## The one shared slot for a temporary multiplier, as `id -> [multiplier, deadline msec]`.
+##
+## **One slot, not one per feature.** The arcade's boosts (docs/decisions.md D32), the Dream
+## Journal and Overtime Pay all want the same thing, and three multipliers applied in three
+## places is how a pipeline drifts — this one is a product, `payout_for` multiplies by it, and
+## nothing else in the game has to know any of those features exist.
+##
+## **Never saved.** A buff that survived a restart is a buff you farm by restarting. The
+## deadlines are `Time.get_ticks_msec()` — engine ticks since boot — so it cannot be persisted
+## even by accident, and `to_save()` does not mention it deliberately.
+##
+## **Expiry is read, not scheduled.** An entry dies when the clock passes it, whether or not
+## anything is processing and whether or not any node is in the tree: there is no timer to
+## leak and nothing to unregister when a page closes.
+var _temp_effects: Dictionary = {}
+
+## The product changed — added, replaced, or noticed expired. Local rather than on EventBus:
+## the arcade page is the only thing that reads it, and a signal on the bus is a promise to
+## every listener in the game that this is a thing they should care about.
+signal temp_multiplier_changed(multiplier: float)
+
+## Adds or refreshes a timed effect. `seconds` is wall-clock from now.
+##
+## An id is a slot, not a stack: a second win from the same machine refreshes its own effect
+## rather than piling up. A weaker offer never replaces a stronger live one — a x1.1 from a
+## spin must not cancel the x5 the player won a minute ago — and an equal one extends it, so
+## a deadline can only ever move outward.
+func add_temp_multiplier(id: StringName, multiplier: float, seconds: float) -> void:
+	if id == &"" or multiplier <= 1.0 or seconds <= 0.0:
+		return
+	var now := Time.get_ticks_msec()
+	var deadline := now + int(seconds * 1000.0)
+	if _temp_effects.has(id):
+		var live: Array = _temp_effects[id]
+		if int(live[1]) > now:
+			if float(live[0]) > multiplier:
+				return
+			deadline = maxi(deadline, int(live[1]))
+	_temp_effects[id] = [multiplier, deadline]
+	temp_multiplier_changed.emit(temp_multiplier())
+
+## The product of every live effect, and 1.0 when there are none.
+##
+## Expired entries are dropped here and nowhere else, which is safe because `payout_for` calls
+## this on every payout in the game — nothing accumulates for longer than the next hit.
+func temp_multiplier() -> float:
+	if _temp_effects.is_empty():
+		return 1.0
+	var now := Time.get_ticks_msec()
+	var product := 1.0
+	var expired: Array = []
+	for id in _temp_effects:
+		var effect: Array = _temp_effects[id]
+		if int(effect[1]) <= now:
+			expired.append(id)
+			continue
+		product *= float(effect[0])
+	for id in expired:
+		_temp_effects.erase(id)
+	if not expired.is_empty():
+		temp_multiplier_changed.emit(product)
+	return product
+
+## What is live, longest remaining first, for a UI printing a countdown:
+## `[{"id": StringName, "multiplier": float, "seconds_left": float}]`.
+func temp_effects() -> Array[Dictionary]:
+	var now := Time.get_ticks_msec()
+	var out: Array[Dictionary] = []
+	for id in _temp_effects:
+		var effect: Array = _temp_effects[id]
+		var left := float(int(effect[1]) - now) / 1000.0
+		if left <= 0.0:
+			continue
+		out.append({"id": id, "multiplier": float(effect[0]), "seconds_left": left})
+	out.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		return float(a["seconds_left"]) > float(b["seconds_left"]))
+	return out
+
+## Drops every live effect. For the suites, which compute an expected payout from the
+## multipliers in force and cannot do that against a buff an earlier suite happened to win.
+func clear_temp_multipliers() -> void:
+	if _temp_effects.is_empty():
+		return
+	_temp_effects.clear()
+	temp_multiplier_changed.emit(1.0)
+
 ## The pipeline, in one place so its order cannot drift between damage and kindness.
+##
+## The timed multiplier is applied here rather than inside `EconomyMath.payout_for`, which is
+## pure, unit-tested against exactly five multipliers, and reachable from the `-s` runner that
+## has no autoloads to hold a deadline. Multiplication commutes, so "last" is a matter of
+## reading order and not of arithmetic.
+##
+## Dollars never come through here (D31), so a timed boost cannot multiply them — which is the
+## point: a x5 that also paid Dollars would let the arcade print its own admission fee.
 func payout_for(base: float, source_id: StringName) -> float:
 	return EconomyMath.payout_for(
 		base,
 		mood_multiplier(),
 		Progression.get_modifier(source_id, &"payout_mult"),
 		Progression.mastery_multiplier(source_id),
-		marrow_multiplier())
+		marrow_multiplier()) * temp_multiplier() * Milestones.income_multiplier()
 
 func _on_damage_dealt(info: HitInfo) -> void:
 	round_damage += info.amount
@@ -133,6 +231,11 @@ func _on_damage_dealt(info: HitInfo) -> void:
 	var bones := payout_for(
 		info.amount * ItemDB.balance.bones_per_damage * grime_multiplier(), info.source_id)
 	grant(BONES, bones, info.position)
+	# `damage:<item_id>`, which turns "deal N damage with the mace" into pure data for every
+	# weapon in the game at once — HitInfo has always carried source_id and nothing read it
+	# for this. Emitted with the damage as its count, so a contract counts damage rather
+	# than swings; `use:<item_id>` counts the swings and the two are different questions.
+	EventBus.contract_event.emit(&"damage:%s" % info.source_id, int(info.amount))
 	# Flat, whatever the weapon and whatever the damage: Dollars count acts, not power
 	# (docs/decisions.md D31). No world position, so no floating number — a "+1" beside
 	# every Bones payout would double the noise of the busiest event in the game.
@@ -221,13 +324,14 @@ func _process(delta: float) -> void:
 ## Accrual for time the game was closed. Only automation earns offline.
 ##
 ## **Offline pays the stable multipliers and not the volatile ones** — prestige and the
-## Mastery Pool, never mood, per-item augments or an item's own mastery rank. That is a
-## decision, not an omission (docs/economy.md): mood is a live value the player was not
-## there to maintain, so paying eight hours of income at whatever mood he happened to be
-## left in either rewards parking him at an extreme before quitting or punishes a session
-## that ended mid-swing. Prestige and the pool are properties of the save, so they are
-## honest to apply while nobody is watching. Until M3.5-A this called `grant()` directly
-## and offline income got *none* of the four, while online automation got all of them.
+## Mastery Pool, never mood, a timed boost, per-item augments or an item's own mastery
+## rank. That is a decision, not an omission (docs/economy.md): mood is a live value the
+## player was not there to maintain, so paying eight hours of income at whatever mood he
+## happened to be left in either rewards parking him at an extreme before quitting or
+## punishes a session that ended mid-swing. Prestige and the pool are properties of the
+## save, so they are honest to apply while nobody is watching. Until M3.5-A this called
+## `grant()` directly and offline income got *none* of the four, while online automation
+## got all of them.
 ##
 ## Returns {currency: amount} for what was earned, so the caller can show a summary.
 func apply_offline_earnings(last_played_unix: int) -> Dictionary:

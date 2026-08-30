@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="PackedScene" path="res://Scenes/NPCs/gorilla.tscn" id="1_85yqx"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="2_fuyxo"]
+
+[resource]
+script = ExtResource("2_fuyxo")
+id = &"gorilla"
+display_name = "Gorilla"
+description = "Four hundred pounds of considered opinion, crossing your desk."
+category = 4
+cost = 45000
+scene = ExtResource("1_85yqx")
+requires = Array[StringName]([&"goose"])
+sort_order = 70

@@ -127,7 +127,7 @@ func _the_strip_opens_the_panels() -> void:
 	if panels == null:
 		return
 	for entry in [["Toys", &"shop"], ["Upgrades", &"tree"], ["Jobs", &"contracts"],
-			["Rebirth", &"prestige"], ["Settings", &"settings"]]:
+			["Arcade", &"arcade"], ["Settings", &"settings"]]:
 		var tab := _button_labelled(entry[0], panels)
 		_check("the strip has a '%s' tab" % entry[0], tab != null)
 		if tab == null:
@@ -163,7 +163,7 @@ func _the_card_is_one_size() -> void:
 	if card == null:
 		return
 	var sizes: Array[Vector2] = []
-	for page in [&"shop", &"tree", &"contracts", &"prestige", &"settings"]:
+	for page in [&"shop", &"tree", &"contracts", &"arcade", &"settings"]:
 		panels.call("show_panel", page)
 		await _settle()
 		sizes.append(card.size)
@@ -329,7 +329,7 @@ func _escape_menu_opens_and_closes() -> void:
 func _every_visible_button_is_reachable() -> void:
 	_suite("every visible button")
 	var panels := _find(_main, "PanelLayer")
-	for page in [&"shop", &"tree", &"contracts", &"prestige", &"settings"]:
+	for page in [&"shop", &"tree", &"contracts", &"arcade", &"settings"]:
 		panels.call("show_panel", page)
 		await _settle()
 		var blocked := 0
@@ -413,7 +413,7 @@ func _the_rebirth_page_refuses_an_empty_reset() -> void:
 	var panels := _find(_main, "PanelLayer")
 	if panels == null:
 		return
-	panels.call("show_panel", &"prestige")
+	panels.call("show_panel", &"arcade")
 	await _settle()
 
 	var page := _find(_main, "PrestigePanel")
@@ -448,7 +448,7 @@ func _the_rebirth_page_refuses_an_empty_reset() -> void:
 	# game one stray click from deleting the run — hours later, from a different page.
 	panels.call("close")
 	await _settle()
-	panels.call("show_panel", &"prestige")
+	panels.call("show_panel", &"arcade")
 	await _settle()
 	_check("closing the card disarms the reset",
 		_button_labelled("Reincarnate", page) != null)
@@ -483,7 +483,7 @@ func _the_tabs_are_one_width() -> void:
 	var report := "shut %s" % str(shut)
 
 	var drift: Array[String] = []
-	for page_id in [&"shop", &"tree", &"contracts", &"prestige", &"settings"]:
+	for page_id in [&"shop", &"tree", &"contracts", &"arcade", &"settings"]:
 		panels.call("show_panel", page_id)
 		await _settle()
 		var open_widths: Array[float] = []
@@ -724,7 +724,7 @@ func _every_page_is_readable() -> void:
 	if panels == null:
 		return
 	const FLOOR := 4.5
-	for page_id in [&"shop", &"tree", &"contracts", &"prestige", &"settings"]:
+	for page_id in [&"shop", &"tree", &"contracts", &"arcade", &"settings"]:
 		panels.call("show_panel", page_id)
 		await _settle()
 		var page := _pages_page(panels, page_id)
@@ -796,7 +796,7 @@ func _nothing_overflows_its_box() -> void:
 		return
 	var offenders: Array[String] = []
 	var checked := 0
-	for page_id in [&"shop", &"tree", &"contracts", &"prestige", &"settings"]:
+	for page_id in [&"shop", &"tree", &"contracts", &"arcade", &"settings"]:
 		panels.call("show_panel", page_id)
 		await _settle()
 		for node in _all_nodes(_main):

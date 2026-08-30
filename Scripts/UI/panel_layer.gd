@@ -108,10 +108,14 @@ func _build() -> void:
 	_add_page(&"shop", "Toys", &"crate", ShopPanel.new())
 	_add_page(&"tree", "Upgrades", &"star", AugmentPanel.new())
 	_add_page(&"contracts", "Jobs", &"scroll", ContractPanel.new())
-	# The ghost, not the dollar sign: Reincarnation stopped paying a currency when Marrow
-	# replaced Ectoplasm (D33), and a $ on this tab would promise the page sells something.
-	# It is a page about dying and coming back, which is what the ghost was always for.
-	_add_page(&"prestige", "Rebirth", &"ecto", PrestigePanel.new())
+	# The Arcade, where Rebirth was (docs/decisions.md D32). The old tab wore the ghost on the
+	# reasoning that a dollar sign would promise the page sells something; this page does not
+	# sell, it *takes*, and a room of machines that eat coins is what the mark now means.
+	#
+	# Reincarnation is not homeless: it is the last and biggest machine on that page. Handing
+	# back an entire run for a number that multiplies every life after it is the largest gamble
+	# in the game, and the arcade is where the gambles live.
+	_add_page(&"arcade", "Arcade", &"dollar", ArcadePanel.new())
 	_add_page(&"settings", "Settings", &"sliders", SettingsPanel.new())
 
 	_drawer = HoverDrawer.new()

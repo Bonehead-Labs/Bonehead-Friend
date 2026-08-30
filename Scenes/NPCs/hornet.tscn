@@ -1,0 +1,48 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/World/npc_base.gd" id="1_0dsdf"]
+[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="2_0p8s4"]
+
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_6f6oo"]
+friction = 0.95
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_6br6v"]
+radius = 14.0
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_qvfjo"]
+size = Vector2(34, 34)
+
+[node name="_Hornets" type="RigidBody2D" unique_id=975662871 node_paths=PackedStringArray("drag_area", "handle", "collider")]
+collision_layer = 4
+collision_mask = 7
+mass = 0.5
+physics_material_override = SubResource("PhysicsMaterial_6f6oo")
+script = ExtResource("1_0dsdf")
+lifetime_seconds = 55.0
+move_speed = 400.0
+steer_gain = 8.0
+flying = true
+spread_radius = 40.0
+attack_range = 60.0
+attack_impulse = 620.0
+windup_seconds = 0.12
+attack_period = 0.7
+swarm_count = 4
+item_id = &"hornet"
+drag_area = NodePath("DraggableArea")
+handle = NodePath("Handle")
+collider = NodePath("CollisionShape2D")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1791879596]
+shape = SubResource("CircleShape2D_6br6v")
+
+[node name="DraggableArea" type="Area2D" parent="." unique_id=1867361642]
+script = ExtResource("2_0p8s4")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=1202694362]
+shape = SubResource("RectangleShape2D_qvfjo")
+
+[node name="Handle" type="StaticBody2D" parent="." unique_id=1871393516]
+visible = false
+collision_layer = 0
+collision_mask = 0
