@@ -743,6 +743,35 @@ milestone board is also the third income axis rather than only a Dollar tap.
 claimed-flag, which is a save-shape decision and therefore belongs in the v4 bump with
 everything else.
 
+### D35 — A hit sounds like what hit him
+
+Added 2026-08-30, with the roster going from four melee weapons to thirty-plus.
+
+Every impact in the game played the same wooden clatter. That was right when the melee
+category was a bat, a pan and a mace; it stops being right the moment it contains a
+greatsword, a stapler and a tesla coil. **Material is what the ear is actually listening
+for** — a player who is working in another window and not looking at the desk should still
+be able to tell a sword from a keyboard.
+
+Five voices, synthesised like everything else (D12): wood (the original), metal (inharmonic
+partials, long decay — the difference between a bell and an organ pipe), soft (a low sine
+with no transient, because the *absence* of a transient is what reads as padded), plastic
+(short, dry, pitched above the wood so the two do not merge), and electric (noise through a
+rising sweep). Plus blasts at two sizes, a turret's dry crack, a roar, and the arcade's
+reel stop and wheel tick — which are the two sounds a casino actually runs on, both being
+the moment *before* the outcome.
+
+**Chosen by substring on the item id**, not by a table of every item. A per-item table
+would need editing for every new toy, which is exactly the D8 violation this avoids; the
+families are the ones the synthesiser has voices for, an unlisted item falls back by
+category, and an unknown category falls back to wood — so a new toy is never silent. The
+resolved voice is cached per source, because `_on_damage_dealt` runs on every contact for
+eight hours and a substring sweep per hit is a substring sweep per hit.
+
+*Consequence:* when the audio pass replaces synthesis with recorded assets, this becomes a
+field on `ItemData` and the lookup goes away. It is written down here so that pass knows
+the intent rather than inheriting a table it does not understand.
+
 ## Recommendations not yet decided
 
 Carried in the spec, owner's call before they matter:

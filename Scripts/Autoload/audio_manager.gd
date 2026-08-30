@@ -20,6 +20,9 @@ var _players: Array[AudioStreamPlayer] = []
 var _next := 0
 var _streams: Dictionary = {}
 var _muted := false
+## Resolved impact voices, because `_on_damage_dealt` runs on every contact for eight hours
+## and a substring sweep per hit is a substring sweep per hit.
+var _voice_cache: Dictionary = {}
 
 func _ready() -> void:
 	_ensure_bus()
@@ -80,7 +83,58 @@ func play(id: StringName, pitch_spread: float = 0.12, volume_db: float = 0.0) ->
 func _on_damage_dealt(info: HitInfo) -> void:
 	# Louder for bigger hits, so the audio carries the same information the numbers do.
 	var t := clampf(info.amount / 120.0, 0.0, 1.0)
-	play(&"impact", 0.18, lerpf(-12.0, 0.0, t))
+	play(impact_voice(info.source_id), 0.18, lerpf(-12.0, 0.0, t))
+
+## What a hit from this thing sounds like.
+##
+## Everything in the game hit with the same wooden clatter, which was fine while the roster
+## was a bat, a pan and a mace and stops being fine the moment it contains a greatsword, a
+## stapler and a tesla coil. Material is the only thing the ear is actually listening for:
+## a player who cannot see the desk should be able to tell a sword from a keyboard.
+##
+## Keyed on the item id, in this file, deliberately — every sound in the game is synthesised
+## here rather than loaded (docs/decisions.md D12), so this is where a sound *is*. When the
+## audio pass replaces synthesis with recorded assets, this table becomes a field on
+## ItemData and the lookup goes away. Until then, an unlisted item falls back by category,
+## and an unknown category falls back to wood, so a new toy is never silent.
+const MATERIAL_VOICES := {
+	&"metal": &"impact_metal",
+	&"soft": &"impact_soft",
+	&"plastic": &"impact_plastic",
+	&"electric": &"impact_electric",
+	&"wood": &"impact",
+}
+
+## Substrings, matched against the item id, longest-specific first. A table of every item
+## would need editing for every new toy — which is the D8 violation this avoids — and the
+## families here are the ones the synthesiser actually has voices for.
+const MATERIAL_HINTS := [
+	[&"electric", ["tesla", "laser", "energy", "rail", "lightning", "shock", "plasma", "taser"]],
+	[&"metal", ["sword", "katana", "blade", "machete", "cleaver", "axe", "halberd", "scythe",
+		"rapier", "sickle", "pick", "crowbar", "wrench", "hammer", "flail", "mace", "anvil",
+		"pan", "skillet", "iron", "wrench", "scissors", "knife", "saw", "spanner", "girder"]],
+	[&"plastic", ["keyboard", "stapler", "mouse", "monitor", "lamp", "tape", "punch", "mug",
+		"ruler", "bottle", "toy", "ball"]],
+	[&"soft", ["pillow", "cushion", "plush", "sponge", "glove", "boxing", "bag", "fish"]],
+]
+
+func impact_voice(source_id: StringName) -> StringName:
+	if _voice_cache.has(source_id):
+		return _voice_cache[source_id]
+	var voice := _resolve_voice(source_id)
+	_voice_cache[source_id] = voice
+	return voice
+
+func _resolve_voice(source_id: StringName) -> StringName:
+	var id := String(source_id)
+	for entry in MATERIAL_HINTS:
+		for hint in entry[1]:
+			if id.contains(hint):
+				return MATERIAL_VOICES[entry[0]]
+	var item := ItemDB.get_item(source_id)
+	if item and item.category == ItemData.CATEGORY_THROWABLE:
+		return &"explode_small"
+	return &"impact"
 
 ## Petting fires several times a second, so this is quiet and wide-spread on purpose —
 ## the same sample at the same pitch four times a second is a fire alarm, not affection.
@@ -130,6 +184,38 @@ func _build_streams() -> void:
 	_streams[&"ui_denied"] = _wav(_denied_samples())
 	_streams[&"ui_open"] = _wav(_sweep_samples(0.12, 320.0, 720.0))
 	_streams[&"ui_close"] = _wav(_sweep_samples(0.10, 700.0, 300.0))
+
+	# --- materials ---
+	#
+	# One voice per family the roster actually contains. See `impact_voice`: the ear is
+	# listening for material, and a thirty-weapon melee category that all sounds like a
+	# baseball bat is thirty weapons that feel like one.
+	_streams[&"impact_metal"] = _wav(_ring_samples())
+	_streams[&"impact_soft"] = _wav(_thud_samples())
+	_streams[&"impact_plastic"] = _wav(_clack_samples())
+	_streams[&"impact_electric"] = _wav(_zap_samples())
+
+	# --- explosives, turrets and things that are alive ---
+	_streams[&"explode_small"] = _wav(_boom_samples(0.45, 90.0))
+	_streams[&"explode_big"] = _wav(_boom_samples(0.95, 55.0))
+	_streams[&"turret_fire"] = _wav(_shot_samples())
+	_streams[&"npc_roar"] = _wav(_roar_samples())
+	_streams[&"npc_stomp"] = _wav(_boom_samples(0.22, 70.0))
+
+	# --- the arcade ---
+	#
+	# A casino is mostly sound. The reel stop and the wheel tick are the two that do the
+	# work: both are the moment *before* the outcome, which is the part a player is
+	# actually there for.
+	_streams[&"reel_stop"] = _wav(_tick_samples(0.07, 420.0, 0.8))
+	_streams[&"wheel_tick"] = _wav(_tick_samples(0.02, 1800.0, 0.5))
+	_streams[&"card_deal"] = _wav(_card_samples())
+	_streams[&"jackpot"] = _wav(_chime_samples([523.0, 659.0, 784.0, 1046.0, 1318.0, 1568.0], 1.30))
+	_streams[&"lose"] = _wav(_sweep_samples(0.28, 420.0, 140.0))
+
+	# --- his own afternoon ---
+	_streams[&"bounce"] = _wav(_bounce_samples())
+	_streams[&"splash"] = _wav(_splash_samples())
 
 ## A woodblock tick: one decaying sine with a noise transient on the front. The transient
 ## is what makes it read as a physical contact rather than as a beep.
@@ -189,6 +275,175 @@ func _sweep_samples(duration: float, from_hz: float, to_hz: float) -> PackedFloa
 		phase += TAU * lerpf(from_hz, to_hz, progress) / float(MIX_RATE)
 		var envelope := sin(PI * clampf(progress, 0.0, 1.0))
 		out[i] = clampf(sin(phase) * 0.30 * envelope, -1.0, 1.0)
+	return out
+
+## Struck metal: partials that are not whole multiples of the fundamental, which is the
+## entire difference between a bell and an organ pipe. Long decay, because metal rings.
+func _ring_samples() -> PackedFloat32Array:
+	var duration := 0.55
+	var count := int(MIX_RATE * duration)
+	var out := PackedFloat32Array()
+	out.resize(count)
+	# Ratios lifted from a struck bar rather than a harmonic series: 1 : 2.76 : 5.40 is what
+	# stops it sounding like a note being played at him.
+	var partials := [[520.0, 0.42, 7.0], [1435.0, 0.26, 11.0], [2808.0, 0.15, 16.0]]
+	for i in count:
+		var t := float(i) / float(MIX_RATE)
+		var value := 0.0
+		for partial in partials:
+			value += sin(TAU * float(partial[0]) * t) * float(partial[1]) * exp(-t * float(partial[2]))
+		out[i] = clampf(value, -1.0, 1.0)
+	return out
+
+## Something padded landing on something padded: a low sine with almost no noise on it and
+## a fast decay. The absence of a transient is what makes it read as soft.
+func _thud_samples() -> PackedFloat32Array:
+	var count := int(MIX_RATE * 0.20)
+	var out := PackedFloat32Array()
+	out.resize(count)
+	for i in count:
+		var t := float(i) / float(MIX_RATE)
+		var envelope := exp(-t * 22.0)
+		out[i] = clampf(sin(TAU * lerpf(120.0, 74.0, minf(t * 6.0, 1.0)) * t) * 0.75 * envelope,
+			-1.0, 1.0)
+	return out
+
+## Hollow plastic — a keyboard, a stapler, a mug. Very short, dry, and pitched high enough
+## to sit above the wooden clatter it is meant to be distinguished from.
+func _clack_samples() -> PackedFloat32Array:
+	var count := int(MIX_RATE * 0.07)
+	var out := PackedFloat32Array()
+	out.resize(count)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 20260901
+	for i in count:
+		var t := float(i) / float(MIX_RATE)
+		var envelope := exp(-t * 120.0)
+		var body := sin(TAU * 940.0 * t) * 0.5 + sin(TAU * 1580.0 * t) * 0.25
+		out[i] = clampf((body + rng.randf_range(-0.3, 0.3) * exp(-t * 700.0)) * envelope,
+			-1.0, 1.0)
+	return out
+
+## A discharge: noise pushed through a fast rising sweep, so it cracks and then hisses.
+func _zap_samples() -> PackedFloat32Array:
+	var duration := 0.26
+	var count := int(MIX_RATE * duration)
+	var out := PackedFloat32Array()
+	out.resize(count)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 20260902
+	var phase := 0.0
+	for i in count:
+		var t := float(i) / float(MIX_RATE)
+		var progress := t / duration
+		phase += TAU * lerpf(180.0, 2400.0, progress * progress) / float(MIX_RATE)
+		var envelope := exp(-t * 14.0)
+		out[i] = clampf((sin(phase) * 0.45 + rng.randf_range(-0.5, 0.5)) * envelope, -1.0, 1.0)
+	return out
+
+## A blast: a noise burst over a falling low body, with a tail long enough to sound like
+## the room. `pitch` sets how big the thing was.
+func _boom_samples(duration: float, pitch: float) -> PackedFloat32Array:
+	var count := int(MIX_RATE * duration)
+	var out := PackedFloat32Array()
+	out.resize(count)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 20260903
+	var low := 0.0
+	for i in count:
+		var t := float(i) / float(MIX_RATE)
+		# Two envelopes: a crack that is gone in a few milliseconds and a body that is not.
+		var crack := exp(-t * 90.0)
+		var body := exp(-t * (2.2 / duration))
+		low = lerpf(low, rng.randf_range(-1.0, 1.0), 0.25)
+		var boom := sin(TAU * lerpf(pitch, pitch * 0.45, minf(t * 3.0, 1.0)) * t)
+		out[i] = clampf(low * 0.55 * (crack * 0.6 + body * 0.5) + boom * 0.6 * body, -1.0, 1.0)
+	return out
+
+## A turret round: a crack with no ring on it. Deliberately dry — a turret fires several
+## times a second for hours, and anything with a tail becomes a drone.
+func _shot_samples() -> PackedFloat32Array:
+	var count := int(MIX_RATE * 0.06)
+	var out := PackedFloat32Array()
+	out.resize(count)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 20260904
+	for i in count:
+		var t := float(i) / float(MIX_RATE)
+		var envelope := exp(-t * 160.0)
+		out[i] = clampf((rng.randf_range(-1.0, 1.0) * 0.7 + sin(TAU * 210.0 * t) * 0.5)
+			* envelope, -1.0, 1.0)
+	return out
+
+## Something large and annoyed. Low noise with a slow wobble on it, which is what turns a
+## rumble into a voice.
+func _roar_samples() -> PackedFloat32Array:
+	var duration := 0.75
+	var count := int(MIX_RATE * duration)
+	var out := PackedFloat32Array()
+	out.resize(count)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 20260905
+	var low := 0.0
+	for i in count:
+		var t := float(i) / float(MIX_RATE)
+		low = lerpf(low, rng.randf_range(-1.0, 1.0), 0.12)
+		var wobble := 0.75 + 0.25 * sin(TAU * 7.0 * t)
+		var envelope := sin(PI * clampf(t / duration, 0.0, 1.0))
+		var growl := sin(TAU * 88.0 * t) * 0.5 + sin(TAU * 131.0 * t) * 0.3
+		out[i] = clampf((low * 0.7 + growl) * wobble * envelope * 0.8, -1.0, 1.0)
+	return out
+
+## A card off the top of the shoe: a very short band of noise and nothing else. Anything
+## pitched makes it a whistle rather than paper.
+func _card_samples() -> PackedFloat32Array:
+	var count := int(MIX_RATE * 0.055)
+	var out := PackedFloat32Array()
+	out.resize(count)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 20260906
+	var high := 0.0
+	var last := 0.0
+	for i in count:
+		var t := float(i) / float(MIX_RATE)
+		var noise := rng.randf_range(-1.0, 1.0)
+		# One-pole high pass: the paper is in the top of the band, and the low end of raw
+		# noise reads as wind.
+		high = noise - last + high * 0.86
+		last = noise
+		out[i] = clampf(high * 0.5 * sin(PI * clampf(t / 0.055, 0.0, 1.0)), -1.0, 1.0)
+	return out
+
+## A boing. Pitch rises hard on the compression and falls back as it leaves, which is the
+## whole shape of a trampoline and is why this is a sweep rather than a note.
+func _bounce_samples() -> PackedFloat32Array:
+	var duration := 0.30
+	var count := int(MIX_RATE * duration)
+	var out := PackedFloat32Array()
+	out.resize(count)
+	var phase := 0.0
+	for i in count:
+		var t := float(i) / float(MIX_RATE)
+		var progress := t / duration
+		var pitch := 180.0 + 520.0 * sin(PI * progress)
+		phase += TAU * pitch / float(MIX_RATE)
+		out[i] = clampf(sin(phase) * 0.55 * exp(-t * 6.5), -1.0, 1.0)
+	return out
+
+## Water. Filtered noise that opens and closes, with no pitch in it at all.
+func _splash_samples() -> PackedFloat32Array:
+	var duration := 0.35
+	var count := int(MIX_RATE * duration)
+	var out := PackedFloat32Array()
+	out.resize(count)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 20260907
+	var band := 0.0
+	for i in count:
+		var t := float(i) / float(MIX_RATE)
+		band = lerpf(band, rng.randf_range(-1.0, 1.0), 0.55)
+		var envelope := sin(PI * clampf(t / duration, 0.0, 1.0)) * exp(-t * 3.0)
+		out[i] = clampf(band * envelope * 0.8, -1.0, 1.0)
 	return out
 
 ## A clatter: filtered noise over a short low thump. Bones hitting a bat.
