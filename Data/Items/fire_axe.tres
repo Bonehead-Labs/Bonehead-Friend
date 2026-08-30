@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/fire_axe.png" id="1_xql6b"]
+[ext_resource type="PackedScene" path="res://Scenes/Bodies/fire_axe.tscn" id="2_5q44l"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_krsjs"]
+
+[resource]
+script = ExtResource("3_krsjs")
+id = &"fire_axe"
+display_name = "Fire Axe"
+description = "Break glass in case of skeleton. Everything about it is in the head."
+cost = 24000
+scene = ExtResource("2_5q44l")
+icon = ExtResource("1_xql6b")
+requires = Array[StringName]([&"cleaver"])
+sort_order = 62

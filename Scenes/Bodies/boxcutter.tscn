@@ -1,0 +1,63 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Bodies/weapon_base.gd" id="1_ggwn3"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/boxcutter.png" id="2_tulmi"]
+[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_bx3tc"]
+[ext_resource type="Script" path="res://Scripts/Components/effects_player.gd" id="4_ihi2t"]
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_v0wua"]
+radius = 4.0
+height = 28.0
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ay6wh"]
+size = Vector2(16, 28)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_nqnna"]
+size = Vector2(36, 36)
+
+[node name="_Boxcutter" type="RigidBody2D" unique_id=17582703 node_paths=PackedStringArray("drag_area", "handle", "sprite", "collider", "Effects_Player")]
+collision_layer = 4
+collision_mask = 7
+mass = 2.5
+center_of_mass_mode = 1
+center_of_mass = Vector2(-10, 10)
+contact_monitor = true
+max_contacts_reported = 4
+script = ExtResource("1_ggwn3")
+damage_mult = 2.2
+item_id = &"boxcutter"
+drag_area = NodePath("DraggableArea")
+handle = NodePath("Handle")
+sprite = NodePath("Sprite")
+collider = NodePath("CollisionShape2D")
+Effects_Player = NodePath("EffectsPlayer")
+grip_offset = Vector2(-12, 12)
+
+[node name="Sprite" type="Sprite2D" parent="." unique_id=169896368]
+scale = Vector2(2, 2)
+texture = ExtResource("2_tulmi")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1601835920]
+position = Vector2(10, -10)
+rotation = 0.7853982
+shape = SubResource("CapsuleShape2D_v0wua")
+
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="." unique_id=1606852061]
+position = Vector2(-12, 12)
+rotation = 0.7853982
+shape = SubResource("RectangleShape2D_ay6wh")
+
+[node name="DraggableArea" type="Area2D" parent="." unique_id=955237187]
+script = ExtResource("3_bx3tc")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=2033963204]
+position = Vector2(-12, 12)
+shape = SubResource("RectangleShape2D_nqnna")
+
+[node name="Handle" type="StaticBody2D" parent="." unique_id=1801376549]
+visible = false
+collision_layer = 0
+collision_mask = 0
+
+[node name="EffectsPlayer" type="Node" parent="." unique_id=1256786231]
+script = ExtResource("4_ihi2t")

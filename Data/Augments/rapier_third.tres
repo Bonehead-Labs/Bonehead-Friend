@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_hlm1g"]
+
+[resource]
+script = ExtResource("1_hlm1g")
+id = &"rapier_third"
+item_id = &"rapier"
+display_name = "Heavier Pommel"
+effect_key = &"mass_mult"
+effect_per_level = 1.08
+cost_base = 346
+cost_growth = 1.09
+sort_order = 2

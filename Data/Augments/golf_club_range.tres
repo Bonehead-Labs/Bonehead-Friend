@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_uxdl3"]
+
+[resource]
+script = ExtResource("1_uxdl3")
+id = &"golf_club_range"
+item_id = &"golf_club"
+display_name = "Driving Range"
+description = "A tee, a swing arm and a bucket that never empties."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 21600
+currency = 1
+is_automation = true
+automation_rate = 105.0
+device_mount = &"tripod"
+requires_mastery = 25

@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_6ymb1"]
+
+[resource]
+script = ExtResource("1_6ymb1")
+id = &"axe_break_glass"
+item_id = &"fire_axe"
+display_name = "Break Glass"
+description = "The case reglazes itself every few seconds, which is more than the axe does."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 10400
+currency = 1
+is_automation = true
+automation_rate = 49.0
+device_mount = &"tripod"
+requires_mastery = 25

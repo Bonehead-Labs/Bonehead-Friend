@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/pellet_turret.png" id="1_3b6c6"]
+[ext_resource type="PackedScene" path="res://Scenes/Turrets/pellet_turret.tscn" id="2_b8yk2"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_8wk7c"]
+
+[resource]
+script = ExtResource("3_8wk7c")
+id = &"pellet_turret"
+display_name = "Pellet Turret"
+description = "Plinks away at him from the corner of the desk without being asked. It is not accurate. It does not need to be."
+category = 5
+cost = 4000
+scene = ExtResource("2_b8yk2")
+icon = ExtResource("1_3b6c6")
+requires = Array[StringName]([&"pistol"])
+sort_order = 10

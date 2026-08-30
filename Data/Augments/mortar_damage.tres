@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_mbcpo"]
+
+[resource]
+script = ExtResource("1_mbcpo")
+id = &"mortar_damage"
+item_id = &"mortar"
+display_name = "Bigger Shell"
+effect_key = &"damage_mult"
+effect_per_level = 1.15
+cost_base = 7250
+cost_growth = 1.12

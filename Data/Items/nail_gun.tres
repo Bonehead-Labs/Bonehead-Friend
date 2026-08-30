@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/nail_gun.png" id="1_utr4q"]
+[ext_resource type="PackedScene" path="res://Scenes/Turrets/nail_gun.tscn" id="2_wa6gc"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_fsnfb"]
+
+[resource]
+script = ExtResource("3_fsnfb")
+id = &"nail_gun"
+display_name = "Nail Gun Stand"
+description = "A nail gun clamped to a post, firing at whatever is in front of it. Usually him."
+category = 5
+cost = 9000
+scene = ExtResource("2_wa6gc")
+icon = ExtResource("1_utr4q")
+requires = Array[StringName]([&"pellet_turret"])
+sort_order = 20

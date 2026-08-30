@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_22vkp"]
+
+[resource]
+script = ExtResource("1_22vkp")
+id = &"pipe_wrench_payout"
+item_id = &"pipe_wrench"
+display_name = "Call-Out Fee"
+effect_key = &"payout_mult"
+effect_per_level = 1.12
+cost_base = 917
+sort_order = 1

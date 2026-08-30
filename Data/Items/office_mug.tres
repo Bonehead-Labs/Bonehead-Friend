@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/office_mug.png" id="1_l2oet"]
+[ext_resource type="PackedScene" path="res://Scenes/Bodies/office_mug.tscn" id="2_hgcs6"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_42lmi"]
+
+[resource]
+script = ExtResource("3_42lmi")
+id = &"office_mug"
+display_name = "Office Mug"
+description = "Glazed, chipped and still full. Half a kilo of somebody else's coffee."
+cost = 3800
+scene = ExtResource("2_hgcs6")
+icon = ExtResource("1_l2oet")
+requires = Array[StringName]([&"stapler"])
+sort_order = 43

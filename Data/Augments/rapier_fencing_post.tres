@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_cl1a2"]
+
+[resource]
+script = ExtResource("1_cl1a2")
+id = &"rapier_fencing_post"
+item_id = &"rapier"
+display_name = "Fencing Post"
+description = "A sprung arm that lunges, recovers and lunges again. Its form is excellent."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 5400
+currency = 1
+is_automation = true
+automation_rate = 24.0
+device_mount = &"tripod"
+requires_mastery = 25

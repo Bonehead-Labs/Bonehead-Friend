@@ -1,0 +1,76 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Bodies/turret_base.gd" id="1_g6aoa"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/tesla_coil.png" id="2_qndor"]
+[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_g4tp2"]
+[ext_resource type="Script" path="res://Scripts/Components/effects_player.gd" id="4_um6pk"]
+
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_4x2vl"]
+friction = 0.95
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_pn0l2"]
+size = Vector2(48, 16)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_g7whk"]
+size = Vector2(24, 44)
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_yx1p2"]
+radius = 14.0
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_8wu4n"]
+size = Vector2(60, 96)
+
+[node name="_TeslaCoil" type="RigidBody2D" unique_id=1166300559 node_paths=PackedStringArray("drag_area", "handle", "sprite", "collider", "Effects_Player")]
+collision_layer = 4
+collision_mask = 7
+mass = 14.0
+physics_material_override = SubResource("PhysicsMaterial_4x2vl")
+center_of_mass_mode = 1
+center_of_mass = Vector2(0, 30)
+contact_monitor = true
+max_contacts_reported = 4
+script = ExtResource("1_g6aoa")
+fire_interval = 1.6
+blast_radius = 64.0
+blast_force = 2400.0
+damage_mult = 1.35
+max_range = 300.0
+aim_lean_degrees = 5.0
+recoil_pixels = 1.0
+item_id = &"tesla_coil"
+drag_area = NodePath("DraggableArea")
+handle = NodePath("Handle")
+sprite = NodePath("Sprite")
+collider = NodePath("CollisionShape2D")
+Effects_Player = NodePath("EffectsPlayer")
+grip_offset = Vector2(0, -32)
+
+[node name="Sprite" type="Sprite2D" parent="." unique_id=444363261]
+scale = Vector2(2, 2)
+texture = ExtResource("2_qndor")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=102757174]
+position = Vector2(0, 36)
+shape = SubResource("RectangleShape2D_pn0l2")
+
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="." unique_id=790526448]
+position = Vector2(0, 2)
+shape = SubResource("RectangleShape2D_g7whk")
+
+[node name="CollisionShape2D3" type="CollisionShape2D" parent="." unique_id=1312114210]
+position = Vector2(0, -30)
+shape = SubResource("CircleShape2D_yx1p2")
+
+[node name="DraggableArea" type="Area2D" parent="." unique_id=1038801559]
+script = ExtResource("3_g4tp2")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=1283509542]
+shape = SubResource("RectangleShape2D_8wu4n")
+
+[node name="Handle" type="StaticBody2D" parent="." unique_id=1630809925]
+visible = false
+collision_layer = 0
+collision_mask = 0
+
+[node name="EffectsPlayer" type="Node" parent="." unique_id=1775703748]
+script = ExtResource("4_um6pk")

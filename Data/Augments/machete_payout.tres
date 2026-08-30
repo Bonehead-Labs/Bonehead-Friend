@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_02ous"]
+
+[resource]
+script = ExtResource("1_02ous")
+id = &"machete_payout"
+item_id = &"machete"
+display_name = "Clearing Contract"
+effect_key = &"payout_mult"
+effect_per_level = 1.12
+cost_base = 320
+sort_order = 1

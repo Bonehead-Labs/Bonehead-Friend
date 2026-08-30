@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_7xxgk"]
+
+[resource]
+script = ExtResource("1_7xxgk")
+id = &"machete_clearing_rig"
+item_id = &"machete"
+display_name = "Clearing Rig"
+description = "It sweeps the same arc across the desk all day. Something is always in it."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 4000
+currency = 1
+is_automation = true
+automation_rate = 17.0
+device_mount = &"tripod"
+requires_mastery = 25

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/letter_opener.png" id="1_k405e"]
+[ext_resource type="PackedScene" path="res://Scenes/Bodies/letter_opener.tscn" id="2_io7ny"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_ha6vm"]
+
+[resource]
+script = ExtResource("3_ha6vm")
+id = &"letter_opener"
+display_name = "Letter Opener"
+description = "Brass, dull along the edge and unforgivably pointed at the end."
+cost = 1800
+scene = ExtResource("2_io7ny")
+icon = ExtResource("1_k405e")
+requires = Array[StringName]([&"boxcutter"])
+sort_order = 27

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/rapier.png" id="1_jdw5m"]
+[ext_resource type="PackedScene" path="res://Scenes/Bodies/rapier.tscn" id="2_0h3n1"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_tl5mq"]
+
+[resource]
+script = ExtResource("3_tl5mq")
+id = &"rapier"
+display_name = "Rapier"
+description = "All point and no weight. It hurts far more than it moves him."
+cost = 11500
+scene = ExtResource("2_0h3n1")
+icon = ExtResource("1_jdw5m")
+requires = Array[StringName]([&"machete"])
+sort_order = 52

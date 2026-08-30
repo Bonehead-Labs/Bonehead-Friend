@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_bdrmy"]
+
+[resource]
+script = ExtResource("1_bdrmy")
+id = &"cleaver_block"
+item_id = &"cleaver"
+display_name = "Chopping Block"
+description = "A block, a cleaver and a very regular rhythm."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 7600
+currency = 1
+is_automation = true
+automation_rate = 35.0
+device_mount = &"tripod"
+requires_mastery = 25

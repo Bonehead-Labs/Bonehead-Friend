@@ -1,0 +1,71 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Bodies/weapon_base.gd" id="1_gyxg7"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/sickle.png" id="2_w3en4"]
+[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_kgw0c"]
+[ext_resource type="Script" path="res://Scripts/Components/effects_player.gd" id="4_6qtbo"]
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_2u0yl"]
+radius = 6.0
+height = 44.0
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_57hpq"]
+size = Vector2(12, 16)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_rt66e"]
+size = Vector2(16, 28)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_d605l"]
+size = Vector2(36, 36)
+
+[node name="_Sickle" type="RigidBody2D" unique_id=1228115712 node_paths=PackedStringArray("drag_area", "handle", "sprite", "collider", "Effects_Player")]
+collision_layer = 4
+collision_mask = 7
+mass = 4.2
+center_of_mass_mode = 1
+center_of_mass = Vector2(12, -14)
+contact_monitor = true
+max_contacts_reported = 4
+script = ExtResource("1_gyxg7")
+damage_mult = 2.2
+item_id = &"sickle"
+drag_area = NodePath("DraggableArea")
+handle = NodePath("Handle")
+sprite = NodePath("Sprite")
+collider = NodePath("CollisionShape2D")
+Effects_Player = NodePath("EffectsPlayer")
+grip_offset = Vector2(-28, 28)
+
+[node name="Sprite" type="Sprite2D" parent="." unique_id=1233274359]
+scale = Vector2(2, 2)
+texture = ExtResource("2_w3en4")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1938946325]
+position = Vector2(10, -18)
+rotation = 1.3089969
+shape = SubResource("CapsuleShape2D_2u0yl")
+
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="." unique_id=62912503]
+position = Vector2(-4, 4)
+rotation = 0.7853982
+shape = SubResource("RectangleShape2D_57hpq")
+
+[node name="CollisionShape2D3" type="CollisionShape2D" parent="." unique_id=1001457597]
+position = Vector2(-22, 22)
+rotation = 0.7853982
+shape = SubResource("RectangleShape2D_rt66e")
+
+[node name="DraggableArea" type="Area2D" parent="." unique_id=2078708276]
+script = ExtResource("3_kgw0c")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=1839873717]
+position = Vector2(-22, 22)
+shape = SubResource("RectangleShape2D_d605l")
+
+[node name="Handle" type="StaticBody2D" parent="." unique_id=1110119624]
+visible = false
+collision_layer = 0
+collision_mask = 0
+
+[node name="EffectsPlayer" type="Node" parent="." unique_id=1638062988]
+script = ExtResource("4_6qtbo")

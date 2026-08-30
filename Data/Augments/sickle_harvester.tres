@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_v6ajd"]
+
+[resource]
+script = ExtResource("1_v6ajd")
+id = &"sickle_harvester"
+item_id = &"sickle"
+display_name = "Harvester"
+description = "It works round the desk in slow circles, cutting whatever it finds there."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 2320
+currency = 1
+is_automation = true
+automation_rate = 8.6
+device_mount = &"tripod"
+requires_mastery = 25

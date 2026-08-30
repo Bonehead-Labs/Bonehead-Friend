@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/demolition_charge.png" id="1_2iadq"]
+[ext_resource type="PackedScene" path="res://Scenes/Bodies/demolition_charge.tscn" id="2_k2pu8"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_5k3gj"]
+
+[resource]
+script = ExtResource("3_5k3gj")
+id = &"demolition_charge"
+display_name = "Demolition Charge"
+description = "Four bricks, a timer and a permit nobody checked. It clears the whole desk."
+category = 1
+cost = 200000
+scene = ExtResource("2_k2pu8")
+icon = ExtResource("1_2iadq")
+requires = Array[StringName]([&"implosion_charge"])
+sort_order = 120

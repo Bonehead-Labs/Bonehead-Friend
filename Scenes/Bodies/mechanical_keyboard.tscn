@@ -1,0 +1,59 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Bodies/weapon_base.gd" id="1_8j3rm"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/mechanical_keyboard.png" id="2_ianrx"]
+[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_xt4nd"]
+[ext_resource type="Script" path="res://Scripts/Components/effects_player.gd" id="4_ossrv"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ipknm"]
+size = Vector2(132, 24)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_1t12g"]
+size = Vector2(144, 32)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_3j7x1"]
+size = Vector2(144, 60)
+
+[node name="_MechanicalKeyboard" type="RigidBody2D" unique_id=211752564 node_paths=PackedStringArray("drag_area", "handle", "sprite", "collider", "Effects_Player")]
+collision_layer = 4
+collision_mask = 7
+mass = 8.0
+center_of_mass_mode = 1
+center_of_mass = Vector2(0, 12)
+contact_monitor = true
+max_contacts_reported = 4
+script = ExtResource("1_8j3rm")
+damage_mult = 1.95
+item_id = &"mechanical_keyboard"
+drag_area = NodePath("DraggableArea")
+handle = NodePath("Handle")
+sprite = NodePath("Sprite")
+collider = NodePath("CollisionShape2D")
+Effects_Player = NodePath("EffectsPlayer")
+grip_offset = Vector2(-64, 0)
+
+[node name="Sprite" type="Sprite2D" parent="." unique_id=1828552074]
+scale = Vector2(2, 2)
+texture = ExtResource("2_ianrx")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1397839659]
+position = Vector2(0, -16)
+shape = SubResource("RectangleShape2D_ipknm")
+
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="." unique_id=1547530117]
+position = Vector2(0, 12)
+shape = SubResource("RectangleShape2D_1t12g")
+
+[node name="DraggableArea" type="Area2D" parent="." unique_id=501777692]
+script = ExtResource("3_xt4nd")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=2057298688]
+shape = SubResource("RectangleShape2D_3j7x1")
+
+[node name="Handle" type="StaticBody2D" parent="." unique_id=1905013762]
+visible = false
+collision_layer = 0
+collision_mask = 0
+
+[node name="EffectsPlayer" type="Node" parent="." unique_id=1188847868]
+script = ExtResource("4_ossrv")

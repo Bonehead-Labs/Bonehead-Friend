@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/flamethrower.png" id="1_tkubn"]
+[ext_resource type="PackedScene" path="res://Scenes/Turrets/flamethrower.tscn" id="2_6nnan"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_k0l3b"]
+
+[resource]
+script = ExtResource("3_k0l3b")
+id = &"flamethrower"
+display_name = "Flamethrower Nozzle"
+description = "Short reach, long memory. Set it down next to him and leave the room."
+category = 5
+cost = 45000
+scene = ExtResource("2_6nnan")
+icon = ExtResource("1_tkubn")
+requires = Array[StringName]([&"tesla_coil"])
+sort_order = 40

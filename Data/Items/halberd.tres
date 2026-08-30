@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/halberd.png" id="1_hd3n1"]
+[ext_resource type="PackedScene" path="res://Scenes/Bodies/halberd.tscn" id="2_phvgl"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_1ej7v"]
+
+[resource]
+script = ExtResource("3_1ej7v")
+id = &"halberd"
+display_name = "Halberd"
+description = "An axe, a hook and a spike on a very long stick. Any of them will do."
+cost = 105000
+scene = ExtResource("2_phvgl")
+icon = ExtResource("1_hd3n1")
+requires = Array[StringName]([&"scythe"])
+sort_order = 82

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/stapler.png" id="1_jra3v"]
+[ext_resource type="PackedScene" path="res://Scenes/Bodies/stapler.tscn" id="2_lu8y0"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_guhc5"]
+
+[resource]
+script = ExtResource("3_guhc5")
+id = &"stapler"
+display_name = "Stapler"
+description = "It weighs nothing and it hurts enormously. Nobody has explained this."
+cost = 1750
+scene = ExtResource("2_lu8y0")
+icon = ExtResource("1_jra3v")
+requires = Array[StringName]([&"frying_pan"])
+sort_order = 41

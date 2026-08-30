@@ -1,0 +1,61 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Bodies/weapon_base.gd" id="1_y0v34"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/pipe_wrench.png" id="2_aj1h2"]
+[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_qinxa"]
+[ext_resource type="Script" path="res://Scripts/Components/effects_player.gd" id="4_jod1e"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_iyfug"]
+size = Vector2(36, 28)
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_hvhxg"]
+radius = 7.0
+height = 64.0
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_vcx74"]
+size = Vector2(34, 56)
+
+[node name="_PipeWrench" type="RigidBody2D" unique_id=1773816883 node_paths=PackedStringArray("drag_area", "handle", "sprite", "collider", "Effects_Player")]
+collision_layer = 4
+collision_mask = 7
+mass = 16.0
+center_of_mass_mode = 1
+center_of_mass = Vector2(0, -28)
+contact_monitor = true
+max_contacts_reported = 4
+script = ExtResource("1_y0v34")
+damage_mult = 1.75
+item_id = &"pipe_wrench"
+drag_area = NodePath("DraggableArea")
+handle = NodePath("Handle")
+sprite = NodePath("Sprite")
+collider = NodePath("CollisionShape2D")
+Effects_Player = NodePath("EffectsPlayer")
+grip_offset = Vector2(0, 44)
+
+[node name="Sprite" type="Sprite2D" parent="." unique_id=1609580896]
+scale = Vector2(2, 2)
+texture = ExtResource("2_aj1h2")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=2040001052]
+position = Vector2(0, -36)
+shape = SubResource("RectangleShape2D_iyfug")
+
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="." unique_id=1687234318]
+position = Vector2(0, 18)
+shape = SubResource("CapsuleShape2D_hvhxg")
+
+[node name="DraggableArea" type="Area2D" parent="." unique_id=1155561310]
+script = ExtResource("3_qinxa")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=171590928]
+position = Vector2(0, 26)
+shape = SubResource("RectangleShape2D_vcx74")
+
+[node name="Handle" type="StaticBody2D" parent="." unique_id=781165832]
+visible = false
+collision_layer = 0
+collision_mask = 0
+
+[node name="EffectsPlayer" type="Node" parent="." unique_id=739101184]
+script = ExtResource("4_jod1e")

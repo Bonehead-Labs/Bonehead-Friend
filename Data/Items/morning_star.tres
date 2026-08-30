@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/morning_star.png" id="1_ci23c"]
+[ext_resource type="PackedScene" path="res://Scenes/Bodies/morning_star.tscn" id="2_hgygp"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_rwenq"]
+
+[resource]
+script = ExtResource("3_rwenq")
+id = &"morning_star"
+display_name = "Morning Star"
+description = "The mace, after it took up a hobby."
+cost = 165000
+scene = ExtResource("2_hgygp")
+icon = ExtResource("1_ci23c")
+requires = Array[StringName]([&"nunchaku"])
+sort_order = 53

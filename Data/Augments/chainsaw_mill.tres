@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_wuu7y"]
+
+[resource]
+script = ExtResource("1_wuu7y")
+id = &"chainsaw_mill"
+item_id = &"chainsaw"
+display_name = "Sawmill"
+description = "A bench, a feed rail, and a bar that is never switched off."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 100800
+currency = 1
+is_automation = true
+automation_rate = 501.0
+device_mount = &"tripod"
+requires_mastery = 25

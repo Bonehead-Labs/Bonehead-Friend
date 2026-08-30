@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_dkner"]
+
+[resource]
+script = ExtResource("1_dkner")
+id = &"greatsword_executioner"
+item_id = &"greatsword"
+display_name = "Executioner"
+description = "One enormous swing, and no interest whatsoever in a second."
+tier = 2
+effect_key = &"damage_mult"
+effect_per_level = 1.8
+max_levels = 1
+cost_base = 69750
+cost_growth = 1.0
+exclusive_group = &"flavour"
+requires_mastery = 10

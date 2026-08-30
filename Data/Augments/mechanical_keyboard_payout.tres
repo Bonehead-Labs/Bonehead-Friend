@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_guksl"]
+
+[resource]
+script = ExtResource("1_guksl")
+id = &"mechanical_keyboard_payout"
+item_id = &"mechanical_keyboard"
+display_name = "Productivity Bonus"
+effect_key = &"payout_mult"
+effect_per_level = 1.12
+cost_base = 1303
+sort_order = 1

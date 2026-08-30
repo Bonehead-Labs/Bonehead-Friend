@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_2s4id"]
+
+[resource]
+script = ExtResource("1_2s4id")
+id = &"implosion_compressor"
+item_id = &"implosion_charge"
+display_name = "Compressor"
+description = "It gathers up the desk, holds it a moment, and gives most of it back."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 52800
+currency = 1
+is_automation = true
+automation_rate = 261.0
+device_mount = &"tripod"
+requires_mastery = 25

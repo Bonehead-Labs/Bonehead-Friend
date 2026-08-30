@@ -1,0 +1,74 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Bodies/throwable_base.gd" id="1_gdakt"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/satchel_charge.png" id="2_f70ko"]
+[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_q3mpc"]
+[ext_resource type="Script" path="res://Scripts/Components/effects_player.gd" id="4_isc72"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_o3qmq"]
+size = Vector2(52, 44)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_au556"]
+size = Vector2(12, 52)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_acyr7"]
+size = Vector2(60, 72)
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_essfd"]
+radius = 320.0
+
+[node name="_SatchelCharge" type="RigidBody2D" unique_id=1453113255 node_paths=PackedStringArray("explosion_area", "drag_area", "handle", "sprite", "collider", "Effects_Player")]
+collision_layer = 4
+collision_mask = 7
+mass = 6.0
+center_of_mass_mode = 1
+center_of_mass = Vector2(0, 14)
+contact_monitor = true
+max_contacts_reported = 4
+script = ExtResource("1_gdakt")
+damage_mult = 1.5
+throwable_delay = 3.5
+explosion_area = NodePath("ExplosionArea")
+max_force = 22000.0
+item_id = &"satchel_charge"
+drag_area = NodePath("DraggableArea")
+handle = NodePath("Handle")
+sprite = NodePath("Sprite")
+collider = NodePath("CollisionShape2D")
+Effects_Player = NodePath("EffectsPlayer")
+grip_offset = Vector2(-24, -32)
+
+[node name="Sprite" type="Sprite2D" parent="." unique_id=1703478690]
+scale = Vector2(2, 2)
+texture = ExtResource("2_f70ko")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1930253417]
+position = Vector2(0, 14)
+shape = SubResource("RectangleShape2D_o3qmq")
+
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="." unique_id=1842433519]
+position = Vector2(-18, -18)
+rotation = 0.43633232
+shape = SubResource("RectangleShape2D_au556")
+
+[node name="DraggableArea" type="Area2D" parent="." unique_id=582277900]
+script = ExtResource("3_q3mpc")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=1510439692]
+shape = SubResource("RectangleShape2D_acyr7")
+
+[node name="Handle" type="StaticBody2D" parent="." unique_id=881037314]
+visible = false
+collision_layer = 0
+collision_mask = 0
+
+[node name="EffectsPlayer" type="Node" parent="." unique_id=1991086020]
+script = ExtResource("4_isc72")
+
+[node name="ExplosionArea" type="Area2D" parent="." unique_id=751283244]
+collision_layer = 0
+collision_mask = 6
+monitoring = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="ExplosionArea" unique_id=780561948]
+shape = SubResource("CircleShape2D_essfd")

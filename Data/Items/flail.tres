@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/flail.png" id="1_jxrfr"]
+[ext_resource type="PackedScene" path="res://Scenes/Bodies/flail.tscn" id="2_n7r1h"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_3fqq4"]
+
+[resource]
+script = ExtResource("3_3fqq4")
+id = &"flail"
+display_name = "Flail"
+description = "A ball of iron on a chain. Neither you nor it knows where it is going."
+cost = 250000
+scene = ExtResource("2_n7r1h")
+icon = ExtResource("1_jxrfr")
+requires = Array[StringName]([&"morning_star"])
+sort_order = 54

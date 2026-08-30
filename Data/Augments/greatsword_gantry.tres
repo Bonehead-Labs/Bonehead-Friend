@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_3dvhd"]
+
+[resource]
+script = ExtResource("1_3dvhd")
+id = &"greatsword_gantry"
+item_id = &"greatsword"
+display_name = "Gantry Swing"
+description = "A gantry lifts it, aims it, and lets go. Then it does that again."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 62800
+currency = 1
+is_automation = true
+automation_rate = 311.0
+device_mount = &"tripod"
+requires_mastery = 25

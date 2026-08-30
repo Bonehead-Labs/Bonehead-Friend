@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/greatsword.png" id="1_neau1"]
+[ext_resource type="PackedScene" path="res://Scenes/Bodies/greatsword.tscn" id="2_kh1g5"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_0qaun"]
+
+[resource]
+script = ExtResource("3_0qaun")
+id = &"greatsword"
+display_name = "Greatsword"
+description = "Two hands and a long lever. Stopping it is harder than starting it."
+cost = 155000
+scene = ExtResource("2_kh1g5")
+icon = ExtResource("1_neau1")
+requires = Array[StringName]([&"halberd"])
+sort_order = 87

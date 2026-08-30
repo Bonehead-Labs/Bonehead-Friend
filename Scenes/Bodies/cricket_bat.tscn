@@ -1,0 +1,61 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Bodies/weapon_base.gd" id="1_1xcbv"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/cricket_bat.png" id="2_t0cyo"]
+[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_maom5"]
+[ext_resource type="Script" path="res://Scripts/Components/effects_player.gd" id="4_ayd3x"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_q568k"]
+size = Vector2(40, 72)
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_l4xi7"]
+radius = 7.0
+height = 48.0
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_e24uw"]
+size = Vector2(34, 48)
+
+[node name="_CricketBat" type="RigidBody2D" unique_id=967622293 node_paths=PackedStringArray("drag_area", "handle", "sprite", "collider", "Effects_Player")]
+collision_layer = 4
+collision_mask = 7
+mass = 6.0
+center_of_mass_mode = 1
+center_of_mass = Vector2(0, -24)
+contact_monitor = true
+max_contacts_reported = 4
+script = ExtResource("1_1xcbv")
+damage_mult = 1.45
+item_id = &"cricket_bat"
+drag_area = NodePath("DraggableArea")
+handle = NodePath("Handle")
+sprite = NodePath("Sprite")
+collider = NodePath("CollisionShape2D")
+Effects_Player = NodePath("EffectsPlayer")
+grip_offset = Vector2(0, 52)
+
+[node name="Sprite" type="Sprite2D" parent="." unique_id=1390748091]
+scale = Vector2(2, 2)
+texture = ExtResource("2_t0cyo")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1082029424]
+position = Vector2(0, -22)
+shape = SubResource("RectangleShape2D_q568k")
+
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="." unique_id=67479733]
+position = Vector2(0, 34)
+shape = SubResource("CapsuleShape2D_l4xi7")
+
+[node name="DraggableArea" type="Area2D" parent="." unique_id=57570656]
+script = ExtResource("3_maom5")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=441351660]
+position = Vector2(0, 36)
+shape = SubResource("RectangleShape2D_e24uw")
+
+[node name="Handle" type="StaticBody2D" parent="." unique_id=1201407515]
+visible = false
+collision_layer = 0
+collision_mask = 0
+
+[node name="EffectsPlayer" type="Node" parent="." unique_id=1216876539]
+script = ExtResource("4_ayd3x")

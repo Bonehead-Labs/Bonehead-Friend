@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/tyre_iron.png" id="1_gl7k1"]
+[ext_resource type="PackedScene" path="res://Scenes/Bodies/tyre_iron.tscn" id="2_fti1f"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_o46hy"]
+
+[resource]
+script = ExtResource("3_o46hy")
+id = &"tyre_iron"
+display_name = "Tyre Iron"
+description = "Kept in the boot for emergencies. This counts."
+cost = 8000
+scene = ExtResource("2_fti1f")
+icon = ExtResource("1_gl7k1")
+requires = Array[StringName]([&"cricket_bat"])
+sort_order = 45

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/golf_club.png" id="1_uioqe"]
+[ext_resource type="PackedScene" path="res://Scenes/Bodies/golf_club.tscn" id="2_ahsl6"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_4gei5"]
+
+[resource]
+script = ExtResource("3_4gei5")
+id = &"golf_club"
+display_name = "Golf Club"
+description = "Long shaft, small head, enormous head speed. Keep your eye on him."
+cost = 52000
+scene = ExtResource("2_ahsl6")
+icon = ExtResource("1_uioqe")
+requires = Array[StringName]([&"pipe_wrench"])
+sort_order = 50

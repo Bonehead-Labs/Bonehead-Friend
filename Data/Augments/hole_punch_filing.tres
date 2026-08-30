@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_vaphp"]
+
+[resource]
+script = ExtResource("1_vaphp")
+id = &"hole_punch_filing"
+item_id = &"hole_punch"
+display_name = "Filing System"
+description = "Everything gets two holes. Everything."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 5400
+currency = 1
+is_automation = true
+automation_rate = 24.0
+device_mount = &"tripod"
+requires_mastery = 25

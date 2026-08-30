@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/implosion_charge.png" id="1_68lrh"]
+[ext_resource type="PackedScene" path="res://Scenes/Bodies/implosion_charge.tscn" id="2_nsrft"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_vfk67"]
+
+[resource]
+script = ExtResource("3_vfk67")
+id = &"implosion_charge"
+display_name = "Implosion Charge"
+description = "Collects the desk first, then goes off in the middle of it."
+category = 1
+cost = 130000
+scene = ExtResource("2_nsrft")
+icon = ExtResource("1_68lrh")
+requires = Array[StringName]([&"satchel_charge"])
+sort_order = 110

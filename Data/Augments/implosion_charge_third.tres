@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_u1n4g"]
+
+[resource]
+script = ExtResource("1_u1n4g")
+id = &"implosion_charge_third"
+item_id = &"implosion_charge"
+display_name = "Denser Core"
+effect_key = &"mass_mult"
+effect_per_level = 1.08
+cost_base = 3599
+cost_growth = 1.09
+sort_order = 2

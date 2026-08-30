@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_3db74"]
+
+[resource]
+script = ExtResource("1_3db74")
+id = &"rail_gun_payout"
+item_id = &"rail_gun"
+display_name = "Demolition Rates"
+effect_key = &"payout_mult"
+effect_per_level = 1.12
+cost_base = 3198
+sort_order = 1

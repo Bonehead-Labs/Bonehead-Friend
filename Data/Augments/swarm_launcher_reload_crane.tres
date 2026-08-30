@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_nfs3h"]
+
+[resource]
+script = ExtResource("1_nfs3h")
+id = &"swarm_launcher_reload_crane"
+item_id = &"swarm_launcher"
+display_name = "Reload Crane"
+description = "It restocks itself. You are now the least busy thing on the desk."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 160800
+currency = 1
+is_automation = true
+automation_rate = 801.0
+device_mount = &"tripod"
+requires_mastery = 25

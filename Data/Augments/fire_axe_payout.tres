@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_s0qry"]
+
+[resource]
+script = ExtResource("1_s0qry")
+id = &"fire_axe_payout"
+item_id = &"fire_axe"
+display_name = "Emergency Callout"
+effect_key = &"payout_mult"
+effect_per_level = 1.12
+cost_base = 881
+sort_order = 1

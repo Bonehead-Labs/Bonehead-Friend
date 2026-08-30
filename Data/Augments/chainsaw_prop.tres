@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_t5ku5"]
+
+[resource]
+script = ExtResource("1_t5ku5")
+id = &"chainsaw_prop"
+item_id = &"chainsaw"
+display_name = "Prop Chain"
+description = "Rubber teeth and a lot of noise. It terrifies him and cannot cut butter."
+tier = 2
+effect_key = &"damage_mult"
+effect_per_level = 0.3
+max_levels = 1
+cost_base = 112500
+cost_growth = 1.0
+exclusive_group = &"flavour"
+requires_mastery = 10
+sort_order = 2

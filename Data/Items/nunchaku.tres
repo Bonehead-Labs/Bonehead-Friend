@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/nunchaku.png" id="1_1kq5q"]
+[ext_resource type="PackedScene" path="res://Scenes/Bodies/nunchaku.tscn" id="2_l0b2d"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_sloqj"]
+
+[resource]
+script = ExtResource("3_sloqj")
+id = &"nunchaku"
+display_name = "Nunchaku"
+description = "Mostly you hit yourself. Occasionally you hit him, and it is spectacular."
+cost = 76000
+scene = ExtResource("2_l0b2d")
+icon = ExtResource("1_1kq5q")
+requires = Array[StringName]([&"golf_club"])
+sort_order = 51

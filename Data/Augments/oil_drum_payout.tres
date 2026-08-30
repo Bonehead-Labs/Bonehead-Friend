@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_v2g76"]
+
+[resource]
+script = ExtResource("1_v2g76")
+id = &"oil_drum_payout"
+item_id = &"oil_drum"
+display_name = "Salvage Yard Rates"
+effect_key = &"payout_mult"
+effect_per_level = 1.12
+cost_base = 1022
+sort_order = 1

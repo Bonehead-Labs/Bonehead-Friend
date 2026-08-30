@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/shears.png" id="1_m0dwh"]
+[ext_resource type="PackedScene" path="res://Scenes/Bodies/shears.tscn" id="2_uex1m"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_24247"]
+
+[resource]
+script = ExtResource("3_24247")
+id = &"shears"
+display_name = "Tailor's Shears"
+description = "Two levers and a screw. He is not fabric, and nobody has told them."
+cost = 2600
+scene = ExtResource("2_uex1m")
+icon = ExtResource("1_m0dwh")
+requires = Array[StringName]([&"letter_opener"])
+sort_order = 32

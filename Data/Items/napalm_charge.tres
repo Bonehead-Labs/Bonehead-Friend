@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/napalm_charge.png" id="1_g7hgv"]
+[ext_resource type="PackedScene" path="res://Scenes/Bodies/napalm_charge.tscn" id="2_ja4r3"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_s5gpe"]
+
+[resource]
+script = ExtResource("3_s5gpe")
+id = &"napalm_charge"
+display_name = "Napalm Charge"
+description = "Lights a patch of desk and keeps it lit. Standing in it is his decision."
+category = 1
+cost = 62000
+scene = ExtResource("2_ja4r3")
+icon = ExtResource("1_g7hgv")
+requires = Array[StringName]([&"cluster_bomb"])
+sort_order = 90

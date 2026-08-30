@@ -1,0 +1,62 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Bodies/throwable_base.gd" id="1_ojo31"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/demolition_charge.png" id="2_6g68u"]
+[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_e8edq"]
+[ext_resource type="Script" path="res://Scripts/Components/effects_player.gd" id="4_kwluj"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ls0yw"]
+size = Vector2(74, 88)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_yogpm"]
+size = Vector2(90, 104)
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_q8aib"]
+radius = 400.0
+
+[node name="_DemolitionCharge" type="RigidBody2D" unique_id=1365852803 node_paths=PackedStringArray("explosion_area", "drag_area", "handle", "sprite", "collider", "Effects_Player")]
+collision_layer = 4
+collision_mask = 7
+mass = 9.0
+contact_monitor = true
+max_contacts_reported = 4
+script = ExtResource("1_ojo31")
+damage_mult = 1.8
+throwable_delay = 4.0
+explosion_area = NodePath("ExplosionArea")
+max_force = 30000.0
+item_id = &"demolition_charge"
+drag_area = NodePath("DraggableArea")
+handle = NodePath("Handle")
+sprite = NodePath("Sprite")
+collider = NodePath("CollisionShape2D")
+Effects_Player = NodePath("EffectsPlayer")
+
+[node name="Sprite" type="Sprite2D" parent="." unique_id=273300060]
+scale = Vector2(2, 2)
+texture = ExtResource("2_6g68u")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1289093405]
+shape = SubResource("RectangleShape2D_ls0yw")
+
+[node name="DraggableArea" type="Area2D" parent="." unique_id=323529515]
+script = ExtResource("3_e8edq")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=1671851491]
+shape = SubResource("RectangleShape2D_yogpm")
+
+[node name="Handle" type="StaticBody2D" parent="." unique_id=2050637569]
+visible = false
+collision_layer = 0
+collision_mask = 0
+
+[node name="EffectsPlayer" type="Node" parent="." unique_id=1315107782]
+script = ExtResource("4_kwluj")
+
+[node name="ExplosionArea" type="Area2D" parent="." unique_id=1471487677]
+collision_layer = 0
+collision_mask = 6
+monitoring = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="ExplosionArea" unique_id=1164675408]
+shape = SubResource("CircleShape2D_q8aib")

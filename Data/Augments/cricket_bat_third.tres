@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_20h7j"]
+
+[resource]
+script = ExtResource("1_20h7j")
+id = &"cricket_bat_third"
+item_id = &"cricket_bat"
+display_name = "Denser Willow"
+effect_key = &"mass_mult"
+effect_per_level = 1.08
+cost_base = 181
+cost_growth = 1.09
+sort_order = 2

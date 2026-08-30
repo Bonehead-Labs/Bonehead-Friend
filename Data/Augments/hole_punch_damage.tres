@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_yv8n7"]
+
+[resource]
+script = ExtResource("1_yv8n7")
+id = &"hole_punch_damage"
+item_id = &"hole_punch"
+display_name = "Twelve-Sheet Capacity"
+effect_key = &"damage_mult"
+effect_per_level = 1.15
+cost_base = 568
+cost_growth = 1.12

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/crowbar.png" id="1_alps1"]
+[ext_resource type="PackedScene" path="res://Scenes/Bodies/crowbar.tscn" id="2_ijhuq"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_y2v6p"]
+
+[resource]
+script = ExtResource("3_y2v6p")
+id = &"crowbar"
+display_name = "Crowbar"
+description = "Opens crates, opens doors, opens him."
+cost = 2600
+scene = ExtResource("2_ijhuq")
+icon = ExtResource("1_alps1")
+requires = Array[StringName]([&"rolling_pin"])
+sort_order = 42

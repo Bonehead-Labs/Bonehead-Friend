@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_x100w"]
+
+[resource]
+script = ExtResource("1_x100w")
+id = &"nail_hopper"
+item_id = &"nail_bomb"
+display_name = "Nail Hopper"
+description = "It feeds itself from a bucket of nails. The bucket is never empty."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 6000
+currency = 1
+is_automation = true
+automation_rate = 27.0
+device_mount = &"tripod"
+requires_mastery = 25

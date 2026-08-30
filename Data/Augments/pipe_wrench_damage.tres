@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_ipl5h"]
+
+[resource]
+script = ExtResource("1_ipl5h")
+id = &"pipe_wrench_damage"
+item_id = &"pipe_wrench"
+display_name = "Wider Jaw"
+effect_key = &"damage_mult"
+effect_per_level = 1.15
+cost_base = 1175
+cost_growth = 1.12

@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_jhu83"]
+
+[resource]
+script = ExtResource("1_jhu83")
+id = &"pick_pit_head"
+item_id = &"war_pick"
+display_name = "Pit Head"
+description = "A winch that lifts the beak and lets go of it, on a schedule."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 20800
+currency = 1
+is_automation = true
+automation_rate = 101.0
+device_mount = &"tripod"
+requires_mastery = 25

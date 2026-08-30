@@ -1,0 +1,67 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Bodies/cluster_bomb.gd" id="1_oeiuu"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/napalm_charge.png" id="2_dcdxu"]
+[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_e6e7l"]
+[ext_resource type="Script" path="res://Scripts/Components/effects_player.gd" id="4_q3tlx"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_2w6yl"]
+size = Vector2(64, 64)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_esqh0"]
+size = Vector2(80, 80)
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_p0u6t"]
+radius = 150.0
+
+[node name="_NapalmCharge" type="RigidBody2D" unique_id=1419997759 node_paths=PackedStringArray("explosion_area", "drag_area", "handle", "sprite", "collider", "Effects_Player")]
+collision_layer = 4
+collision_mask = 7
+mass = 2.8
+contact_monitor = true
+max_contacts_reported = 4
+script = ExtResource("1_oeiuu")
+submunitions = 14
+submunition_interval = 0.42
+spread = 42.0
+submunition_radius = 140.0
+submunition_force = 2800.0
+damage_mult = 0.9
+throwable_delay = 2.4
+explosion_area = NodePath("ExplosionArea")
+max_force = 3000.0
+item_id = &"napalm_charge"
+drag_area = NodePath("DraggableArea")
+handle = NodePath("Handle")
+sprite = NodePath("Sprite")
+collider = NodePath("CollisionShape2D")
+Effects_Player = NodePath("EffectsPlayer")
+
+[node name="Sprite" type="Sprite2D" parent="." unique_id=1445499455]
+scale = Vector2(2, 2)
+texture = ExtResource("2_dcdxu")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=220911547]
+shape = SubResource("RectangleShape2D_2w6yl")
+
+[node name="DraggableArea" type="Area2D" parent="." unique_id=652581899]
+script = ExtResource("3_e6e7l")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=393624027]
+shape = SubResource("RectangleShape2D_esqh0")
+
+[node name="Handle" type="StaticBody2D" parent="." unique_id=1193662822]
+visible = false
+collision_layer = 0
+collision_mask = 0
+
+[node name="EffectsPlayer" type="Node" parent="." unique_id=2012883310]
+script = ExtResource("4_q3tlx")
+
+[node name="ExplosionArea" type="Area2D" parent="." unique_id=840983605]
+collision_layer = 0
+collision_mask = 6
+monitoring = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="ExplosionArea" unique_id=2121138]
+shape = SubResource("CircleShape2D_p0u6t")

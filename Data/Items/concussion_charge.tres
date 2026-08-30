@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/concussion_charge.png" id="1_h5le8"]
+[ext_resource type="PackedScene" path="res://Scenes/Bodies/concussion_charge.tscn" id="2_dr851"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_3a4ec"]
+
+[resource]
+script = ExtResource("3_3a4ec")
+id = &"concussion_charge"
+display_name = "Concussion Charge"
+description = "All shove and no bite. He travels further than he ever has and arrives more or less intact."
+category = 1
+cost = 9000
+scene = ExtResource("2_dr851")
+icon = ExtResource("1_h5le8")
+requires = Array[StringName]([&"firework"])
+sort_order = 40

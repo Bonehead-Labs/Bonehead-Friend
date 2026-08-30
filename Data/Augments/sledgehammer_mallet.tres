@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_ixebp"]
+
+[resource]
+script = ExtResource("1_ixebp")
+id = &"sledgehammer_mallet"
+item_id = &"sledgehammer"
+display_name = "Rubber Mallet"
+description = "Twelve pounds of soft rubber. Enormously loud, entirely harmless."
+tier = 2
+effect_key = &"damage_mult"
+effect_per_level = 0.35
+max_levels = 1
+cost_base = 8500
+cost_growth = 1.0
+exclusive_group = &"flavour"
+requires_mastery = 10
+sort_order = 2

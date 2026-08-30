@@ -1,0 +1,59 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Bodies/weapon_base.gd" id="1_1e8jt"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/stapler.png" id="2_yw1u4"]
+[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_4ojti"]
+[ext_resource type="Script" path="res://Scripts/Components/effects_player.gd" id="4_rmdo8"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_julhk"]
+size = Vector2(76, 20)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_wshfo"]
+size = Vector2(84, 16)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_clp2t"]
+size = Vector2(80, 40)
+
+[node name="_Stapler" type="RigidBody2D" unique_id=1016028455 node_paths=PackedStringArray("drag_area", "handle", "sprite", "collider", "Effects_Player")]
+collision_layer = 4
+collision_mask = 7
+mass = 2.5
+center_of_mass_mode = 1
+center_of_mass = Vector2(0, 4)
+contact_monitor = true
+max_contacts_reported = 4
+script = ExtResource("1_1e8jt")
+damage_mult = 1.35
+item_id = &"stapler"
+drag_area = NodePath("DraggableArea")
+handle = NodePath("Handle")
+sprite = NodePath("Sprite")
+collider = NodePath("CollisionShape2D")
+Effects_Player = NodePath("EffectsPlayer")
+grip_offset = Vector2(0, -12)
+
+[node name="Sprite" type="Sprite2D" parent="." unique_id=1568827412]
+scale = Vector2(2, 2)
+texture = ExtResource("2_yw1u4")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1766603804]
+position = Vector2(0, -8)
+shape = SubResource("RectangleShape2D_julhk")
+
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="." unique_id=684817967]
+position = Vector2(0, 10)
+shape = SubResource("RectangleShape2D_wshfo")
+
+[node name="DraggableArea" type="Area2D" parent="." unique_id=207618721]
+script = ExtResource("3_4ojti")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=1734549279]
+shape = SubResource("RectangleShape2D_clp2t")
+
+[node name="Handle" type="StaticBody2D" parent="." unique_id=1605637785]
+visible = false
+collision_layer = 0
+collision_mask = 0
+
+[node name="EffectsPlayer" type="Node" parent="." unique_id=677764856]
+script = ExtResource("4_rmdo8")

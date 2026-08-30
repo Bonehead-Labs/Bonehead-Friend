@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/cluster_bomb.png" id="1_86k5f"]
+[ext_resource type="PackedScene" path="res://Scenes/Bodies/cluster_bomb.tscn" id="2_vtana"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_n0v32"]
+
+[resource]
+script = ExtResource("3_n0v32")
+id = &"cluster_bomb"
+display_name = "Cluster Bomb"
+description = "The casing is the boring part. It opens on the way down."
+category = 1
+cost = 42000
+scene = ExtResource("2_vtana")
+icon = ExtResource("1_86k5f")
+requires = Array[StringName]([&"oil_drum"])
+sort_order = 80

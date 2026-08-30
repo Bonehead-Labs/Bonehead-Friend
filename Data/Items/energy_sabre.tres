@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/energy_sabre.png" id="1_r3ibj"]
+[ext_resource type="PackedScene" path="res://Scenes/Bodies/energy_sabre.tscn" id="2_vsqpd"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_w3bgf"]
+
+[resource]
+script = ExtResource("3_w3bgf")
+id = &"energy_sabre"
+display_name = "Energy Sabre"
+description = "A hilt and a rumour. Nothing to weigh, and it goes through him anyway."
+cost = 35000
+scene = ExtResource("2_vsqpd")
+icon = ExtResource("1_r3ibj")
+requires = Array[StringName]([&"fire_axe"])
+sort_order = 67

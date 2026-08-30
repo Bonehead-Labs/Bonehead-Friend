@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_ywrnh"]
+
+[resource]
+script = ExtResource("1_ywrnh")
+id = &"tesla_coil_grid_tap"
+item_id = &"tesla_coil"
+display_name = "Grid Tap"
+description = "Wired straight into the building. The building was not asked."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 8800
+currency = 1
+is_automation = true
+automation_rate = 41.0
+device_mount = &"tripod"
+requires_mastery = 25

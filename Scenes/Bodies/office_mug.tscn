@@ -1,0 +1,59 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Bodies/weapon_base.gd" id="1_10jln"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/office_mug.png" id="2_s0vya"]
+[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_cxjjg"]
+[ext_resource type="Script" path="res://Scripts/Components/effects_player.gd" id="4_6sbhg"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_mtmyd"]
+size = Vector2(40, 52)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_7jugy"]
+size = Vector2(12, 24)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_e761a"]
+size = Vector2(56, 56)
+
+[node name="_OfficeMug" type="RigidBody2D" unique_id=2143842276 node_paths=PackedStringArray("drag_area", "handle", "sprite", "collider", "Effects_Player")]
+collision_layer = 4
+collision_mask = 7
+mass = 4.0
+center_of_mass_mode = 1
+center_of_mass = Vector2(-4, 12)
+contact_monitor = true
+max_contacts_reported = 4
+script = ExtResource("1_10jln")
+damage_mult = 1.5
+item_id = &"office_mug"
+drag_area = NodePath("DraggableArea")
+handle = NodePath("Handle")
+sprite = NodePath("Sprite")
+collider = NodePath("CollisionShape2D")
+Effects_Player = NodePath("EffectsPlayer")
+grip_offset = Vector2(22, -8)
+
+[node name="Sprite" type="Sprite2D" parent="." unique_id=1737284243]
+scale = Vector2(2, 2)
+texture = ExtResource("2_s0vya")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1781624487]
+position = Vector2(-4, 0)
+shape = SubResource("RectangleShape2D_mtmyd")
+
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="." unique_id=1790382207]
+position = Vector2(22, 0)
+shape = SubResource("RectangleShape2D_7jugy")
+
+[node name="DraggableArea" type="Area2D" parent="." unique_id=1192100954]
+script = ExtResource("3_cxjjg")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=1929692671]
+shape = SubResource("RectangleShape2D_e761a")
+
+[node name="Handle" type="StaticBody2D" parent="." unique_id=1438870864]
+visible = false
+collision_layer = 0
+collision_mask = 0
+
+[node name="EffectsPlayer" type="Node" parent="." unique_id=1310318525]
+script = ExtResource("4_6sbhg")

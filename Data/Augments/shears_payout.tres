@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_fc35c"]
+
+[resource]
+script = ExtResource("1_fc35c")
+id = &"shears_payout"
+item_id = &"shears"
+display_name = "Piecework Rates"
+effect_key = &"payout_mult"
+effect_per_level = 1.12
+cost_base = 130
+sort_order = 1

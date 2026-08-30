@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/sickle.png" id="1_xnbsv"]
+[ext_resource type="PackedScene" path="res://Scenes/Bodies/sickle.tscn" id="2_ltqu4"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_4vuk1"]
+
+[resource]
+script = ExtResource("3_4vuk1")
+id = &"sickle"
+display_name = "Sickle"
+description = "A crescent on a stick. Built for wheat, unfussy about the difference."
+cost = 3800
+scene = ExtResource("2_ltqu4")
+icon = ExtResource("1_xnbsv")
+requires = Array[StringName]([&"shears"])
+sort_order = 37

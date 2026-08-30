@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_3vdex"]
+
+[resource]
+script = ExtResource("1_3vdex")
+id = &"pellet_turret_damage"
+item_id = &"pellet_turret"
+display_name = "Heavier Pellets"
+effect_key = &"damage_mult"
+effect_per_level = 1.15
+cost_base = 230
+cost_growth = 1.12

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/cricket_bat.png" id="1_vctky"]
+[ext_resource type="PackedScene" path="res://Scenes/Bodies/cricket_bat.tscn" id="2_beton"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_58c4v"]
+
+[resource]
+script = ExtResource("3_58c4v")
+id = &"cricket_bat"
+display_name = "Cricket Bat"
+description = "A flat willow face the size of his whole ribcage. Middle it."
+cost = 5500
+scene = ExtResource("2_beton")
+icon = ExtResource("1_vctky")
+requires = Array[StringName]([&"crowbar"])
+sort_order = 44

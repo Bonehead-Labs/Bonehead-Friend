@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_wihyk"]
+
+[resource]
+script = ExtResource("1_wihyk")
+id = &"flail_payout"
+item_id = &"flail"
+display_name = "Chain of Custody"
+effect_key = &"payout_mult"
+effect_per_level = 1.12
+cost_base = 8814
+sort_order = 1

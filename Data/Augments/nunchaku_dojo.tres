@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_jkb88"]
+
+[resource]
+script = ExtResource("1_jkb88")
+id = &"nunchaku_dojo"
+item_id = &"nunchaku"
+display_name = "The Dojo"
+description = "Two sticks, one motor and absolutely no supervision."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 31200
+currency = 1
+is_automation = true
+automation_rate = 153.0
+device_mount = &"tripod"
+requires_mastery = 25

@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_gxefo"]
+
+[resource]
+script = ExtResource("1_gxefo")
+id = &"black_hole_containment"
+item_id = &"black_hole_charge"
+display_name = "Containment Failure"
+description = "The word 'contained' was doing a great deal of work in the brochure."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 120800
+currency = 1
+is_automation = true
+automation_rate = 601.0
+device_mount = &"tripod"
+requires_mastery = 25

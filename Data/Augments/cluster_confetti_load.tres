@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_yw31s"]
+
+[resource]
+script = ExtResource("1_yw31s")
+id = &"cluster_confetti_load"
+item_id = &"cluster_bomb"
+display_name = "Confetti Load"
+description = "Streamers and a bang. He forgives you immediately."
+tier = 2
+effect_key = &"damage_mult"
+effect_per_level = 0.3
+max_levels = 1
+cost_base = 21000
+cost_growth = 1.0
+exclusive_group = &"flavour"
+requires_mastery = 10

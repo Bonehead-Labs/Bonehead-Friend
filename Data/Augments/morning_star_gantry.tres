@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_cnui5"]
+
+[resource]
+script = ExtResource("1_cnui5")
+id = &"morning_star_gantry"
+item_id = &"morning_star"
+display_name = "Siege Gantry"
+description = "It was built to bring down a gate. There is no gate."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 66800
+currency = 1
+is_automation = true
+automation_rate = 331.0
+device_mount = &"tripod"
+requires_mastery = 25

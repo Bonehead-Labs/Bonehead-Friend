@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/cleaver.png" id="1_jctht"]
+[ext_resource type="PackedScene" path="res://Scenes/Bodies/cleaver.tscn" id="2_3lfl7"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_lxaj2"]
+
+[resource]
+script = ExtResource("3_lxaj2")
+id = &"cleaver"
+display_name = "Meat Cleaver"
+description = "A rectangle of steel with one edge. It chops because it is heavy."
+cost = 17000
+scene = ExtResource("2_3lfl7")
+icon = ExtResource("1_jctht")
+requires = Array[StringName]([&"rapier"])
+sort_order = 57

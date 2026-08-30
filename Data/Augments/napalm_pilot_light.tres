@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_5q0lo"]
+
+[resource]
+script = ExtResource("1_5q0lo")
+id = &"napalm_pilot_light"
+item_id = &"napalm_charge"
+display_name = "Pilot Light"
+description = "A burner that never goes out, on a supply line nobody has audited."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 25600
+currency = 1
+is_automation = true
+automation_rate = 125.0
+device_mount = &"tripod"
+requires_mastery = 25

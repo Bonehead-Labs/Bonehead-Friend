@@ -18,3 +18,7 @@ art/raw/*
 # Art previews (regenerable: python3 art/tools/preview.py)
 art/preview/*
 !art/preview/.gitkeep
+
+# Python bytecode from the art tools
+__pycache__/
+*.pyc

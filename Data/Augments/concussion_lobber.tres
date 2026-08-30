@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_2ws6l"]
+
+[resource]
+script = ExtResource("1_2ws6l")
+id = &"concussion_lobber"
+item_id = &"concussion_charge"
+display_name = "Concussion Lobber"
+description = "A spring arm that pops one over the desk every few seconds. Nothing is ever where you left it."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 4400
+currency = 1
+is_automation = true
+automation_rate = 19.0
+device_mount = &"tripod"
+requires_mastery = 25

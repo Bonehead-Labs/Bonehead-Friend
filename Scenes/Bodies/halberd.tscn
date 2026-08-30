@@ -1,0 +1,76 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Bodies/weapon_base.gd" id="1_lgcu3"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/halberd.png" id="2_cykre"]
+[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_ahhyg"]
+[ext_resource type="Script" path="res://Scripts/Components/effects_player.gd" id="4_vmxqw"]
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_a1pru"]
+radius = 5.0
+height = 32.0
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ohljh"]
+size = Vector2(34, 28)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_vjure"]
+size = Vector2(18, 12)
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_vylp8"]
+radius = 6.0
+height = 112.0
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_dq83x"]
+size = Vector2(36, 60)
+
+[node name="_Halberd" type="RigidBody2D" unique_id=1950863118 node_paths=PackedStringArray("drag_area", "handle", "sprite", "collider", "Effects_Player")]
+collision_layer = 4
+collision_mask = 7
+mass = 16.0
+center_of_mass_mode = 1
+center_of_mass = Vector2(-6, -48)
+contact_monitor = true
+max_contacts_reported = 4
+script = ExtResource("1_lgcu3")
+damage_mult = 2.1
+item_id = &"halberd"
+drag_area = NodePath("DraggableArea")
+handle = NodePath("Handle")
+sprite = NodePath("Sprite")
+collider = NodePath("CollisionShape2D")
+Effects_Player = NodePath("EffectsPlayer")
+grip_offset = Vector2(0, 52)
+
+[node name="Sprite" type="Sprite2D" parent="." unique_id=514158922]
+scale = Vector2(2, 2)
+texture = ExtResource("2_cykre")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1900018762]
+position = Vector2(0, -60)
+shape = SubResource("CapsuleShape2D_a1pru")
+
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="." unique_id=741120151]
+position = Vector2(-18, -48)
+shape = SubResource("RectangleShape2D_ohljh")
+
+[node name="CollisionShape2D3" type="CollisionShape2D" parent="." unique_id=677951082]
+position = Vector2(16, -46)
+shape = SubResource("RectangleShape2D_vjure")
+
+[node name="CollisionShape2D4" type="CollisionShape2D" parent="." unique_id=190332741]
+position = Vector2(0, 20)
+shape = SubResource("CapsuleShape2D_vylp8")
+
+[node name="DraggableArea" type="Area2D" parent="." unique_id=1775846076]
+script = ExtResource("3_ahhyg")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=132840316]
+position = Vector2(0, 48)
+shape = SubResource("RectangleShape2D_dq83x")
+
+[node name="Handle" type="StaticBody2D" parent="." unique_id=132250674]
+visible = false
+collision_layer = 0
+collision_mask = 0
+
+[node name="EffectsPlayer" type="Node" parent="." unique_id=921416489]
+script = ExtResource("4_vmxqw")

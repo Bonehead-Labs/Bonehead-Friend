@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_wf1tl"]
+
+[resource]
+script = ExtResource("1_wf1tl")
+id = &"black_hole_charge_damage"
+item_id = &"black_hole_charge"
+display_name = "Wider Horizon"
+effect_key = &"damage_mult"
+effect_per_level = 1.15
+cost_base = 13550
+cost_growth = 1.12

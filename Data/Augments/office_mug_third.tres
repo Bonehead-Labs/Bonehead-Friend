@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_uxnus"]
+
+[resource]
+script = ExtResource("1_uxnus")
+id = &"office_mug_third"
+item_id = &"office_mug"
+display_name = "Full of Cold Coffee"
+effect_key = &"mass_mult"
+effect_per_level = 1.08
+cost_base = 135
+cost_growth = 1.09
+sort_order = 2

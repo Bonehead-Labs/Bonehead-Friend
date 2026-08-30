@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/machete.png" id="1_qst1l"]
+[ext_resource type="PackedScene" path="res://Scenes/Bodies/machete.tscn" id="2_fl7qc"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_2xgmf"]
+
+[resource]
+script = ExtResource("3_2xgmf")
+id = &"machete"
+display_name = "Machete"
+description = "Long, flat and cheerful. Built to clear undergrowth, and since promoted."
+cost = 8000
+scene = ExtResource("2_fl7qc")
+icon = ExtResource("1_qst1l")
+requires = Array[StringName]([&"katar"])
+sort_order = 47

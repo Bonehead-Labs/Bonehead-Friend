@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/rail_gun.png" id="1_1lrjh"]
+[ext_resource type="PackedScene" path="res://Scenes/Turrets/rail_gun.tscn" id="2_wblnx"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_6l82q"]
+
+[resource]
+script = ExtResource("3_6l82q")
+id = &"rail_gun"
+display_name = "Rail Gun"
+description = "Charges for a while, then removes him from wherever he was standing."
+category = 5
+cost = 90000
+scene = ExtResource("2_wblnx")
+icon = ExtResource("1_1lrjh")
+requires = Array[StringName]([&"flamethrower"])
+sort_order = 50

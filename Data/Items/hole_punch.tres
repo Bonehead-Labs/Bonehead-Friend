@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/hole_punch.png" id="1_ghk3k"]
+[ext_resource type="PackedScene" path="res://Scenes/Bodies/hole_punch.tscn" id="2_nbxo7"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_gdw0b"]
+
+[resource]
+script = ExtResource("3_gdw0b")
+id = &"hole_punch"
+display_name = "Hole Punch"
+description = "A block of cast steel that exists to make confetti. It moonlights."
+cost = 11500
+scene = ExtResource("2_nbxo7")
+icon = ExtResource("1_ghk3k")
+requires = Array[StringName]([&"office_mug"])
+sort_order = 46

@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/mortar.png" id="1_yu43a"]
+[ext_resource type="PackedScene" path="res://Scenes/Turrets/mortar.tscn" id="2_og7x2"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_0asur"]
+
+[resource]
+script = ExtResource("3_0asur")
+id = &"mortar"
+display_name = "Mortar"
+description = "Lobs one shell every few seconds and takes most of the desk with it."
+category = 5
+cost = 160000
+scene = ExtResource("2_og7x2")
+icon = ExtResource("1_yu43a")
+requires = Array[StringName]([&"rail_gun"])
+sort_order = 60

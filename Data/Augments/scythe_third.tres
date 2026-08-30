@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_gjnnu"]
+
+[resource]
+script = ExtResource("1_gjnnu")
+id = &"scythe_third"
+item_id = &"scythe"
+display_name = "Iron Snath"
+effect_key = &"mass_mult"
+effect_per_level = 1.08
+cost_base = 2007
+cost_growth = 1.09
+sort_order = 2

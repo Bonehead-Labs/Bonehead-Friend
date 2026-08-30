@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_gbyxp"]
+
+[resource]
+script = ExtResource("1_gbyxp")
+id = &"greatsword_heirloom"
+item_id = &"greatsword"
+display_name = "Heirloom"
+description = "Somebody's family owned this. Somebody's family is being compensated."
+tier = 2
+effect_key = &"payout_mult"
+effect_per_level = 2.0
+max_levels = 1
+cost_base = 69750
+cost_growth = 1.0
+exclusive_group = &"flavour"
+requires_mastery = 10
+sort_order = 1

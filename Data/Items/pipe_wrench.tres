@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/pipe_wrench.png" id="1_bru5i"]
+[ext_resource type="PackedScene" path="res://Scenes/Bodies/pipe_wrench.tscn" id="2_ynl83"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_88or0"]
+
+[resource]
+script = ExtResource("3_88or0")
+id = &"pipe_wrench"
+display_name = "Pipe Wrench"
+description = "Cast iron, adjustable, and far heavier than anything a plumber needs."
+cost = 25000
+scene = ExtResource("2_ynl83")
+icon = ExtResource("1_bru5i")
+requires = Array[StringName]([&"sledgehammer"])
+sort_order = 48

@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_ydamh"]
+
+[resource]
+script = ExtResource("1_ydamh")
+id = &"cricket_bat_nets"
+item_id = &"cricket_bat"
+display_name = "The Nets"
+description = "A bowling machine, a bat on a spring, and one skeleton at silly point."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 3000
+currency = 1
+is_automation = true
+automation_rate = 12.0
+device_mount = &"tripod"
+requires_mastery = 25

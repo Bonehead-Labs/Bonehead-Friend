@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_kr10f"]
+
+[resource]
+script = ExtResource("1_kr10f")
+id = &"boxcutter_third"
+item_id = &"boxcutter"
+display_name = "Metal Body"
+effect_key = &"mass_mult"
+effect_per_level = 1.08
+cost_base = 63
+cost_growth = 1.09
+sort_order = 2

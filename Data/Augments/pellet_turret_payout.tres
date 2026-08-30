@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_3tqvg"]
+
+[resource]
+script = ExtResource("1_3tqvg")
+id = &"pellet_turret_payout"
+item_id = &"pellet_turret"
+display_name = "Plink Bounty"
+effect_key = &"payout_mult"
+effect_per_level = 1.12
+cost_base = 179
+sort_order = 1

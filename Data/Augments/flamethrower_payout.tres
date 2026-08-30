@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_1glxp"]
+
+[resource]
+script = ExtResource("1_1glxp")
+id = &"flamethrower_payout"
+item_id = &"flamethrower"
+display_name = "Scorch Fees"
+effect_key = &"payout_mult"
+effect_per_level = 1.12
+cost_base = 1619
+sort_order = 1

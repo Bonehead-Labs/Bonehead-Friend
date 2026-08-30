@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_piuoa"]
+
+[resource]
+script = ExtResource("1_piuoa")
+id = &"mortar_siege_shell"
+item_id = &"mortar"
+display_name = "Siege Shell"
+description = "One shell. It only has to land once."
+tier = 2
+effect_key = &"damage_mult"
+effect_per_level = 1.7
+max_levels = 1
+cost_base = 40000
+cost_growth = 1.0
+exclusive_group = &"flavour"
+requires_mastery = 10

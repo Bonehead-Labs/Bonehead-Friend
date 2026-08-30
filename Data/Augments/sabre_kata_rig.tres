@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_i1a5x"]
+
+[resource]
+script = ExtResource("1_i1a5x")
+id = &"sabre_kata_rig"
+item_id = &"energy_sabre"
+display_name = "Kata Rig"
+description = "The hilt runs its forms by itself. He is standing in one of them."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 14800
+currency = 1
+is_automation = true
+automation_rate = 71.0
+device_mount = &"tripod"
+requires_mastery = 25

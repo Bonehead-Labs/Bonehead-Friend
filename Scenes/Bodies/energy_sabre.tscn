@@ -1,0 +1,63 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Bodies/weapon_base.gd" id="1_ockfm"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/energy_sabre.png" id="2_gbfjy"]
+[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_rdg66"]
+[ext_resource type="Script" path="res://Scripts/Components/effects_player.gd" id="4_o7y78"]
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_j383j"]
+radius = 6.0
+height = 92.0
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_trgl3"]
+size = Vector2(16, 40)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_642uw"]
+size = Vector2(36, 40)
+
+[node name="_EnergySabre" type="RigidBody2D" unique_id=725685543 node_paths=PackedStringArray("drag_area", "handle", "sprite", "collider", "Effects_Player")]
+collision_layer = 4
+collision_mask = 7
+mass = 9.0
+center_of_mass_mode = 1
+center_of_mass = Vector2(-38, 38)
+contact_monitor = true
+max_contacts_reported = 4
+script = ExtResource("1_ockfm")
+damage_mult = 3.0
+item_id = &"energy_sabre"
+drag_area = NodePath("DraggableArea")
+handle = NodePath("Handle")
+sprite = NodePath("Sprite")
+collider = NodePath("CollisionShape2D")
+Effects_Player = NodePath("EffectsPlayer")
+grip_offset = Vector2(-44, 44)
+
+[node name="Sprite" type="Sprite2D" parent="." unique_id=166827407]
+scale = Vector2(2, 2)
+texture = ExtResource("2_gbfjy")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1725768480]
+position = Vector2(26, -26)
+rotation = 0.7853982
+shape = SubResource("CapsuleShape2D_j383j")
+
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="." unique_id=245257726]
+position = Vector2(-42, 42)
+rotation = 0.7853982
+shape = SubResource("RectangleShape2D_trgl3")
+
+[node name="DraggableArea" type="Area2D" parent="." unique_id=973565936]
+script = ExtResource("3_rdg66")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=1566938033]
+position = Vector2(-40, 40)
+shape = SubResource("RectangleShape2D_642uw")
+
+[node name="Handle" type="StaticBody2D" parent="." unique_id=648062017]
+visible = false
+collision_layer = 0
+collision_mask = 0
+
+[node name="EffectsPlayer" type="Node" parent="." unique_id=1900870755]
+script = ExtResource("4_o7y78")

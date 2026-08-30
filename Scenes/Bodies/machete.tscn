@@ -1,0 +1,62 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Bodies/weapon_base.gd" id="1_pmewn"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/machete.png" id="2_pwksh"]
+[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_h1klw"]
+[ext_resource type="Script" path="res://Scripts/Components/effects_player.gd" id="4_kqupl"]
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_gfu8m"]
+height = 72.0
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_2qqd5"]
+size = Vector2(18, 32)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_yspqo"]
+size = Vector2(36, 40)
+
+[node name="_Machete" type="RigidBody2D" unique_id=1524148655 node_paths=PackedStringArray("drag_area", "handle", "sprite", "collider", "Effects_Player")]
+collision_layer = 4
+collision_mask = 7
+mass = 6.5
+center_of_mass_mode = 1
+center_of_mass = Vector2(20, -20)
+contact_monitor = true
+max_contacts_reported = 4
+script = ExtResource("1_pmewn")
+damage_mult = 2.1
+item_id = &"machete"
+drag_area = NodePath("DraggableArea")
+handle = NodePath("Handle")
+sprite = NodePath("Sprite")
+collider = NodePath("CollisionShape2D")
+Effects_Player = NodePath("EffectsPlayer")
+grip_offset = Vector2(-42, 42)
+
+[node name="Sprite" type="Sprite2D" parent="." unique_id=1765761233]
+scale = Vector2(2, 2)
+texture = ExtResource("2_pwksh")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1012241816]
+position = Vector2(22, -22)
+rotation = 0.7853982
+shape = SubResource("CapsuleShape2D_gfu8m")
+
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="." unique_id=492485073]
+position = Vector2(-36, 36)
+rotation = 0.7853982
+shape = SubResource("RectangleShape2D_2qqd5")
+
+[node name="DraggableArea" type="Area2D" parent="." unique_id=905268706]
+script = ExtResource("3_h1klw")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=381206171]
+position = Vector2(-36, 36)
+shape = SubResource("RectangleShape2D_yspqo")
+
+[node name="Handle" type="StaticBody2D" parent="." unique_id=709114731]
+visible = false
+collision_layer = 0
+collision_mask = 0
+
+[node name="EffectsPlayer" type="Node" parent="." unique_id=1050097879]
+script = ExtResource("4_kqupl")

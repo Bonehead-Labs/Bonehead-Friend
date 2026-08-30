@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/nail_bomb.png" id="1_mas5a"]
+[ext_resource type="PackedScene" path="res://Scenes/Bodies/nail_bomb.tscn" id="2_xpfvi"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_dsw8u"]
+
+[resource]
+script = ExtResource("3_dsw8u")
+id = &"nail_bomb"
+display_name = "Nail Bomb"
+description = "A tin, some nails and a fuse. Nine small unpleasant things instead of one big one."
+category = 1
+cost = 13000
+scene = ExtResource("2_xpfvi")
+icon = ExtResource("1_mas5a")
+requires = Array[StringName]([&"concussion_charge"])
+sort_order = 50

@@ -1,0 +1,67 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Bodies/cluster_bomb.gd" id="1_7f8ss"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/nail_bomb.png" id="2_7rs3o"]
+[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_unsu6"]
+[ext_resource type="Script" path="res://Scripts/Components/effects_player.gd" id="4_pr0nr"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_2b3y2"]
+radius = 22.0
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_2nb1p"]
+size = Vector2(60, 64)
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_x4hj5"]
+radius = 80.0
+
+[node name="_NailBomb" type="RigidBody2D" unique_id=940685210 node_paths=PackedStringArray("explosion_area", "drag_area", "handle", "sprite", "collider", "Effects_Player")]
+collision_layer = 4
+collision_mask = 7
+mass = 1.6
+center_of_mass_mode = 1
+contact_monitor = true
+max_contacts_reported = 4
+script = ExtResource("1_7f8ss")
+submunitions = 9
+submunition_interval = 0.03
+spread = 120.0
+submunition_radius = 64.0
+submunition_force = 4200.0
+throwable_delay = 2.5
+explosion_area = NodePath("ExplosionArea")
+max_force = 5000.0
+item_id = &"nail_bomb"
+drag_area = NodePath("DraggableArea")
+handle = NodePath("Handle")
+sprite = NodePath("Sprite")
+collider = NodePath("CollisionShape2D")
+Effects_Player = NodePath("EffectsPlayer")
+
+[node name="Sprite" type="Sprite2D" parent="." unique_id=727729366]
+scale = Vector2(2, 2)
+texture = ExtResource("2_7rs3o")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1123726805]
+shape = SubResource("CircleShape2D_2b3y2")
+
+[node name="DraggableArea" type="Area2D" parent="." unique_id=113653456]
+script = ExtResource("3_unsu6")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=468207375]
+shape = SubResource("RectangleShape2D_2nb1p")
+
+[node name="Handle" type="StaticBody2D" parent="." unique_id=483359972]
+visible = false
+collision_layer = 0
+collision_mask = 0
+
+[node name="EffectsPlayer" type="Node" parent="." unique_id=2139762249]
+script = ExtResource("4_pr0nr")
+
+[node name="ExplosionArea" type="Area2D" parent="." unique_id=790214935]
+collision_layer = 0
+collision_mask = 6
+monitoring = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="ExplosionArea" unique_id=2102987527]
+shape = SubResource("CircleShape2D_x4hj5")

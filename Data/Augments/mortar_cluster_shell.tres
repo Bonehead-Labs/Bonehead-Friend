@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_lkfpx"]
+
+[resource]
+script = ExtResource("1_lkfpx")
+id = &"mortar_cluster_shell"
+item_id = &"mortar"
+display_name = "Cluster Shell"
+description = "Smaller charges, twice as often. He never gets to stand up."
+tier = 2
+effect_key = &"cooldown_mult"
+effect_per_level = 0.6
+max_levels = 1
+cost_base = 40000
+cost_growth = 1.0
+exclusive_group = &"flavour"
+requires_mastery = 10

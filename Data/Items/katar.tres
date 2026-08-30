@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/katar.png" id="1_y1kox"]
+[ext_resource type="PackedScene" path="res://Scenes/Bodies/katar.tscn" id="2_1f77h"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_frrhy"]
+
+[resource]
+script = ExtResource("3_frrhy")
+id = &"katar"
+display_name = "Katar"
+description = "A push dagger. You do not swing it at him, you arrive holding it."
+cost = 5500
+scene = ExtResource("2_1f77h")
+icon = ExtResource("1_y1kox")
+requires = Array[StringName]([&"sickle"])
+sort_order = 42

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_f2yc6"]
+
+[resource]
+script = ExtResource("1_f2yc6")
+id = &"chainsaw_third"
+item_id = &"chainsaw"
+display_name = "Bigger Engine"
+effect_key = &"mass_mult"
+effect_per_level = 1.08
+cost_base = 6893
+cost_growth = 1.09
+sort_order = 2

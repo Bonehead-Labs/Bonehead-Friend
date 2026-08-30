@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/swarm_launcher.png" id="1_esfhq"]
+[ext_resource type="PackedScene" path="res://Scenes/Turrets/swarm_launcher.tscn" id="2_0w4hh"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_gt2ut"]
+
+[resource]
+script = ExtResource("3_gt2ut")
+id = &"swarm_launcher"
+display_name = "Swarm Launcher"
+description = "Forty tubes, no aim, one skeleton. The arithmetic works out."
+category = 5
+cost = 400000
+scene = ExtResource("2_0w4hh")
+icon = ExtResource("1_esfhq")
+requires = Array[StringName]([&"laser_lattice"])
+sort_order = 80

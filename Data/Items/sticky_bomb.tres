@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/sticky_bomb.png" id="1_qyaub"]
+[ext_resource type="PackedScene" path="res://Scenes/Bodies/sticky_bomb.tscn" id="2_y8qyc"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_ch4bl"]
+
+[resource]
+script = ExtResource("3_ch4bl")
+id = &"sticky_bomb"
+display_name = "Sticky Bomb"
+description = "It goes where you throw it and then it stays there. He has noticed."
+category = 1
+cost = 19000
+scene = ExtResource("2_y8qyc")
+icon = ExtResource("1_qyaub")
+requires = Array[StringName]([&"nail_bomb"])
+sort_order = 60

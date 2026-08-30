@@ -1,0 +1,100 @@
+class_name ClusterBomb
+extends ThrowableBase
+
+## One charge that becomes several: the casing goes off where it landed and throws a burst
+## of smaller blasts around it, each of them its own hit down the same receiver-side damage
+## path a bat swing uses (docs/decisions.md D7).
+##
+## **Three items share this class and only the numbers separate them** (D8). `spread` and
+## `submunition_interval` between them cover the whole "many small bangs" family:
+##
+##   nail bomb       wide spread, almost no interval — one shotgun blast of tiny charges
+##   cluster bomb    wide spread, a short beat      — the casing opens and they walk outwards
+##   napalm charge   almost no spread, a long interval — a burning patch of desk that keeps
+##                   paying for as long as he is standing in it
+##
+## Why the family exists at all: a single hit is capped at
+## `knockout_damage x max_hit_fraction`, half a knockout, so the top of the explosives ladder
+## cannot escalate by hitting harder. It escalates by hitting *more times* and reaching
+## further, and this is the class that does the first of those.
+##
+## The submunitions are shape queries against the physics space, not spawned bodies. A real
+## sub-charge would have to be built, parented, drawn and freed fourteen times for one napalm
+## charge, and it would sit in desk slots the player paid for.
+
+## How many blasts follow the casing's own, and how far apart in time.
+@export var submunitions: int = 5
+@export var submunition_interval: float = 0.14
+
+## Scatter radius in world units, around wherever the casing came to rest.
+@export var spread: float = 150.0
+
+@export var submunition_radius: float = 110.0
+@export var submunition_force: float = 8000.0
+
+var _burst := false
+
+func explode() -> void:
+	if _burst:
+		return
+	_burst = true
+
+	if explosion_area:
+		_report(ExplosionUtil.apply_blast(explosion_area, global_position, max_force),
+			global_position)
+		explosion_area.monitoring = false
+	if Effects_Player:
+		Effects_Player.explosion_effect(global_position)
+
+	# The casing stops being an object on the desk here rather than at the end of the burst.
+	# A napalm charge burns for six seconds, and the slot the player spent on it should come
+	# back when the thing they threw stops existing, not when it stops paying.
+	if sprite:
+		sprite.visible = false
+	# Dropped before it is frozen. The base class can leave a drag joint attached because
+	# it frees itself half a second later; a napalm charge burns for six, and that is six
+	# seconds of an invisible frozen body pinned to a handle still chasing the cursor.
+	if dragging:
+		_end_drag()
+	freeze = true
+	set_deferred(&"collision_layer", 0)
+	set_deferred(&"collision_mask", 0)
+	if drag_area:
+		drag_area.set_deferred(&"monitoring", false)
+	EventBus.item_despawned.emit(self)
+
+	await _scatter()
+	queue_free()
+
+func _scatter() -> void:
+	# One physics frame before the first submunition, whatever the interval: the casing's
+	# own blast has just been applied, and the next blast should measure its distances
+	# against where that one put everything.
+	await get_tree().physics_frame
+	if not is_instance_valid(self) or not is_inside_tree():
+		return
+
+	var origin := global_position
+	for i in submunitions:
+		# sqrt on the radius, or the scatter piles up in the middle: drawing r uniformly
+		# over [0, spread] is not drawing uniformly over the disc.
+		var at := origin + Vector2.RIGHT.rotated(randf() * TAU) * (spread * sqrt(randf()))
+		_report(ExplosionUtil.point_blast(get_world_2d().direct_space_state, at,
+			submunition_radius, submunition_force), at)
+		if Effects_Player:
+			Effects_Player.explosion_effect(at)
+		if submunition_interval <= 0.0 or i == submunitions - 1:
+			continue
+		await get_tree().create_timer(submunition_interval).timeout
+		# The player can bin a burning charge, and the desk can be cleared under it.
+		if not is_instance_valid(self) or not is_inside_tree():
+			return
+
+## Hands each blast home the way a grenade's does: the impulse it actually applied, reported
+## to the receiver, which decides what it costs him. Never a second damage model.
+func _report(hits: Array[Dictionary], at: Vector2) -> void:
+	var mult := effective_damage_mult()
+	for hit in hits:
+		var body: Node = hit["body"]
+		if body is Buddy:
+			(body as Buddy).take_impulse(float(hit["impulse"]), item_id, mult, at)

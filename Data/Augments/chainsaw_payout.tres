@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_11840"]
+
+[resource]
+script = ExtResource("1_11840")
+id = &"chainsaw_payout"
+item_id = &"chainsaw"
+display_name = "Timber Rights"
+effect_key = &"payout_mult"
+effect_per_level = 1.12
+cost_base = 8814
+sort_order = 1

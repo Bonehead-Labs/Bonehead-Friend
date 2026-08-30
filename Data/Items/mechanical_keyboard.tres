@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/mechanical_keyboard.png" id="1_d8o2k"]
+[ext_resource type="PackedScene" path="res://Scenes/Bodies/mechanical_keyboard.tscn" id="2_hmcvv"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_7voow"]
+
+[resource]
+script = ExtResource("3_7voow")
+id = &"mechanical_keyboard"
+display_name = "Mechanical Keyboard"
+description = "Eighty-seven switches on a brass plate. It sounds incredible when it lands."
+cost = 36000
+scene = ExtResource("2_hmcvv")
+icon = ExtResource("1_d8o2k")
+requires = Array[StringName]([&"hole_punch"])
+sort_order = 49

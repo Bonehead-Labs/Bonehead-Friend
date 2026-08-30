@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_g4fb7"]
+
+[resource]
+script = ExtResource("1_g4fb7")
+id = &"greatsword_anvil"
+item_id = &"greatsword"
+display_name = "Anvil-Forged"
+description = "Twice the steel in it. It moves like weather."
+tier = 2
+effect_key = &"mass_mult"
+effect_per_level = 1.6
+max_levels = 1
+cost_base = 69750
+cost_growth = 1.0
+exclusive_group = &"flavour"
+requires_mastery = 10
+sort_order = 2

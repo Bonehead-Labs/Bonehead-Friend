@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_epa0y"]
+
+[resource]
+script = ExtResource("1_epa0y")
+id = &"scythe_damage"
+item_id = &"scythe"
+display_name = "Peened Edge"
+effect_key = &"damage_mult"
+effect_per_level = 1.15
+cost_base = 3290
+cost_growth = 1.12

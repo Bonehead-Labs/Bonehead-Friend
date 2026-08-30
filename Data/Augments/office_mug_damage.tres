@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_6oj71"]
+
+[resource]
+script = ExtResource("1_6oj71")
+id = &"office_mug_damage"
+item_id = &"office_mug"
+display_name = "Kiln-Fired Twice"
+effect_key = &"damage_mult"
+effect_per_level = 1.15
+cost_base = 221
+cost_growth = 1.12

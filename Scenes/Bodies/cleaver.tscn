@@ -1,0 +1,62 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Bodies/weapon_base.gd" id="1_txi1a"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/cleaver.png" id="2_3aj6f"]
+[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_g6c3a"]
+[ext_resource type="Script" path="res://Scripts/Components/effects_player.gd" id="4_noqof"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_vns2t"]
+size = Vector2(36, 48)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_dub61"]
+size = Vector2(16, 30)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_owrgm"]
+size = Vector2(36, 36)
+
+[node name="_Cleaver" type="RigidBody2D" unique_id=1373165349 node_paths=PackedStringArray("drag_area", "handle", "sprite", "collider", "Effects_Player")]
+collision_layer = 4
+collision_mask = 7
+mass = 8.5
+center_of_mass_mode = 1
+center_of_mass = Vector2(18, -18)
+contact_monitor = true
+max_contacts_reported = 4
+script = ExtResource("1_txi1a")
+damage_mult = 2.0
+item_id = &"cleaver"
+drag_area = NodePath("DraggableArea")
+handle = NodePath("Handle")
+sprite = NodePath("Sprite")
+collider = NodePath("CollisionShape2D")
+Effects_Player = NodePath("EffectsPlayer")
+grip_offset = Vector2(-34, 34)
+
+[node name="Sprite" type="Sprite2D" parent="." unique_id=388305201]
+scale = Vector2(2, 2)
+texture = ExtResource("2_3aj6f")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1610054311]
+position = Vector2(16, -16)
+rotation = 0.7853982
+shape = SubResource("RectangleShape2D_vns2t")
+
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="." unique_id=965175524]
+position = Vector2(-28, 28)
+rotation = 0.7853982
+shape = SubResource("RectangleShape2D_dub61")
+
+[node name="DraggableArea" type="Area2D" parent="." unique_id=594525065]
+script = ExtResource("3_g6c3a")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=1876479656]
+position = Vector2(-28, 28)
+shape = SubResource("RectangleShape2D_owrgm")
+
+[node name="Handle" type="StaticBody2D" parent="." unique_id=1776509140]
+visible = false
+collision_layer = 0
+collision_mask = 0
+
+[node name="EffectsPlayer" type="Node" parent="." unique_id=439840326]
+script = ExtResource("4_noqof")

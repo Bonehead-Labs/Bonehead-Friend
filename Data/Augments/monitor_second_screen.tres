@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_3y5oq"]
+
+[resource]
+script = ExtResource("1_3y5oq")
+id = &"monitor_second_screen"
+item_id = &"monitor"
+display_name = "Second Screen"
+description = "You did not need two. He definitely did not."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 44800
+currency = 1
+is_automation = true
+automation_rate = 221.0
+device_mount = &"tripod"
+requires_mastery = 25

@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_xc1bw"]
+
+[resource]
+script = ExtResource("1_xc1bw")
+id = &"halberd_guard_post"
+item_id = &"halberd"
+display_name = "Guard Post"
+description = "It stands there for hours. Occasionally it does its job."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 42800
+currency = 1
+is_automation = true
+automation_rate = 211.0
+device_mount = &"tripod"
+requires_mastery = 25

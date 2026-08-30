@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_cpmp4"]
+
+[resource]
+script = ExtResource("1_cpmp4")
+id = &"shears_pattern_cutter"
+item_id = &"shears"
+display_name = "Pattern Cutter"
+description = "A table that cuts to a pattern all day. The pattern is him."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 1840
+currency = 1
+is_automation = true
+automation_rate = 6.2
+device_mount = &"tripod"
+requires_mastery = 25

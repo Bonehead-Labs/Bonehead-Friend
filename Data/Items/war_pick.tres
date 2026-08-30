@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/war_pick.png" id="1_uswxp"]
+[ext_resource type="PackedScene" path="res://Scenes/Bodies/war_pick.tscn" id="2_m0s63"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_i6f30"]
+
+[resource]
+script = ExtResource("3_i6f30")
+id = &"war_pick"
+display_name = "War Pick"
+description = "A hammer that grew a beak. Everything it has, on one small spot."
+cost = 50000
+scene = ExtResource("2_m0s63")
+icon = ExtResource("1_uswxp")
+requires = Array[StringName]([&"energy_sabre"])
+sort_order = 72

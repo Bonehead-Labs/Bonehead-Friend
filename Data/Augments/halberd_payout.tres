@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_w5hq5"]
+
+[resource]
+script = ExtResource("1_w5hq5")
+id = &"halberd_payout"
+item_id = &"halberd"
+display_name = "Guard Duty"
+effect_key = &"payout_mult"
+effect_per_level = 1.12
+cost_base = 3725
+sort_order = 1

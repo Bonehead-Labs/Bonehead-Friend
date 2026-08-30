@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_en0q5"]
+
+[resource]
+script = ExtResource("1_en0q5")
+id = &"war_pick_payout"
+item_id = &"war_pick"
+display_name = "Armourer's Fee"
+effect_key = &"payout_mult"
+effect_per_level = 1.12
+cost_base = 1794
+sort_order = 1

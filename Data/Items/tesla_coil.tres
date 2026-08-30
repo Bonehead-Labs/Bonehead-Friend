@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/tesla_coil.png" id="1_kjwgm"]
+[ext_resource type="PackedScene" path="res://Scenes/Turrets/tesla_coil.tscn" id="2_44d50"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_sotwc"]
+
+[resource]
+script = ExtResource("3_sotwc")
+id = &"tesla_coil"
+display_name = "Tesla Coil"
+description = "Hums for a second, then bites. Nobody has explained to it what a desk is for."
+category = 5
+cost = 20000
+scene = ExtResource("2_44d50")
+icon = ExtResource("1_kjwgm")
+requires = Array[StringName]([&"nail_gun"])
+sort_order = 30

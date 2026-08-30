@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/laser_lattice.png" id="1_gp463"]
+[ext_resource type="PackedScene" path="res://Scenes/Turrets/laser_lattice.tscn" id="2_nvqhv"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_jfcvu"]
+
+[resource]
+script = ExtResource("3_jfcvu")
+id = &"laser_lattice"
+display_name = "Laser Lattice"
+description = "A grid of beams he keeps walking into. He has not learned. He will not."
+category = 5
+cost = 260000
+scene = ExtResource("2_nvqhv")
+icon = ExtResource("1_gp463")
+requires = Array[StringName]([&"mortar"])
+sort_order = 70

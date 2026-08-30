@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_g5yjf"]
+
+[resource]
+script = ExtResource("1_g5yjf")
+id = &"laser_lattice_payout"
+item_id = &"laser_lattice"
+display_name = "Grid Tariff"
+effect_key = &"payout_mult"
+effect_per_level = 1.12
+cost_base = 9165
+sort_order = 1

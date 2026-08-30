@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_qxucm"]
+
+[resource]
+script = ExtResource("1_qxucm")
+id = &"greatsword_damage"
+item_id = &"greatsword"
+display_name = "Sharpened Ricasso"
+effect_key = &"damage_mult"
+effect_per_level = 1.15
+cost_base = 7025
+cost_growth = 1.12

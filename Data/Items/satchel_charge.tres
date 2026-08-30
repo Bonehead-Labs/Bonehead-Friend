@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/satchel_charge.png" id="1_bk4cg"]
+[ext_resource type="PackedScene" path="res://Scenes/Bodies/satchel_charge.tscn" id="2_s8xki"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_6mfwp"]
+
+[resource]
+script = ExtResource("3_6mfwp")
+id = &"satchel_charge"
+display_name = "Satchel Charge"
+description = "A canvas bag with far too much in it. Somebody has written a time on the side."
+category = 1
+cost = 90000
+scene = ExtResource("2_s8xki")
+icon = ExtResource("1_bk4cg")
+requires = Array[StringName]([&"napalm_charge"])
+sort_order = 100

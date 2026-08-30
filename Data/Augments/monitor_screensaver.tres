@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_5iw40"]
+
+[resource]
+script = ExtResource("1_5iw40")
+id = &"monitor_screensaver"
+item_id = &"monitor"
+display_name = "Screensaver"
+description = "You turn it towards him instead. He watches the pipes for hours."
+tier = 2
+effect_key = &"damage_mult"
+effect_per_level = 0.35
+max_levels = 1
+cost_base = 55000
+cost_growth = 1.0
+exclusive_group = &"flavour"
+requires_mastery = 10
+sort_order = 2

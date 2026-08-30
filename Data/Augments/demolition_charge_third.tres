@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_ayot6"]
+
+[resource]
+script = ExtResource("1_ayot6")
+id = &"demolition_charge_third"
+item_id = &"demolition_charge"
+display_name = "More Bricks"
+effect_key = &"mass_mult"
+effect_per_level = 1.08
+cost_base = 5521
+cost_growth = 1.09
+sort_order = 2

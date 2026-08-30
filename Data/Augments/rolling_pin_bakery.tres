@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_ga375"]
+
+[resource]
+script = ExtResource("1_ga375")
+id = &"rolling_pin_bakery"
+item_id = &"rolling_pin"
+display_name = "Bakery Line"
+description = "A pin on rails, flattening whatever is on the bench. He is on the bench."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 1280
+currency = 1
+is_automation = true
+automation_rate = 3.4
+device_mount = &"tripod"
+requires_mastery = 25

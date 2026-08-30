@@ -1,0 +1,59 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Bodies/weapon_base.gd" id="1_6phlo"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/hole_punch.png" id="2_ajpgj"]
+[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_n0x8k"]
+[ext_resource type="Script" path="res://Scripts/Components/effects_player.gd" id="4_045li"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_1ynul"]
+size = Vector2(52, 32)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_k4615"]
+size = Vector2(60, 16)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_vfdng"]
+size = Vector2(64, 52)
+
+[node name="_HolePunch" type="RigidBody2D" unique_id=1446522859 node_paths=PackedStringArray("drag_area", "handle", "sprite", "collider", "Effects_Player")]
+collision_layer = 4
+collision_mask = 7
+mass = 6.0
+center_of_mass_mode = 1
+center_of_mass = Vector2(0, 4)
+contact_monitor = true
+max_contacts_reported = 4
+script = ExtResource("1_6phlo")
+damage_mult = 1.7
+item_id = &"hole_punch"
+drag_area = NodePath("DraggableArea")
+handle = NodePath("Handle")
+sprite = NodePath("Sprite")
+collider = NodePath("CollisionShape2D")
+Effects_Player = NodePath("EffectsPlayer")
+grip_offset = Vector2(0, -16)
+
+[node name="Sprite" type="Sprite2D" parent="." unique_id=2094783384]
+scale = Vector2(2, 2)
+texture = ExtResource("2_ajpgj")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=366144579]
+position = Vector2(0, -8)
+shape = SubResource("RectangleShape2D_1ynul")
+
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="." unique_id=328585699]
+position = Vector2(0, 16)
+shape = SubResource("RectangleShape2D_k4615")
+
+[node name="DraggableArea" type="Area2D" parent="." unique_id=842944789]
+script = ExtResource("3_n0x8k")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=539572062]
+shape = SubResource("RectangleShape2D_vfdng")
+
+[node name="Handle" type="StaticBody2D" parent="." unique_id=187234114]
+visible = false
+collision_layer = 0
+collision_mask = 0
+
+[node name="EffectsPlayer" type="Node" parent="." unique_id=970251031]
+script = ExtResource("4_045li")

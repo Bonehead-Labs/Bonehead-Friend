@@ -1,0 +1,62 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Bodies/throwable_base.gd" id="1_bgmrj"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/concussion_charge.png" id="2_0dgyb"]
+[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_hjqx0"]
+[ext_resource type="Script" path="res://Scripts/Components/effects_player.gd" id="4_adv2b"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_grnfm"]
+size = Vector2(26, 44)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_g5vkr"]
+size = Vector2(42, 60)
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_svq10"]
+radius = 300.0
+
+[node name="_ConcussionCharge" type="RigidBody2D" unique_id=1381399254 node_paths=PackedStringArray("explosion_area", "drag_area", "handle", "sprite", "collider", "Effects_Player")]
+collision_layer = 4
+collision_mask = 7
+mass = 1.4
+contact_monitor = true
+max_contacts_reported = 4
+script = ExtResource("1_bgmrj")
+damage_mult = 0.3
+throwable_delay = 2.0
+explosion_area = NodePath("ExplosionArea")
+max_force = 26000.0
+item_id = &"concussion_charge"
+drag_area = NodePath("DraggableArea")
+handle = NodePath("Handle")
+sprite = NodePath("Sprite")
+collider = NodePath("CollisionShape2D")
+Effects_Player = NodePath("EffectsPlayer")
+
+[node name="Sprite" type="Sprite2D" parent="." unique_id=1961653397]
+scale = Vector2(2, 2)
+texture = ExtResource("2_0dgyb")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=873318503]
+shape = SubResource("RectangleShape2D_grnfm")
+
+[node name="DraggableArea" type="Area2D" parent="." unique_id=372096060]
+script = ExtResource("3_hjqx0")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=380633893]
+shape = SubResource("RectangleShape2D_g5vkr")
+
+[node name="Handle" type="StaticBody2D" parent="." unique_id=819167774]
+visible = false
+collision_layer = 0
+collision_mask = 0
+
+[node name="EffectsPlayer" type="Node" parent="." unique_id=1931981211]
+script = ExtResource("4_adv2b")
+
+[node name="ExplosionArea" type="Area2D" parent="." unique_id=892343734]
+collision_layer = 0
+collision_mask = 6
+monitoring = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="ExplosionArea" unique_id=745466202]
+shape = SubResource("CircleShape2D_svq10")

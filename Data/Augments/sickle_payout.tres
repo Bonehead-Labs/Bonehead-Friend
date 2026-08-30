@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_r0wxm"]
+
+[resource]
+script = ExtResource("1_r0wxm")
+id = &"sickle_payout"
+item_id = &"sickle"
+display_name = "Harvest Share"
+effect_key = &"payout_mult"
+effect_per_level = 1.12
+cost_base = 172
+sort_order = 1

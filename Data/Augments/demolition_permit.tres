@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_th0v0"]
+
+[resource]
+script = ExtResource("1_th0v0")
+id = &"demolition_permit"
+item_id = &"demolition_charge"
+display_name = "Demolition Permit"
+description = "Signed, stamped, and renewed automatically."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 80800
+currency = 1
+is_automation = true
+automation_rate = 401.0
+device_mount = &"tripod"
+requires_mastery = 25

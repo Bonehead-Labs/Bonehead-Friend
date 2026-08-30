@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_2w15w"]
+
+[resource]
+script = ExtResource("1_2w15w")
+id = &"laser_lattice_lights_out"
+item_id = &"laser_lattice"
+display_name = "Lights Out"
+description = "The grid stays live in the dark. That is the entire idea."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 104800
+currency = 1
+is_automation = true
+automation_rate = 521.0
+device_mount = &"tripod"
+requires_mastery = 25

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/sledgehammer.png" id="1_18ekg"]
+[ext_resource type="PackedScene" path="res://Scenes/Bodies/sledgehammer.tscn" id="2_dr7jc"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_l2h0q"]
+
+[resource]
+script = ExtResource("3_l2h0q")
+id = &"sledgehammer"
+display_name = "Sledgehammer"
+description = "Twelve pounds of steel on a long stick. The swing takes a while and it is worth the wait."
+cost = 17000
+scene = ExtResource("2_dr7jc")
+icon = ExtResource("1_18ekg")
+requires = Array[StringName]([&"tyre_iron"])
+sort_order = 47

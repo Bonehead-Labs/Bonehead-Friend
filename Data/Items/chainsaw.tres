@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/chainsaw.png" id="1_xn6lu"]
+[ext_resource type="PackedScene" path="res://Scenes/Bodies/chainsaw.tscn" id="2_dvj5j"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_2o661"]
+
+[resource]
+script = ExtResource("3_2o661")
+id = &"chainsaw"
+display_name = "Chainsaw"
+description = "Two-stroke, badly maintained, and audible from the far side of the desk."
+cost = 250000
+scene = ExtResource("2_dvj5j")
+icon = ExtResource("1_xn6lu")
+requires = Array[StringName]([&"greatsword"])
+sort_order = 92

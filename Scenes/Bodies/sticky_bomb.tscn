@@ -1,0 +1,61 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Bodies/sticky_bomb.gd" id="1_fkehj"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/sticky_bomb.png" id="2_v74ug"]
+[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_u3pm4"]
+[ext_resource type="Script" path="res://Scripts/Components/effects_player.gd" id="4_71mg4"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_gj60w"]
+size = Vector2(46, 44)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_jo0p8"]
+size = Vector2(62, 60)
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_bmsml"]
+radius = 150.0
+
+[node name="_StickyBomb" type="RigidBody2D" unique_id=355269751 node_paths=PackedStringArray("explosion_area", "drag_area", "handle", "sprite", "collider", "Effects_Player")]
+collision_layer = 4
+collision_mask = 7
+contact_monitor = true
+max_contacts_reported = 4
+script = ExtResource("1_fkehj")
+damage_mult = 1.2
+throwable_delay = 2.2
+explosion_area = NodePath("ExplosionArea")
+max_force = 14000.0
+item_id = &"sticky_bomb"
+drag_area = NodePath("DraggableArea")
+handle = NodePath("Handle")
+sprite = NodePath("Sprite")
+collider = NodePath("CollisionShape2D")
+Effects_Player = NodePath("EffectsPlayer")
+
+[node name="Sprite" type="Sprite2D" parent="." unique_id=692861401]
+scale = Vector2(2, 2)
+texture = ExtResource("2_v74ug")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=599444415]
+shape = SubResource("RectangleShape2D_gj60w")
+
+[node name="DraggableArea" type="Area2D" parent="." unique_id=420291399]
+script = ExtResource("3_u3pm4")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=885010613]
+shape = SubResource("RectangleShape2D_jo0p8")
+
+[node name="Handle" type="StaticBody2D" parent="." unique_id=395350958]
+visible = false
+collision_layer = 0
+collision_mask = 0
+
+[node name="EffectsPlayer" type="Node" parent="." unique_id=1943713524]
+script = ExtResource("4_71mg4")
+
+[node name="ExplosionArea" type="Area2D" parent="." unique_id=887393428]
+collision_layer = 0
+collision_mask = 6
+monitoring = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="ExplosionArea" unique_id=550453537]
+shape = SubResource("CircleShape2D_bmsml")

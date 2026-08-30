@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/boxcutter.png" id="1_eyjwg"]
+[ext_resource type="PackedScene" path="res://Scenes/Bodies/boxcutter.tscn" id="2_6wuux"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_xe7pt"]
+
+[resource]
+script = ExtResource("3_xe7pt")
+id = &"boxcutter"
+display_name = "Boxcutter"
+description = "Office issue, resharpened by snapping bits off it. All edge and no weight."
+cost = 1200
+scene = ExtResource("2_6wuux")
+icon = ExtResource("1_eyjwg")
+requires = Array[StringName]([&"mace"])
+sort_order = 22

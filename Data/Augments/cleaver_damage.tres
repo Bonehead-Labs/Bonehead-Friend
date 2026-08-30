@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_xabme"]
+
+[resource]
+script = ExtResource("1_xabme")
+id = &"cleaver_damage"
+item_id = &"cleaver"
+display_name = "Ground Edge"
+effect_key = &"damage_mult"
+effect_per_level = 1.15
+cost_base = 815
+cost_growth = 1.12

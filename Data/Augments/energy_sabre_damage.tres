@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_idyox"]
+
+[resource]
+script = ExtResource("1_idyox")
+id = &"energy_sabre_damage"
+item_id = &"energy_sabre"
+display_name = "Tighter Focus"
+effect_key = &"damage_mult"
+effect_per_level = 1.15
+cost_base = 1625
+cost_growth = 1.12

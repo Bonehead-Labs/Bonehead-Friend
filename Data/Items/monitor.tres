@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/monitor.png" id="1_g46cf"]
+[ext_resource type="PackedScene" path="res://Scenes/Bodies/monitor.tscn" id="2_yaqef"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_f6702"]
+
+[resource]
+script = ExtResource("3_f6702")
+id = &"monitor"
+display_name = "Monitor"
+description = "Twenty-seven inches, one VESA mount and one careless swing. There goes the deposit."
+cost = 110000
+scene = ExtResource("2_yaqef")
+icon = ExtResource("1_g46cf")
+requires = Array[StringName]([&"mechanical_keyboard"])
+sort_order = 52

@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/black_hole_charge.png" id="1_au31d"]
+[ext_resource type="PackedScene" path="res://Scenes/Bodies/black_hole_charge.tscn" id="2_iqw3t"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_jmavh"]
+
+[resource]
+script = ExtResource("3_jmavh")
+id = &"black_hole_charge"
+display_name = "Black Hole Charge"
+description = "Gathers up everything you own, holds it for a moment, then hands it all back at once."
+category = 1
+cost = 300000
+scene = ExtResource("2_iqw3t")
+icon = ExtResource("1_au31d")
+requires = Array[StringName]([&"demolition_charge"])
+sort_order = 130

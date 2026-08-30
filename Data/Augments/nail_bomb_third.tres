@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_hn8x1"]
+
+[resource]
+script = ExtResource("1_hn8x1")
+id = &"nail_bomb_third"
+item_id = &"nail_bomb"
+display_name = "Packed Tighter"
+effect_key = &"mass_mult"
+effect_per_level = 1.08
+cost_base = 387
+cost_growth = 1.09
+sort_order = 2
