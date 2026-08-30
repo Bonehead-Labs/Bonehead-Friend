@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://crhk3cw6cg4m7"
-path="res://.godot/imported/gorilla_walk_sheet.png-e38f128188e9293bbeaae408510c23b7.ctex"
+uid="uid://c65ay2xd8a5u2"
+path="res://.godot/imported/goose.png-650a515227dc90511078a3881c450927.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/sprites/items/gorilla_walk_sheet.png"
-dest_files=["res://.godot/imported/gorilla_walk_sheet.png-e38f128188e9293bbeaae408510c23b7.ctex"]
+source_file="res://Assets/sprites/icons/goose.png"
+dest_files=["res://.godot/imported/goose.png-650a515227dc90511078a3881c450927.ctex"]
 
 [params]
 

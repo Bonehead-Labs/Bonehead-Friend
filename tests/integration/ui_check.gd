@@ -438,6 +438,7 @@ func _the_rebirth_page_refuses_an_empty_reset() -> void:
 	if reincarnate == null:
 		return
 	var count_before: int = Economy.prestige_count
+	await _scroll_into_view(reincarnate)
 	await _click(_centre_of(reincarnate))
 	_check("one press does not reset anything", Economy.prestige_count == count_before)
 	_check("it asks for confirmation instead",
@@ -454,6 +455,7 @@ func _the_rebirth_page_refuses_an_empty_reset() -> void:
 		_button_labelled("Reincarnate", page) != null)
 	var armed_button := _button_labelled("Reincarnate", page)
 	if armed_button:
+		await _scroll_into_view(armed_button)
 		await _click(_centre_of(armed_button))
 		_check("so the next click asks again rather than resetting",
 			Economy.prestige_count == count_before)
@@ -985,6 +987,23 @@ func _the_buddy_still_takes_clicks() -> void:
 ## Screen space, via the canvas transform. `get_global_rect()` stops at the CanvasLayer,
 ## so the moment a layer is scaled by `UIScale` every rect it returns is wrong by exactly
 ## that factor — and every hit test in this file silently starts testing the wrong point.
+## Brings a control into view inside whichever ScrollContainer holds it, then settles.
+##
+## The Rebirth page used to be a tab of its own and its button was always on screen. It is
+## now the back room of the Arcade, below three machines, so a click at its centre lands on
+## whatever the card is actually showing — which is a real click on a real widget and
+## therefore fails in a way that looks like the button not working.
+func _scroll_into_view(control: Control) -> void:
+	var node: Node = control.get_parent()
+	while node != null and not (node is ScrollContainer):
+		node = node.get_parent()
+	var scroll := node as ScrollContainer
+	if scroll == null:
+		return
+	scroll.scroll_vertical = int(control.global_position.y - scroll.global_position.y
+		+ scroll.scroll_vertical - scroll.size.y * 0.5)
+	await _settle()
+
 func _centre_of(control: Control) -> Vector2:
 	return UIScale.screen_centre(control)
 

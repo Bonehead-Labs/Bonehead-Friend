@@ -132,6 +132,13 @@ const ONE_SHOT: Array[StringName] = [&"windup", &"attack"]
 ## Where the art is looked for, in that order. Neither has to exist — an NPC with no picture
 ## is still a working NPC, because a half-finished art pass must leave a playable game.
 const FRAMES_PATH := "res://art/src/%s.aseprite"
+## A generated walk cycle, as a grid rather than a strip: `rd_advanced_animation__walking`
+## returns 8 frames of 48x48 laid out 4 across and 2 down. A slicer that assumes one long
+## row finds four frames and half an animal, which is why the layout is a constant here
+## rather than inferred from the image's width.
+const SHEET_PATH := "res://Assets/sprites/npc/%s_walk.png"
+const SHEET_COLUMNS := 4
+const SHEET_ROWS := 2
 const SPRITE_PATH := "res://Assets/sprites/items/%s.png"
 
 # --- what it is ------------------------------------------------------------
@@ -653,10 +660,43 @@ func _make_art() -> void:
 	add_child(still)
 	sprite = still
 
+## A walk cycle sliced out of a generated spritesheet, when there is no hand-authored
+## `.aseprite` to prefer. Built rather than imported because the sheet is a plain PNG: the
+## Aseprite Wizard route needs an Aseprite source, and the generator does not produce one.
+##
+## Only `walk` comes from here. Everything else the state machine asks for falls back to
+## whatever `walk` is showing, which is the same "a missing animation is a pose that does
+## not change, never a crash" rule the buddy's own art driver follows.
+func _load_sheet_frames() -> SpriteFrames:
+	var path := SHEET_PATH % item_id
+	if item_id == &"" or not ResourceLoader.exists(path):
+		return null
+	var sheet := ResourceLoader.load(path) as Texture2D
+	if sheet == null:
+		return null
+	var frame_size := Vector2i(sheet.get_width() / SHEET_COLUMNS, sheet.get_height() / SHEET_ROWS)
+	if frame_size.x <= 0 or frame_size.y <= 0:
+		push_warning("NpcBase: %s is too small to slice into %dx%d"
+			% [path, SHEET_COLUMNS, SHEET_ROWS])
+		return null
+
+	var frames := SpriteFrames.new()
+	frames.add_animation(&"walk")
+	frames.set_animation_speed(&"walk", 10.0)
+	for index in SHEET_COLUMNS * SHEET_ROWS:
+		var atlas := AtlasTexture.new()
+		atlas.atlas = sheet
+		atlas.region = Rect2(
+			Vector2(index % SHEET_COLUMNS, index / SHEET_COLUMNS) * Vector2(frame_size),
+			Vector2(frame_size))
+		frames.add_frame(&"walk", atlas)
+	frames.remove_animation(&"default")
+	return frames
+
 func _load_frames() -> SpriteFrames:
 	var path := FRAMES_PATH % item_id
 	if item_id == &"" or not ResourceLoader.exists(path):
-		return null
+		return _load_sheet_frames()
 	var frames := ResourceLoader.load(path) as SpriteFrames
 	if frames == null:
 		push_warning("NpcBase: %s exists but did not import as SpriteFrames" % path)
