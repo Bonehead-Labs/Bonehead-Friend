@@ -916,3 +916,16 @@ fastest, so it goes first and alone if the milestone has to be cut.
 
 *Art needed:* a wheel, a machine cabinet, a card set, and a vending-machine prop as the arcade's
 front end on the desk. Not costed against the M3.5 balance.
+
+---
+
+## M3.7 — the desk you can clear, the kind half, and a buddy who plays
+
+Found in the first real session with the M3.6 sandbox. Full brief in `docs/uplift-m3.7.md`.
+
+The idle brain (M3.7-D) is fixed and tested — a running turret used to pin him awake forever,
+so he never played with anything. The other three are specified and not started: a findable
+way to clear the desk (both mechanisms already exist and neither can be found, and fourteen
+explosives cannot be right-clicked away at all), two-tile Harm/Kind navigation with about
+twenty new leisure items behind it, and the animation families that let him walk over and use
+one. B blocks C; A is independent.
