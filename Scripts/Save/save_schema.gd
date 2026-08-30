@@ -12,7 +12,7 @@ extends RefCounted
 ##   2. add a `case N: return _migrate_N_to_N_plus_1(d)` in _apply_migration
 ##   3. commit a fixture save of the old version under tests/fixtures/
 
-const SAVE_VERSION := 3
+const SAVE_VERSION := 4
 
 static func new_save() -> Dictionary:
 	return {
@@ -20,9 +20,9 @@ static func new_save() -> Dictionary:
 		"saved_at_unix": 0,
 		"last_played_unix": 0,
 		"playtime_sec": 0,
-		"currencies": {"bones": 0.0, "hearts": 0.0},
+		"currencies": {"bones": 0.0, "hearts": 0.0, "dollars": 0.0},
 		"lifetime": {"bones": 0.0, "hearts": 0.0},
-		"prestige": {"ectoplasm": 0, "count": 0, "personality": "stoic"},
+		"prestige": {"marrow": 0.0, "count": 0, "personality": "stoic", "run_earnings": 0.0},
 		"unlocks": [],
 		"augments": {},
 		"exclusive_choices": {},
@@ -65,9 +65,41 @@ static func _apply_migration(from_version: int, d: Dictionary) -> Dictionary:
 			return _migrate_1_to_2(d)
 		2:
 			return _migrate_2_to_3(d)
+		3:
+			return _migrate_3_to_4(d)
 		_:
 			push_error("SaveSchema: no migration from version %d" % from_version)
 			return d
+
+## v3 -> v4: Ectoplasm becomes Dollars, and the prestige curve becomes Marrow.
+##
+## The first migration that is not additive, and the one the rule about writing a step per
+## bump was waiting for (docs/decisions.md D31, D33).
+##
+## **A v3 player keeps exactly the multiplier they had.** Ectoplasm was worth +1% a point, so
+## `marrow = ectoplasm x 0.01` leaves their income untouched to the decimal — they wake up
+## with a differently-named stat and the same numbers, which is the only version of this that
+## is not a nerf delivered by patch notes. They do *not* get Dollars for it: Ectoplasm bought
+## nothing, so converting it into a spendable currency would hand out a windfall for having
+## played before the change rather than after.
+##
+## `run_earnings` starts at zero rather than at their lifetime total. Marrow is scaled by the
+## run, and crediting a v3 player's entire history as one unreset run would pay a first
+## Reincarnation worth more than the rest of the game.
+static func _migrate_3_to_4(d: Dictionary) -> Dictionary:
+	var out := d.duplicate(true)
+
+	var currencies: Dictionary = out.get("currencies", {})
+	currencies["dollars"] = float(currencies.get("dollars", 0.0))
+	out["currencies"] = currencies
+
+	var prestige: Dictionary = out.get("prestige", {})
+	var ectoplasm := float(prestige.get("ectoplasm", 0))
+	prestige["marrow"] = float(prestige.get("marrow", ectoplasm * 0.01))
+	prestige["run_earnings"] = float(prestige.get("run_earnings", 0.0))
+	prestige.erase("ectoplasm")
+	out["prestige"] = prestige
+	return out
 
 ## v1 -> v2: the buddy's own state. M3 gave him a mood and a grime level, and both are the
 ## player's position in a loop rather than a derived number, so both persist.

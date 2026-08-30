@@ -36,7 +36,7 @@ func _ready() -> void:
 ## the reset — Progression had forgotten the pistol, ItemSpawner had not — and every weapon
 ## already lying on screen stayed a usable weapon carrying its pre-prestige augment
 ## multipliers. The shop meanwhile correctly re-priced all of it as unowned.
-func _on_prestige(_ectoplasm: int) -> void:
+func _on_prestige(_marrow: float) -> void:
 	if _active_power != &"":
 		_active_power = &""
 		EventBus.cursor_power_changed.emit(&"")

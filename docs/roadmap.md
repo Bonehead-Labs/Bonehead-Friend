@@ -633,7 +633,7 @@ findings, the content budget and every gate live there; this is the index.
 |---|---|---|
 | M3.5-0 — Prove the base | The two playtests, the export check in a real `.exe`, retune pass 1, the small confirmed defects. **Blocking** — rebalancing after a content expansion is strictly worse than before one. | none |
 | M3.5-A — The engine and the ladder | Leveled automation capstones on every item (the exponential engine), augment coverage for all 28 items, roster 16→~28, visible devices, a headless pacing simulator, `prestige_divisor` retuned to reality | none |
-| M3.5-B — The long game | Ectoplasm meta-shop (the Séance), milestones + stats page, Dream Journal, contracts to ~30, +2 personalities, prestige-gated automation tier 2, **Dollars + cosmetics**, the hat layer | **v4 — one bump** |
+| M3.5-B — The long game | **Dollars + Marrow: done early** (the Ectoplasm axis is gone). Séance boons, milestones in two kinds + stats page, cosmetics page, Dream Journal, contracts to ~30, +2 personalities, prestige-gated automation tier 2, the hat layer | **v4 — done** |
 | M3.5-C — Live on the desktop | Taskbar mechanics, Overtime Pay, hibernate/hazard pay, and the timeboxed Win32 spike → Working Hours if it lands. Occupational Hazard stays post-1.0. | none |
 
 The findings that force the milestone (verified against the code and `.tres` files):

@@ -45,8 +45,8 @@ func _ready() -> void:
 		var contract := ItemDB.get_contract(contract_id)
 		if contract:
 			_hud.show_toast("Contract ready to claim: %s" % contract.display_name, 8.0))
-	EventBus.prestige_performed.connect(func(gained: int) -> void:
-		_hud.show_toast("Reincarnated. +%d ectoplasm, and he is somebody new." % gained, 8.0))
+	EventBus.prestige_performed.connect(func(gained: float) -> void:
+		_hud.show_toast("Reincarnated. +%.2f marrow, and he is somebody new." % gained, 8.0))
 
 ## "You earned this while you were away" — shown once, after the UI exists to show it in.
 ## Silent when nothing accrued, which is every session until the first automation capstone:

@@ -9,4 +9,5 @@ display_name = "Bedside Manner"
 description = "Be kind to him 150 times."
 goal_key = &"kindness"
 target = 150
+reward_dollars = 400
 sort_order = 10

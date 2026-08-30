@@ -1,7 +1,7 @@
 class_name PrestigePanel
 extends PanelPage
 
-## Reincarnation: hand the run back, keep the Ectoplasm, get a new Bonehead.
+## Reincarnation: hand the run back, keep the Marrow, get a new Bonehead.
 ##
 ## The page has one job beyond the button, and it is the harder one — making the trade
 ## legible. A reset screen that does not say plainly what is lost gets pressed by accident
@@ -44,16 +44,16 @@ func _build_page() -> void:
 	add_theme_constant_override("separation", 10)
 	add_child(UIStyle.eyebrow("Reincarnation"))
 
-	# The gain, as big as it deserves and with the ghost beside it. Ectoplasm is the only
+	# The gain, as big as it deserves and with its mark beside it. Marrow is the only
 	# number in the game that survives the reset, so it is the only number that gets the
 	# hero size.
 	var gain := HBoxContainer.new()
 	gain.add_theme_constant_override("separation", 8)
 	add_child(gain)
 	_gain_row = gain
-	_ghost = UIStyle.icon(&"ecto", 16, UIStyle.ECTOPLASM)
+	_ghost = UIStyle.icon(&"star", 16, UIStyle.DOLLARS)
 	gain.add_child(_ghost)
-	_headline = UIStyle.label("", UIStyle.HERO, UIStyle.ECTOPLASM)
+	_headline = UIStyle.label("", UIStyle.HERO, UIStyle.DOLLARS)
 	_headline.theme_type_variation = &"Numeral"
 	gain.add_child(_headline)
 
@@ -86,11 +86,16 @@ func _build_page() -> void:
 	who.add_child(_personality_label)
 
 ## Closing the card is a decision not to reincarnate. The confirm does not survive it.
+## Below this, a reset is a mistake dressed as a choice: there is no threshold in the maths
+## any more (D33), so the floor is a courtesy rather than a rule, and it is stated in the
+## same figure the player is reading.
+const MINIMUM_WORTH_TAKING := 0.01
+
 func _on_page_hidden() -> void:
 	_disarm()
 
 func _on_pressed() -> void:
-	if Economy.pending_ectoplasm() <= 0:
+	if Economy.pending_marrow() < MINIMUM_WORTH_TAKING:
 		return
 	if not _armed or Time.get_ticks_msec() - _armed_at > ARM_WINDOW_MS:
 		_armed = true
@@ -106,18 +111,19 @@ func _on_pressed() -> void:
 	UIMotion.flash(_headline, Color(1.8, 2.0, 1.6), 0.9)
 
 func _refresh() -> void:
-	var pending := Economy.pending_ectoplasm()
-	var held := Economy.ectoplasm
+	var pending := Economy.pending_marrow()
+	var held := Economy.marrow
+	var worth_taking := pending >= MINIMUM_WORTH_TAKING
 
-	# Hidden rather than showing a lone zero: "+3 ectoplasm" is a promise and "0" is a
+	# Hidden rather than showing a lone zero: "+1.40" is a promise and "0" is a
 	# non-statement, and the EVER EARNED figure below already says why the number is zero.
-	_gain_row.visible = pending > 0
-	_headline.text = "+%d" % pending
+	_gain_row.visible = worth_taking
+	_headline.text = "+%.2f" % pending
 	_detail.text = _explain(pending, held)
 	_write_figures(pending, held)
 
-	_ghost.modulate = UIStyle.ECTOPLASM if pending > 0 else UIStyle.TEXT_DIM
-	if pending <= 0:
+	_ghost.modulate = UIStyle.DOLLARS if worth_taking else UIStyle.TEXT_DIM
+	if not worth_taking:
 		_button.text = "Not yet"
 		_button.icon = UIStyle.glyph(&"lock")
 		_button.disabled = true
@@ -134,10 +140,10 @@ func _refresh() -> void:
 		UIStyle.tint_button(_button, UIStyle.PANEL)
 	else:
 		_button.text = "Reincarnate"
-		_button.icon = UIStyle.glyph(&"ecto")
+		_button.icon = UIStyle.glyph(&"dollar")
 		_button.disabled = false
 		_button.theme_type_variation = &"Button"
-		UIStyle.tint_button(_button, UIStyle.ECTOPLASM)
+		UIStyle.tint_button(_button, UIStyle.DOLLARS)
 
 	var personality := ItemDB.get_personality(StringName(Economy.personality))
 	if personality:
@@ -147,19 +153,20 @@ func _refresh() -> void:
 
 ## The figures, in the face whose digits can be trusted. Rebuilt rather than refreshed
 ## because the row is two chips before a reincarnation is available and three after.
-func _write_figures(pending: int, held: int) -> void:
+func _write_figures(pending: float, held: float) -> void:
 	for child in _figures.get_children():
 		child.queue_free()
-	if pending <= 0:
-		# Lifetime, not current balance, is what the cube root is taken of — so lifetime is
-		# the number to show someone asking why the button is dark.
-		var lifetime := Economy.lifetime_of(Economy.BONES) + Economy.lifetime_of(Economy.HEARTS)
-		_figures.add_child(_figure(&"bone", "EVER EARNED", UIStyle.format_amount(lifetime),
+	if pending < MINIMUM_WORTH_TAKING:
+		# **This run**, not lifetime: Marrow is scaled by what this life earned, so lifetime
+		# is the wrong number to show someone asking why the button is dark (D33). Showing
+		# lifetime here was true of the Ectoplasm curve and is a lie about this one.
+		_figures.add_child(_figure(&"bone", "THIS RUN", UIStyle.format_amount(Economy.run_earnings),
 			UIStyle.BONES))
 		return
-	_figures.add_child(_figure(&"ecto", "ECTOPLASM", "%d \u2192 %d" % [held, held + pending],
-		UIStyle.ECTOPLASM))
-	_figures.add_child(_figure(&"star", "ALL INCOME", "+%d%%" % (held + pending), UIStyle.BONES))
+	_figures.add_child(_figure(&"star", "MARROW", "%.2f \u2192 %.2f" % [held, held + pending],
+		UIStyle.DOLLARS))
+	_figures.add_child(_figure(&"bone", "ALL INCOME", "x%.2f" % (1.0 + held + pending),
+		UIStyle.BONES))
 
 func _figure(mark: StringName, caption: String, value: String, colour: Color) -> Control:
 	var chip := PanelContainer.new()
@@ -180,11 +187,11 @@ func _figure(mark: StringName, caption: String, value: String, colour: Color) ->
 ## Deliberately free of digits: every figure in this screen lives in `_write_figures`,
 ## where it is set in Silkscreen. What is left here is the part that is genuinely prose —
 ## the trade, in words.
-func _explain(pending: int, _held: int) -> String:
-	if pending <= 0:
-		return ("Ectoplasm comes from everything you have ever earned, across every life. "
-			+ "Keep going; each point is worth roughly eight times the last.")
-	return ("You keep your ectoplasm and everything you have ever earned.\n"
+func _explain(pending: float, _held: float) -> String:
+	if pending < MINIMUM_WORTH_TAKING:
+		return ("Marrow comes from what *this* life earns, and it climbs the whole time you "
+			+ "play. There is no threshold to cross — come back when the number is worth it.")
+	return ("You keep your Marrow, your Dollars, your hats and everything you have ever earned.\n"
 		+ "You lose every Bone, every Heart, every toy, every upgrade and all mastery.\n"
 		+ "He comes back with a new personality, which changes what his moods are worth — "
 		+ "so the next life asks you to play differently, not just faster.")

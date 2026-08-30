@@ -55,9 +55,8 @@ func _initialize() -> void:
 	_test_max_affordable_edges()
 
 	_suite("prestige")
-	_test_prestige_cube_root()
-	_test_prestige_gain_never_negative()
-	_test_prestige_multiplier()
+	_test_marrow_scales_with_the_run()
+	_test_marrow_multiplies_income()
 
 	_suite("mastery")
 	_test_mastery_curve_is_superlinear()
@@ -97,6 +96,7 @@ func _initialize() -> void:
 	_test_stringname_keys_survive_json()
 	_test_v1_fixture_migrates()
 	_test_v2_fixture_migrates()
+	_test_v3_fixture_migrates()
 
 	_suite("mood")
 	_test_mood_decays_toward_zero_without_overshooting()
@@ -358,36 +358,33 @@ func _test_max_affordable_edges() -> void:
 	_check("cash below first level buys nothing", Math.max_affordable(100.0, 1.10, 0, 99.0) == 0)
 	_check("linear growth handled", Math.max_affordable(10.0, 1.0, 0, 55.0) == 5)
 
-# --- prestige --------------------------------------------------------------
+# --- prestige: Marrow ------------------------------------------------------
 
-func _test_prestige_cube_root() -> void:
-	# Doubling prestige should take ~8x the run.
-	_check("below threshold yields nothing", Math.ectoplasm_for_lifetime(1e11, 1e12) == 0)
-	_check("1e12 yields 1", Math.ectoplasm_for_lifetime(1e12, 1e12) == 1)
-	_check("8e12 yields 2 (8x to double)", Math.ectoplasm_for_lifetime(8e12, 1e12) == 2)
-	# Exact cube: pow(64, 1/3) lands at 3.9999999999999996 in floating point.
-	_check("64e12 yields 4 (exact cube)", Math.ectoplasm_for_lifetime(64e12, 1e12) == 4)
-	_check("zero lifetime yields nothing", Math.ectoplasm_for_lifetime(0.0, 1e12) == 0)
-	# The root is a balance number now (BalanceData.prestige_exponent), so the shape has to
-	# follow it rather than being baked in here.
-	_check("a square root doubles at 4x, not 8x",
-		Math.ectoplasm_for_lifetime(4e12, 1e12, 2.0) == 2)
+## Marrow scales with the **run**, with no threshold to cross (docs/decisions.md D33). The
+## shape these assertions pin is: a bigger run always pays more, twice the run pays less than
+## twice the Marrow, and nothing pays for a run that earned nothing.
+func _test_marrow_scales_with_the_run() -> void:
+	_check("a run that earned nothing pays nothing", is_zero_approx(Math.marrow_for_run(0.0)))
+	_check("a negative run pays nothing", is_zero_approx(Math.marrow_for_run(-500.0)))
+	_check("a run at the divisor is worth one Marrow",
+		is_equal_approx(Math.marrow_for_run(1e7, 1e7), 1.0))
+	# The exponent is below 1, so pushing a run further always pays and never pays
+	# proportionally — which is what stops one enormous run beating several good ones and
+	# emptying the loop of its loops.
+	_check("four times the run is twice the Marrow, not four times",
+		is_equal_approx(Math.marrow_for_run(4e7, 1e7), 2.0))
+	_check("and two runs of one beat one run of two",
+		Math.marrow_for_run(1e7, 1e7) * 2.0 > Math.marrow_for_run(2e7, 1e7))
+	_check("the exponent is a balance number, not a baked-in root",
+		is_equal_approx(Math.marrow_for_run(1e8, 1e7, 1.0), 10.0))
 
-func _test_prestige_gain_never_negative() -> void:
-	_check("gain over held amount", Math.prestige_gain(8e12, 1, 1e12) == 1)
-	_check("no gain when already ahead", Math.prestige_gain(1e12, 5, 1e12) == 0)
-
-## Compounding since M3.5-A, not additive: `(1 + per_point) ^ points`. A linear multiplier
-## cannot keep up with a threshold that grows as a cube, which the pacing simulator shows
-## as a Reincarnation ramp that never flattens.
-func _test_prestige_multiplier() -> void:
-	_check("zero ectoplasm is 1x", is_equal_approx(Math.prestige_multiplier(0), 1.0))
-	_check("one point is one step", is_equal_approx(Math.prestige_multiplier(1, 0.25), 1.25))
-	_check("points compound", is_equal_approx(Math.prestige_multiplier(3, 0.25), 1.953125))
-	_check("and the default is still near the old line early on",
-		absf(Math.prestige_multiplier(5) - 1.05) < 0.002)
-	_check("a negative rate cannot make income vanish",
-		is_equal_approx(Math.prestige_multiplier(4, -1.0), 1.0))
+func _test_marrow_multiplies_income() -> void:
+	_check("no Marrow is 1x", is_equal_approx(Math.marrow_multiplier(0.0), 1.0))
+	_check("one Marrow is a doubling", is_equal_approx(Math.marrow_multiplier(1.0), 2.0))
+	_check("it is additive and therefore unbounded",
+		is_equal_approx(Math.marrow_multiplier(37.5), 38.5))
+	_check("a negative total cannot make income vanish",
+		is_equal_approx(Math.marrow_multiplier(-4.0), 1.0))
 
 # --- mastery ---------------------------------------------------------------
 
@@ -669,6 +666,48 @@ func _test_v2_fixture_migrates() -> void:
 	_check("mastery xp survived", is_equal_approx(float(out["mastery_xp"]["baseball_bat"]), 5200.0))
 	_check("hearts survived", is_equal_approx(float(out["currencies"]["hearts"]), 312.5))
 	_check("nine unlocks survived", (out["unlocks"] as Array).size() == 9)
+
+## The v3 fixture is a save from the end of M3.5-A: three Reincarnations under the old
+## Ectoplasm curve, a chosen exclusive branch, a switched-off capstone, and a contract board
+## mid-week. It has to arrive at v4 with the same income multiplier it had — the first
+## non-additive migration in the project, and the one that could most easily rob somebody.
+func _test_v3_fixture_migrates() -> void:
+	var f := FileAccess.open("res://tests/fixtures/save_v3.json", FileAccess.READ)
+	if f == null:
+		_check("v3 fixture is present", false)
+		return
+	var parsed = JSON.parse_string(f.get_as_text())
+	f.close()
+	if typeof(parsed) != TYPE_DICTIONARY:
+		_check("v3 fixture is valid JSON", false)
+		return
+
+	var out: Dictionary = Schema.migrate(parsed)
+	_check("v3 fixture reaches the current version", int(out["version"]) == Schema.SAVE_VERSION)
+
+	# Three Ectoplasm was +3% income. Three hundredths of Marrow is +3% income. The player
+	# wakes up with a differently-named stat and the same numbers, which is the only version
+	# of this change that is not a nerf delivered by patch notes.
+	_check("Ectoplasm became exactly the Marrow it was worth",
+		is_equal_approx(float(out["prestige"]["marrow"]), 0.03))
+	_check("and the word is gone", not (out["prestige"] as Dictionary).has("ectoplasm"))
+	_check("the reset count survived", int(out["prestige"]["count"]) == 3)
+	_check("Dollars start at zero, not at a windfall",
+		is_zero_approx(float(out["currencies"]["dollars"])))
+	# Marrow is scaled by the *run*, so crediting a whole history as one unreset run would
+	# pay a first Reincarnation worth more than the rest of the game.
+	_check("and the run starts fresh rather than claiming a whole history",
+		is_zero_approx(float(out["prestige"]["run_earnings"])))
+
+	# Everything a v3 player owned is still theirs.
+	_check("his personality survived", String(out["prestige"]["personality"]) == "goth")
+	_check("bones survived", is_equal_approx(float(out["currencies"]["bones"]), 184320.5))
+	_check("the exclusive branch survived",
+		String(out["exclusive_choices"]["baseball_bat/flavour"]) == "bat_slugger")
+	_check("the switched-off capstone stayed off",
+		(out["automation_off"] as Array).has("boombox_playlist"))
+	_check("sixteen unlocks survived", (out["unlocks"] as Array).size() == 16)
+	_check("the mastery pool survived", int(out["mastery_pool"]) == 31)
 
 # --- harness ---------------------------------------------------------------
 

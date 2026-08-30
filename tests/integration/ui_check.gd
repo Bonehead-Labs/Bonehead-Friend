@@ -421,15 +421,20 @@ func _the_rebirth_page_refuses_an_empty_reset() -> void:
 	if page == null:
 		return
 
+	# Marrow is scaled by the *run*, and every suite above this one has been spending money
+	# into it, so the empty case has to be made rather than assumed.
+	Economy.run_earnings = 0.0
+	page.call("request_refresh")
+	await _settle()
 	var button := _button_labelled("Not yet", page)
 	_check("with nothing to gain the button is inert", button != null and button.disabled)
 
 	# Now with something to gain: the first press must arm rather than reset.
-	Economy.grant(Economy.BONES, ItemDB.balance.prestige_divisor * 30.0)
+	Economy.grant(Economy.BONES, ItemDB.balance.marrow_divisor * 4.0)
 	page.call("request_refresh")
 	await _settle()
 	var reincarnate := _button_labelled("Reincarnate", page)
-	_check("it offers a reset once there is ectoplasm to gain", reincarnate != null)
+	_check("it offers a reset once there is Marrow to gain", reincarnate != null)
 	if reincarnate == null:
 		return
 	var count_before: int = Economy.prestige_count

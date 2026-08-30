@@ -108,6 +108,9 @@ func _build() -> void:
 	_add_page(&"shop", "Toys", &"crate", ShopPanel.new())
 	_add_page(&"tree", "Upgrades", &"star", AugmentPanel.new())
 	_add_page(&"contracts", "Jobs", &"scroll", ContractPanel.new())
+	# The ghost, not the dollar sign: Reincarnation stopped paying a currency when Marrow
+	# replaced Ectoplasm (D33), and a $ on this tab would promise the page sells something.
+	# It is a page about dying and coming back, which is what the ghost was always for.
 	_add_page(&"prestige", "Rebirth", &"ecto", PrestigePanel.new())
 	_add_page(&"settings", "Settings", &"sliders", SettingsPanel.new())
 

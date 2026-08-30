@@ -9,4 +9,5 @@ display_name = "Good Boy"
 description = "Pet him 200 times."
 goal_key = &"pet"
 target = 200
+reward_dollars = 400
 sort_order = 30

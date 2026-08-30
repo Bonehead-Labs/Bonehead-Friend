@@ -112,18 +112,28 @@ extends Resource
 
 # --- prestige / mastery ----------------------------------------------------
 
-## ectoplasm = floor((lifetime / divisor) ^ (1 / prestige_exponent)).
+## marrow = (run earnings / marrow_divisor) ^ marrow_exponent, and income is x(1 + marrow).
 ##
-## Set by `tests/integration/pacing_sim.tscn`, not by eye: the shipped 1e12 was five orders
-## of magnitude out of reach — roughly forty years of play — because nothing in the project
-## could check a target stated in hours until M3.5-A built something that could.
-@export var prestige_divisor: float = 1e7
-@export var prestige_exponent: float = 3.0
+## Set by `tests/integration/pacing_sim.tscn`, not by eye. The divisor is roughly what a
+## first long run earns, so the first Reincarnation is worth about a doubling; the exponent
+## is below 1 so that pushing a run further always pays, and never pays enough to be worth
+## waiting all day for.
+@export var marrow_divisor: float = 1e7
+@export var marrow_exponent: float = 0.5
 
-## Income multiplier per point of Ectoplasm held, compounding: `(1 + this) ^ points`.
-## Compounding rather than additive because every other multiplier in the game compounds
-## (D11), and because a linear one cannot keep up with a threshold that grows as a cube.
-@export var prestige_income_per_point: float = 0.01
+# --- Dollars ---------------------------------------------------------------
+
+## Flat, per act, and **never multiplied by anything** (docs/decisions.md D31). Bones and
+## Hearts inflate by design; Dollars must not, or a hat would cost an afternoon on day one
+## and a second on day ninety. Kind acts pay less per act than hits because petting is four
+## times a second and swinging is not.
+@export var dollars_per_hit: float = 1.0
+@export var dollars_per_kind_act: float = 0.4
+
+## What automation pays, per second, as a fraction of one hit's worth. The only place in the
+## economy deliberately worse when idle: Dollars buy the things you look at, so they should
+## mostly be earned while looking.
+@export var dollars_idle_efficiency: float = 0.15
 
 ## xp_to_rank(r) = mastery_base * r^mastery_exponent. Rank 1 costs 100 XP, rank 10 ~3,981.
 @export var mastery_base: float = 100.0

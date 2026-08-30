@@ -66,34 +66,27 @@ static func knockout_bonus(round_damage: float, mult: float, exponent: float) ->
 static func kindness_combo(repeats: int, step: float, ceiling: float) -> float:
 	return minf(1.0 + step * float(maxi(0, repeats)), maxf(1.0, ceiling))
 
-# --- prestige --------------------------------------------------------------
+# --- prestige: Marrow ------------------------------------------------------
 
-## Total ectoplasm earned for a given lifetime income.
+## Marrow earned by resetting a run that made `run_earnings`.
 ##
-## A root, so each point costs more lifetime than the last: at the default exponent of 3
-## doubling your ectoplasm takes roughly 8x the run. The exponent is a parameter rather
-## than a literal because it is a *balance* number — `BalanceData.prestige_exponent` is the
-## authority, and it lived in this file where nobody tuning the game would find it
-## (M3.5-A).
-static func ectoplasm_for_lifetime(lifetime: float, divisor: float = 1e12, exponent: float = 3.0) -> int:
-	if lifetime <= 0.0 or divisor <= 0.0 or exponent <= 0.0:
-		return 0
-	return int(floor(pow(lifetime / divisor, 1.0 / exponent) + EPSILON))
-
-## Ectoplasm gained by resetting now. Never negative.
-static func prestige_gain(lifetime: float, already_held: int, divisor: float = 1e12, exponent: float = 3.0) -> int:
-	return maxi(0, ectoplasm_for_lifetime(lifetime, divisor, exponent) - already_held)
-
-## Income multiplier from held ectoplasm.
+## Scaled by the **run**, not by lifetime, and with no threshold to cross (D33). The old
+## shape — a cube root of lifetime paying whole points — made every reset cost eight times
+## the wall clock of the last and pay exactly one point for it, which the pacing simulator
+## measured at five points across fifty-eight hours.
 ##
-## **Compounding, not additive.** Every other multiplier in the game compounds per level
-## (D11), and this one did not: at +1% a point, and a point count that grows as the *cube
-## root* of lifetime, the fifth Reincarnation was worth 5% and each one cost eight times the
-## run before it. The pacing simulator makes that visible as a ramp that never flattens.
-## `pow(1 + per_point, points)` at the old 0.01 is within a hair of the old line for the
-## first few points, so this is a change of shape rather than of early-game feel.
-static func prestige_multiplier(ectoplasm_held: int, per_point: float = 0.01) -> float:
-	return pow(1.0 + maxf(0.0, per_point), float(maxi(0, ectoplasm_held)))
+## The exponent is below 1, so a run that earns twice as much pays less than twice the
+## Marrow: pushing further is always worth something and never worth waiting forever for.
+static func marrow_for_run(run_earnings: float, divisor: float = 1e7, exponent: float = 0.5) -> float:
+	if run_earnings <= 0.0 or divisor <= 0.0:
+		return 0.0
+	return pow(run_earnings / divisor, exponent)
+
+## Income multiplier from Marrow held. Additive in the exponent's own units and therefore
+## unbounded: this is the engine that makes the game endless, so it must not be capped or
+## compounded into something that runs away.
+static func marrow_multiplier(marrow: float) -> float:
+	return 1.0 + maxf(0.0, marrow)
 
 # --- mastery ---------------------------------------------------------------
 

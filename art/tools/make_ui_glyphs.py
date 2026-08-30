@@ -57,8 +57,26 @@ GLYPHS = {
         "....###....",
         ".....#.....",
     ],
-    # Ectoplasm is the prestige currency and it is a ghost, which is also the joke: you
-    # only get it by killing the run.
+    # Dollars: the currency you earn by turning up (docs/decisions.md D31). A dollar sign
+    # rather than a coin or a note — at sixteen pixels a coin is a circle and a note is a
+    # rectangle, and neither says *money* the way the letter does.
+    #
+    # The stroke runs a row past the S at both ends, which is the whole reason it reads: an
+    # S with a bar exactly its own height is an S with a line in it.
+    "dollar": [
+        "...#...",
+        ".#####.",
+        "##.#.##",
+        "##.#...",
+        ".#####.",
+        "...#.##",
+        "##.#.##",
+        ".#####.",
+        "...#...",
+    ],
+
+    # The ghost stays, unused by the shell since Ectoplasm was replaced: it is the only
+    # picture in the set with a personality, and the arcade will want it.
     "ecto": [
         "...#####...",
         "..#######..",

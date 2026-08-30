@@ -23,12 +23,12 @@ extends VBoxContainer
 ## "1.20k" the moment it gets interesting.
 
 ## Currencies in the order they are earned, which is also the order they are learned.
-const ORDER: Array[StringName] = [&"bones", &"hearts", &"ectoplasm"]
+const ORDER: Array[StringName] = [&"bones", &"hearts", &"dollars"]
 
 const GLYPHS := {
 	&"bones": &"bone",
 	&"hearts": &"heart",
-	&"ectoplasm": &"ecto",
+	&"dollars": &"dollar",
 }
 
 ## Big enough that a Bones total is the loudest thing in the corner of the screen, because
@@ -58,7 +58,7 @@ func _ready() -> void:
 	EventBus.currency_changed.connect(_on_currency_changed)
 	for currency in ORDER:
 		_snap(currency)
-	_refresh_ectoplasm()
+	_refresh_dollars()
 	set_process(false)
 
 func _make_chip(currency: StringName) -> Control:
@@ -132,8 +132,8 @@ func _snap(currency: StringName) -> void:
 func _on_currency_changed(currency: StringName, amount: float) -> void:
 	if not _values.has(currency):
 		return
-	if currency == Economy.ECTOPLASM:
-		_refresh_ectoplasm()
+	if currency == Economy.DOLLARS:
+		_refresh_dollars()
 	# A closed panel does not need to animate its numbers, but it does need to be correct
 	# the instant it opens.
 	if not is_visible_in_tree() or not UIMotion.enabled():
@@ -141,13 +141,14 @@ func _on_currency_changed(currency: StringName, amount: float) -> void:
 		return
 	set_process(true)
 
-## Hidden until there is some. A third chip reading 0 for the first eight hours is a
-## permanent question the game never answers.
-func _refresh_ectoplasm() -> void:
-	var chip := _chips.get(Economy.ECTOPLASM) as Control
+## Hidden until there is some. A third chip reading 0 is a permanent question the game has
+## not answered yet — though with Dollars it answers itself within a minute of play, where
+## Ectoplasm used to leave the chip dark for eight hours.
+func _refresh_dollars() -> void:
+	var chip := _chips.get(Economy.DOLLARS) as Control
 	if chip:
 		var had := chip.visible
-		chip.visible = Economy.ectoplasm > 0
+		chip.visible = Economy.balance_of(Economy.DOLLARS) > 0.0
 		if chip.visible and not had:
 			UIMotion.punch(chip, 1.3)
 

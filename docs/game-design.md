@@ -213,21 +213,33 @@ Plus the existing **Trash Bin** (free, always present) for clearing spawned clut
 
 ## Dollars — the third currency (docs/decisions.md D31)
 
-**Dollars are earned by playing and spent on how he looks.** They come from **kind acts and
-knockouts** — the atom of one half of the loop and the climax of the other, so both a cruel
-player and a kind one accumulate them, at different rhythms. They buy **cosmetics and nothing
-else**.
+**Dollars are earned by being present and spent on how he looks.** They replaced Ectoplasm
+outright; there is no prestige currency any more.
 
-The rule that makes a third currency safe: **Dollars never buy power.** Nothing bought with them
-may touch damage, payout, automation, mastery, contracts, offline or prestige. Without that rule
-they are a bypass around the two-currency bargain — a way to route past "be kind to him if you
-want automation" — and the spine of the economy (D2) goes with it.
+They come from a flat amount per act — every damaging hit, every kind act, the same amount
+whatever the toy — and, mostly, from **milestones**. Idling pays a fraction. Crucially they are
+**never multiplied by anything**: not mood, not augments, not mastery, not Marrow. Bones and
+Hearts inflate by design; Dollars cannot, so a hat costs the same afternoon's attention on day
+one and on day ninety.
 
-**Idling barely earns them.** Automation and offline pay Dollars at a fraction of the active
-rate (`dollars_idle_efficiency`, first draft 0.15). This is the one place in the economy that is
-deliberately worse when idle, and cosmetics are the right reward to put there: eight hours away
-buys toys and upgrades but does not dress him up. It is also the only thing in the game that asks
-an idle-first player to put their hands back on it.
+They buy cosmetics, the arcade, and Séance boons that make each new run start stronger. They
+never buy a toy, an upgrade or a level of automation — and nothing they buy may pay out Hearts
+at a rate that competes with being kind to him, because automation is Hearts-priced and that
+bargain is the design.
+
+## Reincarnation (docs/decisions.md D33)
+
+Free, repeatable, and available at any moment — there is no threshold to cross. It wipes the
+run and pays **Marrow**, a permanent multiplier on everything you earn, scaled by how far that
+run got. A faster run reaches further, which pays more Marrow, which makes the next run faster.
+That loop is what makes the game endless rather than long: any single upgrade track stalls,
+because costs grow geometrically and one device's output grows linearly, and only a loop that
+resets the costs while keeping the multipliers escapes that.
+
+It also rolls a new personality, which is the other half of the reason to take it: each is a
+different mood curve, and therefore a different optimal rhythm.
+
+Marrow is a stat, not a currency. It is never spent.
 
 ## Cosmetics
 

@@ -4,7 +4,7 @@ extends Resource
 ## One objective on the contract board: "deal 10,000 damage", "pet him 200 times".
 ##
 ## The daily-return hook, replacing a login bonus with something that does not smell like
-## free-to-play (docs/game-design.md). Rewards are **Ectoplasm** rather than Bones or
+## free-to-play (docs/game-design.md). Rewards are **Dollars** rather than Bones or
 ## Hearts on purpose: contracts must not be a faster way to buy the next toy, or the
 ## pacing of the shop ladder is set by the calendar instead of by play.
 
@@ -33,7 +33,10 @@ const PERIOD_WEEKLY := 1
 
 @export_enum("Daily", "Weekly") var period: int = PERIOD_DAILY
 
-@export var reward_ectoplasm: int = 1
+## Dollars, since D31 — they were Ectoplasm, which no longer exists. The rule D18 exists for
+## is unchanged and Dollars satisfy it: a daily that paid a shop currency would set the pace
+## of the ladder by the calendar rather than by play, and Dollars buy nothing in the shop.
+@export var reward_dollars: int = 250
 
 ## Optional currency sweetener on top. Kept small for the reason in the class docs.
 @export var reward_currency_amount: float = 0.0

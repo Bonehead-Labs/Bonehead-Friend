@@ -36,12 +36,12 @@ signal mastery_rank_up(item_id: StringName, rank: int)
 signal automation_toggled(node_id: StringName, enabled: bool)
 signal contract_event(key: StringName, count: int)
 signal contract_completed(contract_id: StringName)          ## target reached, reward unclaimed
-signal contract_claimed(contract_id: StringName, ectoplasm: int)
+signal contract_claimed(contract_id: StringName, dollars: int)
 ## The board itself was replaced — a period rolled over, or a load repopulated it. Every
 ## row keyed to a contract id is stale. Emitted by `Progression` wherever `_active_contracts`
 ## is rewritten, so a panel never has to guess from its own visibility that this happened.
 signal contract_board_changed()
-signal prestige_performed(ectoplasm_gained: int)
+signal prestige_performed(marrow_gained: float)
 
 # --- buddy ---
 signal mood_changed(value: float)  ## -100..+100

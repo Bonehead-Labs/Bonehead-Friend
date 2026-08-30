@@ -614,73 +614,134 @@ signals, that Focus Mode Off draws nothing and Focus Mode Normal draws something
 two ramps stay distinguishable at every tier. `tools/fx_shots.tscn` renders the specimen sheet,
 because whether a reward is satisfying cannot be reviewed from source.
 
-### D31 — Dollars: a third currency that buys no power
+### D31 — Dollars replace Ectoplasm
 
-Proposed 2026-08-30 by the owner, during M3.5-A. **Dollars** are earned from **kind acts and
-knockouts** — the atom of one half of the loop and the climax of the other — and are spent on
-**cosmetics**: colours, outfits, headphones, hats, and whatever else is decoration rather than
-income. Later they also feed the arcade (below).
+Decided 2026-08-30 by the owner, revising the same day's first version. **There is no
+Ectoplasm.** Dollars are the game's third and last currency, and they take over everything
+Ectoplasm was supposed to do.
 
-This overrides `uplift-m3.5.md`'s scope push-back on "no fourth spendable currency". That
-push-back was about a currency that would *compete in the shop ladder*, which is a real hazard —
-a second thing to spend Bones-shaped effort on divides the ladder's attention and makes both
-halves feel slower. Dollars do not, because of the rule that makes them safe:
+Ectoplasm was a currency that could not be spent, and the pacing simulator found something
+worse about it than that: because the threshold grows as a cube while the points grow as its
+root, **every Reincarnation yields exactly one point, forever**. Five resets — fifty-eight
+simulated hours — bought five points, worth five per cent. It was never going to be felt, and
+no divisor fixes a shape like that.
 
-**Dollars never buy power.** Nothing purchasable with Dollars may change damage, payout,
-automation rate, mastery, contract progress, offline behaviour or prestige. The moment one does,
-the two-currency spine (D2) has a bypass: a player could route past the "be kind to automate"
-bargain by earning Dollars instead. Cosmetics are exactly the category with no such route, which
-is why the idea works.
+**Dollars are earned by being present**, in three ways:
 
-Three consequences that follow from that rule and are the whole design:
+- **A flat amount per act.** Every damaging hit and every kind act pays the same Dollar
+  amount whether it came from a starter bat or a lightning strike — *unmultiplied by mood,
+  augments, mastery or anything else*. This is the property that makes a third currency safe
+  to add: Bones and Hearts inflate by design and must, and Dollars cannot, so a veteran and a
+  newcomer unlock cosmetics at the same rate. Cosmetics arrive on a schedule of attention
+  rather than of power.
+- **Milestones**, which is where most of them come from and which is the headline reward for
+  playing broadly (D34).
+- **Automation and offline pay them at `dollars_idle_efficiency`** — a fraction. The only
+  place in the economy that is deliberately worse when idle, and the right place for it:
+  Dollars buy the things you look at, so they should be earned while looking.
 
-**Active play earns them; idling barely does.** Automation and offline pay Dollars at
-`dollars_idle_efficiency` (a `BalanceData` knob, first draft 0.15) rather than at full rate. This
-is the first thing in the economy that is deliberately *worse* when idle, and it is the right
-place for it: cosmetics are the reward for being at the keyboard, so an eight-hour idle stretch
-buys toys and upgrades but does not dress him up. It also gives an idle-first player a reason to
-put their hands back on the game, which no other currency does.
+**Dollars buy** cosmetics, the arcade (D32), and Séance boons — permanent upgrades that make
+every future run start stronger. The earlier rule, "Dollars never buy power", is **withdrawn**:
+it was written to protect the shop ladder from a competing currency, and Dollars do not
+compete with it — they cannot buy a toy or an upgrade. One narrower rule replaces it and is
+the one that matters:
 
-**Both halves of the loop pay it.** A knockout is the damage side's climax and a pet is the
-kindness side's atom, so a cruel player and a kind player both accumulate Dollars — at different
-rhythms (few large payments against many small ones), which is a texture the two other currencies
-do not have. Nothing here crosses the D2 divide, because Dollars buy nothing either half needs.
+> **Nothing bought with Dollars may pay out Hearts at a rate that competes with being kind.**
 
-**It costs one schema bump, and M3.5-B already has one.** `currencies.dollars` and the
-`cosmetics {owned, equipped}` block reserved since v1 both land in the v4 migration that
-milestone is already committed to writing. Landing Dollars in a *separate* bump later would mean
-two migrations and two fixtures for what is one change to the save's shape.
+Automation is Hearts-priced, everywhere, always (D2). That bargain — *you cannot stop working
+for your money without being kind to him* — is the whole reason this is not simply Interactive
+Buddy with a shop. A slot machine that pays a meaningful pile of Hearts lets a player gamble
+their way past it, and the kindness half of the game becomes optional.
 
-*Open, and to be decided on screen rather than here:* where cosmetics live in the shell. D22 says
-one navigation and one card size; a sixth tab is possible by design, and folding a Style page into
-the Rebirth page is the alternative.
+*Consequence:* save v4 drops `prestige.ectoplasm` for `currencies.dollars`, contracts pay
+Dollars (D18 is amended: the reason contracts paid a prestige currency was so a daily could
+not set the pace of the shop ladder, and Dollars satisfy that just as well since they buy
+nothing in the shop).
 
-### D32 — The arcade is post-1.0, and its prizes are Dollars
+### D32 — The arcade pays in Dollars, time and hats — not in income
 
-Also proposed 2026-08-30: **spin-the-wheel, a slot machine and blackjack**, played with Dollars.
-Filed as a **future feature milestone** (M6 — the Arcade), for three reasons and one hazard.
+Spin-the-wheel, a slot machine and blackjack, played with Dollars, filed as its own milestone
+after 1.0 (M6). What a spin may pay, decided rather than left open:
 
-The reasons: it is a sink that makes Dollars interesting rather than merely accumulating; it is
-the kind of thing a launched game adds as a free update with an audience already watching (the
-same argument D3 makes for Occupational Hazard); and three minigames is three separate UIs, each
-of which is a whole page of shell work, animation and feel — which is a milestone, not a corner
-of one.
+- **Dollars** — gambling your own currency, which is the honest version and the main one.
+- **A timed multiplier**, through the one shared `temp_mult` slot the Dream Journal and
+  Overtime Pay also use. Minutes, never permanent.
+- **Cosmetics**, including ones not otherwise purchasable.
+- **Rarely, a permanent boon** — the same kind the Séance sells, won instead of bought.
 
-**The hazard is what the wheel pays out.** If a spin can pay Bones, Hearts, or an income
-multiplier, then Dollars buy power by another route and D31's rule is dead. Two ways through, and
-the choice belongs to the owner before the milestone starts:
+**Bones and Hearts payouts stay small enough to be a garnish**, per D31's one rule. The
+temptation is obvious and it is a trap: the moment a slot machine can pay a real pile of
+Hearts, the optimal line becomes *farm Dollars, gamble for Hearts, skip the kindness half*.
 
-- **Cosmetic prizes only** — hats, colours, one-off outfits, Dollars themselves. Safe, and
-  weakest as a reason to keep playing.
-- **Short timed buffs through the shared `temp_mult` slot** — the same one the Dream Journal and
-  Overtime Pay use. Bounded (minutes, not a permanent multiplier), and the gambling is then a
-  *pacing* toy rather than an economy bypass. Recommended, on the condition that a spin can never
-  pay a *permanent* multiplier or a currency the shop takes.
+Simulated gambling with no real money attached is storefront-legal but attracts content
+descriptors on some ratings boards, which touches the gore-free unrestricted-rating position.
+One game shipped well beats three shipped thin; the wheel is cheapest and reads fastest, so it
+goes first and alone if the milestone is cut.
 
-Two practical notes for whoever schedules it: simulated gambling with no real money attached is
-storefront-legal but does attract content descriptors on some ratings boards, which touches D-list
-positioning ("gore-free, unrestricted rating"); and one game shipped well beats three shipped
-thin — the wheel is the cheapest and reads fastest.
+### D33 — Reincarnation is free, endless, and pays Marrow
+
+Decided 2026-08-30. The owner's note on this is worth recording verbatim: *"it wasn't a
+mechanic I asked for, it was something Claude came up with"* — the brief is an endless
+incremental game that is rewarding on the way up and still rewarding once it is limitless, and
+prestige is only justified if it serves that.
+
+It does, but not in the shape it had. **A reset loop is the only structure that makes an idle
+game genuinely unbounded**, and the reason is arithmetic: an upgrade ladder's costs grow
+geometrically while a single device's output grows linearly, so *every* individual track
+stalls eventually. What un-stalls it is a loop that resets the costs and keeps the multipliers.
+Without one, "limitless" means "a very long ladder", and this design has already measured how
+long that ladder is.
+
+So the loop stays, and the three things wrong with it go:
+
+- **No threshold.** You may Reincarnate at any moment. The Rebirth page states what you would
+  gain right now, and that number climbs while you play; there is no locked door and no
+  "not yet".
+- **No cost in Dollars.** Considered and rejected: gating the endless engine behind the one
+  currency that cannot inflate would cap progression on wall-clock attention, and a player
+  with a huge run and no Dollars would be locked out of the only thing left to do. The cost of
+  a Reincarnation is the run you give up. That is enough.
+- **The reward scales with the run.** A reset grants **Marrow**: `(run earnings /
+  marrow_divisor) ^ marrow_exponent`, added to a permanent total that multiplies all income as
+  `1 + marrow`. One number, stated on the Rebirth page. Because each cycle multiplies income,
+  the next run reaches further in the same wall-clock, which grants more Marrow, which reaches
+  further again. That is the engine, and
+  it is why cycle length stays roughly constant instead of growing eightfold each time as the
+  cube-root threshold forced it to.
+
+Marrow is a **stat, not a currency**: it is never spent, never displayed in the purse, and has
+exactly one effect. It is named for the part of a bone nobody sees.
+
+Reincarnation also rolls a new personality, which is the other half of why the loop is worth
+taking: five mood curves (seven after M3.5-B) that each ask for a different rhythm.
+
+*Consequence:* `prestige_divisor`, `prestige_exponent` and `prestige_income_per_point` are
+replaced by `marrow_divisor` and `marrow_exponent`; `EconomyMath.ectoplasm_for_lifetime` and
+`prestige_gain` become `marrow_for_run`. The pacing simulator's fourth target — each
+Reincarnation within 2x the pacing of the last — stops being a hope and becomes the thing the
+formula is built to deliver.
+
+### D34 — Milestones come in two kinds, and one of them never runs out
+
+Decided 2026-08-30. Milestones are the main source of Dollars, which creates a problem the
+first version of the idea did not have an answer for: **there are only so many of them.** A
+finite set that is mostly front-loaded ("earn your first 1M Bones", "own every toy") pays well
+for a week and then stops, and the arcade goes dark exactly when a player has settled in.
+
+So there are two kinds, and the split is the fix:
+
+- **Named milestones**, roughly sixty at 1.0. Hand-written, memorable, each paying a Dollar
+  lump and sometimes a hat. These carry the first week and are what a player screenshots.
+- **Repeating milestones**, which are ladders rather than entries: every 10x of lifetime
+  Bones, every hundred knockouts, every twenty-five levels on a device, every ten thousand
+  kind acts. Each rung pays less than a named milestone and there is always another rung.
+
+Both feed one compounding income bonus (x1.01 per milestone, D11's rule again), so the
+milestone board is also the third income axis rather than only a Dollar tap.
+
+*Consequence:* `MilestoneData` needs a `repeat_every` field and a claimed-count rather than a
+claimed-flag, which is a save-shape decision and therefore belongs in the v4 bump with
+everything else.
 
 ## Recommendations not yet decided
 

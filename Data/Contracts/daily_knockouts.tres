@@ -9,4 +9,5 @@ display_name = "Ten Rounds"
 description = "Knock him out 10 times."
 goal_key = &"knockout"
 target = 10
+reward_dollars = 500
 sort_order = 20

@@ -10,5 +10,5 @@ description = "Deal 100,000 damage."
 goal_key = &"deal_damage"
 target = 100000
 period = 1
-reward_ectoplasm = 5
+reward_dollars = 2500
 sort_order = 40

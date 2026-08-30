@@ -287,39 +287,67 @@ upgrade their bat.
 
 ## Dollars
 
-The third currency (docs/decisions.md D31). Earned from the two events that mark a player being
-*present* — a kind act and a knockout — and spent only on cosmetics.
+The third and last currency (docs/decisions.md D31). **There is no Ectoplasm** — Dollars
+replaced it.
 
 ```
-kind act:  dollars_per_kindness x value        (the same value the Hearts payout is computed on)
-knockout:  dollars_per_knockout                (flat: the climax is the event, not its size)
-automation / offline: x dollars_idle_efficiency
+each damaging hit: dollars_per_hit          (flat, whatever the weapon, whatever the damage)
+each kind act:     dollars_per_kind_act     (flat, whatever the item)
+milestones:        the reward on the MilestoneData
+automation & offline: x dollars_idle_efficiency
 ```
 
-Three deliberate differences from Bones and Hearts:
+Three properties, each load-bearing:
 
-- **No multipliers.** Dollars do not go through `payout_for` — not mood, not augments, not
-  mastery, not prestige. They are a count of things done, not a yield, which is what stops
-  cosmetics from arriving in a flood the moment the income multipliers stack up.
-- **Idle earns a fraction** (`dollars_idle_efficiency`, first draft 0.15). The only place in the
-  economy where idling is deliberately worse, and the reason it is here rather than anywhere
-  else: cosmetics are the reward for being at the keyboard.
-- **They buy no power, ever.** Enforced as a rule on content, not as code: nothing priced in
-  Dollars may carry an `effect_key`, an `automation_rate`, or any other field the payout pipeline
-  reads. A test asserts it, because the day one cosmetic quietly grants +2% Bones is the day the
-  two-currency spine has a bypass.
+- **They are never multiplied.** Not by mood, not by augments, not by mastery, not by Marrow.
+  Dollars do not go through `payout_for` at all. Bones and Hearts inflate by design and must;
+  Dollars cannot, so a veteran with a x4,000 multiplier earns them at exactly the same rate as
+  someone on their first afternoon. Cosmetics therefore arrive on a schedule of *attention*
+  rather than of power, which is the only sane way to price a hat in a game whose other
+  numbers grow without bound.
+- **Idling earns a fraction** (`dollars_idle_efficiency`, first draft 0.15) — the one place in
+  the economy that is deliberately worse when idle, and the reason it is here: Dollars buy the
+  things you look at.
+- **They buy nothing in the shop.** Cosmetics, the arcade, and Séance boons. Never a toy,
+  never an upgrade, never a level of automation — and nothing they buy may pay out Hearts at a
+  rate that competes with being kind to him, because automation is Hearts-priced everywhere
+  and that bargain is the whole design (D2).
 
-Knobs live in `BalanceData` with the rest: `dollars_per_kindness`, `dollars_per_knockout`,
-`dollars_idle_efficiency`.
+Knobs: `dollars_per_hit`, `dollars_per_kind_act`, `dollars_idle_efficiency`.
 
-## Contracts
+## Reincarnation and Marrow
+
+```
+marrow gained = (run earnings / marrow_divisor) ^ marrow_exponent
+income multiplier = 1 + marrow (total)
+```
+
+No threshold: reset whenever you like, and the Rebirth page always states what you would get.
+A reset wipes the run — both currencies, every unlock, every augment level, every exclusive
+choice, all mastery — and keeps Marrow, Dollars, cosmetics, Séance boons, milestones and the
+contract board. It also rolls a new personality.
+
+**Why a reset loop exists at all**, given that the brief is an endless game rather than a
+grindy one: an upgrade ladder's costs grow geometrically while any one device's output grows
+linearly, so every individual track stalls. A loop that resets the costs and keeps the
+multipliers is the only structure that does not, which is why the genre converged on it. The
+previous shape — Ectoplasm at the cube root of *lifetime* earnings — failed for a different
+reason: it made each reset cost eight times the last in wall clock, and paid one point of a
+one-per-cent multiplier for it. Marrow scales with the *run*, so a faster run reaches further
+and pays more, and cycle length stays roughly flat.
+
+Marrow is a stat, not a currency. It is never spent and never appears in the purse.
+
+## Contracts## Contracts
 
 Rotating objectives keyed on `EventBus.contract_event`. Three daily slots and one weekly, rolled
 from a seed derived from the day index rather than from chance — a board reshuffled on every boot
 would let a player reroll until they liked the offer.
 
-Rewards are **Ectoplasm only** (`docs/decisions.md` D18). A daily that paid spendable currency
-would set the pace of the shop ladder by the calendar instead of by play.
+Rewards are **Dollars only** (`docs/decisions.md` D18, amended by D31 — they used to be
+Ectoplasm, which no longer exists). The reason for the rule is unchanged and Dollars satisfy
+it just as well: a daily that paid Bones or Hearts would set the pace of the shop ladder by
+the calendar instead of by play, and Dollars buy nothing in the shop.
 
 Two things deliberately do not count:
 
@@ -332,22 +360,28 @@ Two things deliberately do not count:
 ## Reincarnation (prestige)
 
 ```
-ectoplasm_total = floor( cbrt( lifetime_earnings / 1e12 ) )
-gain_this_reset = ectoplasm_total − ectoplasm_already_held
-prestige_multiplier = 1 + 0.01 × ectoplasm_held
+marrow_gained = ( run_earnings / marrow_divisor ) ^ marrow_exponent
+income multiplier = 1 + marrow_total
 ```
 
-Cube-root on **lifetime** earnings, +1% per point — Cookie Clicker's ascension curve, chosen
-because doubling your prestige requires roughly **8×** the previous run. That's the well-tested
-middle ground: Realm Grinder's square-root needs only 4× (resets too often), Egg Inc's 0.14
-exponent needs 128× (resets feel rare and precious). Lifetime-based rather than run-based
-because it rewards going further each time and tolerates a player who idles across a reset.
+**Superseded 2026-08-30 (docs/decisions.md D33).** This was a cube root of *lifetime*
+earnings paying Ectoplasm at +1% a point — Cookie Clicker's ascension curve — and the pacing
+simulator showed what that shape actually does here: each reset needs eight times the lifetime
+of the last, so each one takes eight times the wall clock, and every reset pays exactly **one
+point** because the point count grows as the root of a threshold that grows as a cube. Five
+resets, fifty-eight simulated hours, five per cent.
 
-Pacing target: first Reincarnation available after ~60–70% of first-run content; early resets
-5–15 minutes apart, late-game 30–60.
+Marrow scales with the **run** instead, and there is no threshold at all — reset whenever you
+like. A faster run reaches further, further pays more Marrow, more Marrow makes the next run
+faster. Cycle length stays roughly flat rather than growing eightfold, which is what the
+pacing target below was always asking for and never going to get.
+
+Pacing target: the first Reincarnation worth taking inside a first long session; cycles that
+stay within 2x of each other rather than doubling away. Both are asserted by
+`tests/integration/pacing_sim.tscn`.
 
 Each reset re-rolls Bonehead's **personality**, which swaps his mood curve (see
-`game-design.md`) — the same ectoplasm number, a different optimal rhythm. A personality is
+`game-design.md`) — the same Marrow, a different optimal rhythm. A personality is
 *only* a curve (`docs/decisions.md` D19), and the roll never returns the one just played:
 drawing the same personality twice reads as the feature being broken rather than as chance.
 
@@ -361,9 +395,9 @@ Shipped curves, sampled at despair / −50 / neutral / +50 / bliss:
 | Zen | 1.4 | 1.2 | 1.0 | 1.2 | 1.4 | never 2x, never 0.6 — the idle-friendly run |
 | Goth | 1.6 | 2.2 | 1.0 | 0.8 | 1.4 | the peak is off-centre and breaks every other habit |
 
-**A reset keeps** ectoplasm, lifetime earnings (the cube root is taken of those, so resetting
-must not touch them), the prestige count, the offline cap and the contract board. **It wipes**
-both currencies, every unlock, every augment level, every exclusive choice and all mastery.
+**A reset keeps** Marrow, Dollars, cosmetics, Séance boons, lifetime totals, the reset count,
+the offline cap, milestones and the contract board. **It wipes** Bones and Hearts, every
+unlock, every augment level, every exclusive choice and all mastery.
 
 ## Offline earnings
 

@@ -12,9 +12,10 @@ extends Node
 
 const BONES := &"bones"
 const HEARTS := &"hearts"
-## Not in `_balances`: Ectoplasm is prestige-only and never spent through `spend()`, so it
-## lives as a plain int. It rides the currency_changed signal so the HUD can show it.
-const ECTOPLASM := &"ectoplasm"
+## The third currency (docs/decisions.md D31). Unlike the Ectoplasm it replaced, it is a
+## real spendable balance and goes through `spend()` like the other two — what makes it
+## different is where it comes from, not how it is held.
+const DOLLARS := &"dollars"
 
 ## Mirrors of the buddy's own state, kept here only so the payout pipeline can multiply
 ## by them without Economy holding a reference to a scene node. MoodComponent and
@@ -22,10 +23,16 @@ const ECTOPLASM := &"ectoplasm"
 var mood: float = 0.0    ## -100..+100
 var grime: float = 0.0   ## 0..1, suppresses Bones income
 
-var _balances: Dictionary = {BONES: 0.0, HEARTS: 0.0}
+var _balances: Dictionary = {BONES: 0.0, HEARTS: 0.0, DOLLARS: 0.0}
 var _lifetime: Dictionary = {BONES: 0.0, HEARTS: 0.0}
 
-var ectoplasm: int = 0
+## Permanent income multiplier from Reincarnating, as `1 + marrow` (D33). A **stat, not a
+## currency**: never spent, never in the purse, one effect.
+var marrow: float = 0.0
+## Bones and Hearts earned since the last reset. Marrow is scaled by this rather than by
+## lifetime, which is the whole difference between a loop whose cycles stay the same length
+## and one whose cycles grow eightfold.
+var run_earnings: float = 0.0
 var prestige_count: int = 0
 var personality: String = "stoic"
 var offline_cap_level: int = 0
@@ -60,12 +67,8 @@ func _ready() -> void:
 # --- balances --------------------------------------------------------------
 
 ## Every currency that appears on `currency_changed` must be readable here, or a UI that
-## polls disagrees with the same UI when it listens. Ectoplasm lives outside `_balances`
-## (it is never spent through `spend()`), so it is answered explicitly rather than falling
-## through to the zero default — that fall-through made the HUD's ghost chip read 0.
+## polls disagrees with the same UI when it listens.
 func balance_of(currency: StringName) -> float:
-	if currency == ECTOPLASM:
-		return float(ectoplasm)
 	return float(_balances.get(currency, 0.0))
 
 func lifetime_of(currency: StringName) -> float:
@@ -88,7 +91,11 @@ func grant(currency: StringName, amount: float, world_pos: Vector2 = Vector2.ZER
 	if amount <= 0.0:
 		return
 	_balances[currency] = balance_of(currency) + amount
-	_lifetime[currency] = lifetime_of(currency) + amount
+	if currency != DOLLARS:
+		# Dollars are not income: they are a count of acts, and Marrow is scaled by income.
+		# Letting them into either total would make cosmetics pay for prestige.
+		_lifetime[currency] = lifetime_of(currency) + amount
+		run_earnings += amount
 	_last_payout_pos = world_pos
 	EventBus.payout.emit(currency, amount, world_pos)
 	EventBus.currency_changed.emit(currency, balance_of(currency))
@@ -100,8 +107,10 @@ func grant(currency: StringName, amount: float, world_pos: Vector2 = Vector2.ZER
 func mood_multiplier() -> float:
 	return ItemDB.mood_multiplier_for(StringName(personality), mood)
 
-func prestige_multiplier() -> float:
-	return EconomyMath.prestige_multiplier(ectoplasm, ItemDB.balance.prestige_income_per_point)
+## The permanent half of the payout pipeline: everything earned is multiplied by this, and
+## the only way it grows is Reincarnating.
+func marrow_multiplier() -> float:
+	return EconomyMath.marrow_multiplier(marrow)
 
 ## Bones only. Letting him get filthy costs damage income, and the sponge — the cheapest
 ## Hearts item in the game — is the only thing that removes it. That is the dual-currency
@@ -116,7 +125,7 @@ func payout_for(base: float, source_id: StringName) -> float:
 		mood_multiplier(),
 		Progression.get_modifier(source_id, &"payout_mult"),
 		Progression.mastery_multiplier(source_id),
-		prestige_multiplier())
+		marrow_multiplier())
 
 func _on_damage_dealt(info: HitInfo) -> void:
 	round_damage += info.amount
@@ -124,6 +133,10 @@ func _on_damage_dealt(info: HitInfo) -> void:
 	var bones := payout_for(
 		info.amount * ItemDB.balance.bones_per_damage * grime_multiplier(), info.source_id)
 	grant(BONES, bones, info.position)
+	# Flat, whatever the weapon and whatever the damage: Dollars count acts, not power
+	# (docs/decisions.md D31). No world position, so no floating number — a "+1" beside
+	# every Bones payout would double the noise of the busiest event in the game.
+	grant(DOLLARS, ItemDB.balance.dollars_per_hit)
 	EventBus.contract_event.emit(&"deal_damage", int(info.amount))
 
 func _on_kindness_given(source_id: StringName, value: float, world_pos: Vector2) -> void:
@@ -135,6 +148,7 @@ func _on_kindness_given(source_id: StringName, value: float, world_pos: Vector2)
 	var combo := EconomyMath.kindness_combo(_combo_count, b.kindness_combo_step, b.kindness_combo_max)
 	var hearts := payout_for(value * b.hearts_per_kindness * combo, source_id)
 	grant(HEARTS, hearts, world_pos)
+	grant(DOLLARS, ItemDB.balance.dollars_per_kind_act)
 	stats["pets"] = int(stats.get("pets", 0)) + 1
 	EventBus.contract_event.emit(&"kindness", 1)
 
@@ -193,10 +207,14 @@ func _process(delta: float) -> void:
 		if banked <= 0.0:
 			continue
 		_automation_banked[currency] = 0.0
-		# Through the pipeline like everything else, so mood, mastery and prestige apply to
+		# Through the pipeline like everything else, so mood, mastery and Marrow apply to
 		# automated income exactly as they do to a swing. Attributed to &"automation" rather
 		# than to an item, because several capstones pay into the same tick.
 		grant(currency, payout_for(banked, &"automation"), _last_payout_pos)
+	# And a trickle of Dollars for the devices' trouble, at a fraction of what a hand on the
+	# game earns. The one deliberately idle-unfriendly rate in the economy.
+	var b := ItemDB.balance
+	grant(DOLLARS, b.dollars_per_hit * b.dollars_idle_efficiency * b.automation_payout_interval)
 
 # --- offline ---------------------------------------------------------------
 
@@ -218,7 +236,7 @@ func apply_offline_earnings(last_played_unix: int) -> Dictionary:
 	# Negative deltas are real — clock changes, timezone shifts, cloud-sync skew — and
 	# must never pay out.
 	var elapsed := SaveSchema.offline_seconds(last_played_unix, int(Time.get_unix_time_from_system()), cap)
-	var stable := prestige_multiplier() * Progression.mastery_pool_bonus()
+	var stable := marrow_multiplier() * Progression.mastery_pool_bonus()
 	var earned := {}
 	for currency in [BONES, HEARTS]:
 		var rate := Progression.automation_rate_per_second(currency)
@@ -231,35 +249,31 @@ func apply_offline_earnings(last_played_unix: int) -> Dictionary:
 
 # --- prestige --------------------------------------------------------------
 
-func pending_ectoplasm() -> int:
+## What a reset would pay right now. There is no threshold — this is simply a number that
+## climbs as the run does, and the Rebirth page states it (D33).
+func pending_marrow() -> float:
 	var b := ItemDB.balance
-	return EconomyMath.prestige_gain(lifetime_of(BONES) + lifetime_of(HEARTS), ectoplasm,
-		b.prestige_divisor, b.prestige_exponent)
+	return EconomyMath.marrow_for_run(run_earnings, b.marrow_divisor, b.marrow_exponent)
 
-## Contracts pay in Ectoplasm directly rather than through the payout pipeline — it is a
-## prestige currency, not an income one, so no multiplier applies to it.
-func grant_ectoplasm(amount: int) -> void:
-	if amount <= 0:
-		return
-	ectoplasm += amount
-	EventBus.currency_changed.emit(ECTOPLASM, float(ectoplasm))
-
-## Reincarnation. Resets the run and keeps the meta: Ectoplasm, lifetime totals (the
-## prestige curve is built on them), the prestige count and the offline cap.
+## Reincarnation. Wipes the run and keeps the meta: Marrow, Dollars, cosmetics, lifetime
+## totals, the reset count and the offline cap.
 ##
-## Returns the Ectoplasm gained, or 0 if there was nothing to gain — resetting for zero is
-## always a mistake and is refused rather than confirmed.
-func perform_prestige() -> int:
-	var gained := pending_ectoplasm()
-	if gained <= 0:
-		return 0
+## Returns the Marrow gained, or 0 if there was nothing to gain — resetting a run that has
+## earned nothing is always a mistake and is refused rather than confirmed.
+func perform_prestige() -> float:
+	var gained := pending_marrow()
+	if gained <= 0.0:
+		return 0.0
 
-	ectoplasm += gained
+	marrow += gained
 	prestige_count += 1
 	personality = _roll_personality()
 
 	_balances[BONES] = 0.0
 	_balances[HEARTS] = 0.0
+	# Dollars survive: they are the meta currency now, and a reset that confiscated the
+	# player's hat money would make Reincarnating something to avoid.
+	run_earnings = 0.0
 	round_damage = 0.0
 	_combo_count = 0
 	_automation_banked = {BONES: 0.0, HEARTS: 0.0}
@@ -267,7 +281,6 @@ func perform_prestige() -> int:
 
 	EventBus.currency_changed.emit(BONES, 0.0)
 	EventBus.currency_changed.emit(HEARTS, 0.0)
-	EventBus.currency_changed.emit(ECTOPLASM, float(ectoplasm))
 	EventBus.prestige_performed.emit(gained)
 	EventBus.save_requested.emit()
 	return gained
@@ -288,9 +301,11 @@ func _roll_personality() -> String:
 
 func to_save() -> Dictionary:
 	return {
-		"currencies": {"bones": balance_of(BONES), "hearts": balance_of(HEARTS)},
+		"currencies": {"bones": balance_of(BONES), "hearts": balance_of(HEARTS),
+			"dollars": balance_of(DOLLARS)},
 		"lifetime": {"bones": lifetime_of(BONES), "hearts": lifetime_of(HEARTS)},
-		"prestige": {"ectoplasm": ectoplasm, "count": prestige_count, "personality": personality},
+		"prestige": {"marrow": marrow, "count": prestige_count, "personality": personality,
+			"run_earnings": run_earnings},
 		"offline_cap_level": offline_cap_level,
 		"stats": stats.duplicate(),
 	}
@@ -299,22 +314,23 @@ func from_save(root: Dictionary) -> void:
 	var currencies: Dictionary = root.get("currencies", {})
 	_balances[BONES] = float(currencies.get("bones", 0.0))
 	_balances[HEARTS] = float(currencies.get("hearts", 0.0))
+	_balances[DOLLARS] = float(currencies.get("dollars", 0.0))
 
 	var life: Dictionary = root.get("lifetime", {})
 	_lifetime[BONES] = float(life.get("bones", 0.0))
 	_lifetime[HEARTS] = float(life.get("hearts", 0.0))
 
 	var prestige: Dictionary = root.get("prestige", {})
-	ectoplasm = int(prestige.get("ectoplasm", 0))
+	marrow = float(prestige.get("marrow", 0.0))
 	prestige_count = int(prestige.get("count", 0))
 	personality = String(prestige.get("personality", "stoic"))
+	run_earnings = float(prestige.get("run_earnings", 0.0))
 
 	offline_cap_level = int(root.get("offline_cap_level", 0))
 	stats = (root.get("stats", {}) as Dictionary).duplicate()
 	round_damage = 0.0
 
-	EventBus.currency_changed.emit(BONES, balance_of(BONES))
-	EventBus.currency_changed.emit(HEARTS, balance_of(HEARTS))
-	# Ectoplasm too, or a returning player with 12 of it sees a chip reading 0 until their
-	# next contract claim — the HUD seeds its labels from this signal and nothing else.
-	EventBus.currency_changed.emit(ECTOPLASM, float(ectoplasm))
+	# All three, or a returning player sees a chip reading 0 until their next payout — the
+	# HUD seeds its labels from this signal and nothing else.
+	for currency in [BONES, HEARTS, DOLLARS]:
+		EventBus.currency_changed.emit(currency, balance_of(currency))

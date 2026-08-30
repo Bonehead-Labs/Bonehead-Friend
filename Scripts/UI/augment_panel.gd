@@ -793,7 +793,7 @@ func _wear_lock(buy: Button, reason: String) -> void:
 		buy.icon = UIStyle.glyph(&"star")
 	elif reason.begins_with("requires reincarnation") and digits != "":
 		buy.text = digits
-		buy.icon = UIStyle.glyph(&"ecto")
+		buy.icon = UIStyle.glyph(&"dollar")
 	else:
 		buy.text = ""
 		buy.icon = UIStyle.glyph(&"lock")

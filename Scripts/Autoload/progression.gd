@@ -379,7 +379,7 @@ func is_contract_complete(contract_id: StringName) -> bool:
 func is_contract_claimed(contract_id: StringName) -> bool:
 	return _contracts_claimed.has(contract_id)
 
-## Pays out a finished contract. Rewards are Ectoplasm, so a contract is never a faster way
+## Pays out a finished contract. Rewards are Dollars, so a contract is never a faster way
 ## to buy the next toy — the shop ladder's pacing stays set by play rather than by the
 ## calendar (docs/game-design.md).
 func claim_contract(contract_id: StringName) -> bool:
@@ -387,10 +387,10 @@ func claim_contract(contract_id: StringName) -> bool:
 	if contract == null or not is_contract_complete(contract_id) or is_contract_claimed(contract_id):
 		return false
 	_contracts_claimed[contract_id] = true
-	Economy.grant_ectoplasm(contract.reward_ectoplasm)
+	Economy.grant(Economy.DOLLARS, float(contract.reward_dollars))
 	if contract.reward_currency_amount > 0.0:
 		Economy.grant(contract.currency_id(), contract.reward_currency_amount)
-	EventBus.contract_claimed.emit(contract_id, contract.reward_ectoplasm)
+	EventBus.contract_claimed.emit(contract_id, contract.reward_dollars)
 	EventBus.save_requested.emit()
 	return true
 
@@ -477,7 +477,7 @@ func _on_contract_event(key: StringName, count: int) -> void:
 # --- prestige --------------------------------------------------------------
 
 ## Wipes everything money has been turned into. Economy owns the currencies and the
-## ectoplasm award; this is the other half of a Reincarnation.
+## Marrow award; this is the other half of a Reincarnation.
 ##
 ## Contracts survive deliberately: they are a real-time hook, not a run-scoped one, and
 ## resetting them would let a player farm a daily by prestiging.

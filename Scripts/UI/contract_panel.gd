@@ -1,7 +1,7 @@
 class_name ContractPanel
 extends PanelPage
 
-## The contract board: a handful of rotating objectives paying Ectoplasm.
+## The contract board: a handful of rotating objectives paying Dollars.
 ##
 ## The daily-return hook. It replaces the genre's login bonus with something that does not
 ## smell like free-to-play — you come back because there is a job on the board, not because
@@ -30,7 +30,7 @@ func _ready() -> void:
 	EventBus.contract_board_changed.connect(func() -> void: request_rebuild())
 	super()
 
-## Claiming pays Ectoplasm, so the row throws a ghost at the purse the same way a purchase
+## Claiming pays Dollars, so the row throws a coin at the purse the same way a purchase
 ## throws a coin — the only difference is the direction of the money.
 func _claim(contract_id: StringName, row_panel: Control, claim: Control) -> void:
 	if not Progression.claim_contract(contract_id):
@@ -38,7 +38,7 @@ func _claim(contract_id: StringName, row_panel: Control, claim: Control) -> void
 		return
 	UIMotion.confirm(row_panel)
 	# Screen space — see the note at the matching emit in augment_panel.gd.
-	EventBus.ui_spend.emit(Economy.ECTOPLASM, 0.0, UIScale.screen_centre(claim))
+	EventBus.ui_spend.emit(Economy.DOLLARS, 0.0, UIScale.screen_centre(claim))
 
 func _build_page() -> void:
 	add_theme_constant_override("separation", 8)
@@ -114,7 +114,7 @@ func _make_row(contract: ContractData) -> Control:
 	bar.max_value = float(contract.target)
 	bar.show_percentage = false
 	bar.custom_minimum_size = Vector2(0, 12)
-	bar.add_theme_stylebox_override("fill", UIStyle.meter_fill(UIStyle.ECTOPLASM))
+	bar.add_theme_stylebox_override("fill", UIStyle.meter_fill(UIStyle.DOLLARS))
 	column.add_child(bar)
 
 	# Progress on the left, the prize on the right, with the ghost that pays it. The
@@ -125,8 +125,8 @@ func _make_row(contract: ContractData) -> Control:
 	var counter := UIStyle.label("", UIStyle.MICRO, UIStyle.TEXT_DIM)
 	counter.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	footer.add_child(counter)
-	footer.add_child(UIStyle.icon(&"ecto", UIStyle.GLYPH, UIStyle.ECTOPLASM))
-	var reward := UIStyle.label(str(contract.reward_ectoplasm), UIStyle.MICRO, UIStyle.ECTOPLASM)
+	footer.add_child(UIStyle.icon(&"dollar", UIStyle.GLYPH, UIStyle.DOLLARS))
+	var reward := UIStyle.label(str(contract.reward_dollars), UIStyle.MICRO, UIStyle.DOLLARS)
 	reward.theme_type_variation = &"Numeral"
 	footer.add_child(reward)
 
@@ -135,7 +135,7 @@ func _make_row(contract: ContractData) -> Control:
 
 func _refresh() -> void:
 	var period_word := "Daily contracts refresh at midnight."
-	_summary.text = "%s  Rewards are Ectoplasm — they make every future run richer, not this one." % period_word
+	_summary.text = "%s  Rewards are Dollars — they buy how he looks, never how much he earns." % period_word
 
 	for key in _rows:
 		var contract := ItemDB.get_contract(key)
@@ -157,9 +157,9 @@ func _refresh() -> void:
 			row_panel.theme_type_variation = &"Tile"
 		elif Progression.is_contract_complete(contract.id):
 			claim.text = "Claim"
-			claim.icon = UIStyle.glyph(&"ecto")
+			claim.icon = UIStyle.glyph(&"dollar")
 			claim.disabled = false
-			UIStyle.tint_button(claim, UIStyle.ECTOPLASM)
+			UIStyle.tint_button(claim, UIStyle.DOLLARS)
 			row_panel.theme_type_variation = &"TileHot"
 		else:
 			# The percentage, not the word "incomplete": the player wants to know whether it

@@ -4,7 +4,7 @@ extends Resource
 ## Who Bonehead is this run. Rolled fresh on every Reincarnation.
 ##
 ## A personality is **one `Curve`**: it replaces the mood multiplier curve and nothing else.
-## That is the whole trick — the same ectoplasm number and the same roster, but a different
+## That is the whole trick — the same Marrow and the same roster, but a different
 ## optimal rhythm, so a second run is not the first run with bigger numbers
 ## (docs/game-design.md). Content variety out of a single stat table.
 ##

@@ -98,18 +98,21 @@ func _curve(points: Array) -> Curve:
 ## Targets are first-draft and sized against the balance targets in docs/economy.md: a daily
 ## should be a session's work, not a week's. Retune from playtest CSVs.
 func _seed_contracts() -> void:
+	# Rewards are Dollars since D31 — a day's work is a few hundred, a week's a few
+	# thousand, against cosmetics priced in the low thousands. They used to be one to five
+	# Ectoplasm, which bought nothing at all.
 	_contract(&"daily_damage", "Occupational Therapy", "Deal 5,000 damage.",
-		&"deal_damage", 5000, ContractDataScript.PERIOD_DAILY, 1, 0)
+		&"deal_damage", 5000, ContractDataScript.PERIOD_DAILY, 400, 0)
 	_contract(&"daily_kindness", "Bedside Manner", "Be kind to him 150 times.",
-		&"kindness", 150, ContractDataScript.PERIOD_DAILY, 1, 10)
+		&"kindness", 150, ContractDataScript.PERIOD_DAILY, 400, 10)
 	_contract(&"daily_knockouts", "Ten Rounds", "Knock him out 10 times.",
-		&"knockout", 10, ContractDataScript.PERIOD_DAILY, 1, 20)
+		&"knockout", 10, ContractDataScript.PERIOD_DAILY, 500, 20)
 	_contract(&"daily_petting", "Good Boy", "Pet him 200 times.",
-		&"pet", 200, ContractDataScript.PERIOD_DAILY, 1, 30)
+		&"pet", 200, ContractDataScript.PERIOD_DAILY, 400, 30)
 	_contract(&"weekly_damage", "Full Body Workout", "Deal 100,000 damage.",
-		&"deal_damage", 100000, ContractDataScript.PERIOD_WEEKLY, 5, 40)
+		&"deal_damage", 100000, ContractDataScript.PERIOD_WEEKLY, 2500, 40)
 	_contract(&"weekly_shopping", "Retail Therapy", "Buy 5 new toys.",
-		&"purchase", 5, ContractDataScript.PERIOD_WEEKLY, 5, 50)
+		&"purchase", 5, ContractDataScript.PERIOD_WEEKLY, 2000, 50)
 
 func _contract(id: StringName, display_name: String, description: String, goal_key: StringName,
 		target: int, period: int, reward: int, sort_order: int) -> void:
@@ -123,7 +126,7 @@ func _contract(id: StringName, display_name: String, description: String, goal_k
 	res.goal_key = goal_key
 	res.target = target
 	res.period = period
-	res.reward_ectoplasm = reward
+	res.reward_dollars = reward
 	res.sort_order = sort_order
 	_save(res, path)
 

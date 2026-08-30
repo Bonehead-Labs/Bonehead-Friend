@@ -42,6 +42,7 @@ func _ready() -> void:
 	var earned := _hitting_him_pays()
 	_augments_change_the_payout(earned)
 	_being_kind_pays_hearts()
+	_dollars_count_acts_not_power()
 	_the_kindness_augments_do_something()
 	_mood_swings_the_payout()
 	_grime_suppresses_bones()
@@ -91,7 +92,7 @@ func _every_colour_can_be_read() -> void:
 	var surfaces := {"panel": UIStyle.PANEL, "raised": UIStyle.RAISED, "sunk": UIStyle.SUNK}
 	var inks := {
 		"text": UIStyle.TEXT, "dim": UIStyle.TEXT_DIM, "disabled": UIStyle.DISABLED_INK,
-		"bones": UIStyle.BONES, "hearts": UIStyle.HEARTS, "ectoplasm": UIStyle.ECTOPLASM,
+		"bones": UIStyle.BONES, "hearts": UIStyle.HEARTS, "dollars": UIStyle.DOLLARS,
 		"affordable": UIStyle.AFFORDABLE, "locked": UIStyle.LOCKED, "teal": UIStyle.TEAL,
 		"despair": UIStyle.DESPAIR, "bliss": UIStyle.BLISS,
 	}
@@ -287,7 +288,7 @@ func _the_desk_can_be_cleared() -> void:
 func _the_shell_has_its_look() -> void:
 	_suite("shell")
 
-	for id in [&"bone", &"heart", &"ecto", &"lock", &"check", &"cross", &"star", &"bolt",
+	for id in [&"bone", &"heart", &"dollar", &"lock", &"check", &"cross", &"star", &"bolt",
 			&"hand", &"spawn", &"close", &"crate", &"scroll", &"sliders"]:
 		_check("glyph %s exists" % id, UIStyle.glyph(id) != null)
 
@@ -542,11 +543,62 @@ func _being_kind_pays_hearts() -> void:
 	# (it is an autoload; MoodComponent is a scene child), so it pays at the mood in force
 	# when the event fired and the component raises that mood immediately afterwards.
 	var expected := 1.0 * ItemDB.balance.hearts_per_kindness \
-		* Economy.mood_multiplier() * Economy.prestige_multiplier()
+		* Economy.mood_multiplier() * Economy.marrow_multiplier()
 	var sustained_before := Economy.balance_of(Economy.HEARTS)
 	EventBus.kindness_sustained.emit(&"boombox", 1.0, Vector2(100, 100))
 	var sustained := Economy.balance_of(Economy.HEARTS) - sustained_before
 	_check("a generator's Hearts skip the combo entirely", is_equal_approx(sustained, expected))
+
+## Dollars count *acts*, not power (docs/decisions.md D31).
+##
+## This is the one property that makes a third currency safe to add, and it is the one a
+## later refactor is most likely to break — the obvious "improvement" is to run Dollars
+## through `payout_for` like everything else, at which point a veteran with a x4,000
+## multiplier earns hats four thousand times faster than someone on their first afternoon
+## and the whole cosmetic economy is meaningless.
+func _dollars_count_acts_not_power() -> void:
+	_suite("dollars")
+	var b := ItemDB.balance
+	var before := Economy.balance_of(Economy.DOLLARS)
+	EventBus.damage_dealt.emit(HitInfo.new(40.0, &"baseball_bat", Vector2(100, 100), 3000.0))
+	var per_hit := Economy.balance_of(Economy.DOLLARS) - before
+	_check("a hit pays Dollars", per_hit > 0.0)
+	_check("exactly the flat rate", is_equal_approx(per_hit, b.dollars_per_hit))
+
+	# The same hit, a hundred times the damage, every multiplier the run has accumulated —
+	# and the same Dollar.
+	before = Economy.balance_of(Economy.DOLLARS)
+	var bones_before := Economy.balance_of(Economy.BONES)
+	EventBus.damage_dealt.emit(HitInfo.new(4000.0, &"baseball_bat", Vector2(100, 100), 3000.0))
+	_check("a hit a hundred times bigger pays a hundred times the Bones",
+		Economy.balance_of(Economy.BONES) - bones_before > 0.0)
+	_check("and exactly the same Dollar",
+		is_equal_approx(Economy.balance_of(Economy.DOLLARS) - before, b.dollars_per_hit))
+
+	before = Economy.balance_of(Economy.DOLLARS)
+	EventBus.kindness_given.emit(&"open_hand", 1.0, Vector2(100, 100))
+	_check("a kind act pays its own flat rate", is_equal_approx(
+		Economy.balance_of(Economy.DOLLARS) - before, b.dollars_per_kind_act))
+
+	# A generator is not an act. The same reasoning that keeps sustained kindness off the
+	# contract board keeps it out of the till: a boombox left on the desk would otherwise
+	# buy a hat overnight with nobody at the keyboard.
+	before = Economy.balance_of(Economy.DOLLARS)
+	EventBus.kindness_sustained.emit(&"boombox", 4.0, Vector2(100, 100))
+	_check("but a generator's trickle is not an act",
+		is_equal_approx(Economy.balance_of(Economy.DOLLARS), before))
+
+	# And they are not income: Marrow is scaled by what a run *earned*, so counting hat
+	# money would let cosmetics pay for prestige.
+	var lifetime_before := Economy.lifetime_of(Economy.BONES) + Economy.lifetime_of(Economy.HEARTS)
+	var run_before := Economy.run_earnings
+	Economy.grant(Economy.DOLLARS, 500.0)
+	_check("Dollars do not count as lifetime earnings", is_equal_approx(
+		Economy.lifetime_of(Economy.BONES) + Economy.lifetime_of(Economy.HEARTS), lifetime_before))
+	_check("nor towards the run Marrow is scaled by",
+		is_equal_approx(Economy.run_earnings, run_before))
+	_check("but they are spendable, unlike the Ectoplasm they replaced",
+		Economy.spend(Economy.DOLLARS, 500.0))
 
 ## Two of the three augments a kindness-first player can buy were placebos: OpenHandPower
 ## sets its own pet interval and emits a flat `pet_value`, so neither `cooldown_mult` nor
@@ -691,9 +743,15 @@ func _spawning_and_the_item_limit() -> void:
 		_check("item spawner present", false)
 		return
 
-	for i in ItemDB.balance.item_limit + 3:
+	# The spawner's *effective* limit, not the balance's base one: Mastery Pool checkpoints
+	# add slots (`Progression.item_limit_bonus`), so a suite above this one that earns
+	# enough mastery raises the ceiling and the base figure becomes a lie. It read the base
+	# until the Dollars suite pushed the pool past its first checkpoint.
+	var limit: int = spawner.item_limit()
+	for i in limit + 3:
 		EventBus.spawn_requested.emit(&"baseball_bat", Vector2(200, 100))
-	_check("item limit holds", spawner.item_count() <= ItemDB.balance.item_limit)
+	_check("item limit holds (%d, base %d)" % [limit, ItemDB.balance.item_limit],
+		spawner.item_count() <= limit)
 
 	EventBus.spawn_requested.emit(&"fist", Vector2.ZERO)
 	_check("cursor power equips", spawner.active_power() == &"fist")
@@ -953,7 +1011,7 @@ func _automation_earns_and_toggles() -> void:
 
 	# Offline pays the stable multipliers — prestige and the pool — and none of the
 	# volatile ones. It used to pay *nothing*, while online automation paid all four.
-	var stable := Economy.prestige_multiplier() * Progression.mastery_pool_bonus()
+	var stable := Economy.marrow_multiplier() * Progression.mastery_pool_bonus()
 	_check("offline pays prestige and the pool, and not mood",
 		is_equal_approx(float(earned.get(Economy.BONES, 0.0)),
 			rate * 600.0 * ItemDB.balance.offline_efficiency * stable))
@@ -993,9 +1051,10 @@ func _contracts_track_and_pay() -> void:
 		Progression.contract_progress(damage_contract.id) == damage_contract.target)
 	_check("a finished contract reports complete", Progression.is_contract_complete(damage_contract.id))
 
-	var ecto_before := Economy.ectoplasm
+	var dollars_before := Economy.balance_of(Economy.DOLLARS)
 	_check("claiming pays out", Progression.claim_contract(damage_contract.id))
-	_check("in ectoplasm", Economy.ectoplasm == ecto_before + damage_contract.reward_ectoplasm)
+	_check("in Dollars", is_equal_approx(Economy.balance_of(Economy.DOLLARS),
+		dollars_before + float(damage_contract.reward_dollars)))
 	_check("and cannot be claimed twice", not Progression.claim_contract(damage_contract.id))
 
 	# A redrawn daily must come back clean. Clearing only the *departing* contracts was the
@@ -1029,8 +1088,13 @@ func _contracts_track_and_pay() -> void:
 ## Reincarnation: the run goes, the meta stays, and he comes back somebody else.
 func _prestige_resets_the_run_and_keeps_the_meta() -> void:
 	_suite("reincarnation")
-	_check("nothing to gain on a small run", Economy.pending_ectoplasm() == 0)
-	_check("and prestige is refused when there is nothing to gain", Economy.perform_prestige() == 0)
+	# Marrow is scaled by the *run*, so the run has to be emptied before the "nothing to
+	# gain" claim means anything — every suite above this one has been earning.
+	Economy.run_earnings = 0.0
+	_check("nothing to gain on a run that earned nothing",
+		is_zero_approx(Economy.pending_marrow()))
+	_check("and a reset is refused when there is nothing to gain",
+		is_zero_approx(Economy.perform_prestige()))
 
 	# Something equipped and something on the desk, so the wipe has work to do.
 	EventBus.spawn_requested.emit(&"fist", Vector2.ZERO)
@@ -1039,21 +1103,31 @@ func _prestige_resets_the_run_and_keeps_the_meta() -> void:
 	_check("a power is equipped before the reset",
 		spawner_before == null or spawner_before.active_power() == &"fist")
 
-	# Enough lifetime income to be worth several points.
-	Economy.grant(Economy.BONES, ItemDB.balance.prestige_divisor * 30.0)
-	var pending := Economy.pending_ectoplasm()
-	_check("a big run is worth ectoplasm", pending > 0)
+	# A run worth resetting.
+	Economy.grant(Economy.BONES, ItemDB.balance.marrow_divisor * 4.0)
+	var pending := Economy.pending_marrow()
+	_check("a big run is worth Marrow", pending > 0.0)
+	_check("and there is no threshold to cross — it simply climbs",
+		pending > EconomyMath.marrow_for_run(ItemDB.balance.marrow_divisor * 0.5,
+			ItemDB.balance.marrow_divisor, ItemDB.balance.marrow_exponent))
 
 	var lifetime_before := Economy.lifetime_of(Economy.BONES)
-	var ecto_before := Economy.ectoplasm
+	var marrow_before := Economy.marrow
+	var dollars_kept := Economy.balance_of(Economy.DOLLARS)
 	var personality_before := Economy.personality
 	var count_before := Economy.prestige_count
 
 	var gained := Economy.perform_prestige()
-	_check("prestige returns what it granted", gained == pending)
-	_check("ectoplasm is kept and increased", Economy.ectoplasm == ecto_before + gained)
+	_check("the reset returns what it granted", is_equal_approx(gained, pending))
+	_check("Marrow is kept and increased", is_equal_approx(Economy.marrow, marrow_before + gained))
+	_check("and it multiplies income", Economy.marrow_multiplier() > 1.0)
+	# Dollars are the meta currency now: a reset that confiscated the player's hat money
+	# would make Reincarnating something to avoid.
+	_check("Dollars survive the reset",
+		is_equal_approx(Economy.balance_of(Economy.DOLLARS), dollars_kept))
+	_check("but the run's earnings are back to nothing", is_zero_approx(Economy.run_earnings))
 	_check("the prestige count went up", Economy.prestige_count == count_before + 1)
-	_check("lifetime earnings survive — the curve is built on them",
+	_check("lifetime earnings survive",
 		is_equal_approx(Economy.lifetime_of(Economy.BONES), lifetime_before))
 	_check("Bones are wiped", Economy.balance_of(Economy.BONES) == 0.0)
 	_check("Hearts are wiped", Economy.balance_of(Economy.HEARTS) == 0.0)
@@ -1065,7 +1139,7 @@ func _prestige_resets_the_run_and_keeps_the_meta() -> void:
 	_check("he is somebody new", Economy.personality != personality_before)
 	_check("and the new personality exists",
 		ItemDB.get_personality(StringName(Economy.personality)) != null)
-	_check("prestige multiplies all income", Economy.prestige_multiplier() > 1.0)
+	_check("Marrow multiplies all income", Economy.marrow_multiplier() > 1.0)
 
 	# The desk has to be wiped along with the wallet. Progression forgetting the pistol while
 	# ItemSpawner keeps it equipped left the player firing a weapon they no longer own, at

@@ -76,8 +76,8 @@ func _on_knockout(total: float) -> void:
 func _on_rank_up(item_id: StringName, rank: int) -> void:
 	_row("mastery", "", float(rank), String(item_id))
 
-func _on_prestige(gained: int) -> void:
-	_row("prestige", "ectoplasm", float(gained), Economy.personality)
+func _on_prestige(gained: float) -> void:
+	_row("prestige", "marrow", gained, Economy.personality)
 
 # --- writing ---------------------------------------------------------------
 
@@ -92,7 +92,7 @@ func _row(event: String, currency: String, amount: float, source: String) -> voi
 		event, currency, amount, source,
 		Economy.mood, Economy.grime,
 		Economy.balance_of(Economy.BONES), Economy.balance_of(Economy.HEARTS),
-		Economy.mood_multiplier(), Economy.ectoplasm,
+		Economy.mood_multiplier(), Economy.marrow,
 	])
 
 func flush() -> void:
@@ -117,5 +117,5 @@ func _write_header() -> void:
 	if file == null:
 		push_warning("TuningLog: cannot create %s" % _path)
 		return
-	file.store_line("t_sec,event,currency,amount,source,mood,grime,bones,hearts,mood_mult,ectoplasm")
+	file.store_line("t_sec,event,currency,amount,source,mood,grime,bones,hearts,mood_mult,marrow")
 	file.close()

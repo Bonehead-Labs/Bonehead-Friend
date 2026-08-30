@@ -35,7 +35,7 @@ implementing session does not have to re-survey.
 |---|---|---|
 | **M3.5-0 — Prove the base** | The two playtests, the export check, retune pass 1, and the small confirmed defects. Blocking: rebalancing after a content expansion is strictly worse than before one. | none |
 | **M3.5-A — The engine and the ladder** | Automation levels + a capstone per item (the exponential engine), augment coverage for all items, roster 16→~28, visible automation devices, a headless pacing simulator, divisor retuned to reality | none |
-| **M3.5-B — The long game** | Ectoplasm meta-shop (deepen prestige axis one — NOT a second axis), milestones + stats page, Dream Journal, contract expansion to ~30, +2 personalities, prestige-gated automation tier 2, **Dollars + the cosmetics page**, the hat layer | **v4, one bump** |
+| **M3.5-B — The long game** | ~~Ectoplasm meta-shop~~ **done early: Dollars + Marrow replaced it**; milestones (named + repeating) + stats page, cosmetics page, Dream Journal, contract expansion to ~30, +2 personalities, prestige-gated automation tier 2, the hat layer | **v4, done** |
 | **M3.5-C — Live on the desktop** | Taskbar mechanics, Overtime Pay, hibernate/hazard-pay, and the timeboxed Win32 spike → Working Hours if it lands. Occupational Hazard stays post-1.0. | none |
 
 **Budget:** the full uplift's art is ~**$4.60** against the $8.43 balance — it fits with
@@ -335,17 +335,24 @@ new ladder confirms the sim's hour-1 read; budget ledger in `art/prompts/` ≤ $
 
 ### M3.5-B — The long game *(~1.5–2 wk)*
 
-- Séance shop: Ectoplasm-priced meta-AugmentNodes (currency enum + `spend()` special case
-  + prestige-wipe carve-out + Rebirth-page rows), including the offline-cap rungs and
-  offline-efficiency rung.
-- **Dollars** (D31): a third balance in `Economy`, paid from `kindness_given` and the knockout
-  beat and *not* through `payout_for`; `dollars_idle_efficiency` on automation and offline; a
-  `CosmeticData` resource under `Data/Cosmetics/` (the `OPTIONAL_DIRS` pattern again) and a page
-  to spend it on, with the hat layer below as its first content. The purse already stacks a third
-  chip for Ectoplasm, so the HUD costs nothing. A test asserts no Dollar-priced thing carries a
-  payout-pipeline field — that rule is the whole reason the currency is safe.
-- Milestones: `MilestoneData` under `Data/Milestones/` (ItemDB `OPTIONAL_DIRS`), listener
-  autoload/provider, ~40 milestones, compounding ×1.01 income each, several paying hats;
+- ~~Séance shop~~ **and the whole Ectoplasm axis: gone (D31, D33), and its replacement is
+  built.** Dollars are a real spendable balance paid flat per act and never multiplied;
+  Reincarnation is free, has no threshold, and pays **Marrow** scaled by the run. Save v4 and
+  its migration are done, and the pacing simulator now shows five resets at 8.1h, 3.0h, 2.0h,
+  2.9h and 2.8h — the ramp target the cube root could never have met.
+- **Séance boons**, the part of the old plan that survives: permanent Dollar-priced upgrades
+  that make each new run start stronger (start with item N unlocked, offline cap rungs, offline
+  efficiency, base automation rate). Built as Dollar-priced `AugmentNode`s carved out of the
+  prestige wipe, which is what the original Ectoplasm shop was going to be — with a currency
+  that now actually arrives.
+- **Cosmetics**: a `CosmeticData` resource under `Data/Cosmetics/` (the `OPTIONAL_DIRS`
+  pattern), a page to spend Dollars on, and the hat layer below as its first content.
+- Milestones, **in two kinds** (D34): ~60 *named* ones that carry the first week, and
+  *repeating* ladders — every 10x of lifetime Bones, every hundred knockouts, every
+  twenty-five levels on a device — that never run out. Milestones are the main source of
+  Dollars, so a purely finite set would starve the arcade exactly when a player settles in.
+  `MilestoneData` under `Data/Milestones/` (ItemDB `OPTIONAL_DIRS`), a listener on the bus,
+  compounding ×1.01 income each, several paying hats;
   stats block expansion + a stats page (`panel_layer.gd` takes a sixth tab by design —
   fold stats into the Jobs or Rebirth page if six tabs crowd the strip; decide on screen,
   not in this document).

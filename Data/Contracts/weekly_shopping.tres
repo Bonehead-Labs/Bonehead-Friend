@@ -10,5 +10,5 @@ description = "Buy 5 new toys."
 goal_key = &"purchase"
 target = 5
 period = 1
-reward_ectoplasm = 5
+reward_dollars = 2000
 sort_order = 50

@@ -10,7 +10,7 @@ extends Node
 ## *hours* — first automation by 30 minutes, first Reincarnation between six and ten hours,
 ## no dead stretch in the first afternoon — and nothing in the project could check one of
 ## them. They were verified by reading the numbers and believing them, which is how the
-## shipped `prestige_divisor` came to be five orders of magnitude out of reach: 1e12 against
+## shipped prestige divisor came to be five orders of magnitude out of reach: 1e12 against
 ## a run that earns 2x10^7 in eight hours.
 ##
 ## A human playtest is still the ground truth for whether the game is *fun*. This is the
@@ -75,6 +75,13 @@ const TARGET_FIRST_PRESTIGE_MAX := 10.0 * 3600.0
 const TARGET_MAX_PURCHASE_GAP := 5.0 * 60.0
 ## Prestige N+1 may take at most this multiple of the run before it, for the first five.
 const TARGET_PRESTIGE_RAMP := 2.0
+
+## When the simulated player takes a reset: once it would add this share of the Marrow they
+## already hold. A real player reads the Rebirth number and makes the same judgement — there
+## is no threshold in the maths to read instead (D33).
+const RESET_WHEN_WORTH := 0.5
+## ...and never for less than this, so the first reset is not taken in the first minute.
+const MINIMUM_RESET := 1.0
 const HOURS_SIMULATED := 72.0
 
 var _passed := 0
@@ -89,9 +96,12 @@ var _owned: Dictionary = {}          ## StringName -> true
 var _levels: Dictionary = {}         ## augment id -> int
 var _xp: Dictionary = {}             ## item id -> float
 var _pool := 0
-var _ectoplasm := 0
+var _marrow := 0.0
 var _prestiges := 0
 var _round_damage := 0.0
+## Earned since the last reset. Marrow is scaled by this and not by lifetime, which is the
+## whole difference between cycles that stay the same length and cycles that grow eightfold.
+var _run_earnings := 0.0
 
 ## Resolved multipliers and rosters, invalidated on every purchase — the same cache
 ## `Progression` keeps, and for the same reason: this is read on every tick of a
@@ -110,7 +120,7 @@ var _csv := false
 func _ready() -> void:
 	var args := OS.get_cmdline_user_args()
 	_csv = args.has("--csv")
-	var divisor := ItemDB.balance.prestige_divisor
+	var divisor := ItemDB.balance.marrow_divisor
 	var flag := args.find("--divisor")
 	if flag >= 0 and flag + 1 < args.size():
 		divisor = float(args[flag + 1])
@@ -118,7 +128,7 @@ func _ready() -> void:
 	print("")
 	print("Bonehead Friend — pacing simulator")
 	print("==================================")
-	print("  prestige_divisor %s   %d items   %.0f min/hour of play"
+	print("  marrow_divisor %s   %d items   %.0f min/hour of play"
 		% [_short(divisor), ItemDB.all_items().size(), ACTIVE_SECONDS_PER_HOUR / 60.0])
 
 	_reset_run(true)
@@ -158,20 +168,22 @@ func _simulate(seconds: float, divisor: float) -> void:
 
 		# A reset is taken the moment it is worth taking, which is the strategy the genre
 		# teaches and the one the targets are written against.
-		var gain := EconomyMath.prestige_gain(_lifetime, _ectoplasm, divisor,
-			ItemDB.balance.prestige_exponent)
-		if gain > 0 and _prestiges < 5:
-			_note("prestige %d  (+%d ectoplasm, lifetime %s)"
-				% [_prestiges + 1, gain, _short(_lifetime)], "prestige")
-			_ectoplasm += gain
+		# No threshold: the simulated player resets when the run is worth a meaningful slice
+		# of what they already hold, which is the judgement a real player makes when the
+		# Rebirth page shows them a number (D33).
+		var gain := EconomyMath.marrow_for_run(_run_earnings, divisor,
+			ItemDB.balance.marrow_exponent)
+		if gain >= maxf(RESET_WHEN_WORTH * _marrow, MINIMUM_RESET) and _prestiges < 5:
+			_note("reincarnate %d  (+%.2f marrow, run %s)"
+				% [_prestiges + 1, gain, _short(_run_earnings)], "prestige")
+			_marrow += gain
 			_prestiges += 1
 			_reset_run(false)
 
 func _earn(delta: float, playing: bool) -> void:
 	var b := ItemDB.balance
 	var mood := ItemDB.mood_multiplier_for(&"stoic", PLAY_MOOD if playing else IDLE_MOOD)
-	var prestige := EconomyMath.prestige_multiplier(_ectoplasm,
-		ItemDB.balance.prestige_income_per_point)
+	var prestige := EconomyMath.marrow_multiplier(_marrow)
 	var pool := MasteryMath.pool_multiplier(_pool, b.mastery_pool_thresholds,
 		b.mastery_pool_income_step)
 
@@ -227,6 +239,7 @@ func _grant(amount: float, bones: bool) -> void:
 	else:
 		_hearts += amount
 	_lifetime += amount
+	_run_earnings += amount
 
 # --- the greedy buyer ------------------------------------------------------
 
@@ -472,6 +485,7 @@ func _reset_run(first: bool) -> void:
 	_round_damage = 0.0
 	_mods.clear()
 	_sides.clear()
+	_run_earnings = 0.0
 	if first:
 		_lifetime = 0.0
 	for item in ItemDB.starter_items():
@@ -536,13 +550,10 @@ func _report(divisor: float) -> void:
 		print("  the divisor that would land the first reset at 8 hours: %s"
 			% _short(_divisor_for_target(divisor)))
 
-## Lifetime at the 8-hour mark implies the divisor that would put the first reset there:
-## ectoplasm = (lifetime/divisor)^(1/3), so one point at exactly 8 hours means
-## divisor = lifetime(8h).
+## The Marrow divisor that would make a first reset worth one Marrow — a doubling — at the
+## eight-hour mark. Marrow is `(run / divisor) ^ exponent`, so one Marrow at eight hours
+## means the divisor is simply what a run earns by then.
 func _divisor_for_target(_current: float) -> float:
-	for e in _events:
-		if e["kind"] == "lifetime8":
-			return float(e["what"])
 	return _lifetime * (8.0 * 3600.0) / maxf(_time, 1.0)
 
 func _first(kind: String, in_play_time: bool = false) -> float:

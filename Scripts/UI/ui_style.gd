@@ -42,7 +42,9 @@ const BORDER_WIDTH := 3
 ## fails a test rather than shipping.
 const BONES := Color("805630")
 const HEARTS := Color("a33860")
-const ECTOPLASM := Color("276b4e")
+## Dollars. The same green Ectoplasm used, kept deliberately: it was picked to pass the
+## contrast grid on every surface in the shell, and money is green anyway.
+const DOLLARS := Color("276b4e")
 const AFFORDABLE := Color("276b4e")  ## Same green as Ectoplasm: "you can have this".
 const LOCKED := Color("a33860")      ## Same red as Hearts: "you cannot, yet".
 const TEAL := Color("176a67")        ## Automation — the only cool colour in the set.
@@ -113,13 +115,13 @@ static func glyph(id: StringName) -> Texture2D:
 static func currency_glyph(currency: StringName) -> Texture2D:
 	match currency:
 		&"hearts": return glyph(&"heart")
-		&"ectoplasm": return glyph(&"ecto")
+		&"dollars": return glyph(&"dollar")
 		_: return glyph(&"bone")
 
 static func currency_colour(currency: StringName) -> Color:
 	match currency:
 		&"hearts": return HEARTS
-		&"ectoplasm": return ECTOPLASM
+		&"dollars": return DOLLARS
 		_: return BONES
 
 # --- widget helpers --------------------------------------------------------
