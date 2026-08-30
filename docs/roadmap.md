@@ -9,7 +9,7 @@ start the next milestone until the current gate passes.
 | M1 — Overlay spike | 1–2 wk | 🟡 **code complete** — manual gate pending |
 | M2 — Vertical slice | 3–4 wk | 🟡 **systems complete** — playtest gate pending |
 | M3 — Systems & buddy uplift | 4–6 wk | 🟡 **systems, art and shell complete** — playtest gate pending |
-| M3.5 — Content & systems uplift ([uplift-m3.5.md](uplift-m3.5.md)) | 4–6 wk | ⬜ **planned** (2026-08-30) |
+| M3.5 — Content & systems uplift ([uplift-m3.5.md](uplift-m3.5.md)) | 4–6 wk | 🟡 **0 and A built** — playtests pending, B and C to come |
 | M4 — Demo / Next Fest | 2–3 wk | ⬜ |
 | M5 — 1.0 | 4+ wk | ⬜ |
 | M6 — The Arcade (post-1.0, [D32](decisions.md)) | 2–3 wk | ⬜ **planned** (2026-08-30) |
@@ -695,6 +695,57 @@ suites are at **673 assertions** (193 unit / 314 loop / 156 UI / 10 window).
   by exporting and booting a `.pck` rather than a binary. The 3%/8% measurement needs the
   templates downloaded first.
 - **Retune pass 1**, which is downstream of the playtest CSVs by design.
+
+### M3.5-A progress — the engine, the ladder and the instrument (2026-08-30)
+
+Everything in M3.5-A is built. Suites: **697 assertions** (197 unit / 336 loop / 167 UI /
+10 window) plus the pacing simulator's four targets.
+
+**The engine.** Every automation capstone is thirty levels at `cost_growth` 1.10 — linear
+rate against exponential cost, the shape the genre converged on — and every item has one,
+sixteen of them named devices rather than "Baseball Bat automation". Rates and prices are
+derived from each item's shop price by a rule in `tools/seed_m35_engine.gd`, so the retune
+the simulator asked for was two constants rather than twenty-eight resources. The global
+tree finally has content: four `&"global"` nodes, the two large ones behind a Reincarnation,
+which is `requires_prestige`'s first use since M2 implemented it.
+
+**The ladder.** Roster 16 → **28**, at the prices `game-design.md` committed to: the Bones
+ladder now runs to 40,000 and the catalog totals 141,610 against M3's 9,810. Every item has
+an augment tree; nine had none, which meant nine toys were bought once and never improved
+again. Twelve items are gated behind the rung below (`ItemData.requires`, empty on all
+sixteen items until now). Five new mechanics rather than five reskins — a proximity mine
+that arms once it settles, a firework that flies where it likes, a beam that hurts without
+shoving, a vortex that deals no damage of its own, and lightning that chains.
+
+**The instrument.** `tests/integration/pacing_sim.tscn` plays seventy-two hours of a
+modelled player against the real content in about a second, and asserts the four targets
+`economy.md` states in hours. It paid for itself four times before it passed — see the
+table in `economy.md`; the shortest version is that the global tree I had just written
+stacked to **x169** and bought the whole catalog out in sixty-six minutes, and that twelve
+simulated hours once ended with 1,095 Hearts/s of idle income and **zero Bones/s**.
+`prestige_divisor` is 1e7 (was 1e12) and the first Reincarnation lands at 8:07.
+
+**The desk.** Automation is visible: one device per switched-on capstone, three mount
+sprites composited with each item's own art. Devices stop moving under Focus Mode Off and
+keep earning, which is that setting's whole promise.
+
+Three findings handed forward to **M3.5-B**, all from the simulator:
+
+- **Each Reincarnation yields exactly one Ectoplasm.** The threshold grows as a cube while
+  the point count grows as its root, so a player at five resets — fifty-eight simulated
+  hours — holds five points. The Séance shop must be priced against *single digits*, not
+  hundreds, or it will read as a currency that never arrives.
+- **What makes run N+1 faster does not exist yet.** The ramp passes today (worst 1.3x over
+  five resets) because income compounds *within* a run, not because a reset leaves the
+  player stronger. Ectoplasm buying something permanent is what turns that from a happy
+  accident into a designed curve.
+- **Automation is gated per item at mastery 25**, so idle income grows with how many toys
+  the player actually uses. That is D17 working as intended, and it is also why the
+  simulator's player model needed a favourite *and* a spread: the two naive models buy one
+  device forever, or none at all.
+
+Art spend: **$0.98** of $8.43 (twelve items with icons, two retries judged at icon size,
+three mounts, five plotted reticles at no cost). Remaining: **$7.46**.
 
 **Gate:** per sub-milestone, in `uplift-m3.5.md`.
 
