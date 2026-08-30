@@ -614,6 +614,74 @@ signals, that Focus Mode Off draws nothing and Focus Mode Normal draws something
 two ramps stay distinguishable at every tier. `tools/fx_shots.tscn` renders the specimen sheet,
 because whether a reward is satisfying cannot be reviewed from source.
 
+### D31 — Dollars: a third currency that buys no power
+
+Proposed 2026-08-30 by the owner, during M3.5-A. **Dollars** are earned from **kind acts and
+knockouts** — the atom of one half of the loop and the climax of the other — and are spent on
+**cosmetics**: colours, outfits, headphones, hats, and whatever else is decoration rather than
+income. Later they also feed the arcade (below).
+
+This overrides `uplift-m3.5.md`'s scope push-back on "no fourth spendable currency". That
+push-back was about a currency that would *compete in the shop ladder*, which is a real hazard —
+a second thing to spend Bones-shaped effort on divides the ladder's attention and makes both
+halves feel slower. Dollars do not, because of the rule that makes them safe:
+
+**Dollars never buy power.** Nothing purchasable with Dollars may change damage, payout,
+automation rate, mastery, contract progress, offline behaviour or prestige. The moment one does,
+the two-currency spine (D2) has a bypass: a player could route past the "be kind to automate"
+bargain by earning Dollars instead. Cosmetics are exactly the category with no such route, which
+is why the idea works.
+
+Three consequences that follow from that rule and are the whole design:
+
+**Active play earns them; idling barely does.** Automation and offline pay Dollars at
+`dollars_idle_efficiency` (a `BalanceData` knob, first draft 0.15) rather than at full rate. This
+is the first thing in the economy that is deliberately *worse* when idle, and it is the right
+place for it: cosmetics are the reward for being at the keyboard, so an eight-hour idle stretch
+buys toys and upgrades but does not dress him up. It also gives an idle-first player a reason to
+put their hands back on the game, which no other currency does.
+
+**Both halves of the loop pay it.** A knockout is the damage side's climax and a pet is the
+kindness side's atom, so a cruel player and a kind player both accumulate Dollars — at different
+rhythms (few large payments against many small ones), which is a texture the two other currencies
+do not have. Nothing here crosses the D2 divide, because Dollars buy nothing either half needs.
+
+**It costs one schema bump, and M3.5-B already has one.** `currencies.dollars` and the
+`cosmetics {owned, equipped}` block reserved since v1 both land in the v4 migration that
+milestone is already committed to writing. Landing Dollars in a *separate* bump later would mean
+two migrations and two fixtures for what is one change to the save's shape.
+
+*Open, and to be decided on screen rather than here:* where cosmetics live in the shell. D22 says
+one navigation and one card size; a sixth tab is possible by design, and folding a Style page into
+the Rebirth page is the alternative.
+
+### D32 — The arcade is post-1.0, and its prizes are Dollars
+
+Also proposed 2026-08-30: **spin-the-wheel, a slot machine and blackjack**, played with Dollars.
+Filed as a **future feature milestone** (M6 — the Arcade), for three reasons and one hazard.
+
+The reasons: it is a sink that makes Dollars interesting rather than merely accumulating; it is
+the kind of thing a launched game adds as a free update with an audience already watching (the
+same argument D3 makes for Occupational Hazard); and three minigames is three separate UIs, each
+of which is a whole page of shell work, animation and feel — which is a milestone, not a corner
+of one.
+
+**The hazard is what the wheel pays out.** If a spin can pay Bones, Hearts, or an income
+multiplier, then Dollars buy power by another route and D31's rule is dead. Two ways through, and
+the choice belongs to the owner before the milestone starts:
+
+- **Cosmetic prizes only** — hats, colours, one-off outfits, Dollars themselves. Safe, and
+  weakest as a reason to keep playing.
+- **Short timed buffs through the shared `temp_mult` slot** — the same one the Dream Journal and
+  Overtime Pay use. Bounded (minutes, not a permanent multiplier), and the gambling is then a
+  *pacing* toy rather than an economy bypass. Recommended, on the condition that a spin can never
+  pay a *permanent* multiplier or a currency the shop takes.
+
+Two practical notes for whoever schedules it: simulated gambling with no real money attached is
+storefront-legal but does attract content descriptors on some ratings boards, which touches D-list
+positioning ("gore-free, unrestricted rating"); and one game shipped well beats three shipped
+thin — the wheel is the cheapest and reads fastest.
+
 ## Recommendations not yet decided
 
 Carried in the spec, owner's call before they matter:

@@ -35,16 +35,24 @@ implementing session does not have to re-survey.
 |---|---|---|
 | **M3.5-0 — Prove the base** | The two playtests, the export check, retune pass 1, and the small confirmed defects. Blocking: rebalancing after a content expansion is strictly worse than before one. | none |
 | **M3.5-A — The engine and the ladder** | Automation levels + a capstone per item (the exponential engine), augment coverage for all items, roster 16→~28, visible automation devices, a headless pacing simulator, divisor retuned to reality | none |
-| **M3.5-B — The long game** | Ectoplasm meta-shop (deepen prestige axis one — NOT a second axis), milestones + stats page, Dream Journal, contract expansion to ~30, +2 personalities, prestige-gated automation tier 2, the hat layer | **v4, one bump** |
+| **M3.5-B — The long game** | Ectoplasm meta-shop (deepen prestige axis one — NOT a second axis), milestones + stats page, Dream Journal, contract expansion to ~30, +2 personalities, prestige-gated automation tier 2, **Dollars + the cosmetics page**, the hat layer | **v4, one bump** |
 | **M3.5-C — Live on the desktop** | Taskbar mechanics, Overtime Pay, hibernate/hazard-pay, and the timeboxed Win32 spike → Working Hours if it lands. Occupational Hazard stays post-1.0. | none |
 
 **Budget:** the full uplift's art is ~**$4.60** against the $8.43 balance — it fits with
 ~1.8× retry margin. What the balance does *not* buy is M4's capsule/key art and trailer.
 
-**Scope push-backs (argued in place):** no second prestige currency, no fourth spendable
-currency, no 150-item roster, no personality stat riders, no compound contract predicates,
-and Occupational Hazard is not pulled into 1.0 — but its spike is, because it was already
-scheduled ("during M3", D3) and has slipped.
+**Scope push-backs (argued in place):** no second prestige currency, no 150-item roster, no
+personality stat riders, no compound contract predicates, and Occupational Hazard is not pulled
+into 1.0 — but its spike is, because it was already scheduled ("during M3", D3) and has slipped.
+
+**One push-back was overruled, correctly (2026-08-30).** This plan argued against a fourth
+spendable currency; the owner proposed **Dollars** — earned from kind acts and knockouts, spent
+only on cosmetics — and it survives the objection, because the objection was to a currency that
+would *compete in the shop ladder*. Dollars cannot: nothing bought with them may touch income
+(D31). They fold into M3.5-B at no schema cost, since that milestone already writes the single
+v4 migration and `cosmetics {owned, equipped}` has been reserved in the save since v1. The
+**arcade** they eventually feed — wheel, slots, blackjack — is a milestone of its own after 1.0
+(D32).
 
 ---
 
@@ -330,6 +338,12 @@ new ladder confirms the sim's hour-1 read; budget ledger in `art/prompts/` ≤ $
 - Séance shop: Ectoplasm-priced meta-AugmentNodes (currency enum + `spend()` special case
   + prestige-wipe carve-out + Rebirth-page rows), including the offline-cap rungs and
   offline-efficiency rung.
+- **Dollars** (D31): a third balance in `Economy`, paid from `kindness_given` and the knockout
+  beat and *not* through `payout_for`; `dollars_idle_efficiency` on automation and offline; a
+  `CosmeticData` resource under `Data/Cosmetics/` (the `OPTIONAL_DIRS` pattern again) and a page
+  to spend it on, with the hat layer below as its first content. The purse already stacks a third
+  chip for Ectoplasm, so the HUD costs nothing. A test asserts no Dollar-priced thing carries a
+  payout-pipeline field — that rule is the whole reason the currency is safe.
 - Milestones: `MilestoneData` under `Data/Milestones/` (ItemDB `OPTIONAL_DIRS`), listener
   autoload/provider, ~40 milestones, compounding ×1.01 income each, several paying hats;
   stats block expansion + a stats page (`panel_layer.gd` takes a sixth tab by design —
@@ -348,8 +362,9 @@ still green); a simulated week-2 state (5 prestiges, sim-driven) shows a non-emp
 thing" at every horizon: an affordable Séance row, an unclaimed milestone, an unbought
 tier-2 capstone; contracts rotate with ≥3 distinct goal shapes on the board; all suites
 green.
-**Schema: v4 — ONE bump** covering milestones, journal state, stats expansion, and
-`playtime_sec` finally counting. `cosmetics` needs no schema change (reserved since v1).
+**Schema: v4 — ONE bump** covering milestones, journal state, stats expansion, Dollars, and
+`playtime_sec` finally counting. `cosmetics` needs no schema change (reserved since v1) — which
+is precisely why Dollars belong in this bump rather than in one of their own later.
 Bump + `_migrate_3_to_4` + fixture, per the CLAUDE.md rule — a schema change without a
 migration is a data-loss bug.
 
@@ -367,6 +382,15 @@ migration is a data-loss bug.
 on an export with devices + effects live (the constraint that is a release gate, not a
 preference); Working Hours demonstrably ramps only from *other-app* activity or is cut.
 **Schema:** none (milestone keys ride v4's structures).
+
+### After 1.0 — M6, the arcade
+
+Spin-the-wheel, slots and blackjack, played with Dollars (D32). Not in M3.5 and not in 1.0:
+three minigames is three page-sized UIs, and it is the strongest kind of free post-launch update
+— a marketing beat with an audience already there, exactly the argument D3 makes for
+Occupational Hazard. The one decision to take before it starts is what a spin may pay; the
+recommendation is a short timed buff through the shared `temp_mult` slot, never a permanent
+multiplier and never a currency the shop accepts.
 
 ### Then M4 as re-scoped
 

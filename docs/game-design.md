@@ -211,12 +211,43 @@ first-draft ordering, to be tuned against `docs/economy.md`.
 Plus the existing **Trash Bin** (free, always present) for clearing spawned clutter, and the
 **Contract Board** prop.
 
+## Dollars — the third currency (docs/decisions.md D31)
+
+**Dollars are earned by playing and spent on how he looks.** They come from **kind acts and
+knockouts** — the atom of one half of the loop and the climax of the other, so both a cruel
+player and a kind one accumulate them, at different rhythms. They buy **cosmetics and nothing
+else**.
+
+The rule that makes a third currency safe: **Dollars never buy power.** Nothing bought with them
+may touch damage, payout, automation, mastery, contracts, offline or prestige. Without that rule
+they are a bypass around the two-currency bargain — a way to route past "be kind to him if you
+want automation" — and the spine of the economy (D2) goes with it.
+
+**Idling barely earns them.** Automation and offline pay Dollars at a fraction of the active
+rate (`dollars_idle_efficiency`, first draft 0.15). This is the one place in the economy that is
+deliberately worse when idle, and cosmetics are the right reward to put there: eight hours away
+buys toys and upgrades but does not dress him up. It is also the only thing in the game that asks
+an idle-first player to put their hands back on it.
+
 ## Cosmetics
 
-10–15 Bonehead skins and hats, bought with Hearts or earned from contracts: Party Hat, Hard
-Hat, Top Hat, Cowboy, Chef, Golden Bonehead, Neon Bonehead, Cardboard-Box Disguise, Tiny Bow
-Tie. Highest joy-per-development-hour in the whole design, and the natural content of a
-post-launch supporter pack.
+10–15 Bonehead skins and hats, **bought with Dollars** or earned from contracts and milestones:
+Party Hat, Hard Hat, Top Hat, Cowboy, Chef, Golden Bonehead, Neon Bonehead, Cardboard-Box
+Disguise, Tiny Bow Tie. Beyond hats, the same currency services recolours, outfits and
+alternative headphones — the customisation set grows without ever touching the income loop.
+Highest joy-per-development-hour in the whole design, and the natural content of a post-launch
+supporter pack.
+
+Hats ride `Data/buddy_face_offsets.json`, which already tracks his head on every frame of every
+animation — so a hat is new content on an existing hook rather than a new system.
+
+## The arcade — post-1.0 (docs/decisions.md D32)
+
+Spin-the-wheel, a slot machine and blackjack, played with Dollars. Filed as its own future
+milestone: three minigames is three UIs, and it is the kind of thing a launched game adds as a
+free update with an audience already watching. The open question is what a spin may pay — see
+D32; the recommendation is short timed buffs through the shared temporary-multiplier slot, never
+a permanent multiplier and never a currency the shop accepts.
 
 ## Achievements
 

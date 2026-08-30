@@ -121,6 +121,25 @@ catches) · *Emotionally Complex* (swing mood from −90 to +90 inside a minute)
 (complete a Pomodoro block without touching him) · *Spring Cleaning* (sponge him 100 times) ·
 *It's Not You, It's Me* (first Reincarnation) · *Frequent Flyer* (send him to another monitor).
 
+## The arcade (committed to a future milestone — docs/decisions.md D32)
+
+Played with Dollars, the cosmetics currency, so a losing streak costs a hat and never a run.
+
+- **Spin the wheel.** One spin, a ring of segments, a possible bonus. Cheapest of the three to
+  build and the fastest to read; the one to ship first if only one ships.
+- **Slot machine.** Three reels of item icons — a bat, a heart, a bone, an ectoplasm blob — with
+  the roster's own art doing the work. Wants a lever he can be made to pull.
+- **Blackjack.** The only one with real rules, and therefore the only one that is a *game* rather
+  than a pull; also the only one whose UI is a full page of its own.
+
+Open in D32: whether a prize may be a timed income buff (recommended, bounded, through the shared
+temporary-multiplier slot) or must stay purely cosmetic.
+
+Ideas that follow naturally once Dollars exist: a vending machine on the desk as the arcade's
+front end; a daily free spin as a second return hook beside the contract board; **wagering a
+cosmetic** rather than currency, which is the only version of "high stakes" this game can offer
+without touching the income loop.
+
 ## Deliberately rejected
 
 - **Gore / blood mode.** Rejected: costs the unrestricted rating and the streaming audience for a

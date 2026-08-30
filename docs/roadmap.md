@@ -12,6 +12,7 @@ start the next milestone until the current gate passes.
 | M3.5 — Content & systems uplift ([uplift-m3.5.md](uplift-m3.5.md)) | 4–6 wk | ⬜ **planned** (2026-08-30) |
 | M4 — Demo / Next Fest | 2–3 wk | ⬜ |
 | M5 — 1.0 | 4+ wk | ⬜ |
+| M6 — The Arcade (post-1.0, [D32](decisions.md)) | 2–3 wk | ⬜ **planned** (2026-08-30) |
 
 ---
 
@@ -632,7 +633,7 @@ findings, the content budget and every gate live there; this is the index.
 |---|---|---|
 | M3.5-0 — Prove the base | The two playtests, the export check in a real `.exe`, retune pass 1, the small confirmed defects. **Blocking** — rebalancing after a content expansion is strictly worse than before one. | none |
 | M3.5-A — The engine and the ladder | Leveled automation capstones on every item (the exponential engine), augment coverage for all 28 items, roster 16→~28, visible devices, a headless pacing simulator, `prestige_divisor` retuned to reality | none |
-| M3.5-B — The long game | Ectoplasm meta-shop (the Séance), milestones + stats page, Dream Journal, contracts to ~30, +2 personalities, prestige-gated automation tier 2, the hat layer | **v4 — one bump** |
+| M3.5-B — The long game | Ectoplasm meta-shop (the Séance), milestones + stats page, Dream Journal, contracts to ~30, +2 personalities, prestige-gated automation tier 2, **Dollars + cosmetics**, the hat layer | **v4 — one bump** |
 | M3.5-C — Live on the desktop | Taskbar mechanics, Overtime Pay, hibernate/hazard pay, and the timeboxed Win32 spike → Working Hours if it lands. Occupational Hazard stays post-1.0. | none |
 
 The findings that force the milestone (verified against the code and `.tres` files):
@@ -767,3 +768,27 @@ game has:
 4. Cosmetic supporter pack (~$4).
 5. Bonehead's Workshop — visual scripting + Steam Workshop.
 6. Skeleton crew — multiple buddies.
+
+
+## M6 — The Arcade (post-1.0)
+
+Planned 2026-08-30 alongside Dollars (docs/decisions.md D31, D32). Spin-the-wheel, a slot
+machine and blackjack, all played with the cosmetics currency so a losing streak costs a hat and
+never a run.
+
+It is a milestone rather than a corner of one because three minigames is three page-sized UIs
+with three sets of animation and feel — and it is the strongest free post-launch update this
+design has: a marketing beat delivered to an audience that already exists, which is the same
+argument D3 makes for holding Occupational Hazard back.
+
+**Decide before it starts:** what a spin may pay. Cosmetic prizes only is safe and weak; a short
+timed buff through the shared temporary-multiplier slot (the one the Dream Journal and Overtime
+Pay use) is the recommendation, on the hard condition that no prize is ever a permanent
+multiplier or a currency the shop accepts — otherwise Dollars buy power by a side door and D31's
+rule, which is the only thing making a third currency safe, is gone.
+
+**Gate:** one game shipped well beats three shipped thin; the wheel is the cheapest and reads
+fastest, so it goes first and alone if the milestone has to be cut.
+
+*Art needed:* a wheel, a machine cabinet, a card set, and a vending-machine prop as the arcade's
+front end on the desk. Not costed against the M3.5 balance.

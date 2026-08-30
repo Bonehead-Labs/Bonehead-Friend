@@ -285,6 +285,33 @@ They appear in the tree page under a chip of their own, last in the picker — t
 not a toy, and putting it first made it the default selection for a player who had come to
 upgrade their bat.
 
+## Dollars
+
+The third currency (docs/decisions.md D31). Earned from the two events that mark a player being
+*present* — a kind act and a knockout — and spent only on cosmetics.
+
+```
+kind act:  dollars_per_kindness x value        (the same value the Hearts payout is computed on)
+knockout:  dollars_per_knockout                (flat: the climax is the event, not its size)
+automation / offline: x dollars_idle_efficiency
+```
+
+Three deliberate differences from Bones and Hearts:
+
+- **No multipliers.** Dollars do not go through `payout_for` — not mood, not augments, not
+  mastery, not prestige. They are a count of things done, not a yield, which is what stops
+  cosmetics from arriving in a flood the moment the income multipliers stack up.
+- **Idle earns a fraction** (`dollars_idle_efficiency`, first draft 0.15). The only place in the
+  economy where idling is deliberately worse, and the reason it is here rather than anywhere
+  else: cosmetics are the reward for being at the keyboard.
+- **They buy no power, ever.** Enforced as a rule on content, not as code: nothing priced in
+  Dollars may carry an `effect_key`, an `automation_rate`, or any other field the payout pipeline
+  reads. A test asserts it, because the day one cosmetic quietly grants +2% Bones is the day the
+  two-currency spine has a bypass.
+
+Knobs live in `BalanceData` with the rest: `dollars_per_kindness`, `dollars_per_knockout`,
+`dollars_idle_efficiency`.
+
 ## Contracts
 
 Rotating objectives keyed on `EventBus.contract_event`. Three daily slots and one weekly, rolled
