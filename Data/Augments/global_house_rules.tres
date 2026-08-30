@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_m52xk"]
+
+[resource]
+script = ExtResource("1_m52xk")
+id = &"global_house_rules"
+display_name = "House Rules"
+description = "There are rules now. Most of them are about how hard."
+tier = 5
+effect_key = &"damage_mult"
+effect_per_level = 1.1
+max_levels = 1
+cost_base = 45000
+cost_growth = 1.0
+exclusive_group = &"vocation"
+requires = Array[StringName]([&"global_reputation", &"global_the_arrangement"])

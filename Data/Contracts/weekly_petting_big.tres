@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ContractData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/contract_data.gd" id="1_msffv"]
+
+[resource]
+script = ExtResource("1_msffv")
+id = &"weekly_petting_big"
+display_name = "Gold Watch"
+description = "Pet him 6,000 times."
+goal_key = &"pet"
+target = 6000
+period = 1
+reward_dollars = 4000
+sort_order = 500

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ContractData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/contract_data.gd" id="1_iw4lh"]
+
+[resource]
+script = ExtResource("1_iw4lh")
+id = &"weekly_kindness"
+display_name = "Care Plan"
+description = "Be kind to him 1,200 times."
+goal_key = &"kindness"
+target = 1200
+period = 1
+reward_dollars = 2500
+sort_order = 470

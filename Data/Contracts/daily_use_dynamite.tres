@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ContractData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/contract_data.gd" id="1_r0gpy"]
+
+[resource]
+script = ExtResource("1_r0gpy")
+id = &"daily_use_dynamite"
+display_name = "Site Clearance"
+description = "Set off 20 sticks of dynamite."
+goal_key = &"use:dynamite"
+target = 20
+reward_dollars = 550
+sort_order = 400

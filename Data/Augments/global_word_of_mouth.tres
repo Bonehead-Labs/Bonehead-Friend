@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_rv6tb"]
+
+[resource]
+script = ExtResource("1_rv6tb")
+id = &"global_word_of_mouth"
+display_name = "Word of Mouth"
+description = "Somebody out there has heard about the two of you."
+tier = 7
+effect_key = &"payout_mult"
+effect_per_level = 1.03
+max_levels = 6
+cost_base = 60000
+cost_growth = 1.26
+currency = 1
+requires = Array[StringName]([&"global_carried_over"])
+requires_prestige = 2
+sort_order = 1

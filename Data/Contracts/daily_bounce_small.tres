@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="ContractData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/contract_data.gd" id="1_2ayaw"]
+
+[resource]
+script = ExtResource("1_2ayaw")
+id = &"daily_bounce_small"
+display_name = "Springboard"
+description = "Bounce him 100 times."
+goal_key = &"bounce"
+reward_dollars = 450
+sort_order = 330

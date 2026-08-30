@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ContractData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/contract_data.gd" id="1_rc22n"]
+
+[resource]
+script = ExtResource("1_rc22n")
+id = &"daily_pet_large"
+display_name = "Emotional Labour"
+description = "Pet him 500 times."
+goal_key = &"pet"
+target = 500
+reward_dollars = 600
+sort_order = 270

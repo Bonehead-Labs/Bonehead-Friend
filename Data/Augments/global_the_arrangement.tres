@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_ww6uj"]
+
+[resource]
+script = ExtResource("1_ww6uj")
+id = &"global_the_arrangement"
+display_name = "The Arrangement"
+description = "Neither of you calls it a job. It is a job."
+tier = 4
+effect_key = &"payout_mult"
+effect_per_level = 1.025
+cost_base = 15000
+cost_growth = 1.2
+currency = 1
+requires = Array[StringName]([&"global_devotion"])
+sort_order = 1

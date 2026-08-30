@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ContractData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/contract_data.gd" id="1_qsg0s"]
+
+[resource]
+script = ExtResource("1_qsg0s")
+id = &"daily_purchase_one"
+display_name = "Procurement"
+description = "Buy 1 new toy."
+goal_key = &"purchase"
+target = 1
+reward_dollars = 300
+sort_order = 290

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ContractData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/contract_data.gd" id="1_cbg0c"]
+
+[resource]
+script = ExtResource("1_cbg0c")
+id = &"daily_use_pan"
+display_name = "Kitchen Shift"
+description = "Land 150 hits with the frying pan."
+goal_key = &"use:frying_pan"
+target = 150
+reward_dollars = 400
+sort_order = 360

@@ -1,7 +1,10 @@
 extends Node
 
-## Writes M3.5-A's engine: one **levelled** automation capstone per item, and the global
-## augment tree.
+## Writes M3.5-A's engine: one **levelled** automation capstone per item.
+##
+## It used to own the global tree as well. `tools/seed_m36_globals.gd` took that over when
+## the tree went from four nodes to twenty-four, and two tools writing `global_technique`
+## would make the shipped numbers a question of which one ran last.
 ##
 ##   Godot --headless --path <project> res://tools/seed_m35_engine.tscn
 ##
@@ -115,49 +118,11 @@ const DEVICES := {
 		"The fan sweeps on its own, and something is always going flying."],
 }
 
-## The global tree: nodes that multiply **every** payout in the game, including automation
-## income, which per-item payout nodes deliberately do not reach (see docs/economy.md).
-##
-## This is the cross-run ladder. Without it, a run's total multiplier is bounded by how many
-## items are owned, and lifetime earnings grow linearly with time played — which is the
-## shape that puts a cube-root prestige threshold out of reach forever. The hook has existed
-## since M2 (`Progression.get_modifier` folds `&"global"` into every lookup) and had no
-## content in it.
-##
-## [id, name, description, effect, levels, cost, growth, currency, tier, requires, prestige]
-##
-## **These numbers were set by the pacing simulator, not by eye.** The first draft was four
-## nodes at 1.10 and 1.12 over ten to fifteen levels each — which reads modest and is not:
-## every one of them multiplies every payout in the game, so the four together came to
-## **x169**, on top of the item's own x3.1, and `pacing_sim` showed the whole 28-item catalog
-## bought out in sixty-six minutes. A global node has to be worth buying and must not be
-## worth more than the toy it multiplies.
-##
-## The two big ones are behind a Reincarnation as well. That is where they belong on their
-## own merits — a cross-*run* multiplier that a first run can max is not a cross-run
-## multiplier — and it gives `requires_prestige`, implemented since M2 and never used, its
-## first content.
-const GLOBALS := [
-	[&"global_technique", "Technique",
-		"You have done this a lot. Everything lands better.",
-		1.06, 10, 5000, 1.25, AugmentNodeScript.CURRENCY_BONES, 1, [], 0],
-	[&"global_showmanship", "Showmanship",
-		"He plays to the crowd. There is no crowd.",
-		1.06, 10, 2500, 1.25, AugmentNodeScript.CURRENCY_HEARTS, 1, [], 0],
-	[&"global_momentum", "Momentum",
-		"Nothing about this is a hobby any more.",
-		1.08, 10, 50000, 1.28, AugmentNodeScript.CURRENCY_BONES, 2, [&"global_technique"], 1],
-	[&"global_devotion", "Devotion",
-		"He would do this for free. You are paying him in attention.",
-		1.08, 10, 25000, 1.28, AugmentNodeScript.CURRENCY_HEARTS, 2, [&"global_showmanship"], 1],
-]
-
 var _written := 0
 
 func _ready() -> void:
 	DirAccess.make_dir_recursive_absolute(AUGMENTS_DIR)
 	_seed_capstones()
-	_seed_globals()
 	print("seed_m35_engine: %d resources written" % _written)
 	get_tree().quit()
 
@@ -209,31 +174,6 @@ func _mount_for(item: ItemData) -> StringName:
 	if item.category == ItemData.CATEGORY_FRIENDLY:
 		return &"pedestal"
 	return &"tripod"
-
-func _seed_globals() -> void:
-	for entry in GLOBALS:
-		# Rewritten rather than skipped, for the same reason the capstones are: the table
-		# above is the authority on these four, and the first version of it was wrong by a
-		# factor of fifty.
-		var path: String = "%s/%s.tres" % [AUGMENTS_DIR, entry[0]]
-		var node := AugmentNodeScript.new()
-		node.id = entry[0]
-		node.item_id = AugmentNodeScript.GLOBAL
-		node.display_name = entry[1]
-		node.description = entry[2]
-		node.tier = entry[8]
-		node.effect_key = &"payout_mult"
-		node.effect_per_level = entry[3]
-		node.max_levels = entry[4]
-		node.cost_base = entry[5]
-		node.cost_growth = entry[6]
-		node.currency = entry[7]
-		var requires: Array[StringName] = []
-		requires.assign(entry[9])
-		node.requires = requires
-		node.requires_prestige = entry[10]
-		node.sort_order = _written
-		_save(node, path)
 
 func _save(resource: Resource, path: String) -> void:
 	var err := ResourceSaver.save(resource, path)

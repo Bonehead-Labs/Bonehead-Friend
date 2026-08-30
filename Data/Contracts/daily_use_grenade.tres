@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ContractData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/contract_data.gd" id="1_7gpn7"]
+
+[resource]
+script = ExtResource("1_7gpn7")
+id = &"daily_use_grenade"
+display_name = "Controlled Demolition"
+description = "Set off 25 grenades."
+goal_key = &"use:grenade"
+target = 25
+reward_dollars = 450
+sort_order = 390

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ContractData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/contract_data.gd" id="1_k1tg0"]
+
+[resource]
+script = ExtResource("1_k1tg0")
+id = &"daily_use_bowling_ball"
+display_name = "Perfect Game"
+description = "Land 60 hits with the bowling ball."
+goal_key = &"use:bowling_ball"
+target = 60
+reward_dollars = 400
+sort_order = 380

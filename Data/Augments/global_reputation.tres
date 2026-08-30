@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_q77d0"]
+
+[resource]
+script = ExtResource("1_q77d0")
+id = &"global_reputation"
+display_name = "Reputation"
+description = "People have started asking what it is you do all day."
+tier = 4
+effect_key = &"payout_mult"
+effect_per_level = 1.025
+cost_base = 30000
+cost_growth = 1.2
+requires = Array[StringName]([&"global_momentum"])

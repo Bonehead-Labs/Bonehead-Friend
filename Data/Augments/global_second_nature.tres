@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_2m4pe"]
+
+[resource]
+script = ExtResource("1_2m4pe")
+id = &"global_second_nature"
+display_name = "Second Nature"
+description = "You reach for the next thing before you have finished the last one."
+tier = 2
+effect_key = &"cooldown_mult"
+effect_per_level = 0.98
+cost_base = 5000
+cost_growth = 1.18
+currency = 1
+requires = Array[StringName]([&"global_follow_through"])
+sort_order = 2

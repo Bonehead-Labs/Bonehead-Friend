@@ -205,7 +205,7 @@ func _contract(entry: Array, sort_order: int) -> void:
 	# Refused here rather than at boot. ItemDB validates the same thing and drops what fails,
 	# which means a typo in the table above ships as a contract that quietly is not there —
 	# and the board is drawn from a pool nobody counts.
-	var err := contract.validation_error()
+	var err: String = contract.validation_error()
 	if not err.is_empty():
 		push_error("seed_m36_contracts: %s" % err)
 		return

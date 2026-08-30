@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ContractData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/contract_data.gd" id="1_jqmf8"]
+
+[resource]
+script = ExtResource("1_jqmf8")
+id = &"daily_use_pistol"
+display_name = "Range Day"
+description = "Fire 200 pistol rounds."
+goal_key = &"use:pistol"
+target = 200
+reward_dollars = 400
+sort_order = 410

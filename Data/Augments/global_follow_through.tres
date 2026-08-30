@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_61blw"]
+
+[resource]
+script = ExtResource("1_61blw")
+id = &"global_follow_through"
+display_name = "Follow-Through"
+description = "You have stopped stopping at the moment of contact."
+effect_key = &"damage_mult"
+effect_per_level = 1.02
+cost_base = 3000
+cost_growth = 1.16
+sort_order = 2

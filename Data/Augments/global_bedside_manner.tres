@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_otmss"]
+
+[resource]
+script = ExtResource("1_otmss")
+id = &"global_bedside_manner"
+display_name = "Bedside Manner"
+description = "He has stopped bracing. That saves the pair of you a great deal of time."
+tier = 5
+effect_key = &"cooldown_mult"
+effect_per_level = 0.9
+max_levels = 1
+cost_base = 30000
+cost_growth = 1.0
+currency = 1
+exclusive_group = &"vocation"
+requires = Array[StringName]([&"global_reputation", &"global_the_arrangement"])
+sort_order = 2

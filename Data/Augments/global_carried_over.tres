@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_3pwhe"]
+
+[resource]
+script = ExtResource("1_3pwhe")
+id = &"global_carried_over"
+display_name = "Carried Over"
+description = "Some of the affection survived the reset. Not all of it."
+tier = 6
+effect_key = &"payout_mult"
+effect_per_level = 1.03
+max_levels = 6
+cost_base = 20000
+cost_growth = 1.24
+currency = 1
+requires_prestige = 1
+sort_order = 1

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ContractData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/contract_data.gd" id="1_chk6m"]
+
+[resource]
+script = ExtResource("1_chk6m")
+id = &"weekly_pickup"
+display_name = "Heavy Lifting"
+description = "Pick him up 600 times."
+goal_key = &"pick_up"
+target = 600
+period = 1
+reward_dollars = 2500
+sort_order = 510

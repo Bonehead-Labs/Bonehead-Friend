@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ContractData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/contract_data.gd" id="1_wvd8b"]
+
+[resource]
+script = ExtResource("1_wvd8b")
+id = &"daily_pet_quick"
+display_name = "Five Minutes Of Your Time"
+description = "Pet him 120 times."
+goal_key = &"pet"
+target = 120
+reward_dollars = 350
+sort_order = 250

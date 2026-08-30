@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ContractData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/contract_data.gd" id="1_bdja2"]
+
+[resource]
+script = ExtResource("1_bdja2")
+id = &"daily_bounce_large"
+display_name = "Team Building"
+description = "Bounce him 300 times."
+goal_key = &"bounce"
+target = 300
+reward_dollars = 700
+sort_order = 340

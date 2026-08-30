@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_odjys"]
+
+[resource]
+script = ExtResource("1_odjys")
+id = &"global_past_lives"
+display_name = "Past Lives"
+description = "You have done all of this before. He has not."
+tier = 6
+effect_key = &"payout_mult"
+effect_per_level = 1.03
+max_levels = 6
+cost_base = 40000
+cost_growth = 1.24
+requires_prestige = 1

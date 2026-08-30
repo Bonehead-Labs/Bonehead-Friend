@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ContractData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/contract_data.gd" id="1_sx6lu"]
+
+[resource]
+script = ExtResource("1_sx6lu")
+id = &"daily_pickup_small"
+display_name = "Manual Handling"
+description = "Pick him up 40 times."
+goal_key = &"pick_up"
+target = 40
+reward_dollars = 300
+sort_order = 310

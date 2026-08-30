@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ContractData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/contract_data.gd" id="1_cepa1"]
+
+[resource]
+script = ExtResource("1_cepa1")
+id = &"daily_damage_burst"
+display_name = "Stress Test"
+description = "Deal 3,000 damage."
+goal_key = &"deal_damage"
+target = 3000
+reward_dollars = 350
+sort_order = 110

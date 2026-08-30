@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_grjej"]
+
+[resource]
+script = ExtResource("1_grjej")
+id = &"global_no_wasted_motion"
+display_name = "No Wasted Motion"
+description = "Nothing takes as long as it used to. Nothing ever will again."
+tier = 8
+effect_key = &"cooldown_mult"
+effect_per_level = 0.97
+max_levels = 6
+cost_base = 150000
+cost_growth = 1.28
+currency = 1
+requires = Array[StringName]([&"global_bone_deep"])
+requires_prestige = 3
+sort_order = 2

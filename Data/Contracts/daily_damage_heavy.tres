@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ContractData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/contract_data.gd" id="1_2g1v2"]
+
+[resource]
+script = ExtResource("1_2g1v2")
+id = &"daily_damage_heavy"
+display_name = "Unpaid Overtime"
+description = "Deal 15,000 damage."
+goal_key = &"deal_damage"
+target = 15000
+reward_dollars = 700
+sort_order = 130

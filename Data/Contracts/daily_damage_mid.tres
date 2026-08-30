@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ContractData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/contract_data.gd" id="1_j0mw2"]
+
+[resource]
+script = ExtResource("1_j0mw2")
+id = &"daily_damage_mid"
+display_name = "A Productive Morning"
+description = "Deal 8,000 damage."
+goal_key = &"deal_damage"
+target = 8000
+reward_dollars = 500
+sort_order = 120

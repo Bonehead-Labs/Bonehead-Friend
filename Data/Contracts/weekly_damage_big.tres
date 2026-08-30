@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ContractData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/contract_data.gd" id="1_stgwh"]
+
+[resource]
+script = ExtResource("1_stgwh")
+id = &"weekly_damage_big"
+display_name = "Performance Review"
+description = "Deal 250,000 damage."
+goal_key = &"deal_damage"
+target = 250000
+period = 1
+reward_dollars = 4000
+sort_order = 430

@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_7avip"]
+
+[resource]
+script = ExtResource("1_7avip")
+id = &"global_tenure"
+display_name = "Tenure"
+description = "Three deaths in, and nobody has asked either of you to stop."
+tier = 8
+effect_key = &"payout_mult"
+effect_per_level = 1.03
+max_levels = 6
+cost_base = 250000
+cost_growth = 1.28
+requires = Array[StringName]([&"global_settled_weight"])
+requires_prestige = 3

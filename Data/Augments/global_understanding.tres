@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_s0wml"]
+
+[resource]
+script = ExtResource("1_s0wml")
+id = &"global_understanding"
+display_name = "Understanding"
+description = "Neither of you needs telling what happens next."
+tier = 8
+effect_key = &"payout_mult"
+effect_per_level = 1.03
+max_levels = 6
+cost_base = 125000
+cost_growth = 1.28
+currency = 1
+requires = Array[StringName]([&"global_word_of_mouth"])
+requires_prestige = 3
+sort_order = 1

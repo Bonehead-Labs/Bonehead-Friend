@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_iyp66"]
+
+[resource]
+script = ExtResource("1_iyp66")
+id = &"global_steady_hands"
+display_name = "Steady Hands"
+description = "Nothing hurried, nothing wasted. Everything simply comes round sooner."
+tier = 3
+effect_key = &"cooldown_mult"
+effect_per_level = 0.87
+max_levels = 1
+cost_base = 12000
+cost_growth = 1.0
+currency = 1
+exclusive_group = &"stance"
+requires = Array[StringName]([&"global_technique", &"global_showmanship"])
+sort_order = 2

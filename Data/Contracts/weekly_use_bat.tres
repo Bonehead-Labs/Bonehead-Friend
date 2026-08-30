@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ContractData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/contract_data.gd" id="1_11mie"]
+
+[resource]
+script = ExtResource("1_11mie")
+id = &"weekly_use_bat"
+display_name = "The Long Season"
+description = "Land 1,200 hits with the baseball bat."
+goal_key = &"use:baseball_bat"
+target = 1200
+period = 1
+reward_dollars = 3000
+sort_order = 520

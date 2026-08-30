@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ContractData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/contract_data.gd" id="1_ixamo"]
+
+[resource]
+script = ExtResource("1_ixamo")
+id = &"weekly_knockouts_big"
+display_name = "Undefeated"
+description = "Knock him out 150 times."
+goal_key = &"knockout"
+target = 150
+period = 1
+reward_dollars = 4000
+sort_order = 460

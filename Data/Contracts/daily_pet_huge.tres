@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ContractData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/contract_data.gd" id="1_5vfj3"]
+
+[resource]
+script = ExtResource("1_5vfj3")
+id = &"daily_pet_huge"
+display_name = "Above And Beyond"
+description = "Pet him 1,000 times."
+goal_key = &"pet"
+target = 1000
+reward_dollars = 800
+sort_order = 280

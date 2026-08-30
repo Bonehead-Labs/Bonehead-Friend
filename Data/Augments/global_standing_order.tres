@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_i54ck"]
+
+[resource]
+script = ExtResource("1_i54ck")
+id = &"global_standing_order"
+display_name = "Standing Order"
+description = "It pays whether or not you are at the desk. Mostly it is not you."
+tier = 3
+effect_key = &"payout_mult"
+effect_per_level = 1.1
+max_levels = 1
+cost_base = 15000
+cost_growth = 1.0
+currency = 1
+exclusive_group = &"stance"
+requires = Array[StringName]([&"global_technique", &"global_showmanship"])
+sort_order = 1

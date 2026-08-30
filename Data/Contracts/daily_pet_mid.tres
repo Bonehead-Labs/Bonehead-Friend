@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ContractData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/contract_data.gd" id="1_01wr8"]
+
+[resource]
+script = ExtResource("1_01wr8")
+id = &"daily_pet_mid"
+display_name = "Positive Reinforcement"
+description = "Pet him 350 times."
+goal_key = &"pet"
+target = 350
+reward_dollars = 500
+sort_order = 260

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ContractData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/contract_data.gd" id="1_iitp4"]
+
+[resource]
+script = ExtResource("1_iitp4")
+id = &"daily_kindness_quick"
+display_name = "Small Mercies"
+description = "Be kind to him 90 times."
+goal_key = &"kindness"
+target = 90
+reward_dollars = 350
+sort_order = 200

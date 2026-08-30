@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_v41u6"]
+
+[resource]
+script = ExtResource("1_v41u6")
+id = &"global_old_habits"
+display_name = "Old Habits"
+description = "The first swing of a new run is not a beginner's swing."
+tier = 6
+effect_key = &"damage_mult"
+effect_per_level = 1.03
+max_levels = 6
+cost_base = 50000
+cost_growth = 1.24
+requires_prestige = 1
+sort_order = 2

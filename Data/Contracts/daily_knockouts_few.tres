@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ContractData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/contract_data.gd" id="1_kjp02"]
+
+[resource]
+script = ExtResource("1_kjp02")
+id = &"daily_knockouts_few"
+display_name = "Best Of Three"
+description = "Knock him out 3 times."
+goal_key = &"knockout"
+target = 3
+reward_dollars = 300
+sort_order = 150

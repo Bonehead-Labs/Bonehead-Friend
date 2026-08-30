@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ContractData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/contract_data.gd" id="1_eyeuf"]
+
+[resource]
+script = ExtResource("1_eyeuf")
+id = &"weekly_knockouts"
+display_name = "Championship Season"
+description = "Knock him out 60 times."
+goal_key = &"knockout"
+target = 60
+period = 1
+reward_dollars = 2500
+sort_order = 450

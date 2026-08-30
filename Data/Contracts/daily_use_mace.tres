@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ContractData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/contract_data.gd" id="1_c48x6"]
+
+[resource]
+script = ExtResource("1_c48x6")
+id = &"daily_use_mace"
+display_name = "Blunt Instrument"
+description = "Land 120 hits with the mace."
+goal_key = &"use:mace"
+target = 120
+reward_dollars = 500
+sort_order = 370

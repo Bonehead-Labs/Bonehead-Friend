@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_r8db3"]
+
+[resource]
+script = ExtResource("1_r8db3")
+id = &"global_bone_deep"
+display_name = "Bone Deep"
+description = "Two lifetimes of practice, in a body that keeps being replaced."
+tier = 7
+effect_key = &"damage_mult"
+effect_per_level = 1.03
+max_levels = 6
+cost_base = 120000
+cost_growth = 1.26
+requires = Array[StringName]([&"global_old_habits"])
+requires_prestige = 2

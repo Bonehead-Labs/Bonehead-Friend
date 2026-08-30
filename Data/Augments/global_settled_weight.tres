@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_sddlb"]
+
+[resource]
+script = ExtResource("1_sddlb")
+id = &"global_settled_weight"
+display_name = "Settled Weight"
+description = "Everything sits a little more firmly than it did. Including him."
+tier = 7
+effect_key = &"mass_mult"
+effect_per_level = 1.03
+max_levels = 6
+cost_base = 100000
+cost_growth = 1.26
+requires = Array[StringName]([&"global_past_lives"])
+requires_prestige = 2
+sort_order = 2

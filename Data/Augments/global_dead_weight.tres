@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_fkddy"]
+
+[resource]
+script = ExtResource("1_fkddy")
+id = &"global_dead_weight"
+display_name = "Dead Weight"
+description = "Everything on the desk has quietly got heavier. He has noticed."
+tier = 4
+effect_key = &"mass_mult"
+effect_per_level = 1.025
+cost_base = 25000
+cost_growth = 1.2
+requires = Array[StringName]([&"global_second_nature"])
+sort_order = 2

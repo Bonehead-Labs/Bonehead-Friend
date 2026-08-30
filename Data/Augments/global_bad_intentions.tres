@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_msy6t"]
+
+[resource]
+script = ExtResource("1_msy6t")
+id = &"global_bad_intentions"
+display_name = "Bad Intentions"
+description = "You are not doing this to find out what happens. You know what happens."
+tier = 3
+effect_key = &"damage_mult"
+effect_per_level = 1.14
+max_levels = 1
+cost_base = 20000
+cost_growth = 1.0
+exclusive_group = &"stance"
+requires = Array[StringName]([&"global_technique", &"global_showmanship"])
