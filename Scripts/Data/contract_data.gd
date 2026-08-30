@@ -58,6 +58,10 @@ const KNOWN_KEYS: Array[StringName] = [
 	# own rather than damage or kindness, and a key nothing can watch is a mechanic nobody
 	# will ever be asked to use.
 	&"bounce",
+	# M3.6. Every other key is either a rate to grind or an item the player may not own, and
+	# the board draws without asking what is unlocked — so it was short of a job that cannot
+	# be dead on arrival. Picking him up is that job.
+	&"pick_up",
 ]
 const ITEM_KEY_PREFIX := "use:"
 

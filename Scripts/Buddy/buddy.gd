@@ -139,6 +139,10 @@ func _start_drag() -> void:
 	if not _in_knockout:
 		_reaction_until_msec = 0
 		_set_state(&"dragged")
+		# Tested on `dragging` rather than on reaching here: BaseDraggable bails without a
+		# handle, and a pick-up that did not happen must not tick a contract.
+		if dragging:
+			EventBus.contract_event.emit(&"pick_up", 1)
 
 func _end_drag() -> void:
 	var was_dragging := dragging
@@ -208,6 +212,9 @@ func _deal(info: HitInfo) -> void:
 func _attribute(src: Object) -> Array:
 	if src is WeaponBase:
 		var w := src as WeaponBase
+		# Both gates have already run by the time attribution does, so this is the honest
+		# count of swings that landed — the contract board's "land 120 hits with the mace".
+		w.register_use()
 		return [w.item_id, w.effective_damage_mult()]
 	if src is ThrowableBase:
 		var t := src as ThrowableBase

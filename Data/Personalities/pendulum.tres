@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="PersonalityData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/personality_data.gd" id="1_56185"]
+
+[sub_resource type="Curve" id="Curve_mit6x"]
+_limits = [0.0, 3.0, 0.0, 1.0]
+_data = [Vector2(0, 1.2), 0.0, 0.0, 0, 0, Vector2(0.25, 2.6), 0.0, 0.0, 0, 0, Vector2(0.5, 0.5), 0.0, 0.0, 0, 0, Vector2(0.75, 2.6), 0.0, 0.0, 0, 0, Vector2(1, 1.2), 0.0, 0.0, 0, 0]
+point_count = 5
+
+[resource]
+script = ExtResource("1_56185")
+id = &"pendulum"
+display_name = "Pendulum"
+description = "Only pays while he is moving between moods. Two peaks either side of neutral rather than at the extremes, so the optimal play is a fast oscillation that never quite arrives anywhere."
+mood_curve = SubResource("Curve_mit6x")
+sort_order = 100

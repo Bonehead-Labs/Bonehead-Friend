@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="PersonalityData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/personality_data.gd" id="1_lj36j"]
+
+[sub_resource type="Curve" id="Curve_4g0pf"]
+_limits = [0.0, 3.0, 0.0, 1.0]
+_data = [Vector2(0, 2.9), 0.0, 0.0, 0, 0, Vector2(0.25, 1), 0.0, 0.0, 0, 0, Vector2(0.5, 0.3), 0.0, 0.0, 0, 0, Vector2(0.75, 1), 0.0, 0.0, 0, 0, Vector2(1, 2.9), 0.0, 0.0, 0, 0]
+point_count = 5
+
+[resource]
+script = ExtResource("1_lj36j")
+id = &"tyrant"
+display_name = "Tyrant"
+description = "Rewards commitment and punishes hedging. Both ends pay well, the middle pays almost nothing, and the curve is steep enough that a half-hearted swing is worse than no swing at all."
+mood_curve = SubResource("Curve_4g0pf")
+sort_order = 110

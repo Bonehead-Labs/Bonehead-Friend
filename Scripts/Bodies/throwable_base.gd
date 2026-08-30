@@ -47,6 +47,12 @@ func prime_explosion() -> void:
 		explode()
 
 func explode() -> void:
+	# An explosive's "use" is the detonation, not the hit: one that went off in an empty
+	# corner of the desk was still spent, and the mine and the firework — which cannot be
+	# aimed at all — would otherwise count only their lucky days. Emitted here rather than
+	# from Bonehead's attribution step, which sees only the blasts that reached him.
+	if item_id != &"":
+		EventBus.contract_event.emit(&"use:%s" % item_id, 1)
 	if explosion_area:
 		for hit in ExplosionUtil.apply_blast(explosion_area, global_position, max_force):
 			var body: Node = hit["body"]
