@@ -76,21 +76,48 @@ func _unhandled_input(event: InputEvent) -> void:
 	# This replaces the trash bin, which was a 36x45 catch area under a 64px sprite,
 	# positioned above the height at which a dropped item comes to rest — so in practice
 	# nothing ever landed in it. Pointing at a thing and dismissing it needs no aim and no
-	# explanation, and the HUD's desk counter clears all of them at once.
-	if click.button_index == MOUSE_BUTTON_RIGHT and click.pressed and not right_click_is_mine() \
-			and drag_area and drag_area.is_hovered and is_in_group(GROUP_SPAWNED):
-		if dragging:
-			_end_drag()
-		EventBus.item_despawned.emit(self)
-		queue_free()
-		get_viewport().set_input_as_handled()
+	# explanation, and the HUD's clear-desk button does all of them at once.
+	if click.button_index != MOUSE_BUTTON_RIGHT or not click.pressed:
+		return
+	if not (drag_area and drag_area.is_hovered and is_in_group(GROUP_SPAWNED)):
+		return
+	if not click_would_bin(click.shift_pressed):
+		return
+	bin_myself()
+	get_viewport().set_input_as_handled()
 
-## Subclasses that already mean something by right-click say so here, and keep it.
+## Whether a right-click with or without Shift means "get rid of this".
 ##
-## A grenade primes with right-click. When the despawn gesture above was added it ran first,
+## **Shift is the override, and nothing may claim it.** Plain right-click is legitimately
+## taken by anything that primes — and by the time the roster held fourteen explosives, that
+## meant a sixth of everything spawnable could not be dismissed by the one gesture for
+## dismissing things. Spawn a mine you did not want and the only way out was a button most
+## players never found. So a subclass keeps right-click and gives up Shift.
+##
+## Split out from the input handler so the rule can be asserted without synthesising a click
+## with a modifier held, which no headless suite can do.
+func click_would_bin(shift_held: bool) -> bool:
+	if not is_in_group(GROUP_SPAWNED):
+		return false
+	return shift_held or not right_click_is_mine()
+
+## Take myself off the desk. Public and used by both routes, so that the clear-desk button
+## and the right-click gesture cannot drift apart — they were two copies of "emit and free",
+## and the next thing either of them needs to do on the way out (cancel a running fuse, let
+## an NPC drop its target) would have been written into only one of them.
+func bin_myself() -> void:
+	if dragging:
+		_end_drag()
+	EventBus.item_despawned.emit(self)
+	queue_free()
+
+## Subclasses that already mean something by right-click say so here, and keep it — but only
+## for the unmodified click. Shift+right-click is not theirs to take (see above).
+##
+## A grenade primes with right-click. When the despawn gesture was added it ran first,
 ## because it lives in the base class and the subclass calls `super` — so right-clicking a
 ## grenade deleted it instead of arming it, and explosives silently stopped working
-## altogether. A binned grenade is still reachable through the HUD's clear-desk button.
+## altogether.
 func right_click_is_mine() -> bool:
 	return false
 

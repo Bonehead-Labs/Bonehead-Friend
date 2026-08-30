@@ -54,10 +54,16 @@ func _on_prestige(_marrow: float) -> void:
 func clear_desk() -> int:
 	var cleared := 0
 	for node in _active.duplicate():
-		if is_instance_valid(node):
+		if not is_instance_valid(node):
+			continue
+		# Asked rather than freed behind its back. Duck-typed because `_active` holds whatever
+		# was spawned and not everything on the desk is a BaseDraggable.
+		if node.has_method("bin_myself"):
+			node.bin_myself()
+		else:
 			EventBus.item_despawned.emit(node)
 			node.queue_free()
-			cleared += 1
+		cleared += 1
 	_active.clear()
 	item_count_changed.emit(0, item_limit())
 	return cleared

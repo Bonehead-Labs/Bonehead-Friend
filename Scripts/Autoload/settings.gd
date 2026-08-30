@@ -63,6 +63,13 @@ var mute_when_unfocused: bool = true
 # --- meta ---
 var first_run: bool = true
 
+## Hints already shown, by key. A tip is worth showing the once and is nagging by the third
+## time, so each is fired exactly one time per machine and remembered here rather than in the
+## save — "have I read this" belongs to the person at the keyboard, not to the run, and it
+## must survive a Reincarnation that wipes everything else. Keeping it out of the save also
+## keeps it out of `SAVE_VERSION`, which is a migration and a committed fixture per hint.
+var hints_seen: PackedStringArray = PackedStringArray()
+
 func _ready() -> void:
 	load_settings()
 
@@ -101,6 +108,7 @@ func load_settings() -> void:
 	mute_when_unfocused = cfg.get_value("audio", "mute_when_unfocused", mute_when_unfocused)
 
 	first_run = cfg.get_value("meta", "first_run", first_run)
+	hints_seen = cfg.get_value("meta", "hints_seen", hints_seen)
 
 func save_settings() -> void:
 	var cfg := ConfigFile.new()
@@ -133,6 +141,7 @@ func save_settings() -> void:
 	cfg.set_value("audio", "mute_when_unfocused", mute_when_unfocused)
 
 	cfg.set_value("meta", "first_run", first_run)
+	cfg.set_value("meta", "hints_seen", hints_seen)
 
 	var err := cfg.save(CONFIG_PATH)
 	if err != OK:
@@ -169,4 +178,18 @@ func set_hud_pinned(value: bool) -> void:
 
 func set_tabs_pinned(value: bool) -> void:
 	tabs_pinned = value
+	save_settings()
+
+# --- hints -----------------------------------------------------------------
+
+func hint_seen(key: StringName) -> bool:
+	return hints_seen.has(String(key))
+
+## Remembers, and writes immediately. Immediately because the alternative is losing the flag
+## to a crash or a kill from the tray and showing the same tip again next launch, which is
+## the exact failure a one-off hint exists to avoid.
+func mark_hint_seen(key: StringName) -> void:
+	if hint_seen(key):
+		return
+	hints_seen.append(String(key))
 	save_settings()

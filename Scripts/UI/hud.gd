@@ -31,6 +31,10 @@ var _mood_label_colour := Color.TRANSPARENT
 var _footer: HBoxContainer
 var _item_count: Label
 var _clear_button: Button
+
+## Key for the one-off tip that teaches both removal gestures. Lives in `Settings`, so it is
+## remembered per machine and survives the Reincarnation that wipes the save.
+const HINT_REMOVAL := &"removal_gestures"
 var _grime_label: Label
 var _toast: PanelContainer
 var _toast_label: Label
@@ -169,11 +173,15 @@ func _build() -> void:
 	# Clearing the desk used to be a trash bin you dragged things into. It was a 36x45
 	# catch area under a 64px sprite, sitting above where dropped items come to rest, so
 	# in practice nothing ever landed in it. A button that says what it does is honest.
-	_clear_button = UIStyle.button("", UIStyle.MICRO)
+	#
+	# It then spent a milestone *not* saying what it does: a 26x22 ghost carrying a bare
+	# cross, sat beside a "3 / 12 items" readout. The first player to want the desk cleared
+	# reported that the game had no way to do it — while looking at the button for it. A
+	# cross is a close box everywhere else in this shell, which is the wrong promise.
+	_clear_button = UIStyle.button("Clear desk", UIStyle.MICRO)
 	_clear_button.theme_type_variation = &"GhostButton"
-	_clear_button.icon = UIStyle.glyph(&"close")
-	_clear_button.tooltip_text = "Clear the desk"
-	_clear_button.custom_minimum_size = Vector2(26, 22)
+	_clear_button.tooltip_text = "Remove everything you have spawned"
+	_clear_button.custom_minimum_size = Vector2(0, 22)
 	_clear_button.pressed.connect(_on_clear_pressed)
 	_footer.add_child(_clear_button)
 
@@ -243,9 +251,25 @@ func _meter_row(which: StringName) -> Control:
 
 func _set_item_count(count: int, limit: int) -> void:
 	_item_count.text = "%d / %d items" % [count, limit]
+	if count > 0:
+		_offer_the_removal_hint()
 	_footer.visible = count > 0 or _grime_label.text != ""
 	_clear_button.visible = count > 0
 	_item_count.visible = count > 0
+
+## Said once, the first time anything is on the desk, and never again.
+##
+## Both removal gestures existed for a whole milestone and neither was findable: right-click
+## is not written anywhere in the game, and the button that does the rest was a bare cross.
+## A tip fired at the moment the player first has something to remove is the cheapest fix
+## that does not put permanent chrome on somebody's desktop — which is the whole argument for
+## this HUD being as small as it is.
+func _offer_the_removal_hint() -> void:
+	if Settings.hint_seen(HINT_REMOVAL):
+		return
+	Settings.mark_hint_seen(HINT_REMOVAL)
+	show_toast("Right-click an item to bin it — hold Shift for anything with a fuse. "
+		+ "Clear desk removes the lot.", 10.0)
 
 func _on_clear_pressed() -> void:
 	if _spawner == null or _spawner.item_count() <= 0:
