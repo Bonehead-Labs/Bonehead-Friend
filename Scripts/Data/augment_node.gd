@@ -46,6 +46,16 @@ const GLOBAL := &"global"
 ## economy's spine (docs/decisions.md D2).
 @export var is_automation: bool = false
 
+## Currency per second this capstone generates, per level owned. **A rate, not a
+## multiplier** — which is why it is its own field rather than reusing `effect_per_level`.
+## D11's "every effect is a multiplier" rule is what keeps `AugmentMath` four lines long,
+## and an income rate is the one thing that genuinely is not one; folding it in would need
+## a branch on effect_key somewhere, and that somewhere is always a script.
+##
+## The currency is the owning item's: a weapon automates into Bones, a friendly item into
+## Hearts. Ignored unless `is_automation`.
+@export var automation_rate: float = 0.0
+
 @export var requires: Array[StringName] = []
 @export var requires_mastery: int = 0
 @export var requires_prestige: int = 0
@@ -64,4 +74,8 @@ func validation_error() -> String:
 		return "augment '%s' has max_levels %d" % [id, max_levels]
 	if cost_growth <= 0.0:
 		return "augment '%s' has cost_growth %f" % [id, cost_growth]
+	# An automation capstone that generates nothing is a Hearts sink with no output, and it
+	# would look identical to a working one in the UI.
+	if is_automation and automation_rate <= 0.0:
+		return "automation '%s' has no automation_rate" % id
 	return ""

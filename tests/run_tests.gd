@@ -18,6 +18,8 @@ const Balance := preload("res://Scripts/Data/balance_data.gd")
 const Item := preload("res://Scripts/Data/item_data.gd")
 const Augment := preload("res://Scripts/Data/augment_node.gd")
 const Blast := preload("res://Scripts/Combat/explosion_util.gd")
+const Mood := preload("res://Scripts/Buddy/mood_math.gd")
+const Mastery := preload("res://Scripts/Progression/mastery_math.gd")
 # Referenced by global class name rather than a preload alias: an enum reached through a
 # preloaded script is treated as a DIFFERENT type from the same enum on the class itself,
 # so `Alias.Corner.TOP_LEFT` will not satisfy a `Corner` parameter.
@@ -59,6 +61,12 @@ func _initialize() -> void:
 
 	_suite("mastery")
 	_test_mastery_curve_is_superlinear()
+	_test_rank_matches_the_threshold_it_inverts()
+	_test_rank_is_bounded_and_safe()
+	_test_rank_progress_spans_a_rank()
+	_test_pool_checkpoints_compound()
+	_test_pool_flat_bonus()
+	_test_item_rank_bonus_is_a_step()
 
 	_suite("damage and payout")
 	_test_impulse_below_threshold_is_free()
@@ -87,6 +95,23 @@ func _initialize() -> void:
 
 	_suite("save round trip")
 	_test_stringname_keys_survive_json()
+	_test_v1_fixture_migrates()
+	_test_v2_fixture_migrates()
+
+	_suite("mood")
+	_test_mood_decays_toward_zero_without_overshooting()
+	_test_mood_is_railed()
+	_test_pushing_deeper_gets_harder()
+	_test_swinging_the_other_way_is_full_strength()
+	_test_kindness_mood_is_root_scaled()
+
+	_suite("grime")
+	_test_grime_penalty_is_bounded()
+	_test_grime_only_ever_costs()
+
+	_suite("play area ladder")
+	_test_size_ladder_steps_and_clamps()
+	_test_size_ladder_snaps_from_an_off_ladder_size()
 
 	_suite("window layout")
 	_test_fullscreen_uses_usable_rect()
@@ -101,6 +126,136 @@ func _initialize() -> void:
 	print("==========================")
 	print("passed: %d   failed: %d" % [_passed, _failed])
 	quit(1 if _failed > 0 else 0)
+
+# --- mastery ---------------------------------------------------------------
+
+## rank_for_xp is the solved inverse of mastery_xp_for_rank — it has to be, because it runs
+## inside the payout pipeline and a loop of pow() calls per payout is not affordable. Solved
+## inverses are also exactly where the floating-point slack bites: at a threshold the player
+## has *just* reached, which is the moment they are watching.
+func _test_rank_matches_the_threshold_it_inverts() -> void:
+	var base := 100.0
+	for rank in [1, 2, 5, 10, 25, 50]:
+		var exact: float = Math.mastery_xp_for_rank(base, rank)
+		_check("exactly enough XP is rank %d" % rank, Mastery.rank_for_xp(base, exact) == rank)
+		_check("a hair under is still rank %d" % (rank - 1),
+			Mastery.rank_for_xp(base, exact - 0.001) == rank - 1)
+
+func _test_rank_is_bounded_and_safe() -> void:
+	_check("no XP is rank 0", Mastery.rank_for_xp(100.0, 0.0) == 0)
+	_check("negative XP is rank 0", Mastery.rank_for_xp(100.0, -50.0) == 0)
+	_check("a zero base does not divide by zero", Mastery.rank_for_xp(0.0, 500.0) == 0)
+	# A corrupted save must not become an unbounded loop or an absurd multiplier.
+	_check("absurd XP is capped", Mastery.rank_for_xp(100.0, 1e30) == Mastery.MAX_RANK)
+
+func _test_rank_progress_spans_a_rank() -> void:
+	var base := 100.0
+	var at_rank: float = Math.mastery_xp_for_rank(base, 4)
+	var next_rank: float = Math.mastery_xp_for_rank(base, 5)
+	_check("progress is 0 at the rank floor", is_zero_approx(Mastery.rank_progress(base, at_rank)))
+	_check("progress is near 1 just below the next",
+		Mastery.rank_progress(base, next_rank - 0.001) > 0.99)
+	_check("progress is in range halfway",
+		Mastery.rank_progress(base, (at_rank + next_rank) * 0.5) > 0.4)
+
+func _test_pool_checkpoints_compound() -> void:
+	var thresholds: Array = [10, 25, 50]
+	_check("no checkpoints below the first", Mastery.checkpoints_reached(9, thresholds) == 0)
+	_check("exactly on a threshold counts", Mastery.checkpoints_reached(10, thresholds) == 1)
+	_check("all three at the top", Mastery.checkpoints_reached(999, thresholds) == 3)
+	_check("bonus is 1.0 with none", is_equal_approx(Mastery.pool_multiplier(0, thresholds, 1.02), 1.0))
+	# Compounding, not summing — D11's one rule for every multiplier in the game.
+	_check("three checkpoints compound", is_equal_approx(
+		Mastery.pool_multiplier(50, thresholds, 1.02), pow(1.02, 3)))
+	# The same rule has to work for a multiplier that goes down.
+	_check("a reduction step compounds the same way", is_equal_approx(
+		Mastery.pool_multiplier(50, thresholds, 0.95), pow(0.95, 3)))
+
+func _test_pool_flat_bonus() -> void:
+	var thresholds: Array = [10, 25, 50]
+	_check("no slots with no checkpoints", Mastery.pool_flat_bonus(0, thresholds, 1) == 0)
+	_check("one slot per checkpoint", Mastery.pool_flat_bonus(30, thresholds, 1) == 2)
+	_check("scaled by the step", Mastery.pool_flat_bonus(999, thresholds, 2) == 6)
+
+func _test_item_rank_bonus_is_a_step() -> void:
+	_check("below the bonus rank is unmultiplied",
+		is_equal_approx(Mastery.item_rank_multiplier(49, 50, 1.5), 1.0))
+	_check("at the bonus rank it applies",
+		is_equal_approx(Mastery.item_rank_multiplier(50, 50, 1.5), 1.5))
+	_check("and does not keep growing above it",
+		is_equal_approx(Mastery.item_rank_multiplier(90, 50, 1.5), 1.5))
+
+# --- mood ------------------------------------------------------------------
+
+func _test_mood_decays_toward_zero_without_overshooting() -> void:
+	_check("despair decays upward", Mood.decay(-40.0, 2.0, 1.0) == -38.0)
+	_check("bliss decays downward", Mood.decay(40.0, 2.0, 1.0) == 38.0)
+	# Overshoot would flip a despairing buddy into a happy one on a long frame, handing the
+	# player a different multiplier than the one they were maintaining.
+	_check("a long frame lands on zero, not past it", Mood.decay(1.0, 2.0, 1.0) == 0.0)
+	_check("and from the other side too", Mood.decay(-1.0, 2.0, 1.0) == 0.0)
+	_check("zero stays zero", Mood.decay(0.0, 2.0, 1.0) == 0.0)
+
+func _test_mood_is_railed() -> void:
+	_check("cannot exceed bliss", Mood.nudge(99.0, 1000.0) <= Mood.MAX_MOOD)
+	_check("cannot exceed despair", Mood.nudge(-99.0, -1000.0) >= Mood.MIN_MOOD)
+	_check("clamp is symmetric", Mood.clamp_mood(500.0) == -Mood.clamp_mood(-500.0))
+
+func _test_pushing_deeper_gets_harder() -> void:
+	var from_neutral := Mood.nudge(0.0, 10.0)
+	var from_high := Mood.nudge(80.0, 10.0) - 80.0
+	_check("a nudge from neutral lands in full", is_equal_approx(from_neutral, 10.0))
+	_check("the same nudge near the rail lands short", from_high < from_neutral)
+	_check("but still moves him", from_high > 0.0)
+
+func _test_swinging_the_other_way_is_full_strength() -> void:
+	# The seesaw only works if crossing the middle is fast: the U-curve pays at both ends
+	# and the whole rhythm is getting from one to the other.
+	var recovery := Mood.nudge(-80.0, 10.0) - -80.0
+	_check("a nudge back toward the other rail is full strength", is_equal_approx(recovery, 10.0))
+
+func _test_kindness_mood_is_root_scaled() -> void:
+	var pet := Mood.kindness_mood(1.0, 4.0)
+	var pizza := Mood.kindness_mood(25.0, 4.0)
+	_check("a pet is worth its full rate", is_equal_approx(pet, 4.0))
+	_check("a 25x payout is worth 5 pets, not 25", is_equal_approx(pizza, pet * 5.0))
+	_check("nothing is worth nothing", Mood.kindness_mood(0.0, 4.0) == 0.0)
+
+# --- grime -----------------------------------------------------------------
+
+func _test_grime_penalty_is_bounded() -> void:
+	_check("clean is unpenalised", Mood.grime_penalty(0.0, 0.35) == 1.0)
+	_check("filthy pays the full penalty", is_equal_approx(Mood.grime_penalty(1.0, 0.35), 0.65))
+	_check("half grime is half the penalty", is_equal_approx(Mood.grime_penalty(0.5, 0.35), 0.825))
+
+## No fail state (docs/game-design.md pillar 1): grime is a cost, never a wall. It must not
+## be able to zero out damage income however filthy he gets or however the knob is tuned.
+func _test_grime_only_ever_costs() -> void:
+	_check("a penalty over 1.0 cannot pay negative", Mood.grime_penalty(1.0, 5.0) >= 0.0)
+	_check("out-of-range grime is clamped", Mood.grime_penalty(9.0, 0.35) == Mood.grime_penalty(1.0, 0.35))
+	_check("income is never zeroed at the documented tuning", Mood.grime_penalty(1.0, 0.35) > 0.0)
+
+# --- play area ladder ------------------------------------------------------
+
+func _test_size_ladder_steps_and_clamps() -> void:
+	var ladder: Array[Vector2i] = WindowLayout.SIZE_LADDER
+	_check("stepping up moves one rung",
+		WindowLayout.step_size(ladder[2], 1) == ladder[3])
+	_check("stepping down moves one rung",
+		WindowLayout.step_size(ladder[2], -1) == ladder[1])
+	_check("the smallest size cannot step down",
+		WindowLayout.step_size(ladder[0], -1) == ladder[0])
+	_check("the largest size cannot step up",
+		WindowLayout.step_size(ladder[ladder.size() - 1], 1) == ladder[ladder.size() - 1])
+
+## A saved size need not be on the ladder: it may come from an older build, or from a
+## monitor that clamped it. Stepping from one must still land somewhere sensible.
+func _test_size_ladder_snaps_from_an_off_ladder_size() -> void:
+	var ladder: Array[Vector2i] = WindowLayout.SIZE_LADDER
+	_check("an odd size steps from its nearest rung",
+		WindowLayout.step_size(Vector2i(963, 641), 1) == ladder[4])
+	_check("a huge size clamps to the top rung",
+		WindowLayout.step_size(Vector2i(9999, 9999), 1) == ladder[ladder.size() - 1])
 
 # --- save schema -----------------------------------------------------------
 
@@ -441,6 +596,67 @@ func _test_revalidation_detects_stale_rect() -> void:
 	_check("empty rect needs revalidation", WindowLayout.needs_revalidation(Rect2i(), usable))
 	_check("off-screen rect needs revalidation", WindowLayout.needs_revalidation(Rect2i(3000, 0, 480, 360), usable))
 	_check("contained rect is fine", not WindowLayout.needs_revalidation(Rect2i(10, 10, 480, 360), usable))
+
+## The real thing the migration chain exists for: a save file written by the shipped M2
+## build, loaded by this one. A fixture rather than a synthesised dictionary, because what
+## breaks a migration is the shape of a file someone actually has.
+func _test_v1_fixture_migrates() -> void:
+	var f := FileAccess.open("res://tests/fixtures/save_v1.json", FileAccess.READ)
+	if f == null:
+		_check("v1 fixture is present", false)
+		return
+	var parsed = JSON.parse_string(f.get_as_text())
+	f.close()
+	if typeof(parsed) != TYPE_DICTIONARY:
+		_check("v1 fixture is valid JSON", false)
+		return
+
+	var old_save: Dictionary = parsed
+	var out: Dictionary = Schema.migrate(old_save)
+	_check("fixture arrives at the current version", int(out["version"]) == Schema.SAVE_VERSION)
+	_check("the buddy block was added", out.has("buddy"))
+	_check("a fresh buddy starts neutral", float(out["buddy"]["mood"]) == 0.0)
+	_check("and clean", float(out["buddy"]["grime"]) == 0.0)
+
+	# Nothing the player earned may be lost on the way through.
+	_check("bones survived", is_equal_approx(float(out["currencies"]["bones"]), 1875.5))
+	_check("lifetime survived", is_equal_approx(float(out["lifetime"]["bones"]), 4310.25))
+	_check("unlocks survived", (out["unlocks"] as Array).size() == 5)
+	_check("augment levels survived", int(out["augments"]["bat_damage"]) == 3)
+	_check("mastery xp survived", is_equal_approx(float(out["mastery_xp"]["baseball_bat"]), 640.0))
+	_check("knockout count survived", int(out["stats"]["knockouts"]) == 11)
+	_check("migrating did not mutate the fixture", int(old_save["version"]) == 1)
+
+## The v2 fixture is a save from the middle of M3 — mood and grime recorded, but no
+## mastery pool, no automation and no contract board. It has to arrive at v3 with the
+## automation defaulting to *running*, which is the one thing the migration could plausibly
+## get backwards.
+func _test_v2_fixture_migrates() -> void:
+	var f := FileAccess.open("res://tests/fixtures/save_v2.json", FileAccess.READ)
+	if f == null:
+		_check("v2 fixture is present", false)
+		return
+	var parsed = JSON.parse_string(f.get_as_text())
+	f.close()
+	if typeof(parsed) != TYPE_DICTIONARY:
+		_check("v2 fixture is valid JSON", false)
+		return
+
+	var out: Dictionary = Schema.migrate(parsed)
+	_check("v2 fixture reaches the current version", int(out["version"]) == Schema.SAVE_VERSION)
+	_check("automation_off exists", out.has("automation_off"))
+	# Absence means running. The inverse spelling would arrive with every future capstone
+	# switched off and no way for the player to know why.
+	_check("and is empty, so nothing arrives disabled", (out["automation_off"] as Array).is_empty())
+	_check("the contract board gained a claimed list", (out["contracts"] as Dictionary).has("claimed"))
+	_check("and is marked for a fresh roll", int(out["contracts"]["refreshed_at"]) == 0)
+
+	# The M3 state a v2 save already had must survive untouched.
+	_check("his mood survived", is_equal_approx(float(out["buddy"]["mood"]), -37.5))
+	_check("his grime survived", is_equal_approx(float(out["buddy"]["grime"]), 0.42))
+	_check("mastery xp survived", is_equal_approx(float(out["mastery_xp"]["baseball_bat"]), 5200.0))
+	_check("hearts survived", is_equal_approx(float(out["currencies"]["hearts"]), 312.5))
+	_check("nine unlocks survived", (out["unlocks"] as Array).size() == 9)
 
 # --- harness ---------------------------------------------------------------
 

@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="ItemData" format=3]
 
-[ext_resource type="Texture2D" path="res://Assets/base-Mace.png" id="1_frwac"]
-[ext_resource type="PackedScene" path="res://Scenes/Bodies/_Mace.tscn" id="2_j8pe7"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/mace.png" id="1_frwac"]
+[ext_resource type="PackedScene" path="res://Scenes/Bodies/mace.tscn" id="2_frwac"]
 [ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_ntyvk"]
 
 [resource]
@@ -10,6 +10,6 @@ id = &"mace"
 display_name = "Mace"
 description = "Heavy, slow and extremely satisfying."
 cost = 900
-scene = ExtResource("2_j8pe7")
+scene = ExtResource("2_frwac")
 icon = ExtResource("1_frwac")
 sort_order = 10

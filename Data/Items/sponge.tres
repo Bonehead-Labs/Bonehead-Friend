@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="PackedScene" path="res://Scenes/Friendly/sponge.tscn" id="1_d33p2"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/sponge.png" id="1_momap"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="2_momap"]
+
+[resource]
+script = ExtResource("2_momap")
+id = &"sponge"
+display_name = "Sponge"
+description = "Scrubs the soot off. Grime quietly suppresses your Bones income."
+category = 3
+cost = 40
+currency = 1
+scene = ExtResource("1_d33p2")
+icon = ExtResource("1_momap")
+sort_order = 10

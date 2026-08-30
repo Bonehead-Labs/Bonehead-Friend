@@ -26,13 +26,19 @@ var play_area_corner: int = 4
 ## sprite is two thirds of its height. Sized so the buddy and a couple of toys have room
 ## without the window dominating the desktop; F9/F10 cycle it at runtime until the
 ## settings UI exists (M4).
-var play_area_size: Vector2i = Vector2i(960, 640)
+var play_area_size: Vector2i = Vector2i(1180, 760)
 ## Last known good rect, revalidated on boot in case the monitor changed while closed.
 var play_area_rect: Rect2i = Rect2i()
 
 # --- display ---
 var monitor_id: int = 0
 var cover_taskbar: bool = false
+
+## Whether each half of the shell is pinned open. Hiding until hover is the *behaviour*
+## (`HoverDrawer`), not a setting — but pinning it open is a decision the player made with a
+## click, and a decision like that survives a restart.
+var hud_pinned: bool = false
+var tabs_pinned: bool = false
 
 # --- performance ---
 var low_power_mode: bool = false
@@ -42,6 +48,8 @@ var fps_low_power: int = 20
 var hibernate_when_occluded: bool = true
 
 # --- presentation ---
+## 0 = auto (from the window height), 1-3 = pinned. Whole numbers only; see UIScale.
+var ui_scale: int = 0
 var focus_intensity: Intensity = Intensity.NORMAL
 var streamer_mode: bool = false
 var streamer_bg_color: Color = Color(0, 1, 0)  ## Chroma key green
@@ -73,6 +81,9 @@ func load_settings() -> void:
 	monitor_id = cfg.get_value("display", "monitor_id", monitor_id)
 	cover_taskbar = cfg.get_value("display", "cover_taskbar", cover_taskbar)
 
+	hud_pinned = cfg.get_value("presentation", "hud_pinned", hud_pinned)
+	tabs_pinned = cfg.get_value("presentation", "tabs_pinned", tabs_pinned)
+
 	low_power_mode = cfg.get_value("performance", "low_power_mode", low_power_mode)
 	fps_idle = cfg.get_value("performance", "fps_idle", fps_idle)
 	fps_active = cfg.get_value("performance", "fps_active", fps_active)
@@ -80,6 +91,7 @@ func load_settings() -> void:
 	hibernate_when_occluded = cfg.get_value("performance", "hibernate_when_occluded", hibernate_when_occluded)
 
 	focus_intensity = cfg.get_value("presentation", "focus_intensity", focus_intensity)
+	ui_scale = int(cfg.get_value("presentation", "ui_scale", ui_scale))
 	streamer_mode = cfg.get_value("presentation", "streamer_mode", streamer_mode)
 	streamer_bg_color = cfg.get_value("presentation", "streamer_bg_color", streamer_bg_color)
 
@@ -101,6 +113,9 @@ func save_settings() -> void:
 	cfg.set_value("display", "monitor_id", monitor_id)
 	cfg.set_value("display", "cover_taskbar", cover_taskbar)
 
+	cfg.set_value("presentation", "hud_pinned", hud_pinned)
+	cfg.set_value("presentation", "tabs_pinned", tabs_pinned)
+
 	cfg.set_value("performance", "low_power_mode", low_power_mode)
 	cfg.set_value("performance", "fps_idle", fps_idle)
 	cfg.set_value("performance", "fps_active", fps_active)
@@ -108,6 +123,7 @@ func save_settings() -> void:
 	cfg.set_value("performance", "hibernate_when_occluded", hibernate_when_occluded)
 
 	cfg.set_value("presentation", "focus_intensity", focus_intensity)
+	cfg.set_value("presentation", "ui_scale", ui_scale)
 	cfg.set_value("presentation", "streamer_mode", streamer_mode)
 	cfg.set_value("presentation", "streamer_bg_color", streamer_bg_color)
 
@@ -121,6 +137,14 @@ func save_settings() -> void:
 	var err := cfg.save(CONFIG_PATH)
 	if err != OK:
 		push_error("Settings: failed to write %s (error %d)" % [CONFIG_PATH, err])
+
+func set_ui_scale(value: int) -> void:
+	value = clampi(value, 0, 3)
+	if ui_scale == value:
+		return
+	ui_scale = value
+	save_settings()
+	EventBus.ui_scale_changed.emit(value)
 
 func set_focus_intensity(level: Intensity) -> void:
 	if focus_intensity == level:
@@ -138,3 +162,11 @@ func intensity_scale() -> float:
 		Intensity.NORMAL: return 1.0
 		Intensity.CHAOS: return 1.6
 	return 1.0
+
+func set_hud_pinned(value: bool) -> void:
+	hud_pinned = value
+	save_settings()
+
+func set_tabs_pinned(value: bool) -> void:
+	tabs_pinned = value
+	save_settings()

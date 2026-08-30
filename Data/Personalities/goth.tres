@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="PersonalityData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/personality_data.gd" id="1_nc3al"]
+
+[sub_resource type="Curve" id="Curve_nc3al"]
+_limits = [0.0, 3.0, 0.0, 1.0]
+_data = [Vector2(0, 1.6), 0.0, 0.0, 0, 0, Vector2(0.25, 2.2), 0.0, 0.0, 0, 0, Vector2(0.5, 1), 0.0, 0.0, 0, 0, Vector2(0.75, 0.8), 0.0, 0.0, 0, 0, Vector2(1, 1.4), 0.0, 0.0, 0, 0]
+point_count = 5
+
+[resource]
+script = ExtResource("1_nc3al")
+id = &"goth"
+display_name = "Goth"
+description = "Happiest when slightly miserable. The peak sits off-centre, which breaks every habit the other four teach."
+mood_curve = SubResource("Curve_nc3al")
+sort_order = 40

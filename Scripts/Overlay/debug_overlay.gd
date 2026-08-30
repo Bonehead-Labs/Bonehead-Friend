@@ -8,17 +8,6 @@ extends CanvasLayer
 
 const HOTKEY_HELP := "F3 stats · F4 window mode · F5 corner · F6 monitor · F7 low power · F8 overlay · F9/F10 size"
 
-## Play-area sizes F9/F10 step through. There is no settings UI until M4, and the play
-## area is unusable at the wrong size, so this is the only way to find the right one.
-const SIZE_LADDER: Array[Vector2i] = [
-	Vector2i(480, 360),
-	Vector2i(640, 480),
-	Vector2i(800, 560),
-	Vector2i(960, 640),
-	Vector2i(1200, 800),
-	Vector2i(1440, 960),
-]
-
 var _label: Label
 var _panel: PanelContainer
 var _visible := false
@@ -103,18 +92,7 @@ func _unhandled_key_input(event: InputEvent) -> void:
 			return
 	get_viewport().set_input_as_handled()
 
-## Steps to the next larger or smaller play area. Switches to play-area mode as it goes,
-## since resizing is meaningless while the window is a fullscreen overlay.
+## Steps to the next larger or smaller play area. The ladder itself lives in WindowLayout
+## now, because the settings panel offers the same steps and the two must not drift apart.
 func _step_play_size(direction: int) -> void:
-	var nearest := 0
-	var best := INF
-	for i in SIZE_LADDER.size():
-		var distance := absf(float(SIZE_LADDER[i].x - Settings.play_area_size.x))
-		if distance < best:
-			best = distance
-			nearest = i
-	var index := clampi(nearest + direction, 0, SIZE_LADDER.size() - 1)
-	Settings.window_mode = 1
-	# The saved rect belongs to the old size; drop it so the corner snap recomputes.
-	Settings.play_area_rect = Rect2i()
-	OverlayManager.set_play_area_size(SIZE_LADDER[index])
+	OverlayManager.step_play_area_size(direction)

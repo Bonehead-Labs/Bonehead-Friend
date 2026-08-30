@@ -30,6 +30,13 @@ Coverage — these are pure functions with no excuse for being wrong:
 - Mastery XP thresholds and rank boundaries; pool checkpoints.
 - Prestige: `cbrt(lifetime / 1e12)`, gain-on-reset never negative, multiplier composition.
 - Payout pipeline multiplier order and mood curve sampling at the extremes and at zero.
+- Mood: decay toward zero without overshooting, both rails, the soft-rail asymmetry (deeper is
+  harder, crossing back is full strength), and root-scaled kindness.
+- Mastery: that `rank_for_xp` really is the inverse of `xp_to_rank` at every unlock threshold
+  and one thousandth below it, that it is bounded against a corrupted save, and that the pool's
+  checkpoints compound in both directions.
+- Grime: penalty bounds, and that it can never zero out Bones income however it is tuned —
+  there is no fail state, so grime must always be a cost and never a wall.
 - Offline earnings: cap clamping, **negative elapsed clamped to zero** (clock changes and
   cloud-sync skew), efficiency factor.
 - Save round-trip: every autoload's `to_save()` → `from_save()` preserves state exactly.
@@ -39,6 +46,14 @@ Coverage — these are pure functions with no excuse for being wrong:
 
 The boot smoke test exists to catch broken `@export` references and missing scene paths after
 scene edits — the failure mode that produced the original export bug.
+
+`loop_check` also asserts the **art wiring** against the real imported resources: every buddy
+state has an animation, every expression the game can ask for exists, no one-shot loops, and
+each animation's face-offset track is exactly as long as its frame count. That last one is
+the important one — appending a frame in Aseprite silently stretches any tag that ends at the
+last frame, which made `idle` import as 74 frames instead of 8 with no symptom other than the
+buddy playing the whole file for every animation (`art-pipeline.md`). A length check against
+the offsets those frames were measured from catches it on the next run.
 
 ### The loop check
 
@@ -80,11 +95,36 @@ So this one clicks. It loads the real `main.tscn`, pushes synthetic mouse events
 on-screen rect of each widget, and asserts what came back:
 
 - No control spans the window on any layer (the shape of the original bug).
-- Each dock button is the top control at its own centre, opens its panel, and toggles it shut.
-- The panel's tabs and close button work.
+- Each tab is the top control at its own centre, opens its page, and toggles it shut.
 - **Every visible button on every page** is the control the cursor lands on. A sweep rather
   than a list, so the same class of bug is caught wherever it reappears.
 - Clicking Spawn puts an item in the world.
+
+Five suites were added after a review pass found the shell would not hold new content. Each
+exists because the guard that *should* have caught a bug looked at the wrong thing:
+
+- **`readable`** walks the **live tree** of every page and, for every visible word, resolves the
+  font colour actually in effect and the fill of the box actually behind it. Grading `UIStyle`'s
+  constants missed a colour overridden on one node; grading the `Theme` missed text that was
+  simply absent. It also asserts each page rendered *something* — a blank page passes every
+  contrast check ever written, and the Rebirth page shipped blank twice.
+- **`geometry`** measures every picture against its **declared** box, not its realised one: a
+  `Button` grows to fit an oversized icon, so measuring the result passes the exact bug. It also
+  asserts every row in a shop category is one height, every card in a tier shares a baseline,
+  and — separately — that nothing had to be *shrunk* to fit. Fitting is not enough; art has to
+  fit at its own size, and a whole-number step down is a halving.
+- **`closed pages`** asserts no page is left flagged visible under a shut card, and that twenty
+  currency events with the card closed cost zero refreshes.
+- **`hide and pin`** drives both auto-hiding halves of the shell by pushed motion: each parks
+  off screen, leaves a mark that stays on screen, comes back on hover, leaves again, pins on a
+  click and unpins on the next.
+- **`purse`** asserts the formatter's boundaries and then checks the live card at nine digits —
+  every figure's rendered text fits its line, and the card does not change width to hold them.
+
+`tools/window_check.tscn` is the fourth run and needs a **real** `DisplayServer`. Its
+`the shell fits the window` suite sweeps six play-area rungs against three UI scales and asserts
+the panel column and the HUD are inside the window — the combination of the smallest play area
+and a pinned 2x used to put the card, and the tabs that would have fixed it, off screen.
 - The buddy's grab area still sees the cursor and a press still starts a drag — the blocker
   killed physics picking too, because the viewport marks a click handled the moment any control
   claims it, and `BaseDraggable` runs on *unhandled* input.
@@ -107,15 +147,33 @@ itself is not — a real run was used to confirm the fix with `OverlayManager` a
 
 ```bash
 "$GODOT" --path "$PROJ" res://tools/audit_shots.tscn   # NOT headless
+"$GODOT" --path "$PROJ" res://tools/audit_shots.tscn -- --screen 1 --overlay
 ```
 
-Drives the game through boot, shop, tree, play and the Esc menu, and writes a PNG of each to
-`user://audit/`. Deliberately not headless: headless does not render and its viewport is 64x64.
+Drives the game through boot, shop, tree, settings, play, a filthy-and-miserable HUD, a
+blissful one, the knockout pile and the Esc menu, and writes a PNG of each to `user://audit/`.
+Deliberately not headless: headless does not render and its viewport is 64x64.
 
 It shoots at `Settings.play_area_size`, not a convenient size — a HUD that only fits in a
 1280-wide capture is a HUD that does not fit. Each shot is composited onto a flat colour first,
 because the window is transparent and the UI would otherwise be judged against whatever the
 image viewer paints behind it. It runs against its own save slot and deletes it afterwards.
+
+**Run it on at least two differently-shaped monitors.** `--screen N` picks the display and
+`--overlay` runs the real fullscreen overlay instead of a play-area window; shots are suffixed
+with the screen so two runs do not overwrite each other. The HUD and the panels anchor to
+window corners that are far apart on a 3440x1440 ultrawide and much closer on a 2560x1440 16:9
+panel, and a size that looks deliberate in one looks broken in the other. Three layout bugs in
+M3 were found by exactly that comparison and by nothing else:
+
+- the panel had a fixed 420 px scroll height, which overflowed a 960x640 play area and left
+  900 px of empty screen under it on the overlay;
+- the grime warning appeared at a penalty that rounds to "x1.00" on screen;
+- the friendly shop tiles reserved no icon column, so the shop read as two misaligned lists.
+
+Both new readouts are shot at values that actually exercise them, because **both are invisible
+at their defaults** — a clean buddy shows no grime line and a neutral mood is a half-full grey
+bar. That is precisely how the knockout meter's invisible track survived a whole milestone.
 
 Overlay *behaviour* still has to be checked against a real window on a real desktop — this
 catches layout and legibility, not always-on-top or click handling.
@@ -196,6 +254,10 @@ corresponds to a real complaint filed against a shipped game in this genre.
 | Quit from tray while a panel is open | Saves, exits cleanly |
 | Esc menu | Toggles when focused; pauses only the world |
 | Streamer mode in OBS ("Capture specific window") | Captured; chroma-key background works |
+| Both halves of the shell hidden (the default) | Only two small marks on screen; neither blocks a click on the desktop behind it |
+| Hover a mark, then click it | Panel slides out; mark becomes a red pin; panel stays out with the cursor away |
+| Pinned state after a restart | Still pinned — it is a decision, not a session mode |
+| Marks over a *white* desktop and a *black* one | Visible in both (they are white with a dark halo) |
 
 ### Performance
 
@@ -217,7 +279,13 @@ known issue.
 
 - **M2:** a non-developer plays five minutes with no instruction. Do they hit him, earn, and buy
   something without being told? If not, the first-run flow is wrong.
-- **M3:** a 30-minute session with no dead ends. Log payouts and purchases to CSV in debug
-  builds and check that nothing is ever more than ~5 minutes from the next affordable thing.
+- **M3:** a 30-minute session with no dead ends. `TuningLog` writes the CSV automatically in
+  debug builds (`user://logs/session_*.csv`) — sort by `t_sec`, find the longest stretch where
+  nothing was affordable, and that gap is the tier to fix. Four questions the automated tests
+  cannot answer:
+  1. does the player work out on their own that the mood meter pays *at both ends*?
+  2. do they repeat the knockout on purpose?
+  3. do they find the Hearts half without being told, or do they only ever hit him?
+  4. when they buy their first automation capstone, do they understand what they bought?
 - **M4:** two machines, one of them 4K, full matrix, plus someone who has never seen the game
   finding the Settings panel unaided.

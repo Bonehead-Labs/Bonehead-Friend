@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="PackedScene" path="res://Scenes/Props/beach_ball.tscn" id="1_j5xtt"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/beach_ball.png" id="1_jmyer"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="2_jmyer"]
+
+[resource]
+script = ExtResource("2_jmyer")
+id = &"beach_ball"
+display_name = "Beach Ball"
+description = "Almost weightless and absurdly bouncy. He loves it and it hurts nobody."
+category = 4
+cost = 100
+scene = ExtResource("1_j5xtt")
+icon = ExtResource("1_jmyer")

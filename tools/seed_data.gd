@@ -67,21 +67,21 @@ func _seed_items() -> void:
 	# Prices are the catalog's (docs/game-design.md). They are reachable in the slice
 	# because the knockout bonus roughly doubles a round; retune there, not here.
 	_item(&"baseball_bat", "Baseball Bat", "The tutorial weapon. Grab it, swing it, watch him clatter.",
-		ItemDataScript.CATEGORY_WEAPON, 0, "res://Scenes/Bodies/BaseballBat.tscn", "res://Assets/baseball bat.png", 0)
+		ItemDataScript.CATEGORY_WEAPON, 0, "res://Scenes/Bodies/baseball_bat.tscn", "res://Assets/sprites/icons/baseball_bat.png", 0)
 	_item(&"mace", "Mace", "Heavy, slow and extremely satisfying.",
-		ItemDataScript.CATEGORY_WEAPON, 900, "res://Scenes/Bodies/_Mace.tscn", "res://Assets/base-Mace.png", 10)
+		ItemDataScript.CATEGORY_WEAPON, 900, "res://Scenes/Bodies/mace.tscn", "res://Assets/sprites/icons/mace.png", 10)
 
 	_item(&"grenade", "Grenade", "Right-click while holding it to pull the pin.",
-		ItemDataScript.CATEGORY_THROWABLE, 0, "res://Scenes/Bodies/_Grenade.tscn", "res://Assets/base-handGrenade.png", 0)
+		ItemDataScript.CATEGORY_THROWABLE, 0, "res://Scenes/Bodies/grenade.tscn", "res://Assets/sprites/icons/grenade.png", 0)
 	_item(&"dynamite", "Dynamite", "A bigger radius and a much bigger shove.",
-		ItemDataScript.CATEGORY_THROWABLE, 800, "res://Scenes/Bodies/_Dynamite.tscn", "res://Assets/base-Dynamite.png", 10)
+		ItemDataScript.CATEGORY_THROWABLE, 800, "res://Scenes/Bodies/dynamite.tscn", "res://Assets/sprites/icons/dynamite.png", 10)
 
 	_item(&"fist", "Fist", "Your hand, made of physics. Chases the cursor; click to punch.",
 		ItemDataScript.CATEGORY_CURSOR_POWER, 0, "res://Scenes/Powers/fist_power.tscn", "res://Assets/FIST.png", 0)
 	_item(&"pistol", "Pistol", "One shot at the crosshair. Shoves anything nearby.",
 		ItemDataScript.CATEGORY_CURSOR_POWER, 600, "res://Scenes/Powers/gun_power.tscn", "res://Assets/Crosshair Basic.png", 10)
 	_item(&"missile", "Missile Strike", "Mark a spot and a missile flies in and detonates on it.",
-		ItemDataScript.CATEGORY_CURSOR_POWER, 2500, "res://Scenes/Powers/missile_power.tscn", "res://Assets/Missle-Crosshair.png", 20)
+		ItemDataScript.CATEGORY_CURSOR_POWER, 2500, "res://Scenes/Powers/missile_power.tscn", "res://Assets/sprites/icons/missile.png", 20)
 
 func _item(id: StringName, display_name: String, description: String, category: int,
 		cost: int, scene_path: String, icon_path: String, sort_order: int) -> void:

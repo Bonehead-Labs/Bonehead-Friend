@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_7fy8k"]
+
+[resource]
+script = ExtResource("1_7fy8k")
+id = &"frying_pan_third"
+item_id = &"frying_pan"
+display_name = "Thicker Base"
+effect_key = &"mass_mult"
+effect_per_level = 1.08
+cost_base = 45
+cost_growth = 1.09
+sort_order = 2

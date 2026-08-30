@@ -24,9 +24,15 @@ Production spec for **Bonehead Friend**, a Windows desktop-overlay idle game.
 
 ## Status
 
-Pre-production. The repo contains a 2025 prototype (drag physics, a few weapons, a hand-wired
-menu) being rebuilt into the architecture described here. See `roadmap.md` for the current
-milestone.
+**M3 — systems complete, art in progress.** The full loop runs: hit and be kind for two
+currencies, mood on a U-curve, grime, a knockout beat, mastery and a shared pool, automation
+capstones, a contract board and Reincarnation with five personalities, across a 16-item
+roster. Bonehead is animated (nine body tags, ten expressions). 414 assertions across three
+suites; save schema v3.
+
+What is left in M3 is the rest of the art — item sprites and icons, the `Theme` and font,
+VFX, real audio — and the two playtests that are its gate. See `roadmap.md`, which carries
+the current handoff list.
 
 ## The thesis
 

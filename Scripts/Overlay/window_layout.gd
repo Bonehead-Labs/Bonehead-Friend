@@ -22,6 +22,34 @@ const MIN_PLAY_SIZE := Vector2i(320, 240)
 ## Gap left between a corner-snapped window and the screen edge.
 const DEFAULT_MARGIN := 16
 
+## The play-area sizes the game offers. A ladder rather than a free resize: the window is
+## borderless, so there is no OS grab handle on its edge, and every size on the list has
+## been eyeballed against a buddy and a couple of toys.
+const SIZE_LADDER: Array[Vector2i] = [
+	Vector2i(480, 360),
+	Vector2i(640, 480),
+	Vector2i(800, 560),
+	Vector2i(960, 640),
+	Vector2i(1200, 800),
+	Vector2i(1440, 960),
+]
+
+## The next size up (+1) or down (-1) from whatever the current one is nearest to. Nearest
+## rather than exact, because a saved size from an older build — or from a monitor that
+## clamped it — need not be on the ladder at all.
+static func step_size(current: Vector2i, direction: int) -> Vector2i:
+	return SIZE_LADDER[clampi(nearest_size_index(current) + direction, 0, SIZE_LADDER.size() - 1)]
+
+static func nearest_size_index(current: Vector2i) -> int:
+	var nearest := 0
+	var best := INF
+	for i in SIZE_LADDER.size():
+		var distance := absf(float(SIZE_LADDER[i].x - current.x))
+		if distance < best:
+			best = distance
+			nearest = i
+	return nearest
+
 ## Where the window should be, given the mode and the monitor's usable rect (which
 ## excludes the taskbar).
 static func target_rect(

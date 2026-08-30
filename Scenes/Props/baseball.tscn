@@ -1,0 +1,46 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Bodies/friendly_base.gd" id="1_07ree"]
+[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="2_m11tv"]
+
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_07ree"]
+friction = 0.8
+bounce = 0.55
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_m11tv"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_lo7dm"]
+size = Vector2(32, 32)
+
+[node name="Baseball" type="RigidBody2D" unique_id=1166361482 node_paths=PackedStringArray("drag_area", "handle", "collider")]
+collision_layer = 4
+collision_mask = 7
+mass = 0.8
+physics_material_override = SubResource("PhysicsMaterial_07ree")
+contact_monitor = true
+max_contacts_reported = 4
+script = ExtResource("1_07ree")
+hearts_per_contact = 6.0
+contact_cooldown = 0.35
+min_contact_speed = 420.0
+drag_area = NodePath("DraggableArea")
+handle = NodePath("Handle")
+collider = NodePath("CollisionShape2D")
+
+[node name="Placeholder" type="Polygon2D" parent="." unique_id=1988839215]
+color = Color(0.93, 0.92, 0.88, 1)
+polygon = PackedVector2Array(10, 0, 9.238795, 3.8268347, 7.071068, 7.071068, 3.8268342, 9.238795, -4.371139e-07, 10, -3.826834, 9.238795, -7.071068, 7.071068, -9.238795, 3.826835, -10, -8.742278e-07, -9.238795, -3.8268342, -7.0710683, -7.071067, -3.8268356, -9.238795, 1.1924881e-07, -10, 3.826836, -9.238794, 7.0710664, -7.071069, 9.238795, -3.8268342)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=591041707]
+shape = SubResource("CircleShape2D_m11tv")
+
+[node name="DraggableArea" type="Area2D" parent="." unique_id=1927675373]
+script = ExtResource("2_m11tv")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=1181155861]
+shape = SubResource("RectangleShape2D_lo7dm")
+
+[node name="Handle" type="StaticBody2D" parent="." unique_id=476774777]
+visible = false
+collision_layer = 0
+collision_mask = 0

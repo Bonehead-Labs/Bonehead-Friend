@@ -69,6 +69,10 @@ func _input(event: InputEvent) -> void:
 
 # --- window configuration --------------------------------------------------
 
+## Bumped on every apply so an in-flight `_reconcile_client_size` from the previous one
+## knows to stand down.
+var _apply_generation := 0
+
 func apply_window_configuration() -> void:
 	# Headless runs (tests, smoke tests, CI) have no screens and no window to configure.
 	if DisplayServer.get_name() == "headless":
@@ -114,9 +118,20 @@ func apply_window_configuration() -> void:
 		DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_ALWAYS_ON_TOP, true)
 	# Deliberately NOT WINDOW_FLAG_NO_FOCUS: the game's own panels need keyboard focus.
 
+	# Restore to a plain windowed state first.
+	#
+	# A borderless window sized to the whole usable rect is, as far as Windows is concerned,
+	# maximised — and a maximised window ignores being resized. So switching Overlay ->
+	# Play area changed the setting, redrew the settings page, and left the window covering
+	# the screen. There is no way out of that from inside the game, which makes it the worst
+	# kind of bug: the one that traps the player in the state they were trying to leave.
+	if DisplayServer.window_get_mode() != DisplayServer.WINDOW_MODE_WINDOWED:
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+
 	DisplayServer.window_set_position(target.position)
 	DisplayServer.window_set_size(target.size)
-	_reconcile_client_size()
+	_apply_generation += 1
+	_reconcile_client_size(_apply_generation)
 
 	# Explicitly off: a stale passthrough flag would make the window ignore every click.
 	DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_MOUSE_PASSTHROUGH, false)
@@ -138,10 +153,14 @@ func apply_window_configuration() -> void:
 ## Must be deferred: the viewport does not report its new size until a frame has passed,
 ## so reading it immediately after window_set_size() returns the OLD size and corrects
 ## nothing (which is exactly how the first attempt at this failed).
-func _reconcile_client_size() -> void:
+func _reconcile_client_size(generation: int) -> void:
 	for _attempt in 4:
 		await get_tree().process_frame
 		await get_tree().process_frame
+		# A newer apply has started. This one is now describing a window that no longer
+		# exists, and writing its answer would undo the new size.
+		if generation != _apply_generation:
+			return
 		if not _applied and _attempt > 0:
 			return
 		var client := Vector2i(get_viewport().get_visible_rect().size)
@@ -162,8 +181,17 @@ func set_window_mode(mode: WindowLayout.Mode) -> void:
 
 func set_play_area_size(size: Vector2i) -> void:
 	Settings.play_area_size = size
+	# The saved rect belongs to the old size; drop it so the corner snap recomputes.
+	Settings.play_area_rect = Rect2i()
 	Settings.save_settings()
 	apply_window_configuration()
+
+## One rung up or down the play-area ladder. Switches to play-area mode as it goes, since
+## resizing is meaningless while the window is a fullscreen overlay. Shared by the F9/F10
+## hotkeys and the settings panel so the two cannot drift.
+func step_play_area_size(direction: int) -> void:
+	Settings.window_mode = WindowLayout.Mode.PLAY_AREA
+	set_play_area_size(WindowLayout.step_size(Settings.play_area_size, direction))
 
 func snap_to_corner(corner: WindowLayout.Corner) -> void:
 	Settings.play_area_corner = corner

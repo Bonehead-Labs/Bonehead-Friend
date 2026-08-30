@@ -28,13 +28,49 @@ var _active_power: StringName = &""
 func _ready() -> void:
 	EventBus.spawn_requested.connect(_on_spawn_requested)
 	EventBus.item_despawned.connect(_on_item_despawned)
+	EventBus.prestige_performed.connect(_on_prestige)
+
+## A Reincarnation wipes what the player owns, so it has to wipe what is on the desk too.
+##
+## Without this the equipped cursor power kept firing at full damage and full payout after
+## the reset — Progression had forgotten the pistol, ItemSpawner had not — and every weapon
+## already lying on screen stayed a usable weapon carrying its pre-prestige augment
+## multipliers. The shop meanwhile correctly re-priced all of it as unowned.
+func _on_prestige(_ectoplasm: int) -> void:
+	if _active_power != &"":
+		_active_power = &""
+		EventBus.cursor_power_changed.emit(&"")
+	for node in _active.duplicate():
+		if is_instance_valid(node):
+			EventBus.item_despawned.emit(node)
+			node.queue_free()
+	_active.clear()
+	item_count_changed.emit(0, item_limit())
+
+## Everything on the desk, gone. The HUD's item counter is the button for it.
+##
+## Same path as a prestige wipe rather than a second one: the despawn signal is what keeps
+## the counter, the friendly items' banked kindness and anything else watching in step.
+func clear_desk() -> int:
+	var cleared := 0
+	for node in _active.duplicate():
+		if is_instance_valid(node):
+			EventBus.item_despawned.emit(node)
+			node.queue_free()
+			cleared += 1
+	_active.clear()
+	item_count_changed.emit(0, item_limit())
+	return cleared
 
 func item_count() -> int:
 	_prune()
 	return _active.size()
 
+## Base limit plus whatever the Mastery Pool checkpoints have granted. Read live rather
+## than cached: a checkpoint can land mid-session, and a limit that only grows on restart
+## is a reward the player never sees arrive.
 func item_limit() -> int:
-	return ItemDB.balance.item_limit
+	return ItemDB.balance.item_limit + Progression.item_limit_bonus()
 
 func active_power() -> StringName:
 	return _active_power

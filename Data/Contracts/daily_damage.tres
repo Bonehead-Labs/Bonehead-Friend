@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="ContractData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/contract_data.gd" id="1_70id7"]
+
+[resource]
+script = ExtResource("1_70id7")
+id = &"daily_damage"
+display_name = "Occupational Therapy"
+description = "Deal 5,000 damage."
+goal_key = &"deal_damage"
+target = 5000

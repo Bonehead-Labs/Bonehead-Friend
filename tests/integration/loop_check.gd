@@ -1,6 +1,7 @@
 extends Node
 
-## Headless walk of the M2 gate loop: hit -> earn -> buy -> augment -> save -> reload.
+## Headless walk of the gate loop: hit -> earn -> buy -> augment -> save -> reload, plus
+## M3's kindness half — pet -> Hearts, mood, grime, and the knockout beat.
 ##
 ##   Godot --headless --path <project> res://tests/integration/loop_check.tscn
 ##
@@ -40,28 +41,351 @@ func _ready() -> void:
 	_starters_are_owned()
 	var earned := _hitting_him_pays()
 	_augments_change_the_payout(earned)
+	_being_kind_pays_hearts()
+	_mood_swings_the_payout()
+	_grime_suppresses_bones()
 	_shop_refuses_what_you_cannot_afford()
 	_spawning_and_the_item_limit()
 	_knockout_pays_and_resets()
+	_the_buddy_art_is_wired()
+	_dragging_him_is_a_state()
+	_mastery_accrues_and_pays()
+	_automation_earns_and_toggles()
+	_contracts_track_and_pay()
+	await _the_knockout_beat_runs_and_ends_upright()
+	await _the_sponge_cleans_him_and_pays()
 	await _real_physics_produces_hits()
 	await _save_survives_a_restart()
+	# Last: it wipes the run, so every suite that needs an owned item has to come first.
+	_prestige_resets_the_run_and_keeps_the_meta()
+	_the_shell_has_its_look()
+	_every_colour_can_be_read()
+	_the_desk_can_be_cleared()
+	await _explosives_still_explode()
 
+	# Here, and nowhere else. This block spent three edits living inside
+	# `_the_shell_has_its_look`, where it printed a total that was missing every suite after
+	# it and called quit() before the last one had finished awaiting — so three suites were
+	# running after the run had already reported its result.
 	print("")
 	print("============================")
 	print("passed: %d   failed: %d" % [_passed, _failed])
 	_clear_slot()
 	get_tree().quit(1 if _failed > 0 else 0)
 
+## No text may ever be close in colour to what is behind it.
+##
+## The palette was picked by eye and Bones came out at 2.97:1 on a sunk well — a price the
+## player cannot read — while disabled buttons tinted their text at 55% alpha and landed
+## near 2:1. Both are the same bug, and neither is visible to whoever picked the colour on
+## their own monitor with their own eyes. So it is a test.
+##
+## WCAG AA is 4.5:1 for body text. Everything in this shell is body text: the largest thing
+## on a card is a 20px pixel face, which is not "large text" by any reading of the standard.
+func _every_colour_can_be_read() -> void:
+	_suite("contrast")
+	const FLOOR := 4.5
+
+	# Every ink, on every surface it is ever printed on.
+	var surfaces := {"panel": UIStyle.PANEL, "raised": UIStyle.RAISED, "sunk": UIStyle.SUNK}
+	var inks := {
+		"text": UIStyle.TEXT, "dim": UIStyle.TEXT_DIM, "disabled": UIStyle.DISABLED_INK,
+		"bones": UIStyle.BONES, "hearts": UIStyle.HEARTS, "ectoplasm": UIStyle.ECTOPLASM,
+		"affordable": UIStyle.AFFORDABLE, "locked": UIStyle.LOCKED, "teal": UIStyle.TEAL,
+		"despair": UIStyle.DESPAIR, "bliss": UIStyle.BLISS,
+	}
+	for ink_name in inks:
+		for surface_name in surfaces:
+			var ratio := UIStyle.contrast(inks[ink_name], surfaces[surface_name])
+			_check("%s on %s is %.2f:1" % [ink_name, surface_name, ratio], ratio >= FLOOR)
+
+	# The two inverted surfaces: the badge and the gate strip print cream on black, and the
+	# reincarnation key prints cream on red — in every state it can be in, not only at rest.
+	# A hover colour is a surface the player reads text on for as long as their cursor is
+	# there, and three of them were literals inside ui_theme.gd that nothing here could see.
+	for entry in [["badge/gate", UIStyle.PANEL, UIStyle.EDGE],
+			["danger key", UIStyle.PANEL, UIStyle.LOCKED],
+			["danger key, hovered", UIStyle.PANEL, UIStyle.DANGER_HOVER],
+			["danger key, pressed", UIStyle.PANEL, UIStyle.DANGER_DOWN],
+			["buy key, hovered", UIStyle.TEXT, UIStyle.BUY_HOVER]]:
+		var ratio := UIStyle.contrast(entry[1], entry[2])
+		_check("%s is %.2f:1" % [entry[0], ratio], ratio >= FLOOR)
+
+	# Every state of every button the Theme actually defines, read off the Theme rather than
+	# from a list kept by hand here. A hand-written grid only covers the states someone
+	# remembered — and nobody remembered `hover_pressed`, so hovering a tab, a shop category
+	# or a selected list row fell through this theme into Godot's stock dark one and put dark
+	# ink on a dark box. "All text readable at all times" has to be a sweep, not a checklist.
+	var states := [
+		["normal", "font_color"],
+		["hover", "font_hover_color"],
+		["pressed", "font_pressed_color"],
+		["hover_pressed", "font_hover_pressed_color"],
+		["disabled", "font_disabled_color"],
+	]
+	var theme := UITheme.get_theme()
+	var button_types: Array[String] = ["Button"]
+	button_types.append_array(theme.get_type_variation_list("Button"))
+	var unreadable: Array[String] = []
+	var graded := 0
+	for type_name in button_types:
+		for state in states:
+			var box_name: String = state[0]
+			var ink_name: String = state[1]
+			if not theme.has_stylebox(box_name, type_name):
+				continue
+			var box := theme.get_stylebox(box_name, type_name) as StyleBoxFlat
+			if box == null:
+				continue
+			# The ink falls back the way Godot resolves it: this variation, then Button.
+			var ink := UIStyle.TEXT
+			if theme.has_color(ink_name, type_name):
+				ink = theme.get_color(ink_name, type_name)
+			elif theme.has_color(ink_name, "Button"):
+				ink = theme.get_color(ink_name, "Button")
+			graded += 1
+			var ratio := UIStyle.contrast(ink, box.bg_color)
+			if ratio < FLOOR:
+				unreadable.append("%s/%s %.2f:1" % [type_name, box_name, ratio])
+	_check("every button state the theme defines is readable (%d graded%s)"
+		% [graded, "" if unreadable.is_empty() else ": " + ", ".join(unreadable)],
+		unreadable.is_empty())
+
+	# And no button state may be left to the stock theme: a missing stylebox is not a
+	# neutral default, it is Godot's dark one arriving under our dark ink.
+	var gaps: Array[String] = []
+	for type_name in button_types:
+		if not theme.has_stylebox("pressed", type_name):
+			continue
+		if not theme.has_stylebox("hover_pressed", type_name):
+			gaps.append(type_name)
+	_check("every toggleable variation defines its own hover_pressed%s"
+		% ("" if gaps.is_empty() else ": " + ", ".join(gaps)), gaps.is_empty())
+
+	# Marks, not text: a pip, a meter fill, a track. WCAG's floor for a non-text element
+	# that carries meaning is 3:1, not 4.5:1 — but it is not zero, and a grid that graded
+	# only inks against surfaces let an unfilled level pip ship at 1.18:1 on the tile it sat
+	# on. Every tier-1 node in the game starts with ten of them, so the state a player sees
+	# first was the state that was invisible.
+	const MARK_FLOOR := 3.0
+	var tiles := {"tile": UIStyle.RAISED, "sunk tile": UIStyle.SUNK, "card": UIStyle.PANEL}
+	for tile_name in tiles:
+		var edge := UIStyle.contrast(UIStyle.PIP_EDGE, tiles[tile_name])
+		_check("a pip's outline on a %s is %.2f:1" % [tile_name, edge], edge >= MARK_FLOOR)
+	var fill := UIStyle.contrast(UIStyle.PIP_FILLED, UIStyle.PIP_EMPTY)
+	_check("a filled pip is %.2f:1 against an empty one" % fill, fill >= MARK_FLOOR)
+
+	# Mood recolours a label continuously between its two poles and neutral, so the whole
+	# sweep has to hold, not only the ends.
+	var worst := 999.0
+	var worst_at := 0.0
+	for step in 21:
+		var mood := lerpf(-100.0, 100.0, float(step) / 20.0)
+		var ratio := UIStyle.contrast(UIStyle.mood_colour(mood), UIStyle.PANEL)
+		if ratio < worst:
+			worst = ratio
+			worst_at = mood
+	_check("the whole mood sweep is readable (worst %.2f:1 at %.0f)" % [worst, worst_at],
+		worst >= FLOOR)
+
+## Explosives, end to end.
+##
+## They stopped working entirely and nothing noticed: right-click primes a grenade's fuse,
+## and when a right-click-to-despawn gesture was added to the shared base class it ran
+## first and deleted the grenade instead of arming it. Nothing in any suite touched a
+## throwable, so the loudest mechanic in the game was silently gone.
+func _explosives_still_explode() -> void:
+	_suite("explosives")
+	_check("a throwable claims right-click for its fuse",
+		ThrowableBase.new().right_click_is_mine())
+	_check("and an ordinary item does not, so it can be thrown away",
+		not BaseDraggable.new().right_click_is_mine())
+
+	var spawner := get_tree().get_first_node_in_group(&"item_spawner") as ItemSpawner
+	var buddy := _buddy()
+	if spawner == null or buddy == null:
+		_check("spawner and buddy present", false)
+		return
+	spawner.clear_desk()
+	EventBus.spawn_requested.emit(&"grenade", buddy.global_position + Vector2(30.0, 0.0))
+	await get_tree().physics_frame
+	var grenade: ThrowableBase = null
+	for node in get_tree().get_nodes_in_group(&"spawned_item"):
+		if node is ThrowableBase:
+			grenade = node
+	_check("a grenade can be spawned", grenade != null)
+	if grenade == null:
+		return
+	_check("its sprite is wired, so it can show that it is live", grenade.sprite != null)
+	_check("its blast area is wired", grenade.explosion_area != null)
+	_check("he is on his feet to be blown off them",
+		buddy.health != null and not buddy.health.down)
+
+	# Primed the way the player primes it, then detonated without waiting out the fuse.
+	grenade.global_position = buddy.global_position + Vector2(30.0, 0.0)
+	grenade.prime_explosion()
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	# An Array, not an int. A GDScript lambda captures locals **by value**, so a counter
+	# incremented inside one leaves the outer variable at zero — and the test then reports
+	# a working mechanic as broken, which is worse than no test.
+	var hits: Array[int] = [0]
+	var probe := func(_info: HitInfo) -> void: hits[0] += 1
+	EventBus.damage_dealt.connect(probe)
+	grenade.explode()
+	# Three frames, not one. A hit is queued when it lands and drained on a later physics
+	# step, so a probe that disconnects immediately sees nothing and reports the whole
+	# mechanic broken.
+	for i in 3:
+		await get_tree().physics_frame
+	EventBus.damage_dealt.disconnect(probe)
+	_check("the blast reaches the buddy and hurts him (%d hits)" % hits[0], hits[0] > 0)
+	spawner.clear_desk()
+
+## Getting rid of things you spawned.
+##
+## The trash bin this replaces was a 36x45 catch area under a 64px sprite, anchored above
+## the height at which a dropped item comes to rest — so nothing ever landed in it and the
+## only way to clear the desk was to spawn past the item limit. Two ways now: right-click
+## one thing, or clear all of them.
+func _the_desk_can_be_cleared() -> void:
+	_suite("clearing the desk")
+	var spawner := get_tree().get_first_node_in_group(&"item_spawner") as ItemSpawner
+	if spawner == null:
+		_check("item spawner present", false)
+		return
+
+	spawner.clear_desk()
+	for i in 3:
+		EventBus.spawn_requested.emit(&"baseball_bat", Vector2(120.0 + i * 40.0, 100.0))
+	_check("three items on the desk (got %d)" % spawner.item_count(),
+		spawner.item_count() == 3)
+
+	var cleared := spawner.clear_desk()
+	_check("clearing the desk removes all of them (cleared %d, %d left)"
+		% [cleared, spawner.item_count()], cleared == 3 and spawner.item_count() == 0)
+	_check("clearing an empty desk is not an error", spawner.clear_desk() == 0)
+
+	# The whitelist the right-click gesture leans on. If the buddy were ever in this group
+	# a right-click would delete him, so it is worth an assertion rather than a comment.
+	EventBus.spawn_requested.emit(&"baseball_bat", Vector2(200.0, 100.0))
+	_check("a spawned item is marked as one",
+		not get_tree().get_nodes_in_group(&"spawned_item").is_empty())
+	var buddy := _buddy()
+	_check("the buddy is not, so no gesture can delete him",
+		buddy != null and not buddy.is_in_group(&"spawned_item"))
+	spawner.clear_desk()
+
+## The Bonecard skin, checked as data rather than by looking at it.
+##
+## Everything here is the kind of break that costs nothing at parse time and shows up as a
+## blank UI: a glyph file that was never generated, a font that failed to import, a
+## `theme_type_variation` spelled slightly differently from the one the theme registers
+## (Godot silently falls back to the base type), a UI sound nobody remembered to synthesise.
+## Screenshots would catch some of it; only this catches all of it, every run.
+func _the_shell_has_its_look() -> void:
+	_suite("shell")
+
+	for id in [&"bone", &"heart", &"ecto", &"lock", &"check", &"cross", &"star", &"bolt",
+			&"hand", &"spawn", &"close", &"crate", &"scroll", &"sliders"]:
+		_check("glyph %s exists" % id, UIStyle.glyph(id) != null)
+
+	var theme := UITheme.get_theme()
+	_check("the theme has a body font", theme.default_font != null)
+	_check("the display face loaded", theme.get_font("font", "Label") != null)
+	_check("the numeral face loaded", theme.get_font("font", "Numeral") != null)
+
+	# Every variation the panels actually ask for. A typo here is invisible: the control
+	# renders as its plain base type and looks merely wrong rather than broken.
+	for variation in ["Card", "Tile", "TileHot", "TileDead", "Sunk", "Chip", "Badge",
+			"Gate", "Capstone"]:
+		_check("panel variation %s is defined" % variation,
+			theme.has_stylebox("panel", variation))
+	for variation in ["TabButton", "IconTab", "BuyButton", "GhostButton", "DangerButton",
+			"ListRow"]:
+		_check("button variation %s is defined" % variation,
+			theme.has_stylebox("normal", variation))
+	for variation in ["BodyLabel", "NameLabel", "Eyebrow", "Numeral"]:
+		_check("label variation %s is defined" % variation, theme.has_font("font", variation))
+
+	# A scrollbar's width is its track stylebox's minimum size. Zero here means a panel
+	# that silently cannot be scrolled, which reads as content simply missing.
+	var track := theme.get_stylebox("scroll", "VScrollBar")
+	_check("the scrollbar has a width",
+		track != null and track.get_minimum_size().x >= 4.0)
+
+	var streams: Dictionary = AudioManager.get("_streams")
+	for id in [&"ui_hover", &"ui_click", &"ui_tab", &"ui_denied", &"ui_open", &"ui_close"]:
+		_check("sound %s is synthesised" % id, streams.has(id) and streams[id] != null)
+
+	# The invariant every headless click test leans on: a control caught mid-tween is at
+	# the wrong scale, and hit-testing it is a coin flip.
+	_check("motion is off in headless", not UIMotion.enabled())
+
 # --- the loop --------------------------------------------------------------
 
 func _content_loaded() -> void:
 	_suite("content")
-	_check("items loaded from res://Data", ItemDB.all_items().size() >= 7)
+	# Counted from disk, not from a floor. `>= 16` stops catching a dropped item the moment
+	# a seventeenth is added — and the roster growing is the whole point of the data-driven
+	# catalog, so the assertion has to grow with it instead of being re-bumped by hand.
+	var item_files := 0
+	for file in DirAccess.get_files_at("res://Data/Items"):
+		if file.get_extension() in ["tres", "res"] or file.ends_with(".tres.remap"):
+			item_files += 1
+	_check("every .tres in res://Data/Items loaded (%d files, %d loaded)"
+		% [item_files, ItemDB.all_items().size()],
+		ItemDB.all_items().size() == item_files)
+
+	# The art size contract, stated over the real catalog. An item icon is a 32px canvas
+	# (art/tools/item_postprocess.py); the shell now boxes anything else down to fit, so a
+	# stray size can no longer bend a list — but it is still a content bug, and this is
+	# where it gets a name instead of being absorbed silently.
+	var wrong_size: Array[String] = []
+	var no_art: Array[String] = []
+	for item in ItemDB.all_items():
+		if item.icon == null:
+			no_art.append(String(item.id))
+		elif item.icon.get_size() != Vector2(UIStyle.ICON_CANVAS, UIStyle.ICON_CANVAS):
+			wrong_size.append("%s %dx%d" % [item.id,
+				int(item.icon.get_size().x), int(item.icon.get_size().y)])
+	_check("every item's icon is a %dpx canvas%s" % [UIStyle.ICON_CANVAS,
+		"" if wrong_size.is_empty() else " (wrong: " + ", ".join(wrong_size) + ")"],
+		wrong_size.is_empty())
+	# Not a failure — an item without art falls back to its category glyph, which the box
+	# contract now delivers at the same size as real art, so the layout is unaffected. It
+	# is listed so the art backlog is visible from the test run rather than from memory.
+	_check("items still waiting on art: %s" % ("none" if no_art.is_empty() else ", ".join(no_art)),
+		true)
 	_check("balance loaded", ItemDB.balance != null and ItemDB.balance.mood_curve != null)
 	_check("the bat exists", ItemDB.get_item(&"baseball_bat") != null)
-	_check("the bat has a three-node tree", ItemDB.augments_for(&"baseball_bat").size() == 3)
+	# The shape, not a count: every weapon's tree is three tier-1 nodes, an exclusive
+	# branch group and a capstone, and that identical shape is what makes a new weapon's
+	# tree three .tres files (docs/economy.md).
+	var bat_tree := ItemDB.augments_for(&"baseball_bat")
+	_check("the bat has three tier-1 nodes",
+		bat_tree.filter(func(n: AugmentNode) -> bool: return n.tier == 1).size() == 3)
+	_check("and an exclusive branch to pick from",
+		bat_tree.filter(func(n: AugmentNode) -> bool: return n.exclusive_group != &"").size() >= 2)
+	_check("and an automation capstone",
+		bat_tree.any(func(n: AugmentNode) -> bool: return n.is_automation))
+	_check("every automation capstone generates something", ItemDB.all_items().all(
+		func(i: ItemData) -> bool:
+			return ItemDB.augments_for(i.id).all(
+				func(n: AugmentNode) -> bool: return not n.is_automation or n.automation_rate > 0.0)))
+	_check("personalities loaded", ItemDB.all_personalities().size() >= 5)
+	_check("contracts loaded", ItemDB.all_contracts().size() >= 4)
 	_check("every item has a scene or is a power", ItemDB.all_items().all(
 		func(i: ItemData) -> bool: return i.scene != null))
+	# The Hearts half of the economy has to exist, or the second currency is decoration.
+	for id in [&"open_hand", &"sponge", &"pizza", &"boombox"]:
+		var item := ItemDB.get_item(id)
+		_check("the %s is in the catalog" % id, item != null)
+		_check("the %s costs Hearts" % id, item != null and item.currency_id() == Economy.HEARTS)
+	_check("the open hand equips like a cursor power",
+		ItemDB.get_item(&"open_hand").is_cursor_power())
+	_check("but is filed with the friendly items",
+		ItemDB.get_item(&"open_hand").category == ItemData.CATEGORY_FRIENDLY)
 
 func _starters_are_owned() -> void:
 	_suite("starters")
@@ -69,20 +393,38 @@ func _starters_are_owned() -> void:
 	_check("bat is owned from boot", Progression.is_unlocked(&"baseball_bat"))
 	_check("grenade is owned from boot", Progression.is_unlocked(&"grenade"))
 	_check("fist is owned from boot", Progression.is_unlocked(&"fist"))
+	# The only free Hearts source. Without it the second currency can never start, because
+	# every other friendly item is bought with the Hearts it earns.
+	_check("open hand is owned from boot", Progression.is_unlocked(&"open_hand"))
+	_check("the sponge is not free", not Progression.is_unlocked(&"sponge"))
 	_check("the mace is not free", not Progression.is_unlocked(&"mace"))
 
-## Returns the Bones a single reference hit is worth, for the augment comparison.
+## Bones from one reference hit, divided back out by the mood and grime multipliers that
+## were in force when it landed.
+##
+## Every hit now moves his mood and dirties him, so two identical hits at different moments
+## legitimately pay different amounts. A raw before/after comparison would be measuring the
+## mood swing rather than whatever the test is actually about — normalising here is what
+## keeps the augment assertions honest.
+func _reference_hit(source_id: StringName, damage: float = 40.0) -> float:
+	var multipliers := Economy.mood_multiplier() * Economy.grime_multiplier()
+	var before := Economy.balance_of(Economy.BONES)
+	EventBus.damage_dealt.emit(HitInfo.new(damage, source_id, Vector2(100, 100), 4000.0))
+	return (Economy.balance_of(Economy.BONES) - before) / multipliers
+
+## Returns the normalised Bones a single reference hit is worth, for the augment comparison.
 func _hitting_him_pays() -> float:
 	_suite("hit -> earn")
-	var before := Economy.balance_of(Economy.BONES)
 	var damage := 40.0
-	EventBus.damage_dealt.emit(HitInfo.new(damage, &"baseball_bat", Vector2(100, 100), 4000.0))
-	var earned := Economy.balance_of(Economy.BONES) - before
+	var lifetime_before := Economy.lifetime_of(Economy.BONES)
+	var earned := _reference_hit(&"baseball_bat", damage)
 
-	var expected := damage * ItemDB.balance.bones_per_damage * Economy.mood_multiplier()
 	_check("a hit pays Bones", earned > 0.0)
-	_check("payout matches the documented chain", is_equal_approx(earned, expected))
-	_check("lifetime tracks the payout", Economy.lifetime_of(Economy.BONES) >= earned)
+	_check("payout matches the documented chain",
+		is_equal_approx(earned, damage * ItemDB.balance.bones_per_damage))
+	# Against the raw grant, not the normalised figure: at neutral mood the U-curve pays
+	# 0.6x, so the normalised number is deliberately larger than what was banked.
+	_check("lifetime tracks the payout", Economy.lifetime_of(Economy.BONES) > lifetime_before)
 	_check("round damage banked for the knockout", Economy.round_damage >= damage)
 	return earned
 
@@ -106,15 +448,123 @@ func _augments_change_the_payout(base_payout: float) -> void:
 		is_equal_approx(Progression.get_modifier(&"mace", &"payout_mult"), 1.0))
 
 	# The same hit must now pay more. This is the whole gate in one assertion.
-	var before := Economy.balance_of(Economy.BONES)
-	EventBus.damage_dealt.emit(HitInfo.new(40.0, &"baseball_bat", Vector2(100, 100), 4000.0))
-	var after_augment := Economy.balance_of(Economy.BONES) - before
+	var after_augment := _reference_hit(&"baseball_bat")
 	_check("the same hit now pays more", after_augment > base_payout)
 	_check("it pays exactly the augment's multiple",
 		is_equal_approx(after_augment, base_payout * node.effect_per_level))
 
 	var bulk := Progression.purchase_augment(&"bat_damage", 10)
 	_check("bulk buy is capped by the wallet, not by max_levels", bulk >= 1 and bulk <= 10)
+
+func _being_kind_pays_hearts() -> void:
+	_suite("kindness -> Hearts")
+	var buddy := _buddy()
+	var before := Economy.balance_of(Economy.HEARTS)
+	var bones_before := Economy.balance_of(Economy.BONES)
+	var mood_before: float = buddy.mood.value if buddy else 0.0
+	EventBus.kindness_given.emit(&"open_hand", 1.0, Vector2(100, 100))
+	var earned := Economy.balance_of(Economy.HEARTS) - before
+	_check("a pet pays Hearts", earned > 0.0)
+	_check("and pays no Bones", is_equal_approx(Economy.balance_of(Economy.BONES), bones_before))
+	_check("lifetime Hearts tracks it", Economy.lifetime_of(Economy.HEARTS) >= earned)
+	# He arrives here having just been beaten up by the suites above, so the claim is that
+	# petting *lifts* his mood — not that one pet is enough to make him cheerful.
+	_check("petting cheers him up", buddy != null and buddy.mood.value > mood_before)
+
+	# The combo is a reward for repeated *acts*. A generator left switched on must not sit
+	# at the ceiling forever, which is why sustained kindness is a separate signal.
+	var combo_before := Economy.balance_of(Economy.HEARTS)
+	for i in 6:
+		EventBus.kindness_given.emit(&"open_hand", 1.0, Vector2(100, 100))
+	var combo_total := Economy.balance_of(Economy.HEARTS) - combo_before
+	_check("repeat pets inside the window compound", combo_total > earned * 6.0)
+
+	# The multiplier has to be read BEFORE the emit. Economy is connected to the bus first
+	# (it is an autoload; MoodComponent is a scene child), so it pays at the mood in force
+	# when the event fired and the component raises that mood immediately afterwards.
+	var expected := 1.0 * ItemDB.balance.hearts_per_kindness \
+		* Economy.mood_multiplier() * Economy.prestige_multiplier()
+	var sustained_before := Economy.balance_of(Economy.HEARTS)
+	EventBus.kindness_sustained.emit(&"boombox", 1.0, Vector2(100, 100))
+	var sustained := Economy.balance_of(Economy.HEARTS) - sustained_before
+	_check("a generator's Hearts skip the combo entirely", is_equal_approx(sustained, expected))
+
+## The U-curve is the reason to swing him, so the test is that the *same* event pays
+## differently at the two extremes and worst in the middle (docs/economy.md).
+func _mood_swings_the_payout() -> void:
+	_suite("mood")
+	var buddy := _buddy()
+	if buddy == null:
+		_check("buddy present", false)
+		return
+
+	buddy.mood.set_value(0.0)
+	var neutral := Economy.mood_multiplier()
+	buddy.mood.set_value(100.0)
+	var bliss := Economy.mood_multiplier()
+	buddy.mood.set_value(-100.0)
+	var despair := Economy.mood_multiplier()
+
+	_check("neutral is the worst multiplier in the game", neutral < bliss and neutral < despair)
+	_check("both extremes pay about the same", is_equal_approx(bliss, despair))
+	_check("the extremes are worth more than double the trough", bliss > neutral * 2.0)
+
+	# And it reaches the wallet, not just the readout.
+	buddy.mood.set_value(0.0)
+	var at_neutral := _payout_of_one_hit()
+	buddy.mood.set_value(-100.0)
+	var at_despair := _payout_of_one_hit()
+	_check("a despairing buddy pays more for the same hit", at_despair > at_neutral)
+
+	buddy.mood.set_value(0.0)
+	_check("damage makes him miserable", _mood_after_damage(buddy) < 0.0)
+
+func _mood_after_damage(buddy: Buddy) -> float:
+	EventBus.damage_dealt.emit(HitInfo.new(40.0, &"baseball_bat", Vector2(100, 100), 4000.0))
+	return buddy.mood.value
+
+func _payout_of_one_hit() -> float:
+	var before := Economy.balance_of(Economy.BONES)
+	EventBus.damage_dealt.emit(HitInfo.new(40.0, &"baseball_bat", Vector2(100, 100), 4000.0))
+	return Economy.balance_of(Economy.BONES) - before
+
+## Grime is the mechanic that makes the cheapest Hearts item protect the Bones economy.
+## It must cost real money and must never be able to stop the game paying at all.
+func _grime_suppresses_bones() -> void:
+	_suite("grime")
+	var buddy := _buddy()
+	if buddy == null:
+		_check("buddy present", false)
+		return
+
+	buddy.mood.set_value(0.0)
+	buddy.grime.set_value(0.0)
+	_check("Economy sees a clean buddy", is_equal_approx(Economy.grime_multiplier(), 1.0))
+	var clean_payout := _payout_of_one_hit()
+
+	buddy.mood.set_value(0.0)
+	buddy.grime.set_value(1.0)
+	_check("Economy sees a filthy one", Economy.grime_multiplier() < 1.0)
+	buddy.mood.set_value(0.0)
+	var filthy_payout := _payout_of_one_hit()
+	_check("a filthy buddy earns less for the same hit", filthy_payout < clean_payout)
+	_check("but still earns something — there is no fail state", filthy_payout > 0.0)
+
+	buddy.grime.set_value(0.0)
+	_check("damage makes a mess", _grime_after_damage(buddy) > 0.0)
+
+	# Scrubbing a clean skeleton must pay nothing, or a sponge left leaning on him farms
+	# Hearts the way a mace left leaning on him used to farm Bones.
+	buddy.grime.set_value(0.0)
+	_check("cleaning an already-clean buddy removes nothing", buddy.grime.clean(1.0) == 0.0)
+	buddy.grime.set_value(0.4)
+	_check("cleaning returns only what actually came off",
+		is_equal_approx(buddy.grime.clean(1.0), 0.4))
+	buddy.grime.set_value(0.0)
+
+func _grime_after_damage(buddy: Buddy) -> float:
+	EventBus.damage_dealt.emit(HitInfo.new(200.0, &"baseball_bat", Vector2(100, 100), 4000.0))
+	return buddy.grime.value
 
 func _shop_refuses_what_you_cannot_afford() -> void:
 	_suite("shop rules")
@@ -158,6 +608,359 @@ func _knockout_pays_and_resets() -> void:
 	EventBus.buddy_state_changed.emit(&"knockout")
 	_check("knockout pays a bonus", Economy.balance_of(Economy.BONES) > before)
 	_check("round damage resets", Economy.round_damage == 0.0)
+
+## The round's climax, end to end. The old implementation was a teleport: he vanished from
+## wherever he was and reappeared at home with a full wallet. The gate for M3 is that the
+## beat is worth watching, so the test is that it actually happens — every state in order,
+## and a buddy who is upright, unfrozen and playable when it is over.
+## Mastery is earned by *using* a thing, and the shared pool is what makes using a variety
+## of things worth more than grinding one. Both feed the payout pipeline, so both are worth
+## checking against the real autoloads rather than only as pure functions.
+## The art wiring, checked against the real imported resources.
+##
+## Every assertion here is one that already failed silently once. The tag-extension bug —
+## appending a frame stretches any tag ending at the last frame — made `idle` import as 74
+## frames instead of 8, and the only symptom was that the buddy played the whole file for
+## every animation. A frame count checked against the offsets it was measured from catches
+## that immediately.
+func _the_buddy_art_is_wired() -> void:
+	_suite("buddy art")
+	var buddy := _buddy()
+	if buddy == null or buddy.art == null:
+		_check("buddy has an art driver", false)
+		return
+	var art: BuddyArt = buddy.art
+
+	_check("the body sprite frames loaded", art.body != null and art.body.sprite_frames != null)
+	_check("the face sprite frames loaded", art.face != null and art.face.sprite_frames != null)
+	if art.body == null or art.body.sprite_frames == null:
+		return
+	var body := art.body.sprite_frames
+
+	# Every state the buddy can enter must have art, or he freezes mid-pose.
+	for state in art.STATE_ANIMATION:
+		var animation: StringName = art.STATE_ANIMATION[state]
+		_check("state '%s' has a '%s' animation" % [state, animation],
+			body.has_animation(animation))
+
+	# Every expression the game can ask for must exist, or set_expression silently no-ops
+	# and he wears whatever face he had last.
+	if art.face and art.face.sprite_frames:
+		var faces := art.face.sprite_frames
+		for state in art.STATE_FACE:
+			_check("state '%s' face '%s' exists" % [state, art.STATE_FACE[state]],
+				faces.has_animation(art.STATE_FACE[state]))
+		for entry in art.MOOD_FACES:
+			_check("mood face '%s' exists" % entry[1], faces.has_animation(entry[1]))
+		for entry in art.MOOD_IDLES:
+			_check("mood idle '%s' exists" % entry[1], body.has_animation(entry[1]))
+
+	# The offsets were measured frame by frame off the same sheets the tags were built from,
+	# so a mismatch means the two have drifted apart — which is exactly what a stretched tag
+	# looks like from here.
+	for animation in body.get_animation_names():
+		var offsets: Array = art._offsets.get(String(animation), [])
+		_check("'%s' has face offsets" % animation, not offsets.is_empty())
+		if not offsets.is_empty():
+			_check("'%s' offsets match its %d frames (got %d)"
+				% [animation, body.get_frame_count(animation), offsets.size()],
+				offsets.size() == body.get_frame_count(animation))
+
+	# One-shots must not loop: a collapse that loops never lets him get back up.
+	for animation in art.ONE_SHOT:
+		if body.has_animation(animation):
+			_check("'%s' does not loop" % animation, not body.get_animation_loop(animation))
+
+	_check("the knockout beat has a real duration",
+		art.animation_length(&"collapse") > 0.1)
+
+## Picking him up and putting him down. `dragged` used to be reachable only as a side effect
+## of a reaction lapsing mid-drag, and nothing ever cleared it, so a hit taken while held
+## left him stuck in the dragged pose with his mood idle unable to resume.
+func _dragging_him_is_a_state() -> void:
+	_suite("drag state")
+	var buddy := _buddy()
+	if buddy == null:
+		_check("buddy present", false)
+		return
+	buddy.health.reset_meter()
+	# Whatever expression the earlier suites left him in is irrelevant; what matters is that
+	# he is not already being held.
+	_check("he is not already being dragged", not buddy.dragging)
+
+	buddy._start_drag()
+	_check("grabbing him enters the dragged state", buddy.state == &"dragged")
+	_check("and he is actually dragging", buddy.dragging)
+
+	# A hit while held, then release: the reaction must not strand him.
+	EventBus.damage_dealt.emit(HitInfo.new(10.0, &"baseball_bat", Vector2(100, 100), 4000.0))
+	buddy._end_drag()
+	_check("letting go leaves the dragged state",
+		buddy.state != &"dragged" or not buddy.dragging)
+	_check("and he is no longer dragging", not buddy.dragging)
+
+func _mastery_accrues_and_pays() -> void:
+	_suite("mastery")
+	var base := ItemDB.balance.mastery_base
+	var before_xp := Progression.mastery_xp(&"mace")
+	EventBus.damage_dealt.emit(HitInfo.new(120.0, &"mace", Vector2(100, 100), 4000.0))
+	_check("using a thing earns it mastery XP", Progression.mastery_xp(&"mace") > before_xp)
+	_check("and only that thing", is_equal_approx(Progression.mastery_xp(&"dynamite"), 0.0))
+
+	# Enough XP to cross several ranks in a single call, which is the case a naive rank-up
+	# counter gets wrong: the pool must gain one point per rank *crossed*, not one per event.
+	var pool_before := Progression.mastery_pool()
+	var rank_before := Progression.mastery_rank(&"mace")
+	Progression.add_mastery_xp(&"mace", EconomyMath.mastery_xp_for_rank(base, 5))
+	var rank_after := Progression.mastery_rank(&"mace")
+	_check("crossing ranks raises the rank", rank_after > rank_before + 1)
+	_check("the pool gained exactly one point per rank crossed",
+		Progression.mastery_pool() - pool_before == rank_after - rank_before)
+
+	_check("the pool bonus is above 1 once checkpoints are passed",
+		Progression.mastery_pool_bonus() >= 1.0)
+	_check("the pool discounts upgrades", Progression.augment_cost_multiplier() <= 1.0)
+
+	# The discount has to reach the quoted price as well as the charge, or the button quotes
+	# one number and takes another.
+	var node := ItemDB.get_augment(&"mace_damage")
+	var quoted := Progression.next_augment_cost(&"mace_damage")
+	_check("a discounted quote is below the raw base",
+		quoted <= float(node.cost_base) + 0.001)
+
+	# Rank 50 is the item's own payout bonus, and it must reach the wallet.
+	Progression.add_mastery_xp(&"mace", EconomyMath.mastery_xp_for_rank(base, 50))
+	_check("rank 50 is reached", Progression.mastery_rank(&"mace") >= 50)
+	_check("and it multiplies that item's payout",
+		Progression.mastery_multiplier(&"mace") > Progression.mastery_multiplier(&"dynamite"))
+
+## Automation is the whole point of the Hearts economy (D2), and its rate has to reach both
+## the online tick and the offline accrual or the capstone is a Hearts sink that does nothing.
+func _automation_earns_and_toggles() -> void:
+	_suite("automation")
+	var node := ItemDB.get_augment(&"bat_sentry")
+	if node == null:
+		_check("the bat sentry exists", false)
+		return
+
+	_check("automation starts at zero",
+		is_equal_approx(Progression.automation_rate_per_second(Economy.BONES), 0.0))
+
+	# Bought by hand rather than through purchase_augment: the capstone is mastery-gated and
+	# this suite is about what the rate does, not about the gate.
+	Economy.grant(Economy.HEARTS, float(node.cost_base) * 2.0)
+	Progression.add_mastery_xp(&"baseball_bat",
+		EconomyMath.mastery_xp_for_rank(ItemDB.balance.mastery_base, node.requires_mastery))
+	_check("mastery unlocks the capstone", Progression.augment_lock_reason(&"bat_sentry").is_empty())
+	_check("the capstone can be bought", Progression.purchase_augment(&"bat_sentry", 1) == 1)
+
+	var rate := Progression.automation_rate_per_second(Economy.BONES)
+	_check("a bought capstone produces a rate", rate > 0.0)
+	_check("into its own item's currency, not the other one",
+		is_equal_approx(Progression.automation_rate_per_second(Economy.HEARTS), 0.0))
+
+	Progression.set_automation_enabled(&"bat_sentry", false)
+	_check("switching it off stops the rate",
+		is_equal_approx(Progression.automation_rate_per_second(Economy.BONES), 0.0))
+	Progression.set_automation_enabled(&"bat_sentry", true)
+	_check("and switching it back on restores it",
+		is_equal_approx(Progression.automation_rate_per_second(Economy.BONES), rate))
+
+	# Offline accrual, including the clamp that matters most.
+	var before := Economy.balance_of(Economy.BONES)
+	var earned := Economy.apply_offline_earnings(int(Time.get_unix_time_from_system()) - 600)
+	_check("ten minutes away pays Bones", float(earned.get(Economy.BONES, 0.0)) > 0.0)
+	_check("and the wallet actually received it", Economy.balance_of(Economy.BONES) > before)
+	var future := Economy.apply_offline_earnings(int(Time.get_unix_time_from_system()) + 99999)
+	_check("a clock skewed into the future pays nothing",
+		is_equal_approx(float(future.get(Economy.BONES, 0.0)), 0.0))
+
+func _contracts_track_and_pay() -> void:
+	_suite("contracts")
+	Progression.refresh_contracts(true)
+	var board := Progression.active_contracts()
+	_check("a board was rolled", not board.is_empty())
+
+	var damage_contract: ContractData = null
+	for contract in board:
+		if contract.goal_key == &"deal_damage":
+			damage_contract = contract
+	if damage_contract == null:
+		# The board is a random subset, so force the one this suite is about onto it.
+		Progression.active_contracts()
+		damage_contract = ItemDB.get_contract(&"daily_damage")
+		if damage_contract:
+			Progression._active_contracts.append(damage_contract.id)
+	if damage_contract == null:
+		_check("a damage contract exists", false)
+		return
+
+	var before := Progression.contract_progress(damage_contract.id)
+	EventBus.contract_event.emit(&"deal_damage", 50)
+	_check("progress tracks the event", Progression.contract_progress(damage_contract.id) == before + 50)
+	_check("an unfinished contract cannot be claimed",
+		not Progression.claim_contract(damage_contract.id))
+
+	EventBus.contract_event.emit(&"deal_damage", damage_contract.target)
+	_check("progress is capped at the target",
+		Progression.contract_progress(damage_contract.id) == damage_contract.target)
+	_check("a finished contract reports complete", Progression.is_contract_complete(damage_contract.id))
+
+	var ecto_before := Economy.ectoplasm
+	_check("claiming pays out", Progression.claim_contract(damage_contract.id))
+	_check("in ectoplasm", Economy.ectoplasm == ecto_before + damage_contract.reward_ectoplasm)
+	_check("and cannot be claimed twice", not Progression.claim_contract(damage_contract.id))
+
+	# A redrawn daily must come back clean. Clearing only the *departing* contracts was the
+	# original bug and it was invisible: with four dailies and three slots a claimed one
+	# reappears about three times in four, still flagged claimed — a full bar that pays
+	# nothing, and one of three slots permanently dead.
+	var reclaimed := ItemDB.get_contract(&"daily_petting")
+	if reclaimed:
+		if not Progression._active_contracts.has(reclaimed.id):
+			Progression._active_contracts.append(reclaimed.id)
+		EventBus.contract_event.emit(&"pet", reclaimed.target)
+		_check("the petting contract completes", Progression.is_contract_complete(reclaimed.id))
+		_check("and claims", Progression.claim_contract(reclaimed.id))
+		Progression.refresh_contracts(true)
+		_check("a redrawn daily is no longer flagged claimed",
+			not Progression.is_contract_claimed(reclaimed.id))
+		_check("and its progress is back to zero",
+			Progression.contract_progress(reclaimed.id) == 0)
+
+	# A generator must not finish a kindness contract unattended: sustained kindness is
+	# deliberately not a contract event.
+	var kindness_contract := ItemDB.get_contract(&"daily_kindness")
+	if kindness_contract and not Progression._active_contracts.has(kindness_contract.id):
+		Progression._active_contracts.append(kindness_contract.id)
+	var kindness_before := Progression.contract_progress(&"daily_kindness")
+	for i in 20:
+		EventBus.kindness_sustained.emit(&"boombox", 1.0, Vector2.ZERO)
+	_check("a generator's ticks do not tick a kindness contract",
+		Progression.contract_progress(&"daily_kindness") == kindness_before)
+
+## Reincarnation: the run goes, the meta stays, and he comes back somebody else.
+func _prestige_resets_the_run_and_keeps_the_meta() -> void:
+	_suite("reincarnation")
+	_check("nothing to gain on a small run", Economy.pending_ectoplasm() == 0)
+	_check("and prestige is refused when there is nothing to gain", Economy.perform_prestige() == 0)
+
+	# Something equipped and something on the desk, so the wipe has work to do.
+	EventBus.spawn_requested.emit(&"fist", Vector2.ZERO)
+	EventBus.spawn_requested.emit(&"baseball_bat", Vector2(200, 100))
+	var spawner_before := get_tree().get_first_node_in_group(&"item_spawner") as ItemSpawner
+	_check("a power is equipped before the reset",
+		spawner_before == null or spawner_before.active_power() == &"fist")
+
+	# Enough lifetime income to be worth several points.
+	Economy.grant(Economy.BONES, ItemDB.balance.prestige_divisor * 30.0)
+	var pending := Economy.pending_ectoplasm()
+	_check("a big run is worth ectoplasm", pending > 0)
+
+	var lifetime_before := Economy.lifetime_of(Economy.BONES)
+	var ecto_before := Economy.ectoplasm
+	var personality_before := Economy.personality
+	var count_before := Economy.prestige_count
+
+	var gained := Economy.perform_prestige()
+	_check("prestige returns what it granted", gained == pending)
+	_check("ectoplasm is kept and increased", Economy.ectoplasm == ecto_before + gained)
+	_check("the prestige count went up", Economy.prestige_count == count_before + 1)
+	_check("lifetime earnings survive — the curve is built on them",
+		is_equal_approx(Economy.lifetime_of(Economy.BONES), lifetime_before))
+	_check("Bones are wiped", Economy.balance_of(Economy.BONES) == 0.0)
+	_check("Hearts are wiped", Economy.balance_of(Economy.HEARTS) == 0.0)
+	_check("purchases are wiped", not Progression.is_unlocked(&"mace"))
+	_check("mastery is wiped", Progression.mastery_pool() == 0)
+	_check("automation is wiped",
+		is_equal_approx(Progression.automation_rate_per_second(Economy.BONES), 0.0))
+	_check("free starters are granted again", Progression.is_unlocked(&"baseball_bat"))
+	_check("he is somebody new", Economy.personality != personality_before)
+	_check("and the new personality exists",
+		ItemDB.get_personality(StringName(Economy.personality)) != null)
+	_check("prestige multiplies all income", Economy.prestige_multiplier() > 1.0)
+
+	# The desk has to be wiped along with the wallet. Progression forgetting the pistol while
+	# ItemSpawner keeps it equipped left the player firing a weapon they no longer own, at
+	# full damage and full payout, while the shop re-priced it as unowned.
+	var spawner := get_tree().get_first_node_in_group(&"item_spawner") as ItemSpawner
+	if spawner:
+		_check("the equipped cursor power is unequipped by a reincarnation",
+			spawner.active_power() == &"")
+		_check("and the desk is cleared of spawned items", spawner.item_count() == 0)
+
+	# Contracts are real-time, not run-scoped: resetting them would let a player farm a
+	# daily by prestiging.
+	_check("the contract board survives a reincarnation",
+		not Progression.active_contracts().is_empty())
+
+func _the_knockout_beat_runs_and_ends_upright() -> void:
+	_suite("the knockout beat")
+	var buddy := _buddy()
+	if buddy == null:
+		_check("buddy present", false)
+		return
+
+	_clear_spawned()
+	buddy.health.reset_meter()
+	var seen: Array[StringName] = []
+	var record := func(state: StringName) -> void: seen.append(state)
+	EventBus.buddy_state_changed.connect(record)
+
+	buddy.health.apply_damage(ItemDB.balance.knockout_damage)
+	_check("filling the meter knocks him out", buddy.health.down)
+
+	# Wait the whole choreography out, with a ceiling so a beat that never finishes fails
+	# the test instead of hanging the run.
+	var b := ItemDB.balance
+	var budget := b.knockout_collapse_time + b.knockout_downtime + b.knockout_reassemble_time + 2.0
+	var deadline := Time.get_ticks_msec() + int(budget * 1000.0)
+	while buddy.health.down and Time.get_ticks_msec() < deadline:
+		await get_tree().process_frame
+	EventBus.buddy_state_changed.disconnect(record)
+
+	_check("he gets back up", not buddy.health.down)
+	for state in [&"knockout", &"pile", &"reassemble", &"idle"]:
+		_check("the beat passes through '%s'" % state, seen.has(state))
+	_check("collapse comes before the pile", seen.find(&"knockout") < seen.find(&"pile"))
+	_check("the pile comes before reassembling", seen.find(&"pile") < seen.find(&"reassemble"))
+	_check("and he ends up idle", seen[seen.size() - 1] == &"idle")
+
+	_check("the meter is reset", buddy.health.damage == 0.0)
+	_check("he is unfrozen and playable again", not buddy.freeze)
+	_check("he ends upright", is_zero_approx(buddy.global_rotation))
+	_check("and the squash is undone",
+		buddy.sprite == null or buddy.sprite.scale.is_equal_approx(Vector2(2, 2)))
+
+## The sponge is the whole dual-currency argument in one object: the cheapest Hearts item
+## is what protects the Bones economy. Worth a real physics contact rather than a direct
+## call, because "does it actually touch him" is the part that breaks.
+func _the_sponge_cleans_him_and_pays() -> void:
+	_suite("the sponge")
+	var buddy := _buddy()
+	if buddy == null:
+		_check("buddy present", false)
+		return
+
+	_clear_spawned()
+	Economy.grant(Economy.HEARTS, float(ItemDB.get_item(&"sponge").cost))
+	_check("the sponge can be bought", Progression.purchase_item(&"sponge"))
+
+	buddy.grime.set_value(1.0)
+	buddy.health.reset_meter()
+	var hearts_before := Economy.balance_of(Economy.HEARTS)
+	EventBus.spawn_requested.emit(&"sponge", buddy.global_position)
+	for i in 120:
+		await get_tree().physics_frame
+
+	_check("touching him with it removes grime", buddy.grime.value < 1.0)
+	_check("and pays Hearts for what came off",
+		Economy.balance_of(Economy.HEARTS) > hearts_before)
+	_clear_spawned()
+	buddy.grime.set_value(0.0)
+
+func _buddy() -> Buddy:
+	return get_tree().get_first_node_in_group(&"buddy") as Buddy
 
 ## The one piece that cannot be checked with a synthetic signal: whether
 ## _integrate_forces turns a real collision into a real HitInfo. This is the correction
@@ -248,12 +1051,19 @@ func _save_survives_a_restart() -> void:
 	Economy.grant(Economy.BONES, 1234.0)
 	var bones := Economy.balance_of(Economy.BONES)
 	var damage_levels := Progression.augment_level(&"bat_damage")
+	var buddy := _buddy()
+	if buddy:
+		buddy.mood.set_value(-42.0)
+		buddy.grime.set_value(0.3)
 	_check("save written", SaveManager.save_game())
 
 	# Simulate a restart: wipe the live state, then load it back.
 	Economy.from_save({})
 	Progression.from_save({})
+	if buddy:
+		buddy.from_save({})
 	_check("state actually cleared", Economy.balance_of(Economy.BONES) == 0.0)
+	_check("and so is his mood", buddy == null or buddy.mood.value == 0.0)
 	await get_tree().process_frame
 
 	SaveManager.load_game()
@@ -263,6 +1073,11 @@ func _save_survives_a_restart() -> void:
 	_check("starters still granted after a reload", Progression.is_unlocked(&"baseball_bat"))
 	_check("modifier cache rebuilt from the loaded save",
 		Progression.get_modifier(&"baseball_bat", &"payout_mult") > 1.0)
+	# Mood and grime are the player's position in the two M3 loops. A save that drops them
+	# hands back the U-curve's 0.6x trough at the start of every session.
+	_check("his mood survived the restart", buddy == null or is_equal_approx(buddy.mood.value, -42.0))
+	_check("his grime survived the restart", buddy == null or is_equal_approx(buddy.grime.value, 0.3))
+	_check("and Economy's mirrors followed", is_equal_approx(Economy.mood, buddy.mood.value if buddy else 0.0))
 
 # --- harness ---------------------------------------------------------------
 

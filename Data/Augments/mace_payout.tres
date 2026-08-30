@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_mugxb"]
+
+[resource]
+script = ExtResource("1_mugxb")
+id = &"mace_payout"
+item_id = &"mace"
+display_name = "Bone Tax"
+effect_key = &"payout_mult"
+effect_per_level = 1.12
+cost_base = 70
+sort_order = 1

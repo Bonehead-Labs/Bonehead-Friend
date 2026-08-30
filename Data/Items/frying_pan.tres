@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="PackedScene" path="res://Scenes/Props/frying_pan.tscn" id="1_1tqqm"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/frying_pan.png" id="1_8gkf7"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="2_8gkf7"]
+
+[resource]
+script = ExtResource("2_8gkf7")
+id = &"frying_pan"
+display_name = "Frying Pan"
+description = "A tremendous flat clang. Sends him further than it hurts him."
+cost = 250
+scene = ExtResource("1_1tqqm")
+icon = ExtResource("1_8gkf7")
+sort_order = 5

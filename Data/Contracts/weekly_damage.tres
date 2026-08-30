@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ContractData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/contract_data.gd" id="1_qj3f0"]
+
+[resource]
+script = ExtResource("1_qj3f0")
+id = &"weekly_damage"
+display_name = "Full Body Workout"
+description = "Deal 100,000 damage."
+goal_key = &"deal_damage"
+target = 100000
+period = 1
+reward_ectoplasm = 5
+sort_order = 40

@@ -1,0 +1,18 @@
+{
+	"version": 1,
+	"saved_at_unix": 1756425600,
+	"last_played_unix": 1756425600,
+	"playtime_sec": 912,
+	"currencies": { "bones": 1875.5, "hearts": 0.0 },
+	"lifetime": { "bones": 4310.25, "hearts": 0.0 },
+	"prestige": { "ectoplasm": 0, "count": 0, "personality": "stoic" },
+	"unlocks": [ "baseball_bat", "dynamite", "fist", "grenade", "mace" ],
+	"augments": { "bat_damage": 3, "bat_payout": 2 },
+	"exclusive_choices": {},
+	"mastery_xp": { "baseball_bat": 640.0 },
+	"mastery_pool": 0,
+	"offline_cap_level": 0,
+	"contracts": { "active": [], "progress": {}, "refreshed_at": 0 },
+	"cosmetics": { "owned": [], "equipped": [] },
+	"stats": { "damage_dealt": 8620.5, "pets": 0, "knockouts": 11 }
+}

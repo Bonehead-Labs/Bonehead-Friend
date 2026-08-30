@@ -62,6 +62,64 @@ Read `docs/README.md` first — it indexes the full spec. Design questions are a
 - **Autoload boot order** is load-bearing:
   `EventBus → Settings → SaveManager → ItemDB → Economy → Progression → OverlayManager → AudioManager`.
 
+## UI
+
+The shell is **Bonecard** (docs/decisions.md D20, docs/art-direction.md § UI). Three rules
+that are not obvious from the code:
+
+- **Panels never build their own look.** Set `theme_type_variation` and let
+  `Scripts/UI/ui_theme.gd` answer. Adding a variation means adding it to `UITheme` *and* to
+  the `shell` suite in `loop_check` — a misspelled variation silently falls back to the base
+  type and merely looks wrong.
+- **The type is Jersey 25 (display) and Jersey 15 (reading), with DotGothic16 behind them
+  for CJK.** They replaced Silkscreen + Pixelify Sans, which a playtest found hard to read;
+  Pixelify also drew 5 as something that read as 8. Sizes are chosen by *measured cap
+  height* — see the ladder in `ui_style.gd`, and change it the same way.
+- **No text may be dimmed with alpha.** `loop_check`'s `contrast` suite asserts every ink
+  against every surface at 4.5:1, and a disabled control uses `UIStyle.DISABLED_INK`. The
+  palette was picked by eye once and Bones came out at 2.97:1 on a sunk well.
+- **All menu animation goes through `UIMotion`** (D21), which is off when Focus Mode is Off and
+  always off in headless. Never tween `position` or `size` on a control inside a `Container`,
+  and never fade a card — the window is transparent behind it.
+- **There is one navigation and one card size** (D22). The tab strip owns the panel; the HUD
+  has no dock. Every page is the same size and scrolls internally, with
+  `SCROLL_MODE_SHOW_NEVER` rather than `SCROLL_MODE_DISABLED` — a disabled axis folds the
+  child's minimum size into the ScrollContainer and one long line widens the card for every
+  page.
+- **Anything that pins `Settings.ui_scale` must restore it.** The screenshot tool did not,
+  so every capture after it was silently at 2x — including the ones used to judge whether
+  1x was readable.
+- **Every picture is exactly the size of the box that holds it** (D27). Go through
+  `UIStyle.icon()` / `sprite()` / `set_sprite()` / `item_face(item, box)`, never `rect.texture`
+  or `button.icon` directly — a Button *grows* to fit its icon, so one 64px PNG made a shop row
+  nearly twice the height of the row under it and pushed that row's name 30px right. Oversized
+  art is stepped down by a whole number and centred on a box-sized canvas; nothing is resampled
+  at a fraction. `ui_check`'s `geometry` suite measures against the **declared** box, because
+  measuring the realised size passes the very bug it exists to catch.
+- **A page that is not on screen does no work** (D28). Pages extend `PanelPage` and call
+  `request_refresh()` / `request_rebuild()`; deferred work replays on open. Never gate on
+  `visible` — a page's own flag is written only when the card switches pages, so the last page
+  opened stays flagged visible under a shut card and `if visible:` passes forever.
+- **The shell is scaled by a whole number per CanvasLayer** (D23, `UIScale`). Because of that,
+  `get_global_rect()` on any shell Control is in canvas space and wrong by the scale factor:
+  anything comparing a control to a mouse position uses `UIScale.screen_centre` /
+  `screen_rect`. Each layer's root Control is sized explicitly rather than anchored full-rect.
+
+Two capture tools exist because the shell cannot be reviewed from source:
+
+```bash
+# The nine screens, as PNGs in user://ui_shots (NOT --headless: it has to draw)
+"$GODOT" --path "$PROJ" res://tools/ui_shots.tscn
+
+# Motion, as frame sequences in user://ui_motion. --fixed-fps is mandatory: without it each
+# frame's delta is however long the previous PNG took to write.
+"$GODOT" --fixed-fps 60 --path "$PROJ" res://tools/ui_motion_shots.tscn
+```
+
+Both run the real `main.tscn` against their **own save slot**, which `CaptureWindow` clears
+before and after. Anything else that boots `main.tscn` outside the game must do the same — the
+first version of these tools left staged test state in the player's save.
+
 ## Save data
 
 - Versioned JSON at `user://save/slot_1.json`, written atomically (`.tmp` → rename, previous
@@ -91,9 +149,26 @@ PROJ='C:\Users\George\Godot Projects\Projects\Bonehead_Friend\interactive-buddy-
 # Boot smoke test — catches broken @export refs and missing scene paths
 "$GODOT" --headless --path "$PROJ" --quit-after 120
 
+# Window modes, against a real DisplayServer. NOT headless — a headless run has no window,
+# so apply_window_configuration() returns immediately and none of this is exercised. This
+# exists because Overlay -> Play area silently stopped working and nothing could catch it.
+"$GODOT" --path "$PROJ" res://tools/window_check.tscn
+
 # Seed res://Data (writes only files that do not exist; add `-- --force` to overwrite)
 "$GODOT" --headless --path "$PROJ" res://tools/seed_data.tscn
+"$GODOT" --headless --path "$PROJ" res://tools/seed_friendly.tscn
+"$GODOT" --headless --path "$PROJ" res://tools/seed_m3_content.tscn
+
+# Visual audit. NOT headless — headless does not render and its viewport is 64x64.
+# --screen N picks the monitor, --overlay runs the real fullscreen overlay instead of a
+# play-area window. Shots land in user://audit/ and are suffixed with the screen.
+"$GODOT" --path "$PROJ" res://tools/audit_shots.tscn -- --screen 1 --overlay
 ```
+
+Check layout on **more than one monitor**: the HUD anchors to window corners that are much
+further apart on a 3440x1440 ultrawide than on a 2560x1440 16:9 panel, and a panel height
+that looks right in one is wrong in the other. Three layout bugs came out of exactly that
+comparison in M3.
 
 `--path` takes a **Windows** path because Godot is a Windows process. Adding `--editor --quit`
 opens the project in the editor headlessly, which is how to verify an addon loads.
@@ -127,6 +202,65 @@ GDScript quirks already paid for once each:
 - **A SubViewport with no `SubViewportContainer` above it never learns the mouse is inside
   it**, and physics picking is gated on that, so pushed input reaches GUI but never the
   world. Send `notification(Viewport.NOTIFICATION_VP_MOUSE_ENTER)` yourself in tests.
+- **A solved inverse needs the same epsilon a `floor()` does.** `MasteryMath.rank_for_xp`
+  inverts `base * rank^1.6`; without `EPSILON` before the floor, a player who has *exactly*
+  reached rank 10 is told they are rank 9 — at precisely the threshold they are watching. Every
+  `floor()` in `EconomyMath` exists for the same reason.
+- **`_set` is `Object`'s own property-setter virtual.** A private helper named `_set(value)`
+  fails to parse with "the function signature doesn't match the parent", and because it is a
+  parse error it takes every dependent script down with it — the failure surfaces as
+  `main.gd` failing to load, nowhere near the file at fault.
+- **`get_meta(key, null)` does not suppress the error**, because a null default is
+  indistinguishable from no default given — and `set_meta(key, null)` *removes* the key rather
+  than storing a null. Guard every optional meta read with `has_meta()` first. This took out
+  the whole upgrade panel on boot.
+- **A `StyleBox` with no content margins has no minimum size**, and a scrollbar's thickness
+  *is* its track stylebox's minimum size — so a themed `VScrollBar` came out zero pixels wide
+  and a panel that scrolled perfectly looked like it was cut off.
+- **A child of a plain `Control` is never laid out**, so it keeps the zero size it was created
+  with — and, just as importantly, keeps its *old* size when its minimum later shrinks. Own
+  both halves of its rect (`size` **and** `position`) and `reset_size()` deferred as well as
+  immediately, because the minimum it clamps to is recomputed later in the frame. A tab strip
+  that had grown to 697px stayed 697px inside a 480px window when the play area stepped down.
+  Anchoring is not enough; give it explicit offsets. (A `Container`, by contrast, lays
+  out *every* child into the same rect — which is how a full-card strike-through overlay is
+  built, deliberately.)
+- **A GDScript lambda captures locals by value.** A counter incremented inside one leaves
+  the outer variable at zero — which in a test means reporting a working mechanic as broken.
+  Capture an `Array` or a member instead.
+- **Looking a node up by name across a scene boundary is the same bug as an absolute node
+  path.** `ExplosionUtil` required a child called `_explosionAreaShape`; when the item scenes
+  were rebuilt from script the shape came out called `CollisionShape2D`, and *every explosion
+  in the game applied no force at all* for the price of one `push_warning` nobody read. Find
+  things by what they are.
+- **The Aseprite importer marks every animation as looping**, so a one-shot effect replays
+  for the life of its node. `set_animation_loop(name, false)` and free on `animation_finished`.
+- **A `SubViewportContainer` competes with pushed input.** `tests/integration/ui_check.gd` uses
+  a bare SubViewport for a reason; adding a container above one makes synthetic mouse events
+  stop reaching buttons. Tools that push input host the scene in the **root** viewport instead.
+- **A `Button` state the theme does not define falls through to Godot's stock dark theme**,
+  not to a neutral default. Nothing in the shell defined `hover_pressed`, so hovering any
+  toggled-on button — every page tab, every shop category, every selected list row — drew a
+  dark stock box under our dark ink and the label vanished. `loop_check`'s contrast suite now
+  walks the Theme itself and grades every (stylebox, font colour) pair it defines.
+- **Never poll `get_mouse_position()` for hover logic.** It reads the OS cursor, which no
+  synthetic event can move, so anything built on it cannot be driven by a test or a capture
+  tool. Track `InputEventMouseMotion.position` instead (and treat `NOTIFICATION_WM_MOUSE_EXIT`
+  as the cursor leaving, since no further motion arrives).
+- **`size_changed` on the viewport is not enough after a window-mode change.** The window
+  resize has not landed when the setting is applied, so a layout done then is against the
+  previous window. `OverlayManager.window_rect_changed` fires once it has settled.
+- **`Image.create()` is deprecated; `Image.create_empty()` is the current spelling.**
+- **A pinned `Settings.ui_scale` must be allowed to lose.** Play area size and menu size are two
+  settings the player reaches independently, and the smallest rung at 2x leaves a 240x180 root —
+  smaller than the card's own minimum in both axes, so the card clamps *up* past the window and
+  takes the tab strip that would have fixed it off-screen with it. `UIScale.factor_for()` steps a
+  pinned factor down until the shell fits; `window_check` asserts six rungs x three scales.
+- **A test that reads `Settings` must pin what it reads and restore what it writes.** `ui_check`
+  clicks a real Focus Mode button, whose handler calls `save_settings()` and serialises *every*
+  field — so a run used to leave the developer's own Menu size wherever the test put it, and every
+  screenshot taken afterwards was silently at the wrong scale. Capture on the first line of
+  `_ready()`, before anything is stomped, and `save_settings()` again before quitting.
 - **A headless viewport is 64x64**, not the project's 1280x720. Anything derived from the
   window size — `WorldBounds`, the trash bin anchor, the buddy's out-of-bounds rescue — is
   meaningless in a headless run, and a generated floor ends up inside the buddy rather than
@@ -144,6 +278,13 @@ Two more constraints the test runner imposes, both already worked around:
 
 Run the test suite before any commit touching `Economy`, `Progression` or `SaveManager`, and
 the UI check before any commit touching `Scripts/UI/`.
+
+**Signal handler order is load-bearing in the payout pipeline.** Autoloads connect to
+`EventBus` before scene nodes do, so `Economy` pays at the mood and grime in force *when the
+event fired*, and `MoodComponent` / `GrimeComponent` move them a moment later. Any test that
+computes an expected payout must read the multipliers **before** emitting — three assertions
+failed this way while M3 was being built.
+
 Overlay behaviour cannot be unit-tested — work through `docs/test-matrix.md` by hand at the
 M1, M2 and M4 gates, and measure CPU on an **exported build** (editor numbers lie).
 
@@ -161,18 +302,67 @@ generation (it can double-charge — recover the result by request id instead).
 
 ## Current state
 
-M2's systems are built, clicked and verified; the playtest half of its gate is not done. See
-the M2 progress note in `docs/roadmap.md` for exactly what is and is not finished — it is the
-handoff list, kept current.
+**M3's engineering is closed. What remains of the milestone is the art pass and the two
+playtests — neither of which can be done from a keyboard.** Mood, grime, the Hearts economy, the knockout beat, mastery and the shared pool,
+automation capstones, the contract board, Reincarnation with five personalities, a 16-item
+roster and the debug CSV tuning log are done and verified — 660 assertions across the four
+suites (193 unit / 309 loop / 148 UI / 10 window), save schema at v3.
 
-There is **no settings menu**: Esc is Resume / Save now / Save and quit, and the window and
-Focus Mode knobs are F3-overlay dev hotkeys until the M4 settings UI.
+The shell was then hardened against the content still to come (roadmap M3 pass five): the art
+size contract (D27), `PanelPage` (D28), auto-hide with pinning (D29), a `hover_pressed` state on
+every button variation, one tab width, a stacked purse that prints grouped digits, and three
+separate contrast grids — `UIStyle`'s constants, the `Theme`'s own states, and the **live tree**.
+The third exists because the first two both missed a real bug.
+
+Two playtests are outstanding and between them are most of what is left before M4: M2's
+five-minute non-developer test and M3's 30-minute no-dead-ends session.
+
+See the M3 and M2 progress notes in `docs/roadmap.md` for exactly what is and is not
+finished — they are the handoff list, kept current.
+
+The settings panel covers window mode, play-area size, corner, monitor, Focus Mode, Low
+Power and volumes (docs/decisions.md D16). Streamer mode and hibernate are still M4 — though
+auto-hide (D29) delivers most of what streamer mode was for. The F3
+dev hotkeys still work and change the same `Settings` values, which is why the panel re-reads
+them on every refresh instead of caching.
+
+**Item physics is authored, not derived.** `tools/seed_bodies.gd` carries a `PHYSICS` table
+— shapes, centre of mass, where the drag joint pins, and where the grab region sits — in the
+same art-pixel space as the scale table. Rebuilding the prototype scenes from the sprite
+alone replaced a capsule-and-grip bat that swung with weight in its head with a box pinned at
+its centre, which is a plank on a string. Anything not in the table falls back to a box
+around the sprite, which is right for a grenade and a ball and nothing else.
 
 `Scripts/Globals/` is gone — the production layout is `Scripts/{Autoload,Bodies,Buddy,Combat,
 Components,Data,Economy,Overlay,Progression,Save,UI,World}`. Remaining prototype surface worth
 knowing about: the item scenes under `Scenes/Bodies/` still carry their prototype node names
 (`_grenadeSprite`, `_handle`) and `Scenes/Bodies/base_body.tscn` is still the bat/mace base.
 
-There is **no art and no `Theme`**. `Scripts/UI/ui_style.gd` is the single placeholder styling
-file the art pass replaces; impact sounds are synthesised at boot in `AudioManager` rather than
-loaded (docs/decisions.md D12).
+**The buddy is animated** — nine body tags in `art/src/bonehead.aseprite` plus ten facial
+expressions in `bonehead_face.aseprite`, driven by `Scripts/Buddy/buddy_art.gd`. Body is
+generated (Retro Diffusion), face is hand-drawn and composited, because a face does not
+survive the generator. Regenerate previews with `python3 art/tools/preview.py` and look in
+`art/preview/`. Read the gotchas in `docs/art-pipeline.md` before generating more — three of
+them cost real time to find.
+
+There is otherwise **no art and no `Theme`** — this is the bulk of what is left in M3.
+`Scripts/UI/ui_style.gd` is the single placeholder styling file the art pass replaces (the UI
+spec it has to satisfy is `docs/art-direction.md` § UI: opaque chunky panels, 9-slice at 2x, a
+real pixel font chosen for CJK). All sounds are synthesised at boot in `AudioManager` rather
+than loaded (docs/decisions.md D12). Thirteen items now have real sprites and icons and the
+explosion is a generated animation; what is left is the `Theme`, the rest of the VFX set,
+the grime overlay (still a tint on the puppet), crosshairs, and a visible automation device.
+
+**Item scale is enforced by a table**, not by eye: `docs/art-direction.md` anchors every item
+on Bonehead's 63 px body and `art/tools/item_postprocess.py` resizes each sprite to its entry.
+The prototype sprites were all drawn to fill their cell, which is how a hand grenade ended up
+87% of his height. Regenerate scenes with `tools/seed_bodies.tscn`, `seed_friendly.tscn` and
+`seed_m3_content.tscn`; wire icons with `tools/wire_icons.tscn`.
+
+**The layout code is production and stays** (docs/decisions.md D13) — every shop tile, augment
+row and contract card is generated from `ItemDB`. Only the look is placeholder.
+
+`buddy.tscn` has **not** been opened in the editor since M3, so `MoodComponent` and
+`GrimeComponent` are `@export` slots that `buddy.gd` fills in at `_ready()` when the scene
+leaves them null. That is a tooling accommodation, not a design — the art pass opens the
+scene and should author both properly.

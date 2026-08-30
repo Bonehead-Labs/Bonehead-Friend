@@ -25,9 +25,9 @@ Registered in this order — boot order is load-bearing.
 | 1 | `EventBus` | `Scripts/Autoload/event_bus.gd` | Signal declarations only. Zero state, zero logic. |
 | 2 | `Settings` | `settings.gd` | `user://settings.cfg` — monitor id/rect, Focus Mode, volumes, low-power, streamer mode. Machine-local, **never** cloud-synced. |
 | 3 | `SaveManager` | `save_manager.gd` | Versioned JSON at `user://save/`, atomic writes, `.bak` fallback, migrations, debounced autosave. |
-| 4 | `ItemDB` | `item_db.gd` | Scans `res://Data/` at boot. Read-only lookup of `ItemData` / `AugmentNode` / `MasteryTrack` / `ContractData` by id, plus `balance`. |
+| 4 | `ItemDB` | `item_db.gd` | Scans `res://Data/` at boot. Read-only lookup of `ItemData` / `AugmentNode` / `ContractData` / `PersonalityData` by id, plus `balance` and the active mood curve. |
 | 5 | `Economy` | `economy.gd` | Currency balances, the payout pipeline, lifetime totals, offline earnings, prestige. |
-| 6 | `Progression` | `progression.gd` | Owned unlocks, augment levels, exclusive choices, mastery XP, contract state. Answers `get_modifier()`. |
+| 6 | `Progression` | `progression.gd` | Owned unlocks, augment levels, exclusive choices, mastery XP and pool, automation toggles, contract board. Answers `get_modifier()`, `mastery_multiplier()` and `automation_rate_per_second()`. |
 | 7 | `OverlayManager` | `overlay_manager.gd` | Window flags, passthrough polygon, monitor persistence, FPS governor, hibernate. See `overlay-tech.md`. |
 | 8 | `AudioManager` | `audio_manager.gd` | Bus setup, pooled players (voice cap 8), pitch-randomised layered impacts, mute-when-unfocused. |
 
@@ -49,6 +49,7 @@ extends Node
 # --- combat / interaction ---
 signal damage_dealt(info: HitInfo)                        # buddy -> Economy, contracts, FX
 signal kindness_given(source_id: StringName, value: float, world_pos: Vector2)
+signal kindness_sustained(source_id: StringName, value: float, world_pos: Vector2)  # rate-paid; no combo (D14)
 signal payout(currency: StringName, amount: float, world_pos: Vector2)
 signal currency_changed(currency: StringName, balance: float)
 
@@ -63,7 +64,10 @@ signal item_purchased(item_id: StringName)
 signal augment_purchased(node_id: StringName, level: int)
 signal mastery_rank_up(item_id: StringName, rank: int)
 signal contract_event(key: StringName, count: int)        # &"deal_damage", &"pet", &"use:bat"
+signal contract_completed(contract_id: StringName)       # target reached, reward unclaimed
+signal contract_claimed(contract_id: StringName, ectoplasm: int)
 signal prestige_performed(ectoplasm_gained: int)
+signal automation_changed()                              # a capstone was bought or toggled
 
 # --- buddy ---
 signal mood_changed(value: float)                         # -100..+100
@@ -120,15 +124,15 @@ class_name AugmentNode extends Resource
 @export var requires_prestige: int
 ```
 
-Also: `MasteryTrack` (xp thresholds, per-rank bonuses), `ContractData` (goal key, target,
-period, reward), and **`balance.tres`** — one resource holding every global knob (mood `Curve`,
+Also: `ContractData` (goal key, target, period, Ectoplasm reward), `PersonalityData` (a name
+and **one mood `Curve`** — that is the whole of a personality, see D19), and **`balance.tres`** — one resource holding every global knob (mood `Curve`,
 `bones_per_damage`, `min_damage_impulse`, knockout params, offline cap and efficiency, prestige
 constants, item limit). `balance.tres` is the tuning spreadsheet; nothing else hard-codes a rate.
 
 Currencies are `StringName`-keyed dictionaries throughout (`Economy._balances`), so collapsing
 to a single currency — or adding a fourth — is a data change, not a refactor.
 
-### Save schema (v1)
+### Save schema (v3)
 
 ```json
 { "version": 1,
@@ -138,8 +142,10 @@ to a single currency — or adding a fourth — is a data change, not a refactor
   "prestige":   { "ectoplasm": 0, "count": 0, "personality": "stoic" },
   "unlocks": [], "augments": {}, "exclusive_choices": {},
   "mastery_xp": {}, "mastery_pool": 0,
+  "buddy": { "mood": 0.0, "grime": 0.0 },
+  "automation_off": [],
   "offline_cap_level": 0,
-  "contracts": { "active": [], "progress": {}, "refreshed_at": 0 },
+  "contracts": { "active": [], "progress": {}, "claimed": [], "refreshed_at": 0 },
   "cosmetics": { "owned": [], "equipped": [] },
   "stats": { "damage_dealt": 0, "pets": 0, "knockouts": 0 } }
 ```
@@ -149,6 +155,16 @@ Each autoload implements `to_save() -> Dictionary` and `from_save(d: Dictionary)
 `user://save/` — a variable rather than a constant so the headless loop check runs against its
 own slot instead of overwriting the save of whoever is running the tests. Write path: serialise → `slot_1.json.tmp` → rename over
 `slot_1.json`, previous copy kept as `.bak`. Load path: parse failure falls back to `.bak`.
+
+`automation_off` lists the capstones the player has switched **off**, not the ones they have on.
+Absence therefore means running, which is what a save written before automation existed should
+mean — the inverse spelling would arrive from v2 with every future capstone disabled and no way
+for the player to know why.
+
+`Buddy` is itself a save provider for the `buddy` block — mood and grime are his state, and
+`Economy` only mirrors them off the bus so the payout pipeline can multiply by them (D15).
+The buddy registers in `_ready()` and unregisters in `_exit_tree()`, so a scene change does
+not leave `SaveManager` holding a freed node.
 
 Migrations are an ordered chain of `_migrate_1_to_2(d)` functions. Unknown keys are preserved.
 **Every schema change needs: `SAVE_VERSION` bump + migration step + a fixture save in
@@ -172,8 +188,8 @@ Main (Node) ── main.gd  (thin bootstrapper)
 │  ├─ Buddy (buddy.tscn)
 │  └─ Props (trash bin, contract board, automation devices)
 ├─ FXLayer   (CanvasLayer 5)     # floating numbers, impact sparks — Focus-Mode gated
-├─ HUD       (CanvasLayer 10)    # currency chips, mood meter, dock buttons
-├─ PanelLayer(CanvasLayer 20)    # Shop / Tree / Contracts / Settings — opaque panels
+├─ HUD       (CanvasLayer 10)    # currency chips, knockout + mood meters, toast, dock
+├─ PanelLayer(CanvasLayer 20)    # Toys / Upgrades / Jobs / Rebirth / Settings — opaque panels
 ├─ EscMenu   (CanvasLayer 30)
 └─ Tray (StatusIndicator)        # Show/Hide, Pause, Settings, Quit
 ```
@@ -184,6 +200,15 @@ a real `Theme` resource and a chosen font — the prototype has neither.
 `main.tscn` holds only `World` (bounds, spawner, buddy, props). The four CanvasLayers are built
 by `main.gd` at boot, because every widget on them is generated from data (docs/decisions.md
 D13). `Scripts/UI/ui_style.gd` is the one place styling lives until the `Theme` exists.
+
+`main.gd` also installs `TuningLog` — but only under `OS.is_debug_build()`. It writes every
+payout and purchase to `user://logs/`, which is the instrument the M3 balance gate needs and a
+performance bug in a shipped build.
+
+The panel's scroll height is a function of the window and of the page being shown, not a
+constant: a long shop scrolls, a short settings page is a short panel, and neither leaves dead
+space on a 1440p overlay. A fixed height is wrong in both directions and the play area is
+resizable at runtime.
 
 `ItemSpawner` is a node, not an autoload, because it needs a parent to instance into. It tags
 every spawned node into groups (`spawned_item`, `interactive`) which is how the trash bin, the
@@ -227,10 +252,28 @@ layered, pitch-randomised impact. Kindness uses the identical path via `kindness
 ```
 BaseDraggable (RigidBody2D)      # KEEP — pin-joint-to-invisible-handle drag IS the game feel
 ├─ WeaponBase                    # item_id, damage_mult, mastery hooks, auto-swing (capstone)
-└─ ThrowableBase                 # prime()/explode() template; shared falloff impulse
+├─ ThrowableBase                 # prime()/explode() template; shared falloff impulse
+└─ FriendlyBase                  # the whole kindness roster, as exported numbers
 
 CursorPowerBase (Node2D)         # item_id, activate()/deactivate(), cursor texture, fire(pos)
+├─ GunPower                      # pistol and shotgun: pellets + spread, same class
+├─ MissilePower
+└─ OpenHandPower                 # petting; declines clicks that miss him
 ```
+
+`OpenHandPower` tracks a `_stroking` flag set by a press this power actually claimed, rather
+than polling `Input.is_mouse_button_pressed`. Polling bypasses the whole `_unhandled_input`
+chain that exists so UI can consume a click first: with a panel open over the buddy, holding
+the button on a shop tile would pay Hearts at four a second with the cursor nowhere near him.
+
+`FriendlyBase` is one class for every friendly item because the catalog has exactly three
+shapes: a burst on touch (pizza), a rate while something is true (sponge scrubbing, boombox
+playing), and a consumable that leaves when used. Each is an exported number, so a new
+friendly item is a `.tres` plus a scene with different values in it (D8).
+
+`CursorPowerBase.can_fire_at(pos)` lets a power decline a click. A declined click is left
+unhandled, so the world still sees it — which is how the open hand can be a cursor power
+without making everything outside his silhouette undraggable while it is equipped.
 
 `CursorPowerBase` replaces three copy-pasted activation implementations. Each instance listens
 to `cursor_power_changed` and deactivates itself when the id isn't its own — which deletes the
@@ -273,12 +316,22 @@ Buddy (RigidBody2D) ── buddy.gd : StateMachine
 ├─ DraggableArea (Area2D)
 ├─ HealthComponent               # the knockout damage meter
 ├─ MoodComponent                 # -100..+100, decays toward 0, drives payouts and animation
+├─ GrimeComponent                # 0..1, suppresses Bones income; only the sponge removes it
 ├─ HitBox (Area2D)
 └─ EffectsPlayer
 ```
 
 Knockout is a scripted beat, not simulated dismemberment: tip over → swap to a bone-pile sprite
-→ payout fountain → reassemble tween. Cheap, gore-free, and repeatable forever.
+→ payout fountain → reassemble tween. Cheap, gore-free, and repeatable forever. He is `freeze`d
+for the whole beat, so the collapse is choreography rather than whatever the solver does with a
+body full of accumulated impulse. States fire in order `knockout → pile → reassemble → idle`;
+`Economy` pays the bonus off the first of those, because it is the only thing allowed to mint
+currency, so the buddy announces rather than awards.
+
+`MoodComponent` and `GrimeComponent` are `@export` slots that `buddy.gd` fills in at `_ready()`
+if the scene has not authored them. That is a tooling accommodation, not a design: scene edits
+must be made in the editor (CLAUDE.md), and the M3 art pass is the point at which `buddy.tscn`
+is opened and both are authored properly alongside the grime sprite layer they will drive.
 
 The state machine, `HealthComponent` and the payout pipeline form a stable interface. If a
 jointed ragdoll is ever added post-1.0, it slots in behind that interface without touching

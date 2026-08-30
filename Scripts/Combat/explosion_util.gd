@@ -29,11 +29,12 @@ static func blast_strength(distance: float, radius: float, max_force: float) -> 
 ## magnitude is returned rather than discarded because damage is measured on the receiver
 ## (docs/decisions.md D7): the blast hands Bonehead the same kind of number the contact
 ## solver would, and he decides what it costs him.
-static func apply_blast(area: Area2D, origin: Vector2, max_force: float, shape_node: String = "_explosionAreaShape") -> Array[Dictionary]:
+static func apply_blast(area: Area2D, origin: Vector2, max_force: float, shape_node: String = "") -> Array[Dictionary]:
 	var affected: Array[Dictionary] = []
-	var cs := area.get_node_or_null(shape_node) as CollisionShape2D
-	if cs == null or not (cs.shape is CircleShape2D):
-		push_warning("ExplosionUtil: %s has no circular %s" % [area.name, shape_node])
+	var cs := _circle_in(area, shape_node)
+	if cs == null:
+		push_error("ExplosionUtil: %s has no circular collision shape, so its blast does "
+			% area.name + "nothing at all")
 		return affected
 
 	var radius := blast_radius((cs.shape as CircleShape2D).radius, cs.global_scale.x)
@@ -50,6 +51,25 @@ static func apply_blast(area: Area2D, origin: Vector2, max_force: float, shape_n
 		body.apply_impulse(dir * strength, Vector2.ZERO)
 		affected.append({"body": body, "impulse": strength})
 	return affected
+
+## The blast's shape, found by *looking for it* rather than by name.
+##
+## This used to require a child called `_explosionAreaShape` — the name the prototype's
+## hand-authored scenes happened to use. When those scenes were rebuilt from script the
+## shape came out called `CollisionShape2D`, the lookup returned null, and every explosion
+## in the game silently applied no force whatsoever for the price of one `push_warning`
+## nobody was reading. A node name is not a contract; a circular shape under the blast area
+## is.
+static func _circle_in(area: Area2D, preferred: String) -> CollisionShape2D:
+	if preferred != "":
+		var named := area.get_node_or_null(preferred) as CollisionShape2D
+		if named and named.shape is CircleShape2D:
+			return named
+	for child in area.get_children():
+		var cs := child as CollisionShape2D
+		if cs and cs.shape is CircleShape2D:
+			return cs
+	return null
 
 ## The same blast without an authored Area2D: a shape query against the physics space.
 ##

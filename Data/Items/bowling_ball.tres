@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/bowling_ball.png" id="1_a7uw4"]
+[ext_resource type="PackedScene" path="res://Scenes/Props/bowling_ball.tscn" id="1_bfnfu"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="2_a7uw4"]
+
+[resource]
+script = ExtResource("2_a7uw4")
+id = &"bowling_ball"
+display_name = "Bowling Ball"
+description = "Fourteen kilos of bad news. Drop it from height."
+category = 4
+cost = 700
+scene = ExtResource("1_bfnfu")
+icon = ExtResource("1_a7uw4")
+sort_order = 10

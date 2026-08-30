@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_5rccp"]
+
+[resource]
+script = ExtResource("1_5rccp")
+id = &"bat_pillow"
+item_id = &"baseball_bat"
+display_name = "Pillow Bat"
+description = "Does almost nothing, and he loves you for it."
+tier = 2
+effect_key = &"damage_mult"
+effect_per_level = 0.35
+max_levels = 1
+cost_base = 900
+cost_growth = 1.0
+exclusive_group = &"flavour"
+requires_mastery = 10

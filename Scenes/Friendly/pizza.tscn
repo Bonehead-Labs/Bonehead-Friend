@@ -1,0 +1,43 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Bodies/friendly_base.gd" id="1_jocw4"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/pizza.png" id="2_r78fh"]
+[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="2_rentg"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_icc4r"]
+size = Vector2(34, 24)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_s5rnn"]
+size = Vector2(46, 36)
+
+[node name="Pizza" type="RigidBody2D" unique_id=2104882460 node_paths=PackedStringArray("drag_area", "handle", "collider")]
+collision_layer = 4
+collision_mask = 7
+mass = 0.5
+contact_monitor = true
+max_contacts_reported = 4
+script = ExtResource("1_jocw4")
+hearts_per_contact = 25.0
+contact_cooldown = 0.5
+consume_on_use = true
+drag_area = NodePath("DraggableArea")
+handle = NodePath("Handle")
+collider = NodePath("CollisionShape2D")
+
+[node name="Sprite" type="Sprite2D" parent="." unique_id=489979130]
+scale = Vector2(2, 2)
+texture = ExtResource("2_r78fh")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1078135832]
+shape = SubResource("RectangleShape2D_icc4r")
+
+[node name="DraggableArea" type="Area2D" parent="." unique_id=1456210385]
+script = ExtResource("2_rentg")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=1018724323]
+shape = SubResource("RectangleShape2D_s5rnn")
+
+[node name="Handle" type="StaticBody2D" parent="." unique_id=1468163444]
+visible = false
+collision_layer = 0
+collision_mask = 0

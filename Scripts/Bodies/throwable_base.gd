@@ -14,6 +14,10 @@ extends BaseDraggable
 
 var is_primed: bool = false
 
+## Right-click primes the fuse, so the base class must not spend it on despawning.
+func right_click_is_mine() -> bool:
+	return true
+
 func _ready() -> void:
 	super._ready()
 	if explosion_area:

@@ -45,13 +45,20 @@ const CURRENCY_HEARTS := 1
 ## Ascending display order within a shop category.
 @export var sort_order: int = 0
 
+## Equips as a cursor power even though it is filed elsewhere in the shop. The open hand
+## is mechanically a cursor power and catalogued under Friendly, and a player looking for
+## the kindness half of the game must find it next to the sponge rather than filed with
+## the pistol. Shop grouping and equip behaviour are two different questions, so this is
+## the second one — as a data field, so it never becomes a per-item branch in a script.
+@export var equips_as_cursor_power: bool = false
+
 func is_starter() -> bool:
 	return cost <= 0
 
 ## Cursor powers live for the whole session and toggle; everything else is spawned into
 ## the world and can be binned.
 func is_cursor_power() -> bool:
-	return category == CATEGORY_CURSOR_POWER
+	return category == CATEGORY_CURSOR_POWER or equips_as_cursor_power
 
 ## StringName key into Economy's balance dictionary.
 func currency_id() -> StringName:

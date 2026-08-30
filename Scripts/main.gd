@@ -7,14 +7,9 @@ extends Node
 ## D6). The shell is the HUD dock plus the panel suite, on CanvasLayers inside the one
 ## transparent window.
 
-## Where the trash bin sits, as a fraction of the window, so it lands somewhere sensible
-## in a 480x360 play area as well as on a 4K overlay.
-const BIN_ANCHOR := Vector2(0.06, 0.86)
-
 @export var world: Node2D
 @export var buddy: Buddy
 @export var spawner: ItemSpawner
-@export var trash_bin: Node2D
 
 var _hud: HUD
 var _panels: PanelLayer
@@ -25,19 +20,48 @@ func _ready() -> void:
 	# Load before building UI: the shop reads what the player owns, and Progression grants
 	# the free starters as part of from_save.
 	var save := SaveManager.load_game()
-	Economy.apply_offline_earnings(int(save.get("last_played_unix", 0)))
+	var offline := Economy.apply_offline_earnings(int(save.get("last_played_unix", 0)))
 
 	spawner.world = world
 	spawner.add_to_group(&"item_spawner")
 
 	_build_ui()
-	_place_trash_bin()
-	get_viewport().size_changed.connect(_place_trash_bin)
+	_install_tuning_log()
 
 	# A tree purchase has to reach weapons already lying on the desktop, or the upgrade
 	# the player just bought does nothing until they bin the bat and spawn a new one.
 	EventBus.augment_purchased.connect(func(_id: StringName, _l: int) -> void:
 		spawner.refresh_augments())
+
+	_report_offline(offline)
+
+	# The things that happen *to* the player rather than because of them. Progression is
+	# invisible otherwise: mastery ticks up inside a panel nobody has open.
+	EventBus.mastery_rank_up.connect(func(item_id: StringName, rank: int) -> void:
+		var item := ItemDB.get_item(item_id)
+		_hud.show_toast("%s reached mastery %d" % [item.display_name if item else item_id, rank], 4.0))
+	EventBus.contract_completed.connect(func(contract_id: StringName) -> void:
+		var contract := ItemDB.get_contract(contract_id)
+		if contract:
+			_hud.show_toast("Contract ready to claim: %s" % contract.display_name, 8.0))
+	EventBus.prestige_performed.connect(func(gained: int) -> void:
+		_hud.show_toast("Reincarnated. +%d ectoplasm, and he is somebody new." % gained, 8.0))
+
+## "You earned this while you were away" — shown once, after the UI exists to show it in.
+## Silent when nothing accrued, which is every session until the first automation capstone:
+## a popup that says "you earned 0" teaches the player to dismiss popups.
+func _report_offline(offline: Dictionary) -> void:
+	var bones := float(offline.get(Economy.BONES, 0.0))
+	var hearts := float(offline.get(Economy.HEARTS, 0.0))
+	if bones <= 0.0 and hearts <= 0.0:
+		return
+	var parts: Array[String] = []
+	if bones > 0.0:
+		parts.append("%s Bones" % UIStyle.format_amount(bones))
+	if hearts > 0.0:
+		parts.append("%s Hearts" % UIStyle.format_amount(hearts))
+	var hours := float(offline.get("seconds", 0.0)) / 3600.0
+	_hud.show_toast("While you were out (%.1f h): %s" % [hours, ", ".join(parts)])
 
 func _build_ui() -> void:
 	_fx = FXLayer.new()
@@ -48,7 +72,6 @@ func _build_ui() -> void:
 
 	_hud = HUD.new()
 	add_child(_hud)
-	_hud.panel_requested.connect(_panels.toggle)
 	if buddy and buddy.health:
 		_hud.bind_health(buddy.health)
 	_hud.bind_spawner(spawner)
@@ -57,7 +80,13 @@ func _build_ui() -> void:
 	_esc.world = world
 	add_child(_esc)
 
-func _place_trash_bin() -> void:
-	if trash_bin == null:
+## Debug builds only. The M3 gate is "a 30-minute session with no dead ends", which is a
+## claim about pacing that nobody can check from memory — this writes the CSV that makes it
+## checkable (docs/economy.md, tuning workflow). A shipped build writing a row per hit for
+## eight hours would be a performance bug.
+func _install_tuning_log() -> void:
+	if not OS.is_debug_build():
 		return
-	trash_bin.global_position = get_viewport().get_visible_rect().size * BIN_ANCHOR
+	var log_node := TuningLog.new()
+	log_node.name = "TuningLog"
+	add_child(log_node)

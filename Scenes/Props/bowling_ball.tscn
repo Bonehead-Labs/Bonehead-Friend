@@ -1,0 +1,45 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Bodies/weapon_base.gd" id="1_trknq"]
+[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="2_butlg"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/bowling_ball.png" id="2_mnnfk"]
+
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_oey58"]
+friction = 0.8
+bounce = 0.15
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_pgead"]
+radius = 17.0
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_4100p"]
+size = Vector2(46, 46)
+
+[node name="BowlingBall" type="RigidBody2D" unique_id=1778803407 node_paths=PackedStringArray("drag_area", "handle", "collider")]
+collision_layer = 4
+collision_mask = 7
+mass = 14.0
+physics_material_override = SubResource("PhysicsMaterial_oey58")
+contact_monitor = true
+max_contacts_reported = 4
+script = ExtResource("1_trknq")
+drag_area = NodePath("DraggableArea")
+handle = NodePath("Handle")
+collider = NodePath("CollisionShape2D")
+
+[node name="Sprite" type="Sprite2D" parent="." unique_id=82740624]
+scale = Vector2(2, 2)
+texture = ExtResource("2_mnnfk")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=231915761]
+shape = SubResource("CircleShape2D_pgead")
+
+[node name="DraggableArea" type="Area2D" parent="." unique_id=1119052316]
+script = ExtResource("2_butlg")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=1901214732]
+shape = SubResource("RectangleShape2D_4100p")
+
+[node name="Handle" type="StaticBody2D" parent="." unique_id=12260043]
+visible = false
+collision_layer = 0
+collision_mask = 0

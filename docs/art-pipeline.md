@@ -65,7 +65,8 @@ found".
 
 ### Driving Aseprite headlessly
 
-`art/src/_import_bonehead.lua` is the worked example. Two things that will waste your time:
+`art/src/_build_body.lua` is the worked example — it assembles every generated animation
+into one multi-tag source. Two things that will waste your time:
 
 - **Pass paths with `--script-param`, never environment variables.** Aseprite is a Windows
   process; WSL env vars do not cross the boundary without `WSLENV` plumbing. In Lua they arrive
@@ -76,10 +77,15 @@ found".
 ASE="/mnt/c/Program Files (x86)/Steam/steamapps/common/Aseprite/Aseprite.exe"
 P='C:\Users\George\Godot Projects\Projects\Bonehead_Friend\interactive-buddy-2'
 "$ASE" --batch \
-  --script-param "in=$P\\Assets\\base-bonehead.png" \
-  --script-param "out=$P\\art\\src\\bonehead_body.aseprite" \
-  --script "$P\\art\\src\\_import_bonehead.lua"
+  --script-param "dir=$P\\art\\raw" \
+  --script-param "out=$P\\art\\src\\bonehead.aseprite" \
+  --script-param "cell=96" \
+  --script-param "spec=idle:10,idle_sad:7,hurt:16,collapse:18,pile:3" \
+  --script "$P\\art\\src\\_build_body.lua"
 ```
+
+`spec` is `tag:fps` pairs and each reads `<dir>\body_<tag>.png`. The whole file is rebuilt
+every time — see the tag-extension gotcha below for why it cannot be done incrementally.
 
 An `aseprite` MCP server (`diivi/aseprite-mcp`, 104 tools) is also registered at user scope for
 programmatic canvas, layer, frame and palette work. It runs Windows-side through
@@ -168,8 +174,64 @@ reusing a seed iterates the same composition instead of rolling a new one.
 - After changing project-wide import settings, **reimport everything** — existing `.import`
   sidecars keep the old values.
 
+## Cost model (measured 2026-08-29)
+
+`estimate_inference_cost` is free — every figure here came from it, not from a guess.
+
+| What | Cost |
+|---|---|
+| `rd_advanced_animation__*` **presets** (idle, walking, jump, crouch, attack, destroy, subtle_motion) | **$0.14** |
+| `rd_advanced_animation__custom_action` | **$0.25** |
+| `rd_animation__any_animation` | $0.25 |
+| RD Pro still, 64×64 | $0.18 |
+| RD Fast still (batch of 4) | ~$0.017 each |
+| `palette_converter`, `color_reducer`, `pixel_correction`, `k_centroid_downscale`, `rotate` | free |
+
+Three consequences worth planning around:
+
+1. **A preset is 44% cheaper than `custom_action`.** Map the animation you want onto the
+   nearest preset before reaching for the flexible one — `hurt` is a `crouch`, `happy` is a
+   `jump`, a collapse into a bone pile is a `destroy`.
+2. **Frame count is free.** 4 frames and 16 frames both cost $0.14, so ask for the count the
+   animation deserves. Only the hand-fixing afterwards scales with frames.
+3. **Reversal and held frames are free.** `reassemble` is `collapse` played backwards;
+   `pile` is its last frame held. One generation, three tags.
+
 ## Gotchas
 
+- **Do not send a face through the animation generator.** Two-pixel eyes are not enough
+  signal: they wander, melt and vanish by about the fourth frame, and the black outline
+  starts picking up other palette colours at the same time. Generate the character
+  *faceless* and composite a hand-drawn face on top —
+  [`docs/images/face-degradation.png`](images/face-degradation.png) is the side-by-side
+  (top row through the generator, bottom row layered). This is the same
+  layered arrangement `art-direction.md` already asked for, for a different reason.
+- **A composited face needs per-frame offsets.** The head moves up to 11 px across an idle
+  loop and 29 px during a collapse, so a face pinned at a fixed position detaches
+  immediately. `art/tools/postprocess.py` measures the head on every generated frame and
+  writes `Data/buddy_face_offsets.json`; frames where the head has dropped far below rest
+  get `null` and no face at all, because he is a heap of bones by then.
+- **Build a multi-tag `.aseprite` in one pass, tags last.** `Sprite:newFrame()` appends at
+  the end and Aseprite silently extends any tag whose range already ends at the last frame.
+  Adding nine animations one at a time therefore left all nine tags ending at the final
+  frame — `idle` imported as 74 frames instead of 8 and Godot played the whole file for
+  every animation. The tags are correct at the moment each is created, and are stretched by
+  the *next* append, so nothing looks wrong until you probe the finished file.
+  `art/src/_build_body.lua` adds every frame first and creates every tag afterwards.
+- **The generator leaves the outline open.** Between 110 and 190 edge pixels per animation
+  come back as bare white or teal against transparency. On a dark desktop nobody notices;
+  on a white one he dissolves, which is exactly the failure `art-direction.md` makes the
+  outline non-negotiable to prevent. `postprocess.py` closes it by painting black into every
+  transparent pixel that touches an un-outlined body pixel — outward, so the body keeps its
+  mass. **Any transform that moves pixels reopens it**, so rotate first and outline after.
+- **Detached litter needs an allow-list, not a size threshold.** `idle_sad` came back with
+  55-67 px blobs floating above his head on two frames of eight. They are not meaningfully
+  smaller than the headphones, which legitimately detach during the collapse — the only
+  thing separating them is which animation they appeared in. `KEEPS_DETACHED_PIECES` names
+  the tags where a loose piece is the gag rather than the defect.
+- **Aseprite Wizard imports every tag as looping.** Correct for an idle, wrong for a
+  knockout — a collapse that loops never lets him get back up. Clear the loop flag on
+  one-shots after loading (`BuddyArt.ONE_SHOT`).
 - Filenames: no spaces (`Assets/baseball bat.png` is a prototype-era mistake), and exact case
   everywhere — `res://` paths are case-sensitive in exported builds even though the Windows
   editor forgives them.

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ContractData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/contract_data.gd" id="1_ila50"]
+
+[resource]
+script = ExtResource("1_ila50")
+id = &"weekly_shopping"
+display_name = "Retail Therapy"
+description = "Buy 5 new toys."
+goal_key = &"purchase"
+target = 5
+period = 1
+reward_ectoplasm = 5
+sort_order = 50

@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="PackedScene" path="res://Scenes/Friendly/pizza.tscn" id="1_774ge"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/pizza.png" id="1_s7nmf"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="2_s7nmf"]
+
+[resource]
+script = ExtResource("2_s7nmf")
+id = &"pizza"
+display_name = "Pizza"
+description = "A whole one, for him. Instant Hearts and a very good mood."
+category = 3
+cost = 400
+currency = 1
+scene = ExtResource("1_774ge")
+icon = ExtResource("1_s7nmf")
+sort_order = 20

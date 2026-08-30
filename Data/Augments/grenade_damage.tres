@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_y5tmd"]
+
+[resource]
+script = ExtResource("1_y5tmd")
+id = &"grenade_damage"
+item_id = &"grenade"
+display_name = "Bigger Bang"
+effect_key = &"damage_mult"
+effect_per_level = 1.15
+cost_base = 80
+cost_growth = 1.12

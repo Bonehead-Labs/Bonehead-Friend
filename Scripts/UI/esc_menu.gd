@@ -27,35 +27,48 @@ func _build() -> void:
 	# explain why. It only blocks while the menu is actually open, where blocking is the
 	# point: a paused game should not take clicks through to the world behind it.
 	_blocker = CenterContainer.new()
-	_blocker.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_blocker.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_blocker.theme = UITheme.get_theme()
 	add_child(_blocker)
+	# The blocker is a CenterContainer sized to the viewport, so it is the one Control in
+	# the shell that must NOT be divided by the UI scale — it centres against the real
+	# window. The card inside it is scaled by the layer like everything else.
+	EventBus.ui_scale_changed.connect(func(_f: int) -> void: _fit())
+	get_viewport().size_changed.connect(_fit)
+	_fit()
 
 	_panel = PanelContainer.new()
-	UIStyle.apply_panel(_panel)
+	_panel.theme_type_variation = &"Card"
 	_panel.visible = false
 	_blocker.add_child(_panel)
 
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 8)
 	_panel.add_child(column)
-	column.add_child(UIStyle.label("BONEHEAD FRIEND", 18))
-	column.add_child(UIStyle.label("Paused — he is having a rest.", 11, UIStyle.TEXT_DIM))
 
-	var resume := UIStyle.button("Resume", 14)
-	resume.custom_minimum_size = Vector2(180, 34)
-	resume.pressed.connect(close)
-	column.add_child(resume)
+	var title := HBoxContainer.new()
+	title.add_theme_constant_override("separation", 8)
+	title.alignment = BoxContainer.ALIGNMENT_CENTER
+	column.add_child(title)
+	title.add_child(UIStyle.icon(&"bone", 16, UIStyle.BONES))
+	title.add_child(UIStyle.label("BONEHEAD FRIEND", UIStyle.TITLE))
 
-	var save_button := UIStyle.button("Save now", 14)
-	save_button.custom_minimum_size = Vector2(180, 34)
-	save_button.pressed.connect(func() -> void: EventBus.save_requested.emit())
-	column.add_child(save_button)
+	var subtitle := UIStyle.body("Paused — he is having a rest.")
+	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	column.add_child(subtitle)
 
-	var quit := UIStyle.button("Save and quit", 14)
-	quit.custom_minimum_size = Vector2(180, 34)
-	quit.pressed.connect(_on_quit)
-	column.add_child(quit)
+	for entry in [["Resume", &"spawn", close], ["Save now", &"check",
+			func() -> void: EventBus.save_requested.emit()],
+			["Save and quit", &"close", _on_quit]]:
+		var button := UIStyle.button(entry[0], UIStyle.LABEL)
+		button.icon = UIStyle.glyph(entry[1])
+		button.custom_minimum_size = Vector2(200, 38)
+		button.pressed.connect(entry[2])
+		column.add_child(button)
+
+func _fit() -> void:
+	if _blocker:
+		UIScale.apply(self, _blocker)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed(&"ui_cancel"):
@@ -71,6 +84,8 @@ func toggle() -> void:
 func open() -> void:
 	_open = true
 	_panel.visible = true
+	UIMotion.unroll(_panel, UIMotion.Pivot.CENTRE)
+	UIMotion.stagger(_panel.get_child(0), 0.035)
 	_blocker.mouse_filter = Control.MOUSE_FILTER_STOP
 	if world:
 		world.process_mode = Node.PROCESS_MODE_DISABLED
@@ -78,7 +93,7 @@ func open() -> void:
 
 func close() -> void:
 	_open = false
-	_panel.visible = false
+	UIMotion.roll_up(_panel, func() -> void: _panel.visible = false, UIMotion.Pivot.CENTRE)
 	_blocker.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	if world:
 		world.process_mode = Node.PROCESS_MODE_INHERIT

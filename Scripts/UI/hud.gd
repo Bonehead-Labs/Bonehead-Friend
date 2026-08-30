@@ -1,34 +1,82 @@
 class_name HUD
 extends CanvasLayer
 
-## Currency chips, the knockout meter and the dock buttons that open the panels.
+## One box in the corner: what you have, how close he is to collapsing, and what mood he
+## is in. Nothing else is permanent.
 ##
-## Built in code rather than authored as a scene: every widget here is driven by data
-## (currencies come from Economy's dictionary, not a fixed pair of labels), and the real
-## visual pass is an art-and-Theme job that has not happened yet.
+## It was three separate things — a row of currency chips, a meter card, and a five-button
+## dock — spread across two corners of somebody's desktop. That is a lot of chrome to leave
+## on screen all day for a game whose whole promise is that it sits quietly while you work.
+## The dock is gone (the panel owns its own tab strip now, `PanelLayer`), and the rest is
+## one block.
+##
+## Two readouts earn their place by *not* being permanent: the item count and the grime
+## warning only appear when they are true of something.
 
-signal panel_requested(panel: StringName)
-
-## Inset from the window edge. Small: the overlay sits on someone's desktop and the HUD
-## should read as part of the game, not as a border around their screen.
+## Inset from the window edge, in UI pixels. Small: the overlay sits on someone's desktop
+## and the HUD should read as part of the game, not as a border around their screen.
 const MARGIN := 12.0
+## Wide enough for two meters with their captions beside them, narrow enough not to be a
+## sidebar. At 2x this is 480 real pixels.
+const WIDTH := 268.0
 
-var _chips: Dictionary = {}  ## StringName -> Label
+var _root: Control
+var _purse: PurseStrip
+var _box: PanelContainer
 var _meter: ProgressBar
+var _mood_meter: ProgressBar
+var _mood_label: Label
+var _mood_fill: StyleBoxFlat
+var _mood_label_colour := Color.TRANSPARENT
+var _footer: HBoxContainer
 var _item_count: Label
+var _clear_button: Button
+var _grime_label: Label
+var _toast: PanelContainer
+var _toast_label: Label
+var _toast_tween: Tween
+
+## Optional auto-hide (Settings > Shell). The column parks against the left edge — the edge
+## it is anchored to — and an arrow pointing right marks the way back.
+var _drawer: HoverDrawer
+var _column: VBoxContainer
+
 var _health: HealthComponent
+var _spawner: ItemSpawner
+## The knockout meter only reacts when it jumps, not when it creeps — a bar that punches
+## on every physics frame is a flicker.
+var _meter_shown := 0.0
 
 func _ready() -> void:
 	layer = 10
 	_build()
-	EventBus.currency_changed.connect(_on_currency_changed)
+	_install_drawer()
 	EventBus.buddy_state_changed.connect(_on_buddy_state_changed)
-	for currency in [Economy.BONES, Economy.HEARTS]:
-		_on_currency_changed(currency, Economy.balance_of(currency))
+	EventBus.mood_changed.connect(_on_mood_changed)
+	EventBus.grime_changed.connect(_on_grime_changed)
+	EventBus.ui_scale_changed.connect(func(_f: int) -> void: _fit())
+	get_viewport().size_changed.connect(_fit)
+	# `size_changed` is not enough on its own. Changing the play area resizes the OS window,
+	# and the viewport has not caught up at the moment the setting is applied — so the shell
+	# was laid out against the *previous* window and stayed that way, which put a 697px-wide
+	# strip inside a 480px window. `window_rect_changed` fires once the window has actually
+	# settled, which is the moment the layout is answerable.
+	OverlayManager.window_rect_changed.connect(func(_r: Rect2i) -> void: _fit())
+	_fit()
+	# Signals only fire on change, so a fresh boot would leave both readouts showing their
+	# placeholder text until something happened to him.
+	_on_mood_changed(Economy.mood)
+	_on_grime_changed(Economy.grime)
 
 func _process(_delta: float) -> void:
-	if _health and _meter:
-		_meter.value = _health.fill_fraction()
+	if _health == null or _meter == null:
+		return
+	var fill := _health.fill_fraction()
+	_meter.value = fill
+	# A tenth of the bar in one frame is a real hit, not decay.
+	if fill - _meter_shown > 0.1:
+		UIMotion.punch(_box, 1.04)
+	_meter_shown = fill
 
 ## Nothing to poll until the buddy hands his meter over.
 func _enter_tree() -> void:
@@ -41,98 +89,236 @@ func bind_health(health: HealthComponent) -> void:
 	set_process(true)
 
 func bind_spawner(spawner: ItemSpawner) -> void:
+	_spawner = spawner
 	spawner.item_count_changed.connect(_set_item_count)
 	# The signal only fires on a change, so the readout would sit at its placeholder until
 	# the player spawned something — showing a limit of zero on a fresh boot.
 	_set_item_count(spawner.item_count(), spawner.item_limit())
 
-func _set_item_count(count: int, limit: int) -> void:
-	_item_count.text = "%d / %d items" % [count, limit]
+## Built last: the drawer hangs its mark off `_box`, which does not exist until the card
+## above has been assembled.
+func _install_drawer() -> void:
+	_drawer = HoverDrawer.new()
+	_drawer.name = "HudDrawer"
+	add_child(_drawer)
+	# The mark rides the status card itself, not the column — the column also carries the
+	# toast, whose height comes and goes.
+	_drawer.setup(_column, _root, HoverDrawer.Edge.LEFT, _box)
+	_drawer.pinned = Settings.hud_pinned
+	_drawer.pin_toggled.connect(func(value: bool) -> void: Settings.set_hud_pinned(value))
+	_drawer.set_home(Vector2(MARGIN, MARGIN))
+
+func _fit() -> void:
+	if _root:
+		UIScale.apply(self, _root)
+	if _drawer:
+		_drawer.set_home(Vector2(MARGIN, MARGIN))
+
 
 func _build() -> void:
 	# A plain Control, not a MarginContainer: a container lays every child out in the same
-	# rect and ignores its anchors, which would stack the dock on top of the currency
-	# chips. Anchors only do what they say inside a non-container parent.
-	var root := Control.new()
-	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(root)
+	# rect and ignores its anchors. Sized explicitly by UIScale rather than anchored,
+	# because a top-level Control knows nothing about the scale on the layer above it.
+	_root = Control.new()
+	_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_root.theme = UITheme.get_theme()
+	add_child(_root)
 
 	var column := VBoxContainer.new()
 	column.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT, Control.PRESET_MODE_MINSIZE)
 	column.position = Vector2(MARGIN, MARGIN)
 	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	column.add_theme_constant_override("separation", 8)
-	root.add_child(column)
+	_root.add_child(column)
+	_column = column
 
-	# --- currency chips ---
-	var chips := HBoxContainer.new()
-	chips.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	chips.add_theme_constant_override("separation", 8)
-	column.add_child(chips)
-	chips.add_child(_make_chip(Economy.BONES, "BONES", UIStyle.BONES))
-	chips.add_child(_make_chip(Economy.HEARTS, "HEARTS", UIStyle.HEARTS))
+	_box = PanelContainer.new()
+	_box.custom_minimum_size = Vector2(WIDTH, 0)
+	_box.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	_box.theme_type_variation = &"Card"
+	column.add_child(_box)
 
-	# --- knockout meter ---
-	var meter_box := PanelContainer.new()
-	meter_box.custom_minimum_size = Vector2(210, 0)
-	meter_box.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	UIStyle.apply_panel(meter_box, UIStyle.BG)
-	column.add_child(meter_box)
+	var stack := VBoxContainer.new()
+	stack.add_theme_constant_override("separation", 6)
+	_box.add_child(stack)
 
-	var meter_column := VBoxContainer.new()
-	meter_column.add_theme_constant_override("separation", 4)
-	meter_box.add_child(meter_column)
-	meter_column.add_child(UIStyle.label("KNOCKOUT METER", 10, UIStyle.TEXT_DIM))
+	# --- what you have ---
+	_purse = PurseStrip.new()
+	_purse.value_size = UIStyle.TITLE
+	# 2x the glyph canvas, so the bone and the heart carry their share of a TITLE-sized
+	# figure instead of sitting beside it as specks.
+	_purse.glyph_size = UIStyle.GLYPH * 2
+	_purse.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	stack.add_child(_purse)
 
-	_meter = ProgressBar.new()
-	_meter.max_value = 1.0
-	_meter.step = 0.001
-	_meter.show_percentage = false
-	_meter.custom_minimum_size = Vector2(0, 14)
-	_meter.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_meter.add_theme_stylebox_override("background", UIStyle.meter_background())
-	_meter.add_theme_stylebox_override("fill", UIStyle.meter_fill())
-	meter_column.add_child(_meter)
+	# --- how he is doing ---
+	stack.add_child(_meter_row(&"knockout"))
+	stack.add_child(_meter_row(&"mood"))
 
-	_item_count = UIStyle.label("0 / 0 items", 10, UIStyle.TEXT_DIM)
-	meter_column.add_child(_item_count)
+	# --- only when true of something ---
+	_footer = HBoxContainer.new()
+	_footer.add_theme_constant_override("separation", 6)
+	_footer.visible = false
+	stack.add_child(_footer)
 
-	# --- dock ---
-	var dock := HBoxContainer.new()
-	dock.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT, Control.PRESET_MODE_MINSIZE)
-	dock.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-	dock.offset_left -= MARGIN
-	dock.offset_right -= MARGIN
-	dock.offset_top += MARGIN
-	dock.offset_bottom += MARGIN
-	dock.add_theme_constant_override("separation", 6)
-	root.add_child(dock)
+	_item_count = UIStyle.label("", UIStyle.MICRO, UIStyle.TEXT_DIM)
+	_item_count.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_item_count.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_footer.add_child(_item_count)
 
-	for entry in [[&"shop", "Toys"], [&"tree", "Upgrades"]]:
-		var button := UIStyle.button(entry[1], 14)
-		button.custom_minimum_size = Vector2(96, 34)
-		var panel: StringName = entry[0]
-		button.pressed.connect(func() -> void: panel_requested.emit(panel))
-		dock.add_child(button)
+	# Clearing the desk used to be a trash bin you dragged things into. It was a 36x45
+	# catch area under a 64px sprite, sitting above where dropped items come to rest, so
+	# in practice nothing ever landed in it. A button that says what it does is honest.
+	_clear_button = UIStyle.button("", UIStyle.MICRO)
+	_clear_button.theme_type_variation = &"GhostButton"
+	_clear_button.icon = UIStyle.glyph(&"close")
+	_clear_button.tooltip_text = "Clear the desk"
+	_clear_button.custom_minimum_size = Vector2(26, 22)
+	_clear_button.pressed.connect(_on_clear_pressed)
+	_footer.add_child(_clear_button)
 
-func _make_chip(currency: StringName, caption: String, colour: Color) -> Control:
-	var chip := PanelContainer.new()
-	chip.add_theme_stylebox_override("panel", UIStyle.chip_box(UIStyle.BG))
+	_grime_label = UIStyle.label("", UIStyle.MICRO, UIStyle.LOCKED)
+	_grime_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_grime_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_footer.add_child(_grime_label)
+
+	# --- toast ---
+	var toast_row := HBoxContainer.new()
+	toast_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	column.add_child(toast_row)
+	_toast = PanelContainer.new()
+	_toast.theme_type_variation = &"Card"
+	_toast.visible = false
+	_toast.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	toast_row.add_child(_toast)
+	# Silkscreen: a toast is nearly always carrying a figure — what you earned while you
+	# were away, which rank you just hit — and those are the numbers a player is most
+	# likely to read once and never again.
+	_toast_label = UIStyle.label("", UIStyle.MICRO, UIStyle.TEXT)
+	_toast_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_toast_label.custom_minimum_size = Vector2(WIDTH - 24, 0)
+	_toast.add_child(_toast_label)
+
+## A bar with its caption on the same line, because two stacked bars each with a heading
+## above them is four rows of chrome for two numbers.
+func _meter_row(which: StringName) -> Control:
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 6)
-	chip.add_child(row)
-	row.add_child(UIStyle.label(caption, 10, UIStyle.TEXT_DIM))
-	var value := UIStyle.label("0", 16, colour)
-	row.add_child(value)
-	_chips[currency] = value
-	return chip
+	row.add_theme_constant_override("separation", 8)
 
-func _on_currency_changed(currency: StringName, amount: float) -> void:
-	var label := _chips.get(currency) as Label
-	if label:
-		label.text = UIStyle.format_amount(amount)
+	var bar := ProgressBar.new()
+	bar.max_value = 1.0
+	bar.step = 0.001
+	bar.show_percentage = false
+	bar.custom_minimum_size = Vector2(0, 12)
+	bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(bar)
+
+	if which == &"knockout":
+		bar.add_theme_stylebox_override("fill", UIStyle.meter_fill(UIStyle.BONES))
+		_meter = bar
+		var caption := UIStyle.eyebrow("Knockout")
+		caption.custom_minimum_size = Vector2(76, 0)
+		row.add_child(caption)
+	else:
+		# Mapped to 0..1 with neutral at the centre, so the bar reads as a seesaw rather
+		# than as a fill: half full is the trough, and both ends are worth 2x. The
+		# multiplier is printed beside it rather than left to be inferred — mood pays on a
+		# U-curve, and a player who reads it as a happiness bar will conclude the middle is
+		# fine and quietly earn 0.6x all session (docs/economy.md).
+		bar.value = 0.5
+		# Held and recoloured in place rather than replaced. Mood changes several times a
+		# second during play, and a fresh StyleBoxFlat per change is a steady drip of
+		# garbage in a game designed to be left running all day.
+		_mood_fill = UIStyle.meter_fill(UIStyle.TEXT_DIM)
+		bar.add_theme_stylebox_override("fill", _mood_fill)
+		_mood_meter = bar
+		_mood_label = UIStyle.label("neutral", UIStyle.MICRO, UIStyle.TEXT_DIM)
+		_mood_label.custom_minimum_size = Vector2(76, 0)
+		_mood_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		row.add_child(_mood_label)
+	return row
+
+# --- the desk --------------------------------------------------------------
+
+func _set_item_count(count: int, limit: int) -> void:
+	_item_count.text = "%d / %d items" % [count, limit]
+	_footer.visible = count > 0 or _grime_label.text != ""
+	_clear_button.visible = count > 0
+	_item_count.visible = count > 0
+
+func _on_clear_pressed() -> void:
+	if _spawner == null or _spawner.item_count() <= 0:
+		UIMotion.buzz(_box)
+		return
+	_spawner.clear_desk()
+	UIMotion.flash(_box, Color(1.3, 1.3, 1.5), 0.35)
+
+# --- toast -----------------------------------------------------------------
+
+## A single line under the HUD for the things that happen *to* the player rather than
+## because of them: offline earnings, a rank up, a contract finishing. Deliberately not a
+## modal — this game runs while someone is working, and a dialog box over their editor is
+## the fastest way to get uninstalled.
+func show_toast(text: String, seconds: float = 6.0) -> void:
+	if _toast == null:
+		return
+	# Kill the previous one first. Both tweens write the same shared card, so an older
+	# tween's hide callback would fire partway through the newer message — two rank-ups a
+	# second apart is common in the first minutes, where rank 1 costs 100 XP.
+	if _toast_tween and _toast_tween.is_valid():
+		_toast_tween.kill()
+	_toast_label.text = text
+	_toast.modulate = Color.WHITE
+	_toast.visible = true
+	UIMotion.rise(_toast)
+	_toast_tween = create_tween()
+	_toast_tween.tween_interval(seconds)
+	_toast_tween.tween_property(_toast, "modulate:a", 0.0, 0.6)
+	_toast_tween.tween_callback(func() -> void: _toast.visible = false)
 
 func _on_buddy_state_changed(state: StringName) -> void:
 	if state == &"knockout" and _meter:
 		_meter.value = 1.0
+		_meter_shown = 1.0
+		UIMotion.punch(_box, 1.1)
+		UIMotion.flash(_box, Color(1.6, 1.4, 1.0), 0.6)
+
+## Mood words, not numbers. "-64" means nothing to a player; "miserable" plus the
+## multiplier it is worth is the whole mechanic in five characters.
+const MOOD_WORDS: Array[String] = ["despairing", "miserable", "glum", "neutral", "cheerful", "delighted", "blissful"]
+
+func _on_mood_changed(value: float) -> void:
+	if _mood_meter == null:
+		return
+	var normalised := clampf((value + 100.0) / 200.0, 0.0, 1.0)
+	var colour := UIStyle.mood_colour(value)
+	_mood_meter.value = normalised
+	if _mood_fill:
+		_mood_fill.bg_color = colour
+	var word: String = MOOD_WORDS[clampi(int(round(normalised * (MOOD_WORDS.size() - 1))), 0, MOOD_WORDS.size() - 1)]
+	# The multiplier comes from the active personality's curve, not the balance default —
+	# a Diva and a Masochist read the same mood completely differently.
+	_mood_label.text = "%s x%.2f" % [word, Economy.mood_multiplier()]
+	# Re-theming a Control is not free, and this runs on every hit, every pet and roughly
+	# four times a second while mood decays back to neutral. The colour only actually moves
+	# a handful of times across that whole slide.
+	if not colour.is_equal_approx(_mood_label_colour):
+		_mood_label_colour = colour
+		_mood_label.add_theme_color_override("font_color", colour)
+
+## Below this the penalty rounds to x1.00 on screen. Warning the player about a cost they
+## cannot see turns the line into permanent nagging, and a readout that says "x1.00" in a
+## warning colour teaches them to ignore it for the times it matters.
+const GRIME_VISIBLE_AT := 0.06
+
+func _on_grime_changed(value: float) -> void:
+	if _grime_label == null:
+		return
+	_grime_label.text = "" if value < GRIME_VISIBLE_AT \
+		else "grimy: bones x%.2f" % Economy.grime_multiplier()
+	_footer.visible = _grime_label.text != "" or _clear_button.visible
+
+## See PanelLayer.shell_rect — screen pixels, not canvas pixels.
+func shell_rect() -> Rect2:
+	return UIScale.screen_rect(_box) if _box else Rect2()

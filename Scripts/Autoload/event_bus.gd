@@ -11,6 +11,11 @@ extends Node
 # --- combat / interaction ---
 signal damage_dealt(info: HitInfo)
 signal kindness_given(source_id: StringName, value: float, world_pos: Vector2)
+## Kindness paid at a rate rather than as an event: the sponge scrubbing, the boombox
+## playing, and every Hearts generator after them. Same payout pipeline, but deliberately
+## outside the combo multiplier — a combo is a reward for repeated *acts*, and a box left
+## switched on would otherwise sit at the 3x ceiling forever (docs/economy.md).
+signal kindness_sustained(source_id: StringName, value: float, world_pos: Vector2)
 signal payout(currency: StringName, amount: float, world_pos: Vector2)
 signal currency_changed(currency: StringName, balance: float)
 
@@ -25,15 +30,30 @@ signal item_purchased(item_id: StringName)
 signal augment_purchased(node_id: StringName, level: int)
 signal mastery_rank_up(item_id: StringName, rank: int)
 signal contract_event(key: StringName, count: int)
+signal contract_completed(contract_id: StringName)          ## target reached, reward unclaimed
+signal contract_claimed(contract_id: StringName, ectoplasm: int)
+## The board itself was replaced — a period rolled over, or a load repopulated it. Every
+## row keyed to a contract id is stale. Emitted by `Progression` wherever `_active_contracts`
+## is rewritten, so a panel never has to guess from its own visibility that this happened.
+signal contract_board_changed()
 signal prestige_performed(ectoplasm_gained: int)
 
 # --- buddy ---
 signal mood_changed(value: float)  ## -100..+100
+signal grime_changed(value: float)  ## 0..1; suppresses Bones income until sponged off
 signal buddy_state_changed(state: StringName)
 signal knockout_payout(total: float)
 
 # --- shell ---
 signal ui_panel_changed(panel: StringName)  ## &"" = all closed
+## A purchase that actually went through, and the screen point the player pressed to make
+## it happen — so the HUD can throw a coin from the tile into the purse. Presentation
+## only: nothing in the simulation may listen to this, and nothing may infer a purchase
+## from it, because a panel that fails to emit it must cost the player nothing.
+signal ui_spend(currency: StringName, amount: float, screen_pos: Vector2)
 signal interactive_shapes_dirty()           ## rebuild the mouse-passthrough polygon
 signal focus_mode_changed(level: int)
+## Whole-number UI zoom. Every CanvasLayer in the shell rescales itself and resizes its
+## root Control; nothing else in the game cares.
+signal ui_scale_changed(factor: int)
 signal save_requested()

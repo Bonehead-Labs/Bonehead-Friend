@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://tools/seed_m3_content.gd" id="1_seed"]
+
+[node name="SeedM3Content" type="Node"]
+script = ExtResource("1_seed")

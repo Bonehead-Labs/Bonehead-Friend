@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/baseball.png" id="1_mmhvb"]
+[ext_resource type="PackedScene" path="res://Scenes/Props/baseball.tscn" id="1_xdrmd"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="2_mmhvb"]
+
+[resource]
+script = ExtResource("2_mmhvb")
+id = &"baseball"
+display_name = "Baseball"
+description = "Throw it and he catches it without moving. Harder throws are worth more."
+category = 3
+cost = 120
+currency = 1
+scene = ExtResource("1_xdrmd")
+icon = ExtResource("1_mmhvb")
+sort_order = 15

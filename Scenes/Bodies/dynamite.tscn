@@ -1,0 +1,61 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Bodies/throwable_base.gd" id="1_ppo8n"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/dynamite.png" id="2_wdosn"]
+[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_ofa64"]
+[ext_resource type="Script" path="res://Scripts/Components/effects_player.gd" id="4_uht7o"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ppo8n"]
+size = Vector2(28, 52)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_wdosn"]
+size = Vector2(44, 68)
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_ofa64"]
+radius = 180.0
+
+[node name="_Dynamite" type="RigidBody2D" unique_id=80873315 node_paths=PackedStringArray("explosion_area", "drag_area", "handle", "sprite", "collider", "Effects_Player")]
+collision_layer = 4
+collision_mask = 7
+mass = 1.6
+contact_monitor = true
+max_contacts_reported = 4
+script = ExtResource("1_ppo8n")
+damage_mult = 1.5
+explosion_area = NodePath("ExplosionArea")
+max_force = 16000.0
+item_id = &"dynamite"
+drag_area = NodePath("DraggableArea")
+handle = NodePath("Handle")
+sprite = NodePath("Sprite")
+collider = NodePath("CollisionShape2D")
+Effects_Player = NodePath("EffectsPlayer")
+
+[node name="Sprite" type="Sprite2D" parent="." unique_id=396149163]
+scale = Vector2(2, 2)
+texture = ExtResource("2_wdosn")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=790722700]
+shape = SubResource("RectangleShape2D_ppo8n")
+
+[node name="DraggableArea" type="Area2D" parent="." unique_id=1329659648]
+script = ExtResource("3_ofa64")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=1457909479]
+shape = SubResource("RectangleShape2D_wdosn")
+
+[node name="Handle" type="StaticBody2D" parent="." unique_id=319423356]
+visible = false
+collision_layer = 0
+collision_mask = 0
+
+[node name="EffectsPlayer" type="Node" parent="." unique_id=1470528403]
+script = ExtResource("4_uht7o")
+
+[node name="ExplosionArea" type="Area2D" parent="." unique_id=335795262]
+collision_layer = 0
+collision_mask = 6
+monitoring = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="ExplosionArea" unique_id=1948350395]
+shape = SubResource("CircleShape2D_ofa64")

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="PersonalityData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/personality_data.gd" id="1_yeked"]
+
+[sub_resource type="Curve" id="Curve_yeked"]
+_limits = [0.0, 3.0, 0.0, 1.0]
+_data = [Vector2(0, 1.1), 0.0, 0.0, 0, 0, Vector2(0.25, 0.9), 0.0, 0.0, 0, 0, Vector2(0.5, 0.6), 0.0, 0.0, 0, 0, Vector2(0.75, 1.6), 0.0, 0.0, 0, 0, Vector2(1, 2.8), 0.0, 0.0, 0, 0]
+point_count = 5
+
+[resource]
+script = ExtResource("1_yeked")
+id = &"diva"
+display_name = "Diva"
+description = "Demands to be adored. Bliss pays far better than misery — the run where you mostly put the bat down."
+mood_curve = SubResource("Curve_yeked")
+sort_order = 20

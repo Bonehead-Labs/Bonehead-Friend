@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_ifh3n"]
+
+[resource]
+script = ExtResource("1_ifh3n")
+id = &"boombox_playlist"
+item_id = &"boombox"
+display_name = "Endless Playlist"
+description = "The boombox keeps itself going, and keeps paying, while the game is closed."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 1
+cost_base = 1400
+cost_growth = 1.0
+currency = 1
+is_automation = true
+automation_rate = 0.8
+requires_mastery = 25

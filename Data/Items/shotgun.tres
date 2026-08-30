@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="PackedScene" path="res://Scenes/Powers/shotgun_power.tscn" id="1_img40"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="2_vn65t"]
+
+[resource]
+script = ExtResource("2_vn65t")
+id = &"shotgun"
+display_name = "Shotgun"
+description = "Five pellets in a spread. Close range is the whole idea."
+category = 2
+cost = 2200
+scene = ExtResource("1_img40")
+sort_order = 15

@@ -217,6 +217,371 @@ file.
 layout code stays. UI changes are code review rather than scene diffs, which for generated
 content is the right trade.
 
+---
+
+### D14 — Sustained kindness is a separate signal from event kindness
+**2026-08-29 · Decided**
+
+`EventBus` carries two kindness signals: `kindness_given` for discrete acts (a pet, a slice
+of pizza, a caught baseball) and `kindness_sustained` for rates (the sponge scrubbing, the
+boombox playing, and every Hearts generator after them). Both run the identical payout
+pipeline; only `kindness_given` gets the combo multiplier.
+
+The combo is a reward for repeated *acts*. A generator emits continuously, so on one signal
+a boombox left switched on would sit permanently at the 3x combo ceiling — the exact
+opposite of what a combo is for, and a large silent distortion to every idle Hearts rate.
+Encoding the distinction as a second signal keeps `Economy` free of per-item special cases,
+which is the property that lets a new friendly item be a `.tres` (D8).
+
+*Consequence:* `FriendlyBase` banks its rate and flushes twice a second rather than emitting
+per physics frame — sixty payouts a second would also mean sixty pooled floating numbers a
+second for a trickle the player reads as continuous. Anything that emits kindness at a rate
+must use the sustained signal.
+
+---
+
+### D15 — Mood and grime live on the buddy; Economy only mirrors them
+**2026-08-29 · Decided**
+
+`MoodComponent` and `GrimeComponent` own their values and announce them on the bus.
+`Economy` keeps a plain mirror of each so the payout pipeline can multiply by them, and the
+buddy is the save provider for the `buddy` block (save schema v2).
+
+Economy is the only thing allowed to mint currency, so it must be able to read both without
+holding a reference to a scene node; the buddy is the only thing that knows how he feels, so
+he must be the one who owns them. Mirroring off the bus satisfies both without a path.
+
+Two consequences that bit during implementation and are worth knowing before touching this:
+
+- **Handler order is load-bearing.** `Economy` is an autoload and connects first, so it pays
+  at the mood in force *when the event fired*; the components move it immediately afterwards.
+  Any test that computes an expected payout must read the multiplier **before** emitting.
+- **Mood is a multiplier on a U-curve, not a stat**, so the HUD prints the multiplier next to
+  the bar. A player who reads it as a happiness meter concludes the middle is fine and
+  quietly earns 0.6x all session.
+
+*Alternative rejected:* mood as Economy state with the buddy as a view. Simpler wiring, but
+then the save block, the decay timer and the animation trigger all live away from the thing
+they describe, and the buddy has to ask an autoload how he feels.
+
+---
+
+### D16 — A minimal settings panel pulled forward from M4
+**2026-08-29 · Decided**
+
+Window mode, play-area size, corner, monitor, Focus Mode, Low Power and volumes ship now as
+a third panel page. The rest of the M4 settings UI (streamer mode, hibernate, per-automation
+rate sliders) stays in M4.
+
+The M2 gate needs a non-developer to play for five minutes. Until this existed the only way
+to resize the window was F9/F10 on the F3 developer overlay — and the window is borderless,
+so it has no OS grab handle either. A playtester could not make the game fit on their desk,
+which is not a fair test of whether the game is fun. Everything here writes through
+`OverlayManager` and `Settings`, which already persisted and revalidated, so this is widgets
+over working plumbing rather than new systems.
+
+*Consequence:* the F3 hotkeys and the panel now change the same values, so the panel re-reads
+`Settings` on every refresh rather than caching — two sources of truth is how a settings
+screen ends up lying about the state of the window. Buttons rather than sliders and
+`OptionButton`s throughout: popups over a transparent always-on-top window are awkward, and
+`ui_check` can assert a `Button` is the control under the cursor in a way it cannot for a
+popup.
+
+---
+
+### D17 — Automation capstones need Mastery, not Reincarnation
+**2026-08-29 · Decided · amends economy.md**
+
+`economy.md`'s tree diagram gates the automation capstone on **Mastery 25 + Reincarnation ≥ 1**.
+The shipped capstones require Mastery 25 and **no prestige**.
+
+The two halves of the spec disagreed and only one of them can be right. `economy.md`'s balance
+targets say *"30 min — first automation running, understands why Hearts matter"* while its
+pacing note puts the first Reincarnation at **6–10 hours**. Requiring prestige would therefore
+put the game's central mechanic — the thing that makes Hearts matter and the thing the M3 gate
+names — a full working day behind a wall, in a genre whose players quit at the first five-minute
+dead end.
+
+Mastery 25 on a single item is still a real gate: you must actively use a thing before you can
+automate it, which is the difficulty ramp the design wanted from the requirement in the first
+place. The prestige key is not thrown away — it stays available on `AugmentNode.requires_prestige`
+and is the natural gate for a *second* tier of automation, post-1.0 content, or a capstone that
+would be too strong on a first run.
+
+*Consequence:* the gating gradient reads **Cash → Cash + Mastery → Cash + Mastery + Prestige**
+across the whole game rather than within every tree. Update the diagram in `economy.md` if it is
+ever regenerated.
+
+---
+
+### D18 — Contracts pay Ectoplasm, never a meaningful amount of Bones or Hearts
+**2026-08-29 · Decided**
+
+The contract board's reward is Ectoplasm. `ContractData` carries an optional currency
+sweetener, and it is deliberately unused by every shipped contract.
+
+A daily objective that pays spendable currency sets the pace of the shop ladder by the
+calendar instead of by play: the optimal move becomes "log in, clear the board, log off", which
+is precisely the free-to-play shape the design set out to avoid by replacing a login bonus with
+a job board. Ectoplasm makes every *future* run richer without shortening this one, so a
+contract is a reason to come back rather than a reason to stop playing.
+
+*Consequence:* contracts are worth nothing to a player who never prestiges, which is fine —
+they are the daily-return hook, and a player in their first six hours has better things to
+chase. It also means the board can be generous without destabilising anything.
+
+---
+
+### D19 — A personality is one Curve and nothing else
+**2026-08-29 · Decided**
+
+`PersonalityData` holds an id, a name, a description and a **mood curve**. It does not modify
+damage, prices, drop rates or anything else.
+
+Five personalities from one field is the whole trick: the same roster and the same ectoplasm
+number, but a different answer to "where is the money", so a run after a Reincarnation asks the
+player to play *differently* rather than to play the same way faster. Masochist pays for cruelty,
+Diva for kindness, Zen for neither, Goth for a mood nobody would otherwise sit at. Adding a sixth
+is a `.tres` and no script edit (D8).
+
+The temptation to give personalities extra stats should be resisted for as long as possible: the
+moment one of them touches prices or damage, the five stop being one comparable axis and start
+being five balance problems.
+
+*Consequence:* `Economy.mood_multiplier()` reads the personality's curve rather than
+`balance.tres`'s, falling back to it when a save names a personality that no longer exists — a
+removed personality must degrade the tuning, not zero out every payout in the game.
+
+### D20 — The shell is "Bonecard": a `Theme` built in code, and every figure in one face
+
+Four skins were mocked up and shown side by side; Bonecard was chosen. It is printed card —
+cream stock, hard black 3 px rules, no rounded corners, colour used only where it carries
+meaning. It won on the constraint that actually matters here: the UI sits over an unknown
+desktop, so it has to read as chrome rather than as part of the wallpaper.
+
+Two structural parts of the decision, both of which could reasonably have gone the other way:
+
+**The `Theme` is built in code (`UITheme`), not authored as a `.tres`.** Half of it is derived
+— a pressed button's content margins are computed from its normal ones so the two states are
+exactly the same height, which is what stops a row re-laying-out mid-press. A hand-edited theme
+resource cannot hold that relationship; it holds the numbers after someone worked them out
+once, and they drift. The cost is that the theme cannot be tweaked in the editor's theme
+editor. That is the right trade for a UI that is itself built in code (D13).
+
+**Every figure in the game is set in Silkscreen, never in the body face.** Pixelify Sans draws
+`5` as a rounded form that reads as an `8` at 14 px. In a game read as columns of figures that
+is not a stylistic quibble — it was caught in the first screenshot pass, where the bat's
+"+15% damage" node was indistinguishable from "+18%". So the two faces are split by *job* and
+not by taste: anything containing a number goes in the display face, and the body face carries
+only prose. The Reincarnation page was rewritten around this, moving its numbers out of the
+paragraph into figure chips.
+
+*Consequence:* adding a UI string means asking whether it contains a digit. If it does, it is
+`UIStyle.label`, not `UIStyle.body`. `art-direction.md` § UI carries the full token set.
+
+### D21 — UI motion is a library, and Focus Mode Off means the menus stop moving too
+
+All menu animation lives in `UIMotion` as static helpers, and every panel calls into it rather
+than writing its own tweens. That is partly consistency and mostly three rules that have to be
+enforced in one place:
+
+1. Never animate `position` or `size` on a control inside a `Container` — the container owns
+   both and rewrites them on the next layout pass, which happens on the same frame a refusal
+   fires, because refreshing the row that refused you changes its text and therefore its
+   minimum size. `scale`, `rotation`, `pivot_offset` and `modulate` are ours.
+2. Never fade a card. The window is per-pixel transparent (D6).
+3. One named tween slot per control per kind of motion, or a fast cursor leaves two scale
+   tweens racing and the control settles wherever the loser stopped.
+
+**Motion is off when Focus Mode is Off, and always off in headless.** The first is consistency:
+Focus Mode Off already means the game stops shouting, and a player who set it because they are
+in a meeting did not mean "except the menus". The second is load-bearing for the test suite —
+a control caught mid-tween is at the wrong scale, so every hit test against it is a coin flip.
+`tests/integration/loop_check.gd` asserts the headless case, because it is an invariant the
+whole `ui_check` sweep leans on rather than a nicety.
+
+*Consequence:* Focus Mode Off is the accessibility switch for reduced motion until M4 gives it
+its own setting. Timings never scale with the setting — only amounts — because a slower UI is
+not a calmer one.
+
+### D22 — One tab strip, one card, one size
+
+The first Bonecard build had two navigations: a five-button dock in one corner of the
+desktop and an identical row of tabs on the card in the other. Five pages, ten buttons, the
+same five words printed twice — and switching page meant a six-hundred-pixel trip from the
+card you were reading back up to the dock.
+
+**The strip owns the panel.** One row of five tabs, always on screen, never moving. Clicking
+a tab unrolls the card directly beneath it; clicking the same tab rolls it back up. The strip
+is exactly as wide as the card and its tabs share that width, so the open tab's cream bottom
+edge runs into the card and the two read as one object rather than as a row of keys near a
+panel.
+
+**The card is one fixed size for every page.** It used to measure the page it was about to
+show and resize to fit, so the panel changed shape under the cursor on every tab click. A
+page that needs more room scrolls inside the card. Enforced by `ui_check`, which opens all
+five pages and asserts the card's rect is identical — and structurally, because every page
+scrolls with `SCROLL_MODE_SHOW_NEVER` rather than `SCROLL_MODE_DISABLED`: a disabled axis
+folds the child's minimum size into the ScrollContainer's own, so one long unwrapped line on
+one page silently widened the card for all of them.
+
+**The shop is master/detail.** A thin list — picture, name, price — and one detail pane. The
+list used to carry every item's description as two wrapped lines, which is thirteen
+paragraphs stacked on one card: correct, and unreadable. The words now live in the detail
+pane, one item at a time, set large enough to read.
+
+*Consequence:* the card is generous (680x566 UI pixels) because it is a panel you open on
+purpose. The previous 460px is what forced the type small enough to be the complaint that
+started this.
+
+### D23 — The UI scales in whole numbers, and only in whole numbers
+
+The shell is pixel art at a fixed size, so on a 3440x1440 overlay it came out physically
+tiny — making the play area bigger made the *game* bigger and left the menus exactly where
+they were.
+
+Each shell `CanvasLayer` is scaled by a whole number (`UIScale`), auto-picked from the window
+height and overridable in Settings. Whole numbers because that is what pixel art wants: every
+pixel becomes a clean 2x2 or 3x3 block, with no resampling and no reflow. Scaling the *font
+sizes* instead would reflow every panel and put the type on fractional pixels.
+
+*Consequence, and the trap:* a Control's `get_global_transform()` stops at its CanvasLayer, so
+`get_global_rect()` is in canvas coordinates and is wrong by exactly the scale factor. Anything
+comparing a control against a mouse position — the click tests, the coin thrown by a purchase —
+goes through `UIScale.screen_centre` / `screen_rect` instead. A top-level Control also sizes
+itself to the *viewport* and knows nothing about the layer above it, so each layer's root is
+sized explicitly in UI pixels.
+
+### D24 — No trash bin; right-click one thing, or clear the desk
+
+The bin was a 36x45 catch area under a 64px sprite, anchored above the height at which a
+dropped item comes to rest — so in practice nothing ever landed in it, and the only way to
+clear the desk was to spawn past the item limit and let the oldest item get culled.
+
+Two gestures replace it. **Right-click a spawned item** and it is gone; **the desk counter in
+the HUD is a button** that clears all of them. Both go through `EventBus.item_despawned`, the
+same path a prestige wipe uses, so the counter and the friendly items' banked kindness stay in
+step.
+
+Right-click is whitelisted on the `spawned_item` group, not blacklisted on the buddy. The
+buddy is draggable too, and no gesture may ever delete him — `loop_check` asserts he is not in
+that group, because the day someone adds him to it for an unrelated reason is the day
+right-clicking him deletes the save's whole point.
+
+### D25 — Item physics is authored; the sprite decides nothing but its own size
+
+Rebuilding the prototype's hand-authored item scenes from their sprites produced, for every
+weapon, a box around the picture pinned and balanced at its centre. That is a plank on a
+string. The prototype bat had four things none of which are recoverable from a sprite:
+
+- a **capsule** for the barrel and a small **rect** for the grip, not one box;
+- its **centre of mass up in the barrel**, so it swings with weight in the head;
+- the **drag joint pinned at the grip**, so it pivots around your hand;
+- a **grab region over the handle**, so you pick it up by the handle.
+
+`tools/seed_bodies.gd` now carries a `PHYSICS` table in the same art-pixel space as the
+scale table. Anything not listed falls back to the derived box, which is right for a
+grenade and a ball. Feel is authored data, in the same category as the scale table and for
+the same reason: nothing enforces it, so nobody notices when it goes.
+
+### D26 — Contrast is a test, not a judgement call
+
+The palette was picked by eye and Bones came out at **2.97:1** on a sunk well — a price the
+player cannot read — while disabled controls tinted their text at 55% alpha and landed near
+2:1. Neither is visible to the person who picked the colour, on their monitor, with their
+eyes. So it is not a judgement call any more.
+
+`loop_check`'s `contrast` suite asserts every ink against every surface it is ever printed
+on at **4.5:1**, plus the two inverted surfaces and the whole mood sweep. Every accent was
+darkened until it cleared, and **no text is dimmed with alpha** — a disabled control uses
+`UIStyle.DISABLED_INK` and says it is disabled with its *shape*.
+
+*Consequence:* a new colour that looks fine fails a test rather than shipping. The floor is
+4.5 and not 3.0 because nothing in this shell is "large text" — the biggest thing on a card
+is a 26px pixel face.
+
+### D27 — Every picture is exactly the size of the box that holds it
+
+Not "at most". Exactly.
+
+The box used to be a suggestion. A shop row asked for an icon and got whatever the PNG on
+disk happened to be — the pistol pointed at a raw 64x64 crosshair, the fist at a raw 64x64,
+the shotgun at nothing and fell back to a 16x16 glyph. A `Button` grows to fit its icon, so
+one list held rows 74, 74, 42 and 38 pixels tall with the name starting at three different
+x positions, in a list whose entire job is to be scanned. Nothing in the layout code was
+wrong; the layout was faithfully rendering four different inputs.
+
+The two obvious remedies are both wrong here. `Button.expand_icon` and the `icon_max_width`
+theme constant resample to fit, and a 44 -> 32 resample of pixel art is a non-integer scale —
+the thing `UIStyle.sprite()`'s `STRETCH_KEEP_CENTERED` exists to forbid. So instead,
+`UIStyle.boxed()`:
+
+- steps oversized art down by a **whole number** only (64 -> 32 is /2, exact under nearest);
+- centres the result on a transparent canvas of exactly the box size, on whole-pixel offsets,
+  so a glyph fallback and full-bleed item art occupy identical space;
+- crops rather than overflows anything no whole number fits — a content bug is allowed to look
+  wrong, never to move the layout.
+
+`icon()`, `sprite()`, `set_sprite()` and `item_face(item, box)` all go through it. Writing
+`rect.texture` or `button.icon` directly is the one way back to the old behaviour.
+
+*Consequence:* **adding an item cannot move the UI.** Two assertions hold the line — `ui_check`'s
+`geometry` suite measures every picture against its *declared* box (not its realised size: a
+Button that grew to fit would otherwise pass the exact bug it was written for), and asserts every
+row in a category is one height; `loop_check`'s `content` suite asserts every item icon is a 32px
+canvas and prints the art backlog by name.
+
+### D28 — A page that is not on screen does no work
+
+`PanelPage` is the base every page of the card extends, and it exists for that one rule.
+
+The bus is loud: `currency_changed` fires on every hit and again once a second per currency
+from automation, forever. Five pages rebuilding themed rows on each of those, with the card
+shut, is a permanent background cost in a game whose pitch is that it idles under your work
+at under 3% CPU.
+
+The guard cannot be `if visible:` — that was the original bug. A page's own `visible` flag is
+written only when the card switches pages, so the page the player last had open stayed flagged
+visible under a closed card and the guard passed forever. `is_visible_in_tree()` is the question
+that was meant. `PanelLayer` now also hides the outgoing page with the card, so the two answers
+can never disagree.
+
+Deferred work is remembered, not dropped: `request_refresh()` / `request_rebuild()` mark the page
+dirty and it catches up the moment it is shown. Pages that hold a transient mode drop it in
+`_on_page_hidden()` — which is how the Rebirth page's armed confirm stopped surviving a close.
+
+*Consequence:* `ui_check`'s `closed pages` suite asserts no page is flagged visible under a shut
+card, that twenty currency events with the card shut cost zero refreshes, and that opening a page
+pays what it deferred.
+
+### D29 — Either half of the shell can hide behind an arrow
+
+Opt-in, off by default, one switch each (Settings > Shell): **Hide status until hover** and
+**Hide menu until hover**. Two switches rather than one because the two wants are genuinely
+independent — someone who wants a clean desktop while they work often still wants the tabs
+clickable, and a player who lives in the menus may not want a stat block over their document.
+
+The panel parks against its own edge and leaves a small white arrow, outlined so it survives
+an unknown desktop behind it. **The arrow points the way the panel will travel to reveal
+itself** — right at the left edge, down at the top — and flips to point back at that edge once
+the panel is out. That is the whole language; there is no label and no second thing to learn.
+
+`HoverDrawer` is shared by both. Two constraints it exists to respect:
+
+- It tracks the cursor from **motion events**, not `get_mouse_position()`. The polled position
+  is the OS cursor, which no synthetic event can move — a drawer built on it works in the game
+  and is untestable and unrecordable everywhere else.
+- It animates `position` on a control that is a direct child of a plain `Control`, which is the
+  only place in the shell where a control may own its own rect. Owning it means owning **both**
+  halves: a child of a plain Control is never laid out, so it keeps its old *size* as well as
+  its old position — that is what left a 697px tab strip inside a 480px window when the play
+  area stepped down.
+
+*Consequence:* `ui_check`'s `auto-hide` suite drives both drawers open and shut by pushed
+motion, and asserts each half parks off screen, leaves an arrow that stays on screen, comes
+back when that arrow is hovered, leaves again when it is not, and returns to the window when
+the setting is switched off.
+
 ## Recommendations not yet decided
 
 Carried in the spec, owner's call before they matter:

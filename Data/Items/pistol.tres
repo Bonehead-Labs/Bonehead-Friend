@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="ItemData" format=3]
 
-[ext_resource type="Texture2D" path="res://Assets/Crosshair Basic.png" id="1_g5xfu"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/pistol.png" id="1_g5xfu"]
 [ext_resource type="PackedScene" path="res://Scenes/Powers/gun_power.tscn" id="2_satg0"]
 [ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_mob6u"]
 

@@ -39,10 +39,21 @@ nested rigid body and therefore measured *time since last hit*, not swing speed.
 also means **any** rigid body is a weapon — a bowling ball dropped from height pays properly
 without special-casing.
 
-**Kindness → Hearts.** Two shapes:
-- *Event* kindness (a pet, a caught baseball, a slice of pizza): flat value per event, with a
-  combo multiplier on repeats inside a short window.
-- *Sustained* kindness (boombox, hot tub, chocolate fountain): Hearts per second while active.
+**Kindness → Hearts.** Two shapes, and they are two different signals (`docs/decisions.md` D14):
+- *Event* kindness — `EventBus.kindness_given`. A pet, a caught baseball, a slice of pizza:
+  flat value per event, **with** a combo multiplier on repeats inside a short window.
+- *Sustained* kindness — `EventBus.kindness_sustained`. Boombox, sponge, hot tub, chocolate
+  fountain: Hearts per second while active, **without** the combo. A generator left switched
+  on would otherwise park at the 3x ceiling forever.
+
+Shipped kindness values (first draft, tune from play):
+
+| Source | Shape | Value | Note |
+|---|---|---|---|
+| Open Hand (pet) | event | `pet_value` 1.0 every `pet_interval` 0.25 s while held on him | the only free Hearts source |
+| Sponge | sustained | `hearts_per_grime_cleaned` 8.0 × grime actually removed | pays nothing on a clean skeleton |
+| Pizza | event | 25, consumed on contact | active-play burst |
+| Boombox | sustained | 0.6 / s while placed | the first Hearts generator |
 
 **Knockout bonus.** On collapse, pay `balance.knockout_mult × (damage dealt this round)`, with
 a soft cap so knockout-farming doesn't dominate:
@@ -59,6 +70,47 @@ A `Curve` in `balance.tres`, sampled from mood ∈ [−100, +100]:
 A U, not a ramp. Sitting at neutral is the worst possible play; the player is pushed to swing
 him between misery and bliss. Mood decays toward 0 at `balance.mood_decay` per second, so the
 multiplier must be actively maintained.
+
+**How mood moves.** `MoodMath` owns the shape; `MoodComponent` owns the value.
+
+```
+damage   -> mood -= amount * balance.mood_per_damage          # 0.30, linear
+kindness -> mood += mood_per_kindness * sqrt(value)           # 4.0, root-scaled
+decay    -> toward 0 at mood_decay per second, never overshooting past it
+```
+
+Two shapes worth understanding before retuning either:
+
+- **Kindness is root-scaled, damage is not.** Kindness values span two orders of magnitude
+  across the roster (a pet is 1, a full sponge-down is 8, a pizza is 25) and a linear mapping
+  would make whichever item has the biggest number the only one that moves his mood at all.
+  Under a root, a pizza is worth five pets. Damage per hit is already capped at
+  `knockout_damage × max_hit_fraction`, so it needs no second cap.
+- **The rails are soft.** Pushing deeper into the extreme he is already at scales by the
+  remaining headroom; pushing back toward the other rail is always full strength. That
+  asymmetry *is* the seesaw — crossing the middle stays fast, which is the rhythm the U-curve
+  is asking for, while the last few points at either end have to be worked for, so 2.0x is
+  earned rather than parked at.
+
+A full 400-damage round drives him from neutral to despair with room to spare, which is the
+intended pacing: a round should be able to *reach* an extreme, not merely lean toward one.
+
+### Grime
+
+Grime is 0..1 and multiplies **Bones** income only:
+
+```
+bones_multiplier = 1 - grime × balance.grime_max_penalty     # 0.35, so filthy earns 0.65x
+grime += damage × balance.grime_per_damage                   # 0.0008, ~0.3 per round
+```
+
+The sponge is the only thing that removes it, and it pays Hearts on grime *actually removed*
+— scrubbing a clean skeleton earns nothing, which is the kindness-side twin of the
+resting-contact cooldown on the damage path.
+
+This is the dual-currency spine in one multiplier (D2): the cheapest Hearts item in the game
+is what protects the Bones economy, so a player who only ever hits him pays for it. It is
+never a wall — a filthy buddy still earns, because there is no fail state.
 
 ## Cost curves
 
@@ -100,12 +152,16 @@ WEAPON (flat unlock price, Bones)
 │    ├─ Damage        ×1.15 / level
 │    ├─ Payout        ×1.12 / level
 │    └─ Rate/Cooldown ×0.95 / level
-├─ TIER 2 — pick ONE (exclusive_group), needs 3+ T1 levels and Mastery 10
-│    ├─ e.g. Buckshot  +3 pellets, −30% each
-│    ├─ e.g. Slug      one projectile, ×4 knockback
-│    └─ e.g. Beanbag   0 damage — converts damage payout into Hearts
-└─ CAPSTONE — AUTOMATION, costs Hearts, needs Mastery 25 + Reincarnation ≥ 1
+├─ TIER 2 — pick ONE (exclusive_group), needs Mastery 10
+│    ├─ e.g. Slugger     ×1.6 damage
+│    ├─ e.g. Bone Cutter ×1.8 payout
+│    └─ e.g. Pillow Bat  ×0.35 damage — the bat that is nice to him
+└─ CAPSTONE — AUTOMATION, costs Hearts, needs Mastery 25
 ```
+
+**The capstone does not require a Reincarnation** — see `docs/decisions.md` D17. The spec used to
+say Mastery 25 + Reincarnation ≥ 1, which contradicted the balance target of a first automation
+at 30 minutes against a first Reincarnation at 6–10 hours.
 
 Exclusive branches give three flavours from one weapon at almost no content cost. Respec is
 allowed for a Hearts fee.
@@ -125,10 +181,69 @@ xp_to_rank(r) = balance.mastery_base × r^1.6
 - **Rank 25** — unlocks the automation capstone.
 - **Rank 50** — item's personal capstone bonus (typically ×1.5 payout).
 
-Each rank also drops a point into the shared **Mastery Pool**. Pool checkpoints
-(10 / 25 / 50 / 100 / 200 points) grant global bonuses — +2% all income, −5% all augment costs,
-+1 item limit, and so on. The pool is what makes breadth worth pursuing; without it, players
-correctly conclude that spreading mastery is wasted.
+Shipped rates: `mastery_xp_per_damage` 1.0 and `mastery_xp_per_kindness` 12.0. The two differ by
+roughly an order of magnitude because damage numbers are an order of magnitude larger than
+kindness values — at a shared rate a friendly item could never be mastered in a human lifetime.
+
+`MasteryMath.rank_for_xp` is the **solved** inverse of `xp_to_rank`, not a loop. It runs inside
+the payout pipeline on every hit, and a hundred `pow()` calls per payout is not affordable under
+a 3% CPU budget. Ranks are cached per item in `Progression` and recomputed only when XP is added.
+
+Each rank also drops a point into the shared **Mastery Pool** — one point per rank *crossed*, so
+a single event spanning four ranks is worth four points. Pool checkpoints
+(10 / 25 / 50 / 100 / 200 points) grant three global bonuses, all compounding per checkpoint:
+
+| Knob | Per checkpoint | At all five |
+|---|---|---|
+| `mastery_pool_income_step` | ×1.02 all income | ×1.10 |
+| `mastery_pool_cost_step` | ×0.95 augment costs | ×0.77 |
+| `mastery_pool_item_step` | +1 concurrent item | +5 |
+
+Compounding rather than summing, so the pool obeys D11's one rule for every multiplier in the
+game — including the one that goes down. The pool is what makes breadth worth pursuing; without
+it, players correctly conclude that spreading mastery is wasted.
+
+**The cost discount must reach the quote as well as the charge.** `Progression._discounted_base`
+is the single place it is applied and everything that prices or sells an augment goes through it
+— a discount in one path and not the other is a button that quotes one number and takes another.
+
+## Automation
+
+An automation capstone generates its **owning item's** currency per second: a weapon automates
+into Bones, a friendly item into Hearts. That rate is `AugmentNode.automation_rate` — a rate, not
+a multiplier, and therefore its own field rather than a reuse of `effect_per_level`. D11's "every
+effect is a multiplier" rule is what keeps `AugmentMath` four lines long, and income per second
+is the one thing that genuinely is not one.
+
+```
+online:  rate × delta, banked and paid every automation_payout_interval (1 s)
+offline: rate × clamp(elapsed, 0, cap) × offline_efficiency
+```
+
+Automated income runs the **same payout pipeline** as a swing, so mood, mastery and prestige all
+apply to it. Every capstone has an on/off toggle, which is not a convenience: a player in a
+meeting must be able to stop the desktop moving without giving up the income, and that is exactly
+what the Focus Mode promise requires.
+
+Shipped rates are a first draft — Bat Sentry 2.5 Bones/s for 900 Hearts, Endless Playlist
+0.8 Hearts/s for 1,400 Hearts.
+
+## Contracts
+
+Rotating objectives keyed on `EventBus.contract_event`. Three daily slots and one weekly, rolled
+from a seed derived from the day index rather than from chance — a board reshuffled on every boot
+would let a player reroll until they liked the offer.
+
+Rewards are **Ectoplasm only** (`docs/decisions.md` D18). A daily that paid spendable currency
+would set the pace of the shop ladder by the calendar instead of by play.
+
+Two things deliberately do not count:
+
+- **Sustained kindness is not a contract event.** A placed boombox flushes twice a second
+  forever; on the shared `kindness` key it would finish a 150-target contract in seventy-five
+  seconds with nobody at the keyboard. Contracts count *acts*.
+- **Prestige does not reset the board.** Contracts are a real-time hook, not a run-scoped one,
+  and resetting them would let a player farm a daily by reincarnating.
 
 ## Reincarnation (prestige)
 
@@ -148,7 +263,23 @@ Pacing target: first Reincarnation available after ~60–70% of first-run conten
 5–15 minutes apart, late-game 30–60.
 
 Each reset re-rolls Bonehead's **personality**, which swaps his mood curve (see
-`game-design.md`) — the same ectoplasm number, a different optimal rhythm.
+`game-design.md`) — the same ectoplasm number, a different optimal rhythm. A personality is
+*only* a curve (`docs/decisions.md` D19), and the roll never returns the one just played:
+drawing the same personality twice reads as the feature being broken rather than as chance.
+
+Shipped curves, sampled at despair / −50 / neutral / +50 / bliss:
+
+| Personality | −100 | −50 | 0 | +50 | +100 | Plays like |
+|---|---|---|---|---|---|---|
+| Stoic | 2.0 | 1.2 | 0.6 | 1.2 | 2.0 | the honest seesaw; the first-run default |
+| Masochist | 2.8 | 1.6 | 0.6 | 0.9 | 1.1 | keep him miserable; clean him only for the grime |
+| Diva | 1.1 | 0.9 | 0.6 | 1.6 | 2.8 | mostly put the bat down |
+| Zen | 1.4 | 1.2 | 1.0 | 1.2 | 1.4 | never 2x, never 0.6 — the idle-friendly run |
+| Goth | 1.6 | 2.2 | 1.0 | 0.8 | 1.4 | the peak is off-centre and breaks every other habit |
+
+**A reset keeps** ectoplasm, lifetime earnings (the cube root is taken of those, so resetting
+must not touch them), the prestige count, the offline cap and the contract board. **It wipes**
+both currencies, every unlock, every augment level, every exclusive choice and all mastery.
 
 ## Offline earnings
 
@@ -189,7 +320,14 @@ that's what the Mastery Pool and the exclusive branches exist to prevent.
 ## Tuning workflow
 
 1. All knobs live in `res://Data/balance.tres` — never hard-code a rate.
-2. Debug builds log every payout and purchase to a local CSV.
+2. Debug builds log every payout and purchase to a local CSV — `Scripts/Economy/tuning_log.gd`,
+   writing `user://logs/session_<timestamp>.csv`, installed by `main.gd` only under
+   `OS.is_debug_build()`. Every row carries the full economic context (mood, grime, both
+   balances, the mood multiplier in force), because "he earned 4 Bones" is unanalysable while
+   "he earned 4 Bones at mood −80 with 0.4 grime, 200 seconds in" tells you which multiplier is
+   mistuned. Look for the gap where nothing was affordable for more than five minutes — that gap
+   is the tier to fix.
 3. Economy maths is unit-tested (`tests/run_tests.gd`): cost curves, bulk-buy, max-affordable,
-   prestige, offline clamping. These are pure functions with no excuse for being wrong.
+   prestige, offline clamping, mood decay and rails, grime penalty. These are pure functions
+   with no excuse for being wrong.
 4. Retune against real playtest CSVs, not intuition.

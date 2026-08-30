@@ -14,3 +14,7 @@ art/raw/*
 # Exports
 /Exports/
 *.tmp
+
+# Art previews (regenerable: python3 art/tools/preview.py)
+art/preview/*
+!art/preview/.gitkeep

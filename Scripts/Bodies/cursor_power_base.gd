@@ -54,6 +54,10 @@ func set_active(value: bool, restore_cursor: bool = true) -> void:
 ## the same behaviour the prototype had. Whether a click on a grabbable object should
 ## grab instead of fire is a real design question; it is left for the M2 playtest rather
 ## than guessed at here.
+##
+## A power that declines the click via can_fire_at() does NOT consume it, so the world
+## still sees it. The open hand uses that to stay a cursor power without making the buddy
+## undraggable everywhere except on top of himself.
 func _unhandled_input(event: InputEvent) -> void:
 	if not active:
 		return
@@ -61,9 +65,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if not event.pressed or event.is_echo():
 		return
+	var at := get_global_mouse_position()
+	if not can_fire_at(at):
+		return
 	if not _cooldown_ready():
 		return
-	fire(get_global_mouse_position())
+	fire(at)
 	get_viewport().set_input_as_handled()
 
 func _cooldown_ready() -> bool:
@@ -86,6 +93,11 @@ func effective_damage_mult() -> float:
 ## Called with the world position of the click. Override.
 func fire(_at: Vector2) -> void:
 	pass
+
+## Whether a click here is this power's to take. Override to decline — declining leaves
+## the click unhandled so dragging and the UI still work.
+func can_fire_at(_at: Vector2) -> bool:
+	return true
 
 func _on_activated() -> void:
 	pass

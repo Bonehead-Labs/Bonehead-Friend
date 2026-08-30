@@ -1,0 +1,60 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Bodies/weapon_base.gd" id="1_f21mg"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/mace.png" id="2_36uu4"]
+[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_8rh62"]
+[ext_resource type="Script" path="res://Scripts/Components/effects_player.gd" id="4_phtej"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_f21mg"]
+radius = 26.0
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_36uu4"]
+size = Vector2(12, 36)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_8rh62"]
+size = Vector2(34, 52)
+
+[node name="_Mace" type="RigidBody2D" unique_id=643747345 node_paths=PackedStringArray("drag_area", "handle", "sprite", "collider", "Effects_Player")]
+collision_layer = 4
+collision_mask = 7
+mass = 12.0
+center_of_mass_mode = 1
+center_of_mass = Vector2(0, -22)
+contact_monitor = true
+max_contacts_reported = 4
+script = ExtResource("1_f21mg")
+damage_mult = 1.4
+item_id = &"mace"
+drag_area = NodePath("DraggableArea")
+handle = NodePath("Handle")
+sprite = NodePath("Sprite")
+collider = NodePath("CollisionShape2D")
+Effects_Player = NodePath("EffectsPlayer")
+grip_offset = Vector2(0, 32)
+
+[node name="Sprite" type="Sprite2D" parent="." unique_id=137616311]
+scale = Vector2(2, 2)
+texture = ExtResource("2_36uu4")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=735256507]
+position = Vector2(0, -20)
+shape = SubResource("CircleShape2D_f21mg")
+
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="." unique_id=289783216]
+position = Vector2(0, 28)
+shape = SubResource("RectangleShape2D_36uu4")
+
+[node name="DraggableArea" type="Area2D" parent="." unique_id=80051073]
+script = ExtResource("3_8rh62")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=981346828]
+position = Vector2(0, 26)
+shape = SubResource("RectangleShape2D_8rh62")
+
+[node name="Handle" type="StaticBody2D" parent="." unique_id=1814509788]
+visible = false
+collision_layer = 0
+collision_mask = 0
+
+[node name="EffectsPlayer" type="Node" parent="." unique_id=692841695]
+script = ExtResource("4_phtej")

@@ -1,0 +1,59 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Bodies/weapon_base.gd" id="1_a3n8w"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/baseball_bat.png" id="2_iyjwn"]
+[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_ne45r"]
+[ext_resource type="Script" path="res://Scripts/Components/effects_player.gd" id="4_fd2av"]
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_a3n8w"]
+height = 60.0
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_iyjwn"]
+size = Vector2(12, 36)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ne45r"]
+size = Vector2(34, 56)
+
+[node name="_BaseballBat" type="RigidBody2D" unique_id=859449722 node_paths=PackedStringArray("drag_area", "handle", "sprite", "collider", "Effects_Player")]
+collision_layer = 4
+collision_mask = 7
+mass = 8.0
+center_of_mass_mode = 1
+center_of_mass = Vector2(0, -24)
+contact_monitor = true
+max_contacts_reported = 4
+script = ExtResource("1_a3n8w")
+item_id = &"baseball_bat"
+drag_area = NodePath("DraggableArea")
+handle = NodePath("Handle")
+sprite = NodePath("Sprite")
+collider = NodePath("CollisionShape2D")
+Effects_Player = NodePath("EffectsPlayer")
+grip_offset = Vector2(0, 36)
+
+[node name="Sprite" type="Sprite2D" parent="." unique_id=1676652116]
+scale = Vector2(2, 2)
+texture = ExtResource("2_iyjwn")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=903958873]
+position = Vector2(0, -20)
+shape = SubResource("CapsuleShape2D_a3n8w")
+
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="." unique_id=523177409]
+position = Vector2(0, 32)
+shape = SubResource("RectangleShape2D_iyjwn")
+
+[node name="DraggableArea" type="Area2D" parent="." unique_id=812990278]
+script = ExtResource("3_ne45r")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=1826517000]
+position = Vector2(0, 28)
+shape = SubResource("RectangleShape2D_ne45r")
+
+[node name="Handle" type="StaticBody2D" parent="." unique_id=2038793067]
+visible = false
+collision_layer = 0
+collision_mask = 0
+
+[node name="EffectsPlayer" type="Node" parent="." unique_id=1149068899]
+script = ExtResource("4_fd2av")

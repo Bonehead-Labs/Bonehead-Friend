@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="PackedScene" path="res://Scenes/Friendly/boombox.tscn" id="1_v1x01"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/boombox.png" id="1_wer7u"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="2_wer7u"]
+
+[resource]
+script = ExtResource("2_wer7u")
+id = &"boombox"
+display_name = "Boombox"
+description = "Leave it playing. He dances, and Hearts trickle in on their own."
+category = 3
+cost = 1200
+currency = 1
+scene = ExtResource("1_v1x01")
+icon = ExtResource("1_wer7u")
+sort_order = 30

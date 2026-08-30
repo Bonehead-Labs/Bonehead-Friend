@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_tixaa"]
+
+[resource]
+script = ExtResource("1_tixaa")
+id = &"bat_bonecutter"
+item_id = &"baseball_bat"
+display_name = "Bone Cutter"
+description = "Less force, far better rates."
+tier = 2
+effect_key = &"payout_mult"
+effect_per_level = 1.8
+max_levels = 1
+cost_base = 900
+cost_growth = 1.0
+exclusive_group = &"flavour"
+requires_mastery = 10
