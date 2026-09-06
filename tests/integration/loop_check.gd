@@ -43,6 +43,7 @@ func _ready() -> void:
 	_augments_change_the_payout(earned)
 	_being_kind_pays_hearts()
 	_dollars_count_acts_not_power()
+	_streaks_are_counted()
 	_the_kindness_augments_do_something()
 	_mood_swings_the_payout()
 	_grime_suppresses_bones()
@@ -669,6 +670,29 @@ func _dollars_count_acts_not_power() -> void:
 		is_equal_approx(Economy.run_earnings, run_before))
 	_check("but they are spendable, unlike the Ectoplasm they replaced",
 		Economy.spend(Economy.DOLLARS, 500.0))
+
+## The damage streak is presentation: it is counted, drawn and heard, and pays nothing.
+func _streaks_are_counted() -> void:
+	_suite("streak")
+	Economy._streak_deadline_msec = 0
+	_check("no streak before a hit", Economy.damage_streak() == 0)
+	for i in 3:
+		EventBus.damage_dealt.emit(HitInfo.new(10.0, &"baseball_bat", Vector2(100, 100), 1000.0))
+	_check("three quick hits are a streak of three", Economy.damage_streak() == 3)
+	# Read the multipliers *before* emitting: mood and grime move a moment after the payout
+	# (CLAUDE.md, signal handler order). The pipeline's own answer is what the fourth hit must
+	# pay — no streak term anywhere in it.
+	var expected := Economy.payout_for(
+		10.0 * ItemDB.balance.bones_per_damage * Economy.grime_multiplier(), &"baseball_bat")
+	var bones_before := Economy.balance_of(Economy.BONES)
+	EventBus.damage_dealt.emit(HitInfo.new(10.0, &"baseball_bat", Vector2(100, 100), 1000.0))
+	_check("a hit inside a streak pays exactly the pipeline's number, no streak bonus",
+		is_equal_approx(Economy.balance_of(Economy.BONES) - bones_before, expected))
+	Economy._streak_deadline_msec = 0
+	_check("and a pause ends it", Economy.damage_streak() == 0)
+	EventBus.damage_dealt.emit(HitInfo.new(10.0, &"baseball_bat", Vector2(100, 100), 1000.0))
+	_check("the next hit starts a new one", Economy.damage_streak() == 1)
+	Economy._streak_deadline_msec = 0
 
 ## Two of the three augments a kindness-first player can buy were placebos: OpenHandPower
 ## sets its own pet interval and emits a flat `pet_value`, so neither `cooldown_mult` nor

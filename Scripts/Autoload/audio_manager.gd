@@ -93,9 +93,13 @@ func play(id: StringName, pitch_spread: float = 0.12, volume_db: float = 0.0,
 	player.play()
 
 func _on_damage_dealt(info: HitInfo) -> void:
-	# Louder for bigger hits, so the audio carries the same information the numbers do.
+	# Louder for bigger hits, so the audio carries the same information the numbers do — and
+	# higher for each hit in a streak, so a run of swings climbs like a scale. Economy has
+	# already counted this hit (autoloads connect in boot order), so the streak includes it.
 	var t := clampf(info.amount / 120.0, 0.0, 1.0)
-	play(impact_voice(info.source_id), 0.18, lerpf(-12.0, 0.0, t))
+	var streak := Economy.damage_streak()
+	var pitch := 1.0 + 0.03 * float(mini(maxi(streak - 1, 0), 16))
+	play(impact_voice(info.source_id), 0.18, lerpf(-12.0, 0.0, t), pitch)
 
 ## What a hit from this thing sounds like.
 ##
@@ -159,7 +163,8 @@ const BIG_BANG_HINTS := ["demolition", "black_hole", "implosion", "mortar", "nap
 ## Petting fires several times a second, so this is quiet and wide-spread on purpose —
 ## the same sample at the same pitch four times a second is a fire alarm, not affection.
 func _on_kindness_given(_source_id: StringName, _value: float, _world_pos: Vector2) -> void:
-	play(&"kindness", 0.25, -14.0)
+	# Pitched up per act in the combo, so a petting streak climbs the way a hit streak does.
+	play(&"kindness", 0.25, -14.0, 1.0 + 0.05 * float(mini(Economy.kindness_combo(), 10)))
 
 func _set_muted(value: bool) -> void:
 	_muted = value

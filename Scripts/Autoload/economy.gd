@@ -243,7 +243,24 @@ func payout_for(base: float, source_id: StringName) -> float:
 		Progression.mastery_multiplier(source_id),
 		marrow_multiplier()) * temp_multiplier() * Milestones.income_multiplier()
 
+## Consecutive hits inside `STREAK_WINDOW`, for presentation only: the tag beside the number
+## and the pitch of the impact climb with it. It pays nothing — every multiplier in this game
+## is data (D11), and a streak is deliberately not in the data, so the feeling of momentum
+## costs the balance nothing. The kindness combo beside it does pay, by design (D14).
+const STREAK_WINDOW := 1.5
+var _streak_count := 0
+var _streak_deadline_msec := 0
+
+func damage_streak() -> int:
+	return _streak_count if Time.get_ticks_msec() < _streak_deadline_msec else 0
+
+## Set for the duration of a kind act's own payout emit (see `_on_kindness_given`).
+var paying_kind_act := false
+
 func _on_damage_dealt(info: HitInfo) -> void:
+	var now := Time.get_ticks_msec()
+	_streak_count = _streak_count + 1 if now < _streak_deadline_msec else 1
+	_streak_deadline_msec = now + int(STREAK_WINDOW * 1000.0)
 	round_damage += info.amount
 	stats["damage_dealt"] = float(stats.get("damage_dealt", 0.0)) + info.amount
 	var bones := payout_for(
@@ -274,7 +291,11 @@ func _on_kindness_given(source_id: StringName, value: float, world_pos: Vector2)
 
 	var combo := EconomyMath.kindness_combo(_combo_count, b.kindness_combo_step, b.kindness_combo_max)
 	var hearts := payout_for(value * b.hearts_per_kindness * combo, source_id)
+	# True only while this act's payout is on the bus, so the FX layer can tag the combo on
+	# the number that actually carried it and not on a hot tub's trickle arriving mid-streak.
+	paying_kind_act = true
 	grant(HEARTS, hearts, world_pos, source_id)
+	paying_kind_act = false
 	_bank_dollars(ItemDB.balance.dollars_per_kind_act)
 	stats["pets"] = int(stats.get("pets", 0)) + 1
 	EventBus.contract_event.emit(&"kindness", 1)

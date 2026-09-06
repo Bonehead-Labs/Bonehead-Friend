@@ -795,6 +795,20 @@ func _the_payouts_are_visible() -> void:
 	await _settle()
 	_check("and with it on, a payout puts a number on screen",
 		_visible_numbers(fx) >= before + 2, "%d -> %d" % [before, _visible_numbers(fx)])
+
+	# The streak, drawn: three real hits through the bus put an "x3" tag on the third number.
+	# The combo the same way, through the open hand.
+	Economy._streak_deadline_msec = 0
+	for i in 3:
+		EventBus.damage_dealt.emit(HitInfo.new(20.0, &"baseball_bat", Vector2(VIEW_SIZE) * 0.5, 1000.0))
+	await _settle()
+	_check("a streak of three is tagged on the number", _visible_tag(fx, "x3"))
+	Economy._combo_count = 0
+	Economy._combo_deadline_msec = 0
+	for i in 3:
+		EventBus.kindness_given.emit(&"open_hand", 1.0, Vector2(VIEW_SIZE) * 0.5)
+	await _settle()
+	_check("a petting combo is tagged on the number", _visible_tag(fx, "x1."))
 	Settings.focus_intensity = Settings.Intensity.OFF
 
 	# The two economies must stay apart at every magnitude — including the top tier, where
@@ -807,6 +821,14 @@ func _the_payouts_are_visible() -> void:
 			same.append("tier %d" % tier)
 	_check("Bones and Hearts are distinguishable at every tier%s"
 		% ("" if same.is_empty() else ": " + ", ".join(same)), same.is_empty())
+
+## A visible floating label whose text starts with `prefix` — the streak and combo tags.
+func _visible_tag(fx: Node, prefix: String) -> bool:
+	for node in _all_nodes(fx):
+		var label := node as Label
+		if label and label.visible and label.text.begins_with(prefix):
+			return true
+	return false
 
 func _visible_numbers(fx: Node) -> int:
 	var count := 0

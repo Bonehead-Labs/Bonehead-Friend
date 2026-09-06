@@ -172,7 +172,7 @@ func _spark_material() -> ParticleProcessMaterial:
 
 # --- floating numbers ------------------------------------------------------
 
-func _on_payout(currency: StringName, amount: float, world_pos: Vector2, _source_id: StringName) -> void:
+func _on_payout(currency: StringName, amount: float, world_pos: Vector2, source_id: StringName) -> void:
 	if amount < 0.01:
 		return
 	# **Not everything that is granted is a moment.** Dollars are minted flat on every hit
@@ -189,6 +189,34 @@ func _on_payout(currency: StringName, amount: float, world_pos: Vector2, _source
 	# when a kind item and a weapon are both in play.
 	var offset := Vector2(0, 0) if currency == &"bones" else Vector2(0, 14)
 	spawn_number("+%s" % _format(amount), world_pos + offset, ramp[tier], 1.0, tier)
+	_tag_streak(currency, source_id, world_pos + offset, ramp, tier)
+
+## The streak and the combo, drawn. The kindness combo swung the payout up to x3 and the
+## damage streak is the genre's whole feeling of momentum, and neither was ever on screen
+## (assessment-2026-09 §4). A small hot tag rides above the number, one tier hotter than it,
+## from the third hit or the second pet — never for automation, which is not a rhythm.
+const STREAK_SHOW_FROM := 3
+const COMBO_SHOW_FROM := 1
+
+func _tag_streak(currency: StringName, source_id: StringName, at: Vector2, ramp: Array,
+		tier: int) -> void:
+	if source_id == &"automation" or source_id == &"":
+		return
+	var hot := mini(tier + 1, TIER_SIZE.size() - 1)
+	if currency == Economy.BONES:
+		var streak := Economy.damage_streak()
+		if streak >= STREAK_SHOW_FROM:
+			spawn_number("x%d" % streak, at + Vector2(30, -22), ramp[hot], 0.8, hot)
+		return
+	if currency == Economy.HEARTS:
+		# Only on the act's own number, not on a hot tub's trickle arriving mid-streak.
+		if not Economy.paying_kind_act:
+			return
+		var combo := Economy.kindness_combo()
+		if combo >= COMBO_SHOW_FROM:
+			var b := ItemDB.balance
+			var mult := EconomyMath.kindness_combo(combo, b.kindness_combo_step, b.kindness_combo_max)
+			spawn_number("x%.1f" % mult, at + Vector2(30, -22), ramp[hot], 0.8, hot)
 
 ## How big a number *feels* is how many digits it has, so that is what drives the treatment.
 ## `log10` rather than a table of thresholds: it keeps escalating for as long as the player
