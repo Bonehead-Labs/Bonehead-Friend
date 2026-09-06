@@ -12,6 +12,7 @@ would be four pixels in a shop row. The scale table governs the world, not the U
 """
 import glob
 import os
+import sys
 from PIL import Image
 
 SRC = "Assets/sprites/items"
@@ -23,8 +24,15 @@ MARGIN = 2
 def main():
     os.makedirs(OUT, exist_ok=True)
     made = 0
+    # Optional ids on the command line rebuild only those icons.
+    only = set(sys.argv[1:])
     for path in sorted(glob.glob("%s/*.png" % SRC)):
         item = os.path.basename(path)[:-4]
+        if only and item not in only:
+            continue
+        # A turret's split halves are not items.
+        if item.endswith("_base") or item.endswith("_barrel"):
+            continue
         im = Image.open(path).convert("RGBA")
         bbox = im.getbbox()
         if bbox is None:

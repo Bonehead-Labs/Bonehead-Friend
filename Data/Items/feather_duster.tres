@@ -1,5 +1,6 @@
 [gd_resource type="Resource" script_class="ItemData" format=3]
 
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/feather_duster.png" id="1_4w7f6"]
 [ext_resource type="PackedScene" path="res://Scenes/Friendly/feather_duster.tscn" id="1_mqo4i"]
 [ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="2_4w7f6"]
 
@@ -12,4 +13,5 @@ category = 3
 cost = 90
 currency = 1
 scene = ExtResource("1_mqo4i")
+icon = ExtResource("1_4w7f6")
 sort_order = 20

@@ -1904,8 +1904,10 @@ func _the_turret_faces_him(centre: Vector2) -> void:
 	turret.global_position = centre + Vector2(220, 0)
 	await _settle()
 	await _settle()
-	var sprite := turret.get("sprite") as Sprite2D
+	# The gun is the Barrel sprite when the art has been split (D44), the whole sprite when not.
+	var sprite := (turret.get("barrel") if turret.get("barrel") else turret.get("sprite")) as Sprite2D
 	_check("the pellet turret has a muzzle", turret.get("muzzle") != Vector2.ZERO)
+	_check("and a barrel of its own that turns on the mount", turret.get("barrel") != null)
 	_check("standing on his right, it mirrors to face him", sprite != null and sprite.flip_h)
 	var muzzle: Vector2 = turret.call("muzzle_position")
 	_check("and its nozzle is on his side of it", muzzle.x < turret.global_position.x - 20.0,

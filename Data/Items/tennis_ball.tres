@@ -1,5 +1,6 @@
 [gd_resource type="Resource" script_class="ItemData" format=3]
 
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/tennis_ball.png" id="1_s21wm"]
 [ext_resource type="PackedScene" path="res://Scenes/Friendly/tennis_ball.tscn" id="1_xtvg2"]
 [ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="2_s21wm"]
 
@@ -12,4 +13,5 @@ category = 4
 cost = 300
 currency = 1
 scene = ExtResource("1_xtvg2")
+icon = ExtResource("1_s21wm")
 sort_order = 42

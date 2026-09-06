@@ -1,40 +1,43 @@
 [gd_scene format=3]
 
-[ext_resource type="Script" path="res://Scripts/Bodies/turret_base.gd" id="1_pgtw0"]
-[ext_resource type="Texture2D" path="res://Assets/sprites/items/rail_gun.png" id="2_ly5qe"]
-[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_ew8sm"]
-[ext_resource type="Script" path="res://Scripts/Components/effects_player.gd" id="4_3xrcv"]
+[ext_resource type="Script" path="res://Scripts/Bodies/turret_base.gd" id="1_ly5qe"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/rail_gun_base.png" id="2_ew8sm"]
+[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_3xrcv"]
+[ext_resource type="Script" path="res://Scripts/Components/effects_player.gd" id="4_kc67j"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/rail_gun_barrel.png" id="5_xgqqx"]
 
-[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_kc67j"]
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_bjhp6"]
 friction = 0.95
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_xgqqx"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_jqkkp"]
 size = Vector2(60, 20)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_bjhp6"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_318op"]
 size = Vector2(72, 26)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_jqkkp"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_wxvg3"]
 size = Vector2(80, 104)
 
-[node name="_RailGun" type="RigidBody2D" unique_id=803141089 node_paths=PackedStringArray("drag_area", "handle", "sprite", "collider", "Effects_Player")]
+[node name="_RailGun" type="RigidBody2D" unique_id=349407436 node_paths=PackedStringArray("barrel", "drag_area", "handle", "sprite", "collider", "Effects_Player")]
 collision_layer = 4
 collision_mask = 7
 mass = 20.0
-physics_material_override = SubResource("PhysicsMaterial_kc67j")
+physics_material_override = SubResource("PhysicsMaterial_bjhp6")
 center_of_mass_mode = 1
 center_of_mass = Vector2(0, 32)
 contact_monitor = true
 max_contacts_reported = 4
-script = ExtResource("1_pgtw0")
+script = ExtResource("1_ly5qe")
 fire_interval = 2.8
 blast_radius = 22.0
 blast_force = 7200.0
 damage_mult = 2.2
 max_range = 900.0
-aim_lean_degrees = 24.0
+aim_lean_degrees = 30.0
 recoil_pixels = 6.0
 muzzle = Vector2(45, -7)
+barrel = NodePath("Barrel")
+barrel_pivot = Vector2(-16, 2)
 item_id = &"rail_gun"
 drag_area = NodePath("DraggableArea")
 handle = NodePath("Handle")
@@ -43,28 +46,34 @@ collider = NodePath("CollisionShape2D")
 Effects_Player = NodePath("EffectsPlayer")
 grip_offset = Vector2(0, -28)
 
-[node name="Sprite" type="Sprite2D" parent="." unique_id=509210273]
+[node name="Sprite" type="Sprite2D" parent="." unique_id=250100091]
 scale = Vector2(2, 2)
-texture = ExtResource("2_ly5qe")
+texture = ExtResource("2_ew8sm")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=115841257]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1882374592]
 position = Vector2(0, 38)
-shape = SubResource("RectangleShape2D_xgqqx")
-
-[node name="CollisionShape2D2" type="CollisionShape2D" parent="." unique_id=1493598404]
-position = Vector2(0, -2)
-shape = SubResource("RectangleShape2D_bjhp6")
-
-[node name="DraggableArea" type="Area2D" parent="." unique_id=1838790799]
-script = ExtResource("3_ew8sm")
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=488069806]
 shape = SubResource("RectangleShape2D_jqkkp")
 
-[node name="Handle" type="StaticBody2D" parent="." unique_id=879451757]
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="." unique_id=1754694062]
+position = Vector2(0, -2)
+shape = SubResource("RectangleShape2D_318op")
+
+[node name="DraggableArea" type="Area2D" parent="." unique_id=858836346]
+script = ExtResource("3_3xrcv")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=1821392622]
+shape = SubResource("RectangleShape2D_wxvg3")
+
+[node name="Handle" type="StaticBody2D" parent="." unique_id=497854491]
 visible = false
 collision_layer = 0
 collision_mask = 0
 
-[node name="EffectsPlayer" type="Node" parent="." unique_id=2077852192]
-script = ExtResource("4_3xrcv")
+[node name="EffectsPlayer" type="Node" parent="." unique_id=1713539744]
+script = ExtResource("4_kc67j")
+
+[node name="Barrel" type="Sprite2D" parent="." unique_id=1350708189]
+position = Vector2(-32, 4)
+scale = Vector2(2, 2)
+texture = ExtResource("5_xgqqx")
+offset = Vector2(16, -2)

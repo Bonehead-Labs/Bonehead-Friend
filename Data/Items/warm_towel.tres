@@ -1,6 +1,7 @@
 [gd_resource type="Resource" script_class="ItemData" format=3]
 
 [ext_resource type="PackedScene" path="res://Scenes/Friendly/warm_towel.tscn" id="1_epjop"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/warm_towel.png" id="1_hix5u"]
 [ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="2_hix5u"]
 
 [resource]
@@ -12,4 +13,5 @@ category = 3
 cost = 1500
 currency = 1
 scene = ExtResource("1_epjop")
+icon = ExtResource("1_hix5u")
 sort_order = 40

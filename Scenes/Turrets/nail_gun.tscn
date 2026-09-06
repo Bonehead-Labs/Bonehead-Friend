@@ -1,44 +1,47 @@
 [gd_scene format=3]
 
-[ext_resource type="Script" path="res://Scripts/Bodies/turret_base.gd" id="1_ikbn2"]
-[ext_resource type="Texture2D" path="res://Assets/sprites/items/nail_gun.png" id="2_l675e"]
-[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_dw7t6"]
-[ext_resource type="Script" path="res://Scripts/Components/effects_player.gd" id="4_c43fv"]
+[ext_resource type="Script" path="res://Scripts/Bodies/turret_base.gd" id="1_l675e"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/nail_gun_base.png" id="2_dw7t6"]
+[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_c43fv"]
+[ext_resource type="Script" path="res://Scripts/Components/effects_player.gd" id="4_jocqy"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/nail_gun_barrel.png" id="5_b3esd"]
 
-[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_jocqy"]
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_8bovf"]
 friction = 0.95
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_b3esd"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_1ymta"]
 size = Vector2(32, 12)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_8bovf"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_v3e4c"]
 size = Vector2(14, 28)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_1ymta"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_hbv6c"]
 size = Vector2(48, 22)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_v3e4c"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_p0fu3"]
 size = Vector2(60, 76)
 
-[node name="_NailGun" type="RigidBody2D" unique_id=555127868 node_paths=PackedStringArray("drag_area", "handle", "sprite", "collider", "Effects_Player")]
+[node name="_NailGun" type="RigidBody2D" unique_id=511908756 node_paths=PackedStringArray("barrel", "drag_area", "handle", "sprite", "collider", "Effects_Player")]
 collision_layer = 4
 collision_mask = 7
 mass = 9.0
-physics_material_override = SubResource("PhysicsMaterial_jocqy")
+physics_material_override = SubResource("PhysicsMaterial_8bovf")
 center_of_mass_mode = 1
 center_of_mass = Vector2(0, 22)
 contact_monitor = true
 max_contacts_reported = 4
-script = ExtResource("1_ikbn2")
+script = ExtResource("1_l675e")
 fire_interval = 0.14
 blast_radius = 18.0
 blast_force = 420.0
 damage_mult = 0.9
 spread = 7.0
 max_range = 260.0
-aim_lean_degrees = 28.0
+aim_lean_degrees = 35.0
 recoil_pixels = 2.0
 muzzle = Vector2(12, -13)
+barrel = NodePath("Barrel")
+barrel_pivot = Vector2(-4, -3)
 item_id = &"nail_gun"
 drag_area = NodePath("DraggableArea")
 handle = NodePath("Handle")
@@ -47,32 +50,38 @@ collider = NodePath("CollisionShape2D")
 Effects_Player = NodePath("EffectsPlayer")
 grip_offset = Vector2(0, -26)
 
-[node name="Sprite" type="Sprite2D" parent="." unique_id=285178679]
+[node name="Sprite" type="Sprite2D" parent="." unique_id=21745725]
 scale = Vector2(2, 2)
-texture = ExtResource("2_l675e")
+texture = ExtResource("2_dw7t6")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1593675020]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1901243606]
 position = Vector2(0, 28)
-shape = SubResource("RectangleShape2D_b3esd")
-
-[node name="CollisionShape2D2" type="CollisionShape2D" parent="." unique_id=1157773037]
-position = Vector2(0, 8)
-shape = SubResource("RectangleShape2D_8bovf")
-
-[node name="CollisionShape2D3" type="CollisionShape2D" parent="." unique_id=983432768]
-position = Vector2(0, -20)
 shape = SubResource("RectangleShape2D_1ymta")
 
-[node name="DraggableArea" type="Area2D" parent="." unique_id=2109144572]
-script = ExtResource("3_dw7t6")
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=17909367]
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="." unique_id=436220007]
+position = Vector2(0, 8)
 shape = SubResource("RectangleShape2D_v3e4c")
 
-[node name="Handle" type="StaticBody2D" parent="." unique_id=1566597447]
+[node name="CollisionShape2D3" type="CollisionShape2D" parent="." unique_id=575832593]
+position = Vector2(0, -20)
+shape = SubResource("RectangleShape2D_hbv6c")
+
+[node name="DraggableArea" type="Area2D" parent="." unique_id=1009993702]
+script = ExtResource("3_c43fv")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=1451750863]
+shape = SubResource("RectangleShape2D_p0fu3")
+
+[node name="Handle" type="StaticBody2D" parent="." unique_id=640783640]
 visible = false
 collision_layer = 0
 collision_mask = 0
 
-[node name="EffectsPlayer" type="Node" parent="." unique_id=1576367584]
-script = ExtResource("4_c43fv")
+[node name="EffectsPlayer" type="Node" parent="." unique_id=1555432155]
+script = ExtResource("4_jocqy")
+
+[node name="Barrel" type="Sprite2D" parent="." unique_id=363035500]
+position = Vector2(-8, -6)
+scale = Vector2(2, 2)
+texture = ExtResource("5_b3esd")
+offset = Vector2(4, 3)

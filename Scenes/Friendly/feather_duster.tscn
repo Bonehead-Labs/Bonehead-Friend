@@ -1,41 +1,42 @@
 [gd_scene format=3]
 
-[ext_resource type="Script" path="res://Scripts/Bodies/friendly_base.gd" id="1_3illm"]
-[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="2_oobtg"]
+[ext_resource type="Script" path="res://Scripts/Bodies/friendly_base.gd" id="1_oobtg"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/feather_duster.png" id="2_3qkls"]
+[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_t755v"]
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_3qkls"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_4o13b"]
 size = Vector2(34, 14)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_t755v"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_yf0cj"]
 size = Vector2(46, 26)
 
-[node name="FeatherDuster" type="RigidBody2D" unique_id=2093126121 node_paths=PackedStringArray("drag_area", "handle", "collider")]
+[node name="FeatherDuster" type="RigidBody2D" unique_id=454769868 node_paths=PackedStringArray("drag_area", "handle", "collider")]
 collision_layer = 4
 collision_mask = 7
 mass = 0.2
 contact_monitor = true
 max_contacts_reported = 4
-script = ExtResource("1_3illm")
+script = ExtResource("1_oobtg")
 hearts_per_second_touching = 2.0
 handheld = true
 drag_area = NodePath("DraggableArea")
 handle = NodePath("Handle")
 collider = NodePath("CollisionShape2D")
 
-[node name="Placeholder" type="Polygon2D" parent="." unique_id=767407572]
-color = Color(0.84, 0.72, 0.9, 1)
-polygon = PackedVector2Array(-13.5, -7, 13.5, -7, 17, -3.5, 17, 3.5, 13.5, 7, -13.5, 7, -17, 3.5, -17, -3.5)
+[node name="Sprite" type="Sprite2D" parent="." unique_id=1401309070]
+scale = Vector2(2, 2)
+texture = ExtResource("2_3qkls")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=108487538]
-shape = SubResource("RectangleShape2D_3qkls")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1045623587]
+shape = SubResource("RectangleShape2D_4o13b")
 
-[node name="DraggableArea" type="Area2D" parent="." unique_id=924832795]
-script = ExtResource("2_oobtg")
+[node name="DraggableArea" type="Area2D" parent="." unique_id=42623341]
+script = ExtResource("3_t755v")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=1387539625]
-shape = SubResource("RectangleShape2D_t755v")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=1070046022]
+shape = SubResource("RectangleShape2D_yf0cj")
 
-[node name="Handle" type="StaticBody2D" parent="." unique_id=352520806]
+[node name="Handle" type="StaticBody2D" parent="." unique_id=613925442]
 visible = false
 collision_layer = 0
 collision_mask = 0

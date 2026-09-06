@@ -1,37 +1,40 @@
 [gd_scene format=3]
 
-[ext_resource type="Script" path="res://Scripts/Bodies/turret_base.gd" id="1_yorwg"]
-[ext_resource type="Texture2D" path="res://Assets/sprites/items/pellet_turret.png" id="2_i6xys"]
-[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_4hbt7"]
-[ext_resource type="Script" path="res://Scripts/Components/effects_player.gd" id="4_brxev"]
+[ext_resource type="Script" path="res://Scripts/Bodies/turret_base.gd" id="1_i6xys"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/pellet_turret_base.png" id="2_4hbt7"]
+[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_brxev"]
+[ext_resource type="Script" path="res://Scripts/Components/effects_player.gd" id="4_vb1mv"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/pellet_turret_barrel.png" id="5_oqfnq"]
 
-[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_vb1mv"]
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_8mg06"]
 friction = 0.95
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_oqfnq"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_slnwe"]
 size = Vector2(44, 14)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_8mg06"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_kr1c5"]
 size = Vector2(32, 30)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_slnwe"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_c6baj"]
 size = Vector2(60, 68)
 
-[node name="_PelletTurret" type="RigidBody2D" unique_id=950347972 node_paths=PackedStringArray("drag_area", "handle", "sprite", "collider", "Effects_Player")]
+[node name="_PelletTurret" type="RigidBody2D" unique_id=1125302182 node_paths=PackedStringArray("barrel", "drag_area", "handle", "sprite", "collider", "Effects_Player")]
 collision_layer = 4
 collision_mask = 7
 mass = 8.0
-physics_material_override = SubResource("PhysicsMaterial_vb1mv")
+physics_material_override = SubResource("PhysicsMaterial_8mg06")
 center_of_mass_mode = 1
 center_of_mass = Vector2(0, 20)
 contact_monitor = true
 max_contacts_reported = 4
-script = ExtResource("1_yorwg")
+script = ExtResource("1_i6xys")
 fire_interval = 1.1
 blast_radius = 30.0
 max_range = 340.0
-aim_lean_degrees = 32.0
+aim_lean_degrees = 40.0
 muzzle = Vector2(19, -3)
+barrel = NodePath("Barrel")
+barrel_pivot = Vector2(-1, 1)
 item_id = &"pellet_turret"
 drag_area = NodePath("DraggableArea")
 handle = NodePath("Handle")
@@ -40,28 +43,34 @@ collider = NodePath("CollisionShape2D")
 Effects_Player = NodePath("EffectsPlayer")
 grip_offset = Vector2(0, -22)
 
-[node name="Sprite" type="Sprite2D" parent="." unique_id=262252862]
+[node name="Sprite" type="Sprite2D" parent="." unique_id=770580825]
 scale = Vector2(2, 2)
-texture = ExtResource("2_i6xys")
+texture = ExtResource("2_4hbt7")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1720835028]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=916653649]
 position = Vector2(0, 22)
-shape = SubResource("RectangleShape2D_oqfnq")
-
-[node name="CollisionShape2D2" type="CollisionShape2D" parent="." unique_id=903728201]
-position = Vector2(0, -8)
-shape = SubResource("RectangleShape2D_8mg06")
-
-[node name="DraggableArea" type="Area2D" parent="." unique_id=989306814]
-script = ExtResource("3_4hbt7")
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=1026639240]
 shape = SubResource("RectangleShape2D_slnwe")
 
-[node name="Handle" type="StaticBody2D" parent="." unique_id=510081112]
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="." unique_id=1943394738]
+position = Vector2(0, -8)
+shape = SubResource("RectangleShape2D_kr1c5")
+
+[node name="DraggableArea" type="Area2D" parent="." unique_id=1865587745]
+script = ExtResource("3_brxev")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=1151607790]
+shape = SubResource("RectangleShape2D_c6baj")
+
+[node name="Handle" type="StaticBody2D" parent="." unique_id=1192322772]
 visible = false
 collision_layer = 0
 collision_mask = 0
 
-[node name="EffectsPlayer" type="Node" parent="." unique_id=2143266826]
-script = ExtResource("4_brxev")
+[node name="EffectsPlayer" type="Node" parent="." unique_id=1392216809]
+script = ExtResource("4_vb1mv")
+
+[node name="Barrel" type="Sprite2D" parent="." unique_id=2052617201]
+position = Vector2(-2, 2)
+scale = Vector2(2, 2)
+texture = ExtResource("5_oqfnq")
+offset = Vector2(1, -1)

@@ -1,5 +1,6 @@
 [gd_resource type="Resource" script_class="ItemData" format=3]
 
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/kite.png" id="1_5gin0"]
 [ext_resource type="PackedScene" path="res://Scenes/Friendly/kite.tscn" id="1_8wt7w"]
 [ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="2_5gin0"]
 
@@ -12,4 +13,5 @@ category = 4
 cost = 4500
 currency = 1
 scene = ExtResource("1_8wt7w")
+icon = ExtResource("1_5gin0")
 sort_order = 46

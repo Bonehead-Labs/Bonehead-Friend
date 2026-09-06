@@ -1016,6 +1016,34 @@ from the middle of the gun. A device that fires with no tell is the desk hurting
 *Consequence:* `ui_check` stands a pellet turret on each side of him and overhead and asserts the
 mirror, the nozzle side and the cap. A new turret authors its three fields in the seed table.
 
+## D44 — The art pass without a generator: plotted items, split turrets, pixel grime (2026-09-06)
+
+**Decision.** With no image generator reachable from the session (no Retro Diffusion key in the
+environment, no Codex tool exposed), the art pass shipped what can be drawn by hand in code and
+deferred what cannot. Plotted, in the project palette with one texel of outline, at scale-table
+size: the five hands-on kind items that had been placeholder polygons since M3.8 (feather duster,
+tennis ball, party popper, warm towel, kite) and a bone-cream fist icon replacing the prototype
+render (`art/tools/make_hands_on_items.py`). Cut, not drawn: four gun turrets' existing sprites
+split into a base and a barrel along a per-turret line read off their pixels
+(`art/tools/split_turret_barrels.py`), so the gun turns on its mount while the mount stays put —
+the mortar and the three symmetric turrets keep one sprite. Shaded, not painted: grime is now a
+per-texel hash of soot speckles that thicken with the value, over a deepening wash, in the same
+shader as the flash and the wardrobe tints.
+
+**Why.** The five items were the last placeholders a player could buy; a grey fist beside a
+drawn hand looked like two games; a turret that only leaned was the owner's first complaint on
+seeing one move; and grime as a flat tint read as a lighting bug rather than dirt.
+
+**What still needs the generator** (worklist §3): the walk cycle and the other animation
+families (`dance`, `relax`, `eat`, `catch`, `sleep`), and a proper two-part sprite for every
+turret rather than a cut through the existing one. When it is back — Retro Diffusion via
+`RD_API_KEY`, or the Codex plugin — the plotted five are the first things to replace; nothing
+references their pixels.
+
+*Consequence:* `seed_friendly` picks a sprite up automatically when the PNG exists;
+`seed_m36_turrets` hangs a Barrel when the split halves exist. Both tools are re-run, never
+hand-edited, when art changes.
+
 ## Recommendations not yet decided
 
 Carried in the spec, owner's call before they matter:

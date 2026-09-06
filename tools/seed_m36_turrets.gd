@@ -88,7 +88,7 @@ const TURRETS := {
 		"turret": {
 			"fire_interval": 1.1, "blast_radius": 30.0, "blast_force": 900.0,
 			"damage_mult": 1.0, "pellets": 1, "spread": 0.0, "max_range": 340.0,
-			"aim_lean_degrees": 32.0, "muzzle": Vector2(19, -3), "faces": 1.0, "flips": true, "recoil_pixels": 3.0,
+			"aim_lean_degrees": 40.0, "muzzle": Vector2(19, -3), "faces": 1.0, "flips": true, "barrel_pivot": Vector2(-1, 1), "recoil_pixels": 3.0,
 		},
 		"body": {
 			"mass": 8.0,
@@ -114,7 +114,7 @@ const TURRETS := {
 		"turret": {
 			"fire_interval": 0.14, "blast_radius": 18.0, "blast_force": 420.0,
 			"damage_mult": 0.9, "pellets": 1, "spread": 7.0, "max_range": 260.0,
-			"aim_lean_degrees": 28.0, "muzzle": Vector2(12, -13), "faces": 1.0, "flips": true, "recoil_pixels": 2.0,
+			"aim_lean_degrees": 35.0, "muzzle": Vector2(12, -13), "faces": 1.0, "flips": true, "barrel_pivot": Vector2(-4, -3), "recoil_pixels": 2.0,
 		},
 		"body": {
 			"mass": 9.0,
@@ -164,7 +164,7 @@ const TURRETS := {
 		"turret": {
 			"fire_interval": 0.1, "blast_radius": 44.0, "blast_force": 400.0,
 			"damage_mult": 1.15, "pellets": 1, "spread": 16.0, "max_range": 150.0,
-			"aim_lean_degrees": 30.0, "muzzle": Vector2(-27, -2), "faces": -1.0, "flips": true, "recoil_pixels": 1.0,
+			"aim_lean_degrees": 35.0, "muzzle": Vector2(-27, -2), "faces": -1.0, "flips": true, "barrel_pivot": Vector2(-2, 4), "recoil_pixels": 1.0,
 		},
 		"body": {
 			"mass": 11.0,
@@ -189,7 +189,7 @@ const TURRETS := {
 		"turret": {
 			"fire_interval": 2.8, "blast_radius": 22.0, "blast_force": 7200.0,
 			"damage_mult": 2.2, "pellets": 1, "spread": 0.0, "max_range": 900.0,
-			"aim_lean_degrees": 24.0, "muzzle": Vector2(45, -7), "faces": 1.0, "flips": true, "recoil_pixels": 6.0,
+			"aim_lean_degrees": 30.0, "muzzle": Vector2(45, -7), "faces": 1.0, "flips": true, "barrel_pivot": Vector2(-16, 2), "recoil_pixels": 6.0,
 		},
 		"body": {
 			"mass": 20.0,
@@ -214,7 +214,7 @@ const TURRETS := {
 		"turret": {
 			"fire_interval": 3.6, "blast_radius": 110.0, "blast_force": 9000.0,
 			"damage_mult": 2.6, "pellets": 1, "spread": 0.0, "max_range": 700.0,
-			"aim_lean_degrees": 18.0, "muzzle": Vector2(-17, -9), "faces": -1.0, "flips": true, "recoil_pixels": 7.0,
+			"aim_lean_degrees": 25.0, "muzzle": Vector2(11, -20), "faces": 1.0, "flips": true, "recoil_pixels": 7.0,
 		},
 		"body": {
 			"mass": 18.0,
@@ -331,6 +331,7 @@ func _seed_scenes() -> void:
 		var root := ItemBodyBuilder.build(_spec(id, TURRETS[id]))
 		if root == null:
 			continue
+		_split_barrel(root, id)
 		if ItemBodyBuilder.save_scene(root, path):
 			_written += 1
 			print("  wrote %s" % path)
@@ -525,3 +526,28 @@ func _save(resource: Resource, path: String) -> void:
 		return
 	_written += 1
 	print("  wrote %s" % path)
+
+## A gun that turns on its mount (D43). If `art/tools/split_turret_barrels.py` has cut this
+## turret's sprite in two, the body's Sprite becomes the base and a second Sprite2D, "Barrel",
+## is hung at the pivot — the point where the gun sits on the mount, given in the seed table in
+## texture pixels from the texture's centre. The barrel's `offset` puts that pixel on the node's
+## origin, so rotating the node turns the gun about its mount. `TurretBase` mirrors the offset
+## and the position when the sprite flips.
+func _split_barrel(root: Node, id: StringName) -> void:
+	var base_path := "res://Assets/sprites/items/%s_base.png" % id
+	var barrel_path := "res://Assets/sprites/items/%s_barrel.png" % id
+	if not ResourceLoader.exists(base_path) or not ResourceLoader.exists(barrel_path):
+		return
+	var sprite := root.get_node_or_null("Sprite") as Sprite2D
+	if sprite == null:
+		return
+	var pivot: Vector2 = (TURRETS[id]["turret"] as Dictionary).get("barrel_pivot", Vector2.ZERO)
+	sprite.texture = ResourceLoader.load(base_path)
+	var barrel := Sprite2D.new()
+	barrel.name = "Barrel"
+	barrel.texture = ResourceLoader.load(barrel_path)
+	barrel.scale = sprite.scale
+	barrel.position = pivot * sprite.scale
+	barrel.offset = -pivot
+	root.add_child(barrel)
+	root.set(&"barrel", barrel)

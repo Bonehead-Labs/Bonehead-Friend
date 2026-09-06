@@ -1,5 +1,6 @@
 [gd_resource type="Resource" script_class="ItemData" format=3]
 
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/party_popper.png" id="1_3w3xx"]
 [ext_resource type="PackedScene" path="res://Scenes/Friendly/party_popper.tscn" id="1_88ctc"]
 [ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="2_3w3xx"]
 
@@ -12,4 +13,5 @@ category = 4
 cost = 800
 currency = 1
 scene = ExtResource("1_88ctc")
+icon = ExtResource("1_3w3xx")
 sort_order = 44

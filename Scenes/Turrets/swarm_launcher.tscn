@@ -17,7 +17,7 @@ size = Vector2(64, 60)
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_ujvd0"]
 size = Vector2(76, 112)
 
-[node name="_SwarmLauncher" type="RigidBody2D" unique_id=673511980 node_paths=PackedStringArray("drag_area", "handle", "sprite", "collider", "Effects_Player")]
+[node name="_SwarmLauncher" type="RigidBody2D" unique_id=1599145803 node_paths=PackedStringArray("drag_area", "handle", "sprite", "collider", "Effects_Player")]
 collision_layer = 4
 collision_mask = 7
 mass = 26.0
@@ -46,28 +46,28 @@ collider = NodePath("CollisionShape2D")
 Effects_Player = NodePath("EffectsPlayer")
 grip_offset = Vector2(0, -28)
 
-[node name="Sprite" type="Sprite2D" parent="." unique_id=752059659]
+[node name="Sprite" type="Sprite2D" parent="." unique_id=655639291]
 scale = Vector2(2, 2)
 texture = ExtResource("2_5cmbc")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1973030995]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=965886576]
 position = Vector2(0, 42)
 shape = SubResource("RectangleShape2D_ilx70")
 
-[node name="CollisionShape2D2" type="CollisionShape2D" parent="." unique_id=1817210290]
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="." unique_id=2096791595]
 position = Vector2(0, -4)
 shape = SubResource("RectangleShape2D_7l60r")
 
-[node name="DraggableArea" type="Area2D" parent="." unique_id=1666274567]
+[node name="DraggableArea" type="Area2D" parent="." unique_id=1165949756]
 script = ExtResource("3_lejgf")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=841743951]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=758018596]
 shape = SubResource("RectangleShape2D_ujvd0")
 
-[node name="Handle" type="StaticBody2D" parent="." unique_id=2021696194]
+[node name="Handle" type="StaticBody2D" parent="." unique_id=1021766160]
 visible = false
 collision_layer = 0
 collision_mask = 0
 
-[node name="EffectsPlayer" type="Node" parent="." unique_id=675309954]
+[node name="EffectsPlayer" type="Node" parent="." unique_id=1261240342]
 script = ExtResource("4_jcupd")

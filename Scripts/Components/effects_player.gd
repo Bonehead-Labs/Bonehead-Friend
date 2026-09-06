@@ -47,7 +47,14 @@ void fragment() {
 	float phone_mask = step(0.25, sat) * step(lit.r, min(lit.g, lit.b) * 0.8);
 	vec3 dressed = mix(lit, clamp(lit * bone_tint.rgb, 0.0, 1.0), bone_mask);
 	dressed = mix(dressed, clamp(dressed * phone_tint.rgb, 0.0, 1.0), phone_mask);
-	vec3 grimed = mix(dressed, grime_color.rgb, grime * bone_mask);
+	// Grime is not a tint (D44): a hash per art pixel puts soot speckles on the bone that
+	// thicken as the value climbs — dusty, then filthy — and the wash underneath deepens with
+	// it. The hash is on texel coordinates, so the speckles are pixel art and do not swim.
+	vec2 texel = floor(UV / TEXTURE_PIXEL_SIZE);
+	float hash = fract(sin(dot(texel, vec2(12.9898, 78.233))) * 43758.5453);
+	float speck = step(1.0 - grime * 0.85, hash) * step(0.05, grime);
+	vec3 grimed = mix(dressed, grime_color.rgb, grime * 0.55 * bone_mask);
+	grimed = mix(grimed, grime_color.rgb * 0.55, speck * bone_mask);
 	COLOR = vec4(mix(grimed, vec3(1.0), flash * step(0.02, tex.a)), tex.a * COLOR.a);
 }
 """

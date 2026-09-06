@@ -18,7 +18,7 @@ height = 52.0
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_o1si6"]
 size = Vector2(68, 88)
 
-[node name="_Mortar" type="RigidBody2D" unique_id=581194158 node_paths=PackedStringArray("drag_area", "handle", "sprite", "collider", "Effects_Player")]
+[node name="_Mortar" type="RigidBody2D" unique_id=1213193338 node_paths=PackedStringArray("drag_area", "handle", "sprite", "collider", "Effects_Player")]
 collision_layer = 4
 collision_mask = 7
 mass = 18.0
@@ -33,10 +33,9 @@ blast_radius = 110.0
 blast_force = 9000.0
 damage_mult = 2.6
 max_range = 700.0
-aim_lean_degrees = 18.0
+aim_lean_degrees = 25.0
 recoil_pixels = 7.0
-muzzle = Vector2(-17, -9)
-faces = -1.0
+muzzle = Vector2(11, -20)
 item_id = &"mortar"
 drag_area = NodePath("DraggableArea")
 handle = NodePath("Handle")
@@ -45,29 +44,29 @@ collider = NodePath("CollisionShape2D")
 Effects_Player = NodePath("EffectsPlayer")
 grip_offset = Vector2(0, -24)
 
-[node name="Sprite" type="Sprite2D" parent="." unique_id=1586485913]
+[node name="Sprite" type="Sprite2D" parent="." unique_id=2026256003]
 scale = Vector2(2, 2)
 texture = ExtResource("2_5ets6")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=659088880]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=932922468]
 position = Vector2(0, 32)
 shape = SubResource("RectangleShape2D_m6wrx")
 
-[node name="CollisionShape2D2" type="CollisionShape2D" parent="." unique_id=708120714]
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="." unique_id=1158220789]
 position = Vector2(0, -6)
 rotation = -0.34906584
 shape = SubResource("CapsuleShape2D_st8bb")
 
-[node name="DraggableArea" type="Area2D" parent="." unique_id=148967055]
+[node name="DraggableArea" type="Area2D" parent="." unique_id=226902243]
 script = ExtResource("3_lbwph")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=1668599471]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=784068751]
 shape = SubResource("RectangleShape2D_o1si6")
 
-[node name="Handle" type="StaticBody2D" parent="." unique_id=1969475307]
+[node name="Handle" type="StaticBody2D" parent="." unique_id=787925054]
 visible = false
 collision_layer = 0
 collision_mask = 0
 
-[node name="EffectsPlayer" type="Node" parent="." unique_id=176785874]
+[node name="EffectsPlayer" type="Node" parent="." unique_id=726101686]
 script = ExtResource("4_exodq")

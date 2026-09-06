@@ -335,3 +335,23 @@ Needs a person: the recorded levels (`ASSET_GAIN_DB`) were set by reasoning abou
 by ear — listen with headphones and adjust. Working set (~320 MB) is the next performance number
 to look at. The mortar's barrel rests at 45° in its art, so its "aim" is a tip rather than a turn;
 a two-part sprite (base + barrel) is the art-pass fix for every turret.
+
+## 13. The art pass, as far as it goes without a generator (2026-09-06, late) ✅ / 🚫
+
+Owner's brief: "okay do the art pass now", with a note that a Codex session via plugin could
+generate pixel art. **Neither Codex nor Retro Diffusion is exposed to this session** (no tool, no
+`RD_API_KEY` in the environment), so this is the half that can be drawn by hand in code. Recorded
+as **D44**.
+
+| # | What | Where |
+|---|---|---|
+| 13.1 | **Five plotted kind items** at scale-table size in the palette, outlined: feather duster, tennis ball, party popper, warm towel, kite; scenes regenerated so they are sprites, not polygons; icons rebuilt and wired | `art/tools/make_hands_on_items.py`, `Assets/sprites/items/`, `Assets/sprites/icons/`, `Scenes/Friendly/*` |
+| 13.2 | **Fist icon** replaced with a bone-cream fist in the same idiom | `make_hands_on_items.py`, `Assets/sprites/icons/fist.png` |
+| 13.3 | **Turret barrels.** Pellet turret, nail gun, rail gun and flamethrower split into `_base` and `_barrel` sprites; seed hangs a `Barrel` node at the pivot; `TurretBase` turns the barrel on the mount (cap 30–40°), mirrors pivot and offset with the flip, fires from the barrel\'s muzzle; mortar keeps one sprite (its tube runs through its tripod) | `art/tools/split_turret_barrels.py`, `seed_m36_turrets.gd`, `turret_base.gd` |
+| 13.4 | **Pixel grime.** Soot speckles per texel that thicken with the value over a deepening wash, in the shared flash shader | `effects_player.gd` |
+| 13.5 | **Proof.** Turret assertions read the barrel; all suites green | `ui_check.gd` |
+
+🚫 **Blocked on the generator:** the walk cycle and the animation families (`dance`, `relax`,
+`eat`, `catch`, `sleep`), proper two-part turret art, and a generated replacement for the five
+plotted items. To unblock: set `RD_API_KEY` (docs/art-pipeline.md) or expose the Codex plugin in
+the session, then follow `art/prompts/items.md` — the seeds and prompts for the batch are there.

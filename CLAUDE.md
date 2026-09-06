@@ -395,10 +395,12 @@ his breaths, the roar and the knockout clatter are still synthesised at boot in 
 (D12) on purpose. **The recorded levels have not been heard by a person yet.** Turrets mirror and
 aim at him and fire from an authored muzzle (D43). What is *not* drawn, as of the September 2026
 assessment (`docs/assessment-2026-09.md`): the walk cycle and the five animation families,
-the fist icon (still the prototype render), sprites for five of the six hands-on kind
-items added in M3.8 (on placeholder silhouettes; the soft brush has a plotted icon),
-muzzle/beam/bolt art for cursor powers and turrets, the grime overlay (still a tint on
-the puppet), and squash/stretch on the buddy.
+and squash/stretch on the buddy. The five hands-on kind items, the fist icon and the soft
+brush are **plotted** in code (`art/tools/make_hands_on_items.py`, D44) — real sprites in the
+palette, but the first things to regenerate when a generator is back; four gun turrets are
+split into base and barrel sprites cut from the existing art (`split_turret_barrels.py`);
+grime is a per-texel speckle in the shared shader; muzzle flash, beam and bolt are drawn by
+`WorldFX`, not art.
 
 **Item scale is enforced by a table**, not by eye: `docs/art-direction.md` anchors every item
 on Bonehead's 63 px body and `art/tools/item_postprocess.py` resizes each sprite to its entry.

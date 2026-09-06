@@ -88,6 +88,11 @@ const LEAN_LERP := 6.0
 ## Whether the sprite mirrors to face him. A gun does; a coil, a lattice and a rack are
 ## symmetrical and only lean.
 @export var flips: bool = true
+## The gun as a second sprite that turns on the mount (D43), and the point it turns about in
+## texture pixels from the texture's centre. Hung by `tools/seed_m36_turrets.gd` when the art
+## has been split; a turret without one turns its whole sprite within the cap instead.
+@export var barrel: Sprite2D
+@export var barrel_pivot: Vector2 = Vector2.ZERO
 
 var _since_shot := 0.0
 var _lean := 0.0
@@ -196,6 +201,11 @@ func _animate(delta: float, target: Buddy) -> void:
 	if not _animating():
 		sprite.rotation = 0.0
 		sprite.position = Vector2.ZERO
+		if barrel:
+			barrel.rotation = 0.0
+			barrel.flip_h = false
+			barrel.position = barrel_pivot * barrel.scale
+			barrel.offset = -barrel_pivot
 		_lean = 0.0
 		_recoil = 0.0
 		return
@@ -210,16 +220,32 @@ func _animate(delta: float, target: Buddy) -> void:
 			# Mirror to face him, then raise or lower the barrel toward him, capped: the whole
 			# sprite turns, base and all, so the cap is what keeps a gun from standing on its
 			# muzzle when he is overhead. `rel` is his elevation from the barrel's rest line.
-			sprite.flip_h = (_facing != faces)
-			var angle := local.angle()
+			var mirrored := _facing != faces
+			sprite.flip_h = mirrored
+			if barrel:
+				barrel.flip_h = mirrored
+			# His elevation is measured from the pivot when the gun has one, so a barrel on a
+			# tall mount does not aim at his feet.
+			var angle := (local - (barrel.position if barrel else Vector2.ZERO)).angle()
 			var rel := angle if _facing > 0.0 else wrapf(PI - angle, -PI, PI)
 			want = clampf(rel, -deg_to_rad(aim_lean_degrees), deg_to_rad(aim_lean_degrees)) * _facing
 		else:
 			want = _facing * deg_to_rad(aim_lean_degrees)
 	_lean = lerpf(_lean, want, clampf(delta * LEAN_LERP, 0.0, 1.0))
 	_recoil = maxf(_recoil - recoil_recovery * delta, 0.0)
-	sprite.rotation = _lean
-	sprite.position = Vector2(-_facing * _recoil, 0.0)
+	if barrel:
+		# The mount stays put and the gun turns on it. Mirroring moves the pivot to the other
+		# side of the mount, and the offset with it, so the same texture pixel stays on the
+		# node's origin whichever way it faces.
+		var side := -1.0 if barrel.flip_h else 1.0
+		barrel.position = Vector2(barrel_pivot.x * side, barrel_pivot.y) * barrel.scale + Vector2(-_facing * _recoil, 0.0)
+		barrel.offset = Vector2(-barrel_pivot.x * side, -barrel_pivot.y)
+		barrel.rotation = _lean
+		sprite.rotation = 0.0
+		sprite.position = Vector2.ZERO
+	else:
+		sprite.rotation = _lean
+		sprite.position = Vector2(-_facing * _recoil, 0.0)
 
 func _animating() -> bool:
 	return Settings.focus_intensity != Settings.Intensity.OFF
@@ -228,7 +254,8 @@ func _animating() -> bool:
 ## texture's pixels, mirrored when the sprite is, and the sprite's own transform — scale,
 ## lean, recoil — carries it the rest of the way.
 func muzzle_position() -> Vector2:
-	if sprite == null or muzzle == Vector2.ZERO:
+	var host: Sprite2D = barrel if barrel else (sprite as Sprite2D)
+	if host == null or muzzle == Vector2.ZERO:
 		return global_position
-	var local := Vector2(-muzzle.x if (sprite is Sprite2D and (sprite as Sprite2D).flip_h) else muzzle.x, muzzle.y)
-	return sprite.to_global(local)
+	var side := -1.0 if host.flip_h else 1.0
+	return host.to_global(Vector2(muzzle.x * side, muzzle.y) + host.offset)

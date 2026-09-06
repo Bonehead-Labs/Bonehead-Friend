@@ -20,7 +20,7 @@ size = Vector2(16, 84)
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_p6buh"]
 size = Vector2(76, 116)
 
-[node name="_LaserLattice" type="RigidBody2D" unique_id=899024931 node_paths=PackedStringArray("drag_area", "handle", "sprite", "collider", "Effects_Player")]
+[node name="_LaserLattice" type="RigidBody2D" unique_id=1997381113 node_paths=PackedStringArray("drag_area", "handle", "sprite", "collider", "Effects_Player")]
 collision_layer = 4
 collision_mask = 7
 mass = 22.0
@@ -48,32 +48,32 @@ collider = NodePath("CollisionShape2D")
 Effects_Player = NodePath("EffectsPlayer")
 grip_offset = Vector2(0, -44)
 
-[node name="Sprite" type="Sprite2D" parent="." unique_id=1559029771]
+[node name="Sprite" type="Sprite2D" parent="." unique_id=1872702130]
 scale = Vector2(2, 2)
 texture = ExtResource("2_4nt3d")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=28684023]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1244075676]
 position = Vector2(0, 48)
 shape = SubResource("RectangleShape2D_pfkww")
 
-[node name="CollisionShape2D2" type="CollisionShape2D" parent="." unique_id=533496396]
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="." unique_id=271151734]
 position = Vector2(-22, -2)
 shape = SubResource("RectangleShape2D_8nf78")
 
-[node name="CollisionShape2D3" type="CollisionShape2D" parent="." unique_id=1920070013]
+[node name="CollisionShape2D3" type="CollisionShape2D" parent="." unique_id=1197959409]
 position = Vector2(22, -2)
 shape = SubResource("RectangleShape2D_rixsm")
 
-[node name="DraggableArea" type="Area2D" parent="." unique_id=105743076]
+[node name="DraggableArea" type="Area2D" parent="." unique_id=449537293]
 script = ExtResource("3_s3tjp")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=1732770281]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=1087499950]
 shape = SubResource("RectangleShape2D_p6buh")
 
-[node name="Handle" type="StaticBody2D" parent="." unique_id=565682946]
+[node name="Handle" type="StaticBody2D" parent="." unique_id=1693354721]
 visible = false
 collision_layer = 0
 collision_mask = 0
 
-[node name="EffectsPlayer" type="Node" parent="." unique_id=1217158414]
+[node name="EffectsPlayer" type="Node" parent="." unique_id=1706758825]
 script = ExtResource("4_wwnhn")
