@@ -10,13 +10,19 @@ extends Node
 
 signal changed(value: float)
 
-## The buddy's body sprite. Tinted toward `GRIME_TINT` as grime rises, using `modulate` —
-## EffectsPlayer's hit flash uses `self_modulate`, and the two multiply, so neither stomps
-## the other. There is no grime *texture* until the art pass; the tint is the placeholder
-## and `art-direction.md` calls for a proper overlay layer.
+## The body sprite and the face, both tinted toward `GRIME_COLOR` as grime rises — as a
+## `grime` uniform on the shader `EffectsPlayer` installs (`effects_player.gd`), not
+## `modulate`. A `modulate` tint on the body alone left a spotless white face on a filthy
+## skeleton and browned the teal headphones along with everything else; the shader version
+## is masked to bone-white pixels, so the outline and the headphones are exempt and Face
+## gets the same treatment Puppet does. `EffectsPlayer.material_for()` is a static helper
+## precisely so this component can share Puppet's material rather than fight it for
+## `.material`, and can put an equivalent one on Face, which has no `EffectsPlayer` of its
+## own.
 @export var puppet: CanvasItem
+@export var face: CanvasItem
 
-const GRIME_TINT := Color(0.55, 0.50, 0.42)
+const GRIME_COLOR := Color(0.55, 0.50, 0.42)
 
 const EMIT_THRESHOLD := 0.01
 
@@ -26,7 +32,7 @@ var _last_emitted: float = 0.0
 
 func _ready() -> void:
 	EventBus.damage_dealt.connect(_on_damage_dealt)
-	_apply_tint()
+	_apply_uniform()
 
 func add(amount: float) -> void:
 	_apply(MoodMath.clamp_grime(value + maxf(0.0, amount)))
@@ -52,12 +58,16 @@ func _apply(new_value: float) -> void:
 	if is_equal_approx(new_value, value):
 		return
 	value = new_value
-	_apply_tint()
+	_apply_uniform()
 	if absf(value - _last_emitted) >= EMIT_THRESHOLD or is_zero_approx(value):
 		_last_emitted = value
 		changed.emit(value)
 		EventBus.grime_changed.emit(value)
 
-func _apply_tint() -> void:
-	if puppet:
-		puppet.modulate = Color.WHITE.lerp(GRIME_TINT, value)
+func _apply_uniform() -> void:
+	for target in [puppet, face]:
+		if target == null:
+			continue
+		var material := EffectsPlayer.material_for(target)
+		material.set_shader_parameter(&"grime", value)
+		material.set_shader_parameter(&"grime_color", GRIME_COLOR)

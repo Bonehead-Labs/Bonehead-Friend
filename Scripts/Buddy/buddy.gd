@@ -24,8 +24,11 @@ const OUT_OF_BOUNDS_MARGIN := 1200.0
 ## nothing measurable and stops a busy pile-up silently dropping the hit that mattered.
 const MAX_CONTACTS := 8
 
-## How long a hit or a pet holds him in a reaction state before he settles back to idle.
-const REACTION_SECONDS := 0.45
+## How long a hit or a pet holds him in a reaction state before he settles back to idle,
+## when the art pass has not built that animation yet. `hurt` is 6 frames and `happy` is 8 —
+## both already run past this — so `_reaction_seconds` prefers `art.animation_length()` and
+## only falls back to this constant for a state with no tag to time against.
+const REACTION_FALLBACK_SECONDS := 0.45
 
 @export var health: HealthComponent
 @export var mood: MoodComponent
@@ -102,12 +105,17 @@ func _ensure_components() -> void:
 		# Above the body, below nothing else — the face is part of him, not an effect.
 		face.z_index = sprite.z_index + 1
 		add_child(face)
+	if grime.face == null:
+		grime.face = face
+
 	if art == null:
 		art = BuddyArt.new()
 		art.name = "BuddyArt"
 		art.body = sprite
 		art.face = face
 		add_child(art)
+	if art.buddy == null:
+		art.buddy = self
 
 func _process(_delta: float) -> void:
 	if _in_knockout:
@@ -256,7 +264,19 @@ func _react(reaction: StringName) -> void:
 	if _in_knockout:
 		return
 	_set_state(reaction)
-	_reaction_until_msec = Time.get_ticks_msec() + int(REACTION_SECONDS * 1000.0)
+	_reaction_until_msec = Time.get_ticks_msec() + int(_reaction_seconds(reaction) * 1000.0)
+
+## The art's own timing when it exists, so `happy` (8 frames) and `hurt` (6 frames) each hold
+## for as long as they actually play rather than being cut off at a fixed duration — the
+## same pattern `_beat_time` already uses for the knockout.
+func _reaction_seconds(reaction: StringName) -> float:
+	if art:
+		var animation: StringName = art.STATE_ANIMATION.get(reaction, reaction)
+		if art.has_animation(animation):
+			var length := art.animation_length(animation)
+			if length > 0.0:
+				return length
+	return REACTION_FALLBACK_SECONDS
 
 ## Lets a lapsed expression fall back to idle. Called from _process, which is also where
 ## the knockout guard already lives.

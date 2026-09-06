@@ -13,27 +13,73 @@ const EXPLOSION_LIFETIME := 2.0
 
 const FLASH_SECONDS := 0.1
 
-## Flashes claim `self_modulate` and never touch `modulate`. GrimeComponent tints the same
-## sprite through `modulate`, and the two multiply — so a hit landing on a filthy buddy
-## flashes and then returns to *grimy*, rather than scrubbing him clean by resetting the
-## wrong property to white.
+## The hit flash is a shader that pushes every opaque pixel toward white, not a tint.
+## `self_modulate = RED` multiplied a mostly-white skeleton into a flat red silhouette with
+## the face swallowed, which reads as an error state rather than an impact; a solid white
+## pop is the genre's one-frame "you hit it". The outline stays black-ish because the mix
+## is on colour, not alpha.
+##
+## `grime` shares this material rather than getting one of its own: it is a slow bone-to-
+## dust lerp, masked to bright, low-saturation pixels so the near-black outline and the
+## teal headphones — the one prop `docs/art-direction.md` says never to compromise — are
+## never touched. `flash` is applied on top of the grimed colour, so a filthy buddy still
+## flashes and returns to *grimy* rather than to clean.
+const FLASH_SHADER := """
+shader_type canvas_item;
+uniform float flash : hint_range(0.0, 1.0) = 0.0;
+uniform float grime : hint_range(0.0, 1.0) = 0.0;
+uniform vec4 grime_color : source_color = vec4(0.55, 0.50, 0.42, 1.0);
+void fragment() {
+	vec4 tex = texture(TEXTURE, UV);
+	vec3 lit = tex.rgb * COLOR.rgb;
+	float luma = dot(lit, vec3(0.299, 0.587, 0.114));
+	float sat = max(lit.r, max(lit.g, lit.b)) - min(lit.r, min(lit.g, lit.b));
+	// Bright and low-saturation only: the teal headphones and the black outline are both
+	// excluded by this, one on saturation and the other on brightness, with no per-tag
+	// exception list to keep in sync as the roster grows.
+	float bone_mask = step(0.5, luma) * step(sat, 0.15);
+	vec3 grimed = mix(lit, grime_color.rgb, grime * bone_mask);
+	COLOR = vec4(mix(grimed, vec3(1.0), flash * step(0.02, tex.a)), tex.a * COLOR.a);
+}
+"""
+static var _flash_shader: Shader
+
 var _flash_token := 0
+var _flash_material: ShaderMaterial
 
 func hit_effect() -> void:
-	await _flash(Color.RED)
+	await _flash(1.0)
+
+## Builds (or reuses) the shared flash/grime material on any sprite. Static and public so
+## `GrimeComponent` can put the same shader on Puppet *and* Face without EffectsPlayer
+## exposing an instance reference to either — Puppet already owns one through `_flash()`
+## below, and this is what stops the two from taking turns overwriting `.material`.
+static func material_for(target: CanvasItem) -> ShaderMaterial:
+	if _flash_shader == null:
+		_flash_shader = Shader.new()
+		_flash_shader.code = FLASH_SHADER
+	var existing := target.material as ShaderMaterial
+	if existing and existing.shader == _flash_shader:
+		return existing
+	var material := ShaderMaterial.new()
+	material.shader = _flash_shader
+	target.material = material
+	return material
 
 ## Overlapping hits are common in a pile-up. Each flash takes a token and only the newest
-## one is allowed to clear the tint, so an early timer cannot end a later flash and leave
-## him stuck red.
-func _flash(colour: Color) -> void:
+## one is allowed to clear the flash, so an early timer cannot end a later flash and leave
+## him stuck white.
+func _flash(strength: float) -> void:
 	if sprite == null:
 		return
+	if _flash_material == null:
+		_flash_material = material_for(sprite)
 	_flash_token += 1
 	var token := _flash_token
-	sprite.self_modulate = colour
+	_flash_material.set_shader_parameter(&"flash", strength)
 	await get_tree().create_timer(FLASH_SECONDS).timeout
 	if is_instance_valid(sprite) and token == _flash_token:
-		sprite.self_modulate = Color.WHITE
+		_flash_material.set_shader_parameter(&"flash", 0.0)
 
 func explosion_effect(at: Vector2) -> void:
 	if ExplosionScene == null:

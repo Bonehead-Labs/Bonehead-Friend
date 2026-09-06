@@ -924,14 +924,16 @@ func _the_buddy_art_is_wired() -> void:
 
 	# The offsets were measured frame by frame off the same sheets the tags were built from,
 	# so a mismatch means the two have drifted apart — which is exactly what a stretched tag
-	# looks like from here.
+	# looks like from here. `_offset_positions` is the packed cache (Phase 0 step 4), keyed
+	# by StringName to match `body.animation`'s own type.
 	for animation in body.get_animation_names():
-		var offsets: Array = art._offsets.get(String(animation), [])
-		_check("'%s' has face offsets" % animation, not offsets.is_empty())
-		if not offsets.is_empty():
+		var track := StringName(animation)
+		var positions: PackedVector2Array = art._offset_positions.get(track, PackedVector2Array())
+		_check("'%s' has face offsets" % animation, not positions.is_empty())
+		if not positions.is_empty():
 			_check("'%s' offsets match its %d frames (got %d)"
-				% [animation, body.get_frame_count(animation), offsets.size()],
-				offsets.size() == body.get_frame_count(animation))
+				% [animation, body.get_frame_count(animation), positions.size()],
+				positions.size() == body.get_frame_count(animation))
 
 	# One-shots must not loop: a collapse that loops never lets him get back up.
 	for animation in art.ONE_SHOT:
@@ -940,6 +942,64 @@ func _the_buddy_art_is_wired() -> void:
 
 	_check("the knockout beat has a real duration",
 		art.animation_length(&"collapse") > 0.1)
+
+	# Regression for the mirror bug (docs/plan-expressive-buddy.md 3.3): it used to negate
+	# the whole placed x, `_face_home.x` included, which is only correct while the home is
+	# (0, 0). Today's real Face home is (0, 0) too (buddy.gd copies Puppet's position), so
+	# this seeds a synthetic non-zero home and drives the accumulator directly — the fix has
+	# to hold before the art pass ever gives Face a real offset to break on.
+	var saved_home := art._face_home
+	var saved_facing := art._facing
+	var saved_positions := art._track_positions
+	var saved_visible := art._track_visible
+
+	art._face_home = Vector2(3.0, 0.0)
+	art._track_positions = PackedVector2Array([Vector2(4.0, 0.0)])
+	art._track_visible = PackedByteArray([1])
+	art.body.frame = 0
+	art.travel(-1.0, 1.0)
+	art._advance_travel(1.0 / 60.0)
+	# Bob is a y-only offset (`_place_face` adds `Vector2(0.0, _bob)`), so `face.position.x`
+	# is the mirrored placement with nothing else riding on it.
+	var expected_dx := 4.0 * art._base_scale.x
+	_check("facing left mirrors the offset, not the home (face.x == %.2f, got %.2f)"
+			% [3.0 - expected_dx, art.face.position.x],
+		is_equal_approx(art.face.position.x, 3.0 - expected_dx))
+	_check("mirroring negates dx, not `-_face_home.x - dx`",
+		not is_equal_approx(art.face.position.x, -3.0 - expected_dx))
+
+	# `BuddyArt` should still be able to settle after that synthetic walk: travel() turned
+	# processing on, and it must turn itself back off once travel and the bob it drives have
+	# both decayed to nothing — the honest-idle claim in 3.4 is only true if this holds.
+	art._travel = 0.0
+	art._bob = 0.0
+	art._process(1.0 / 60.0)
+	_check("BuddyArt stops processing once travel and the bob it drives have settled",
+		not art.is_processing())
+
+	art._face_home = saved_home
+	art._facing = saved_facing
+	art._track_positions = saved_positions
+	art._track_visible = saved_visible
+	art._on_body_animation_changed()
+
+	# Grime used to be `puppet.modulate` on the body sprite alone, leaving a spotless white
+	# face on a filthy skeleton (docs/plan-expressive-buddy.md 3.6). It is now a `grime`
+	# uniform on the shared shader material EffectsPlayer installs, applied to both sprites.
+	if buddy.grime and buddy.face:
+		var saved_grime := buddy.grime.value
+		buddy.grime.set_value(0.6)
+		var face_material := buddy.face.material as ShaderMaterial
+		_check("grime reaches the face material",
+			face_material != null
+			and is_equal_approx(float(face_material.get_shader_parameter(&"grime")), 0.6))
+		var puppet_material := art.body.material as ShaderMaterial
+		_check("and the puppet material, together",
+			puppet_material != null
+			and is_equal_approx(float(puppet_material.get_shader_parameter(&"grime")), 0.6))
+		buddy.grime.set_value(saved_grime)
+	else:
+		_check("grime and face are present to test", false)
 
 ## Picking him up and putting him down. `dragged` used to be reachable only as a side effect
 ## of a reaction lapsing mid-drag, and nothing ever cleared it, so a hit taken while held
