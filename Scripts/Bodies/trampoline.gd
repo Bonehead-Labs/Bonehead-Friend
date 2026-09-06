@@ -47,4 +47,6 @@ func _physics_process(delta: float) -> void:
 		_next_launch[id] = now + int(relaunch_cooldown * 1000.0)
 		var launch := maxf(falling * bounce_gain, minimum_launch)
 		rigid.linear_velocity = Vector2(rigid.linear_velocity.x, -launch)
+		# Louder for a harder landing, the same way a hit is.
+		AudioManager.play(&"bounce", 0.15, lerpf(-16.0, -4.0, clampf(falling / 900.0, 0.0, 1.0)))
 		EventBus.contract_event.emit(&"bounce", 1)

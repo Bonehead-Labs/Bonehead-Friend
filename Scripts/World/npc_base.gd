@@ -414,6 +414,9 @@ func _attack() -> void:
 		_face(_buddy.global_position.x - global_position.x)
 	_set_state(STATE_ATTACK)
 	_play(&"windup")
+	# The tell has a voice. Heavier animals are lower: pitch by mass, so a gorilla's roar
+	# and a hornet's are the same synthesised breath an octave apart.
+	AudioManager.play(&"npc_roar", 0.12, -8.0, clampf(2.4 / maxf(sqrt(mass), 0.8), 0.6, 1.8))
 	await tree.create_timer(windup_seconds).timeout
 	if not _swing_still_valid(token):
 		return

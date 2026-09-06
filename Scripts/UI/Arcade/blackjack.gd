@@ -341,6 +341,7 @@ func _deal(to_player: bool) -> void:
 	hand.append(_draw_card())
 	_repaint()
 	UIMotion.punch(_player_row if to_player else _dealer_row, 1.05)
+	AudioManager.play(&"card_deal", 0.10, -10.0)
 
 func _reveal() -> void:
 	if not _hole:

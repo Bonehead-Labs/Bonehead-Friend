@@ -41,6 +41,16 @@ func _ready() -> void:
 	EventBus.mastery_rank_up.connect(func(_id: StringName, _r: int) -> void: play(&"rank_up", 0.06, -6.0))
 	EventBus.contract_claimed.connect(func(_id: StringName, _e: int) -> void: play(&"contract", 0.04))
 	EventBus.prestige_performed.connect(func(_gained: int) -> void: play(&"prestige", 0.0))
+	# The moments that were silent (assessment-2026-09). An augment level is a register
+	# tick that climbs with the level, so buying ten in a row is a scale rather than one
+	# note ten times; a milestone is its own figure because a $2,600 milestone and a rank-up
+	# used to look and sound identical; a contract *finishing* is quieter than claiming it.
+	EventBus.augment_purchased.connect(func(_id: StringName, level: int) -> void:
+		play(&"upgrade", 0.02, -6.0, 1.0 + 0.035 * float(mini(level, 24))))
+	EventBus.contract_completed.connect(func(_id: StringName) -> void: play(&"contract", 0.04, -8.0))
+	EventBus.item_spawned.connect(func(_item: Node2D) -> void: play(&"spawn", 0.10, -12.0))
+	Milestones.milestone_claimed.connect(func(_id: StringName, _rungs: int, _dollars: int) -> void:
+		play(&"milestone", 0.02, -3.0))
 
 ## Autoloads outlive the scene tree, so the synthesised streams and any playback still in
 ## flight are still referenced when the engine runs its leak check and get reported as
@@ -66,7 +76,8 @@ func apply_volumes() -> void:
 	if sfx >= 0:
 		AudioServer.set_bus_volume_db(sfx, linear_to_db(maxf(0.0001, Settings.volume_sfx)))
 
-func play(id: StringName, pitch_spread: float = 0.12, volume_db: float = 0.0) -> void:
+func play(id: StringName, pitch_spread: float = 0.12, volume_db: float = 0.0,
+		pitch: float = 1.0) -> void:
 	if _muted or Settings.focus_intensity == Settings.Intensity.OFF:
 		return
 	var stream := _streams.get(id) as AudioStream
@@ -75,8 +86,9 @@ func play(id: StringName, pitch_spread: float = 0.12, volume_db: float = 0.0) ->
 	var player := _players[_next]
 	_next = (_next + 1) % _players.size()
 	player.stream = stream
-	# Pitch randomisation is what stops repeated impacts sounding like a machine gun.
-	player.pitch_scale = randf_range(1.0 - pitch_spread, 1.0 + pitch_spread)
+	# Pitch randomisation is what stops repeated impacts sounding like a machine gun. A
+	# deliberate `pitch` on top is how a streak or a level climbs.
+	player.pitch_scale = pitch * randf_range(1.0 - pitch_spread, 1.0 + pitch_spread)
 	player.volume_db = volume_db
 	player.play()
 
@@ -133,8 +145,16 @@ func _resolve_voice(source_id: StringName) -> StringName:
 				return MATERIAL_VOICES[entry[0]]
 	var item := ItemDB.get_item(source_id)
 	if item and item.category == ItemData.CATEGORY_THROWABLE:
+		# The big voice was synthesised in M3.6 and nothing ever played it. The heavy end of
+		# the explosives drawer is what it was made for.
+		for hint in BIG_BANG_HINTS:
+			if id.contains(hint):
+				return &"explode_big"
 		return &"explode_small"
 	return &"impact"
+
+const BIG_BANG_HINTS := ["demolition", "black_hole", "implosion", "mortar", "napalm",
+	"cluster", "satchel", "oil_drum", "concussion", "nail_bomb", "missile"]
 
 ## Petting fires several times a second, so this is quiet and wide-spread on purpose —
 ## the same sample at the same pitch four times a second is a fire alarm, not affection.
@@ -171,6 +191,13 @@ func _build_streams() -> void:
 	_streams[&"rank_up"] = _wav(_chime_samples([784.0, 1046.0], 0.30))
 	_streams[&"contract"] = _wav(_chime_samples([523.0, 659.0, 784.0], 0.50))
 	_streams[&"prestige"] = _wav(_chime_samples([392.0, 523.0, 659.0, 784.0, 1046.0], 1.10))
+	# An augment level: two quick notes, pitched up per level by the caller. A milestone:
+	# a third figure between rank-up and contract. Coming back: a slow, warm three.
+	_streams[&"upgrade"] = _wav(_chime_samples([660.0, 880.0], 0.14))
+	_streams[&"milestone"] = _wav(_chime_samples([523.0, 784.0, 1046.0], 0.40))
+	_streams[&"welcome"] = _wav(_chime_samples([392.0, 523.0, 659.0], 0.70))
+	# A toy landing on the desk: a short soft knock, not a chime — it is furniture arriving.
+	_streams[&"spawn"] = _wav(_tick_samples(0.06, 520.0, 0.7))
 
 	# --- the shell ---
 	#
