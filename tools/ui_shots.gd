@@ -12,9 +12,15 @@ const SIZE := Vector2i(1180, 760)
 const OUT := "user://ui_shots"
 
 var _main: Node
+var _had := {}
 
 func _ready() -> void:
 	_use_capture_slot()
+	# Captured before anything is stomped and written back at the end: the backdrop shots go
+	# through `OverlayManager.set_backdrop`, which saves *every* setting — so the pins, the zoom
+	# and the Focus Mode this tool forces were landing in the player's own settings.cfg.
+	_had = {"hud": Settings.hud_pinned, "tabs": Settings.tabs_pinned, "scale": Settings.ui_scale,
+		"focus": Settings.focus_intensity}
 	DirAccess.make_dir_recursive_absolute(OUT)
 	Settings.focus_intensity = Settings.Intensity.NORMAL
 	# Never inherit a pinned zoom from the machine: a capture is of the default the player
@@ -105,6 +111,13 @@ func _ready() -> void:
 	# A rank-40 bat (tier 3, white-hot) beside a rank-8 mace (tier 1): the upgrade, worn.
 	EventBus.spawn_requested.emit(&"baseball_bat", centre + Vector2(-330, 60))
 	EventBus.spawn_requested.emit(&"mace", centre + Vector2(330, 110))
+	# Two turrets, each on the side its art does not face, so both have to turn to look at him;
+	# the flamethrower fires ten times a second, so its tracer is in every frame.
+	Economy.grant(Economy.BONES, 1.0e6)
+	for id in [&"flamethrower", &"pellet_turret"]:
+		_unlock_chain(id)
+	EventBus.spawn_requested.emit(&"flamethrower", centre + Vector2(-130, 250))
+	EventBus.spawn_requested.emit(&"pellet_turret", centre + Vector2(250, 150))
 	for step in [["16-juice", 2], ["16b-juice", 6], ["16c-juice", 12]]:
 		for i in int(step[1]):
 			await get_tree().process_frame
@@ -158,6 +171,11 @@ func _ready() -> void:
 
 	_clear_slot()
 	print("ui_shots: wrote %s" % ProjectSettings.globalize_path(OUT))
+	Settings.hud_pinned = _had["hud"]
+	Settings.tabs_pinned = _had["tabs"]
+	Settings.ui_scale = _had["scale"]
+	Settings.focus_intensity = _had["focus"]
+	Settings.save_settings()
 	get_tree().quit()
 
 ## A mid-run save, because an empty one shows an empty shop. Enough money to make some
@@ -184,3 +202,14 @@ func _shot(name: String) -> void:
 	await RenderingServer.frame_post_draw
 	_grab().save_png("%s/%s.png" % [OUT, name])
 	print("  %s" % name)
+
+## Buys an item and everything it requires first, through the shop's own path.
+func _unlock_chain(id: StringName) -> void:
+	if Progression.is_unlocked(id):
+		return
+	var item := ItemDB.get_item(id)
+	if item == null:
+		return
+	for req in item.requires:
+		_unlock_chain(req)
+	Progression.purchase_item(id)

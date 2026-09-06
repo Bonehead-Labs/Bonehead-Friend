@@ -27,6 +27,7 @@ var _voice_cache: Dictionary = {}
 func _ready() -> void:
 	_ensure_bus()
 	_build_streams()
+	_load_assets()
 	for i in VOICE_CAP:
 		var player := AudioStreamPlayer.new()
 		player.bus = SFX_BUS
@@ -49,6 +50,11 @@ func _ready() -> void:
 		play(&"upgrade", 0.02, -6.0, 1.0 + 0.035 * float(mini(level, 24))))
 	EventBus.contract_completed.connect(func(_id: StringName) -> void: play(&"contract", 0.04, -8.0))
 	EventBus.item_spawned.connect(func(_item: Node2D) -> void: play(&"spawn", 0.10, -12.0))
+	# Landing: a padded thud, louder the harder he came down, and silent for a hop.
+	EventBus.buddy_landed.connect(func(_at: Vector2, speed: float) -> void:
+		var t := clampf((speed - 400.0) / 800.0, 0.0, 1.0)
+		if t > 0.0:
+			play(&"land", 0.12, lerpf(-18.0, -4.0, t)))
 	Milestones.milestone_claimed.connect(func(_id: StringName, _rungs: int, _dollars: int) -> void:
 		play(&"milestone", 0.02, -3.0))
 
@@ -80,7 +86,7 @@ func play(id: StringName, pitch_spread: float = 0.12, volume_db: float = 0.0,
 		pitch: float = 1.0) -> void:
 	if _muted or Settings.focus_intensity == Settings.Intensity.OFF:
 		return
-	var stream := _streams.get(id) as AudioStream
+	var stream := _pick(id)
 	if stream == null:
 		return
 	var player := _players[_next]
@@ -89,7 +95,7 @@ func play(id: StringName, pitch_spread: float = 0.12, volume_db: float = 0.0,
 	# Pitch randomisation is what stops repeated impacts sounding like a machine gun. A
 	# deliberate `pitch` on top is how a streak or a level climbs.
 	player.pitch_scale = pitch * randf_range(1.0 - pitch_spread, 1.0 + pitch_spread)
-	player.volume_db = volume_db
+	player.volume_db = volume_db + _asset_gain(id)
 	player.play()
 
 func _on_damage_dealt(info: HitInfo) -> void:
@@ -573,3 +579,63 @@ func _wav(samples: PackedFloat32Array) -> AudioStreamWAV:
 	stream.stereo = false
 	stream.data = bytes
 	return stream
+
+# --- recorded assets -----------------------------------------------------------
+#
+# The synthesised voices above were the placeholder (D12). Where a recorded sound is a clear
+# win — a contact, a blast, a coin, a key, a card — the game now ships one (docs/decisions.md
+# D42): CC0 recordings from Kenney's packs, renamed to the id they play as and kept under
+# `res://Assets/audio/<id>_<nnn>.ogg`. Every file found for an id is a *variant*, and `play`
+# picks one at random on top of the pitch spread, which is what stops twenty hits a second
+# sounding like one sample on a loop. An id with no files keeps its synthesised voice, so a
+# missing import never silences anything — and the chimes, his breaths, the roar and the
+# knockout clatter are deliberately left synthesised: they are the game's own sound.
+#
+# Listed rather than discovered: in an exported build the .ogg is not in the pack — its
+# import is — and `ResourceLoader` resolves the remap while a directory listing would not.
+# Levels are set per id here, by ear; a recorded file peaks near full scale where the synth
+# voices sat lower, so most of these pull the asset down to meet the old level.
+
+const ASSET_DIR := "res://Assets/audio"
+const ASSETS := {
+	&"impact": 5, &"impact_metal": 5, &"impact_soft": 5, &"impact_plastic": 5,
+	&"explode_small": 5, &"explode_big": 2, &"land": 5,
+	&"purchase": 2, &"spawn": 4,
+	&"ui_click": 5, &"ui_hover": 3, &"ui_tab": 3, &"ui_open": 4, &"ui_close": 4, &"ui_denied": 3,
+	&"card_deal": 8, &"reel_stop": 3,
+}
+const ASSET_GAIN_DB := {
+	&"impact": -6.0, &"impact_metal": -8.0, &"impact_soft": -4.0, &"impact_plastic": -7.0,
+	&"explode_small": -4.0, &"explode_big": -2.0, &"land": -6.0,
+	&"purchase": -6.0, &"spawn": -8.0,
+	&"ui_click": -10.0, &"ui_hover": -14.0, &"ui_tab": -10.0, &"ui_open": -10.0, &"ui_close": -10.0,
+	&"ui_denied": -8.0, &"card_deal": -6.0, &"reel_stop": -6.0,
+}
+
+var _variants: Dictionary = {}   ## id -> Array[AudioStream]
+
+func _load_assets() -> void:
+	for id in ASSETS:
+		var found: Array[AudioStream] = []
+		for n in int(ASSETS[id]):
+			var path := "%s/%s_%03d.ogg" % [ASSET_DIR, id, n]
+			if ResourceLoader.exists(path):
+				var stream := load(path) as AudioStream
+				if stream:
+					found.append(stream)
+		if not found.is_empty():
+			_variants[id] = found
+
+## Whether an id is playing a recording rather than its synthesised voice.
+func is_recorded(id: StringName) -> bool:
+	return _variants.has(id)
+
+func _pick(id: StringName) -> AudioStream:
+	if _variants.has(id):
+		var options: Array = _variants[id]
+		return options[randi() % options.size()]
+	return _streams.get(id) as AudioStream
+
+## The level a recorded id sits at relative to the synthesised voice it replaced.
+func _asset_gain(id: StringName) -> float:
+	return float(ASSET_GAIN_DB.get(id, 0.0)) if _variants.has(id) else 0.0

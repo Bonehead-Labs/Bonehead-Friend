@@ -1,0 +1,25 @@
+Recorded sound effects in this folder are from Kenney (www.kenney.nl), released under
+Creative Commons Zero (CC0): http://creativecommons.org/publicdomain/zero/1.0/
+
+Packs used: Impact Sounds, Interface Sounds, UI Audio, Casino Audio, RPG Audio, Sci-Fi Sounds.
+Files are renamed to the Bonehead Friend sound id they play as (see AudioManager.ASSETS):
+
+  impact_*         Impact Sounds   impactWood_medium_000-004
+  impact_metal_*   Impact Sounds   impactMetal_medium_000-004
+  impact_soft_*    Impact Sounds   impactSoft_medium_000-004
+  impact_plastic_* Impact Sounds   impactPlate_medium_000-004
+  land_*           Impact Sounds   impactSoft_heavy_000-004
+  explode_small_*  Sci-Fi Sounds   explosionCrunch_000-004
+  explode_big_*    Sci-Fi Sounds   lowFrequency_explosion_000-001
+  purchase_*       RPG Audio       handleCoins, handleCoins2
+  spawn_*          RPG Audio       cloth1-4
+  ui_click_*       UI Audio        click1-5
+  ui_hover_*       UI Audio        rollover1-3
+  ui_tab_*         Interface       switch_001-003
+  ui_open_*        Interface       open_001-004
+  ui_close_*       Interface       close_001-004
+  ui_denied_*      Interface       error_001-003
+  card_deal_*      Casino Audio    card-slide-1-8
+  reel_stop_*      Casino Audio    chip-lay-1-3
+
+Everything not listed here is synthesised at boot by AudioManager (docs/decisions.md D12).

@@ -19,6 +19,14 @@ var _fx: FXLayer
 func _ready() -> void:
 	# Load before building UI: the shop reads what the player owns, and Progression grants
 	# the free starters as part of from_save.
+	# A measurement build stages its own desk on its own slot (docs/decisions.md D42). Before
+	# the load, because the load is what reads the slot.
+	var perf := _perf_stage_mode()
+	if perf != "":
+		SaveManager.slot_name = "perf"
+		for path in [SaveManager.save_path(), SaveManager.backup_path(), SaveManager.tmp_path()]:
+			if FileAccess.file_exists(path):
+				DirAccess.remove_absolute(path)
 	var save := SaveManager.load_game()
 	var offline := Economy.apply_offline_earnings(int(save.get("last_played_unix", 0)))
 
@@ -42,6 +50,8 @@ func _ready() -> void:
 
 	_report_offline(offline)
 	_onboard()
+	if perf != "":
+		get_tree().create_timer(1.5).timeout.connect(_perf_stage.bind(perf))
 
 	# The things that happen *to* the player rather than because of them. Progression is
 	# invisible otherwise: mastery ticks up inside a panel nobody has open.
@@ -228,3 +238,72 @@ func _install_tuning_log() -> void:
 	var log_node := TuningLog.new()
 	log_node.name = "TuningLog"
 	add_child(log_node)
+
+# --- measuring a built game ---------------------------------------------------------
+#
+# The performance budget (CLAUDE.md: < 3% CPU idle, < 8% under load) is a claim about an
+# *exported* build — editor numbers lie — and an exported build cannot run anything under
+# tools/, which the export excludes. So the game itself accepts one developer flag:
+#
+#   "Bonehead Friend.exe" -- --perf-stage=empty|idle|load
+#
+# `empty` is him alone. `idle` adds a hot tub steaming and a rank-25 bat glowing on the desk,
+# which is what a player who has been playing for a day leaves running. `load` adds a pellet
+# turret firing at him, so every hit, chip, number and payout is live. It runs on a save slot
+# of its own, wiped before the load, and never writes settings. tools/perf_measure.ps1 drives
+# it and reads the process counters.
+
+func _perf_stage_mode() -> String:
+	for arg in OS.get_cmdline_user_args():
+		if String(arg).begins_with("--perf-stage="):
+			return String(arg).trim_prefix("--perf-stage=")
+	return ""
+
+func _perf_stage(mode: String) -> void:
+	# Effects on, in memory only: the point is to measure them, and `Settings` is not saved
+	# here so the player's own Focus Mode is untouched.
+	Settings.focus_intensity = Settings.Intensity.NORMAL
+	if mode == "empty":
+		return
+	Economy.grant(Economy.BONES, 1.0e7)
+	Economy.grant(Economy.HEARTS, 1.0e7)
+	for id in [&"hot_tub", &"baseball_bat", &"pellet_turret"]:
+		_perf_unlock(id)
+	var b := ItemDB.balance
+	Progression.add_mastery_xp(&"baseball_bat",
+		EconomyMath.mastery_xp_for_rank(b.mastery_base, 25, b.mastery_exponent))
+	# Placed around him, not around the window: a turret has a reach, and the first cut put
+	# it seven hundred pixels from him on an ultrawide, where it measured as furniture.
+	var size := get_viewport().get_visible_rect().size
+	var near := buddy.global_position if buddy else Vector2(size.x * 0.5, size.y - 80.0)
+	EventBus.spawn_requested.emit(&"hot_tub", near + Vector2(-260.0, -40.0))
+	EventBus.spawn_requested.emit(&"baseball_bat", near + Vector2(120.0, -140.0))
+	if mode == "load":
+		EventBus.spawn_requested.emit(&"pellet_turret", near + Vector2(200.0, -30.0))
+	# Proof the stage is what it says, written from inside the build: the measurement tool
+	# cannot see the window, and a turret that never found him would measure as idle.
+	get_tree().create_timer(15.0).timeout.connect(_perf_report.bind(mode))
+
+## Buys an item and, first, everything it requires — the public path the shop takes, walked
+## up the chain, so the stage cannot produce a save the real game could not.
+func _perf_unlock(id: StringName) -> void:
+	if Progression.is_unlocked(id):
+		return
+	var item := ItemDB.get_item(id)
+	if item == null:
+		return
+	for req in item.requires:
+		_perf_unlock(req)
+	Progression.purchase_item(id)
+
+func _perf_report(mode: String) -> void:
+	var file := FileAccess.open("user://perf_%s.txt" % mode, FileAccess.WRITE)
+	if file == null:
+		return
+	file.store_line("mode %s" % mode)
+	file.store_line("items %d" % spawner.item_count())
+	file.store_line("hits %d" % int(Economy.session.get("hits", 0)))
+	file.store_line("bones %.1f" % float(Economy.session.get("bones", 0.0)))
+	file.store_line("hearts %.1f" % float(Economy.session.get("hearts", 0.0)))
+	file.store_line("bat_tier %d" % Progression.juice_tier(&"baseball_bat"))
+	file.store_line("window %s" % str(get_viewport().get_visible_rect().size))

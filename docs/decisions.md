@@ -965,6 +965,57 @@ and keeps the outline — the outline is information (which tier this is) and in
 upgrades land, or the look goes stale. Unit tests pin the ladders; `ui_check` spawns a rank-capped
 bat and asserts the glow, the aura, and Focus Off stilling it.
 
+## D42 — The budget is measured on a build, and the sounds that matter are recorded (2026-09-06)
+
+**Decision, performance.** The performance budget (< 3% CPU idle, < 8% under load) is a claim
+about an exported build, and it is now measured on one: `tools/perf_measure.ps1` runs the release
+exe with the game's own staging flag (`-- --perf-stage=empty|idle|load`, in `main.gd`), reads the
+process counters from outside for a minute after a warm-up, and prints the stage report the game
+writes from inside (items on the desk, hits landed) — because the first cut placed the turret
+seven hundred pixels from him on an ultrawide and measured furniture. The flag runs on its own
+save slot and never writes settings; the exported build cannot run anything under `tools/`.
+
+First measurement, 2026-09-06, Ryzen 7 7800X3D, release build, sixty-second windows:
+
+| stage | one core | machine (16 threads) | GPU 3D | working set |
+|---|---|---|---|---|
+| empty (him alone) | 7.1 % | 0.44 % | 0.9 % | 420 MB |
+| idle (hot tub steaming, rank-25 bat glowing) | 6.7 % | 0.42 % | 2.4 % | 310 MB |
+| load (plus a pellet turret firing, 14 hits in 15 s) | 11.0 % | 0.69 % | 4.8 % | 324 MB |
+
+The machine-wide figure is the one Task Manager shows and the one the budget means; all three
+sit an order of magnitude under it. The working set is the number to watch next — three
+hundred megabytes is a lot of desk toy — and every emitter, glow and trail added in D39–D41 is
+inside these figures. Export templates for 4.7.2 are installed under the user's Godot folder;
+`--export-release` needs them where `--export-pack` did not.
+
+**Decision, sound.** Where a recorded sound is a clear win — a contact, a blast, a coin, a key, a
+card, a landing — the game ships one: CC0 recordings from Kenney's packs, renamed to the id they
+play as under `Assets/audio/<id>_<nnn>.ogg` (credits in `Assets/audio/CREDITS.txt`). Every file
+found for an id is a variant and `play` picks one at random on top of the pitch spread. An id
+with no files keeps its synthesised voice, so a missing import silences nothing. The chimes, his
+breaths, the roar, the knockout clatter and the casino's wheel tick stay synthesised on purpose:
+the owner likes them, and they are the game's own voice. Levels per id are in
+`AudioManager.ASSET_GAIN_DB`, set once by ear from the code and **not yet heard by a person** —
+that is the first thing to do with headphones on.
+
+*Consequence:* D12 is amended, not replaced — synthesis is the fallback, not the placeholder.
+A new recorded id is a row in `AudioManager.ASSETS` and files in the folder; nothing else.
+
+## D43 — A turret looks at him and fires from its nozzle (2026-09-06)
+
+**Decision.** Every turret carries a `muzzle` (the nozzle in its own texture pixels, read off
+the art with a pixel probe), the way its art `faces`, and whether it `flips`. A gun mirrors to
+face him and turns its barrel toward him within a per-turret cap — a gun swings, a mortar tips, a
+coil, a lattice and a rack only lean — and the tracer, the muzzle sparks and the smoke leave from
+`muzzle_position()`. Authored in `tools/seed_m36_turrets.gd`; the scenes are regenerated from it.
+
+**Why.** The owner saw it: the sprite was static, never turned or mirrored, and the shot left
+from the middle of the gun. A device that fires with no tell is the desk hurting him by itself.
+
+*Consequence:* `ui_check` stands a pellet turret on each side of him and overhead and asserts the
+mirror, the nozzle side and the cap. A new turret authors its three fields in the seed table.
+
 ## Recommendations not yet decided
 
 Carried in the spec, owner's call before they matter:

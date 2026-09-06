@@ -79,6 +79,16 @@ const LEAN_LERP := 6.0
 @export var recoil_pixels: float = 3.0
 @export var recoil_recovery: float = 24.0
 
+## Where the shot leaves, in the sprite's own texture pixels from its centre, with the sprite
+## drawn the way the art faces (`faces`: +1 right, -1 left). Zero is the body's centre, which
+## is where every turret used to fire from — a tracer out of the middle of a gun is a gun that
+## is not firing. Authored in `tools/seed_m36_turrets.gd` from the sprite's pixels.
+@export var muzzle: Vector2 = Vector2.ZERO
+@export var faces: float = 1.0
+## Whether the sprite mirrors to face him. A gun does; a coil, a lattice and a rack are
+## symmetrical and only lean.
+@export var flips: bool = true
+
 var _since_shot := 0.0
 var _lean := 0.0
 var _recoil := 0.0
@@ -140,6 +150,7 @@ func _fire(target: Buddy) -> void:
 		return
 	var mult := effective_damage_mult()
 	var at := target.global_position
+	var from := muzzle_position()
 	for i in maxi(1, pellets):
 		var point := at
 		if pellets > 1 and spread > 0.0:
@@ -155,10 +166,13 @@ func _fire(target: Buddy) -> void:
 	var fx := WorldFX.of(self)
 	if fx:
 		var tier := Progression.juice_tier(item_id)
-		fx.tracer(global_position, at, WorldFX.harm_colour(tier) if tier > 0 else WorldFX.TRACER,
+		fx.tracer(from, at, WorldFX.harm_colour(tier) if tier > 0 else WorldFX.TRACER,
 			0.1, 2.0 + 0.7 * float(tier))
+		# Muzzle flash: a few sparks off the nozzle on every shot, a puff of smoke as well from
+		# the second tier.
+		fx.shot(from, false, mini(tier, 1))
 		if tier >= 2:
-			fx.puff(global_position + Vector2(0, -12), 2, WorldFX.SPARK, 60.0, 0.3)
+			fx.puff(from, 2, WorldFX.SPARK, 60.0, 0.3)
 	# Quiet and wide: the fastest turret fires twenty times a second, and this is the
 	# background of the desk, not the event of the desk.
 	AudioManager.play(&"turret_fire", 0.16, -16.0)
@@ -190,8 +204,18 @@ func _animate(delta: float, target: Buddy) -> void:
 	if target != null:
 		# In body-local space, so a turret that has been knocked onto its side still leans
 		# toward him rather than toward wherever the world's right hand side happens to be.
-		_facing = -1.0 if to_local(target.global_position).x < 0.0 else 1.0
-		want = _facing * deg_to_rad(aim_lean_degrees)
+		var local := to_local(target.global_position)
+		_facing = -1.0 if local.x < 0.0 else 1.0
+		if flips:
+			# Mirror to face him, then raise or lower the barrel toward him, capped: the whole
+			# sprite turns, base and all, so the cap is what keeps a gun from standing on its
+			# muzzle when he is overhead. `rel` is his elevation from the barrel's rest line.
+			sprite.flip_h = (_facing != faces)
+			var angle := local.angle()
+			var rel := angle if _facing > 0.0 else wrapf(PI - angle, -PI, PI)
+			want = clampf(rel, -deg_to_rad(aim_lean_degrees), deg_to_rad(aim_lean_degrees)) * _facing
+		else:
+			want = _facing * deg_to_rad(aim_lean_degrees)
 	_lean = lerpf(_lean, want, clampf(delta * LEAN_LERP, 0.0, 1.0))
 	_recoil = maxf(_recoil - recoil_recovery * delta, 0.0)
 	sprite.rotation = _lean
@@ -199,3 +223,12 @@ func _animate(delta: float, target: Buddy) -> void:
 
 func _animating() -> bool:
 	return Settings.focus_intensity != Settings.Intensity.OFF
+
+## The nozzle, in world space, wherever the sprite is currently pointing: `muzzle` is in the
+## texture's pixels, mirrored when the sprite is, and the sprite's own transform — scale,
+## lean, recoil — carries it the rest of the way.
+func muzzle_position() -> Vector2:
+	if sprite == null or muzzle == Vector2.ZERO:
+		return global_position
+	var local := Vector2(-muzzle.x if (sprite is Sprite2D and (sprite as Sprite2D).flip_h) else muzzle.x, muzzle.y)
+	return sprite.to_global(local)

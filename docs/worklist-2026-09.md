@@ -314,3 +314,24 @@ Not done and why: per-item bespoke effects beyond the family (a chainsaw's sawdu
 clean cut, a rubber duck's squeak ring) — the family treatment covers all hundred today and a
 per-id table is the next step once the art pass fixes which items are hero items; a tier-4
 "mastered" look at rank 50 (the economy's rank-50 bonus) — worth adding when a playtest reaches it.
+
+## 12. Measured on a build, and heard (2026-09-06, late) ✅ · turrets look at him ✅
+
+Owner's brief: "address item 2 and 3" of the sellability assessment — measure CPU on an exported
+build; real sounds from free libraries. Then, mid-pass: "the turret's sprite is static and doesn't
+rotate and flip to look at the player, its projectile comes from the center". Recorded as
+**D42** and **D43**.
+
+| # | What | Where |
+|---|---|---|
+| 12.1 | **A release build, measured.** 4.7.2 export templates installed; `main.gd` accepts `-- --perf-stage=empty\|idle\|load` (own save slot, no settings writes, stage report to `user://perf_<mode>.txt`); `tools/perf_measure.ps1` runs the exe and reads CPU (one core and machine-wide), GPU 3D and working set. **Result: 0.44 / 0.42 / 0.69 % of the machine; 7 / 7 / 11 % of one core; 310–420 MB.** Budget is < 3 % idle, < 8 % load | `main.gd`, `tools/perf_measure.ps1`, D42 |
+| 12.2 | **Recorded sounds.** 71 CC0 files from six Kenney packs under `Assets/audio/<id>_<nnn>.ogg`; `AudioManager.ASSETS` lists them, `_load_assets` resolves through the import remap, `play` picks a random variant, synthesis stays as the fallback and for every chime, breath, roar and clatter; per-id gain table; new `land` thud on `buddy_landed` | `audio_manager.gd`, `Assets/audio/`, `Assets/audio/CREDITS.txt` |
+| 12.3 | **Turrets look at him.** `muzzle` / `faces` / `flips` per turret from a pixel probe of the art; the sprite mirrors to face him and turns within its cap; tracer, sparks and smoke leave `muzzle_position()`; scenes regenerated from the seed | `turret_base.gd`, `seed_m36_turrets.gd`, `Scenes/Turrets/*` |
+| 12.4 | **Proof.** `ui_check` `audio` suite (31: every listed file imported, synth kept where meant); turret assertions in `juice` (mirror on his right, art-facing on his left, nozzle side, cap overhead); `16-juice` shots stage two turrets on the side their art does not face | `ui_check.gd`, `ui_shots.gd` |
+
+Counts after: **unit 225 · loop 595 · ui 454 · pacing untouched**.
+
+Needs a person: the recorded levels (`ASSET_GAIN_DB`) were set by reasoning about peak levels, not
+by ear — listen with headphones and adjust. Working set (~320 MB) is the next performance number
+to look at. The mortar's barrel rests at 45° in its art, so its "aim" is a tip rather than a turn;
+a two-part sprite (base + barrel) is the art-pass fix for every turret.

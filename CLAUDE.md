@@ -164,6 +164,13 @@ PROJ='C:\Users\George\Godot Projects\Projects\Bonehead_Friend\interactive-buddy-
 "$GODOT" --headless --path "$PROJ" --export-pack "Windows Desktop" 'C:\path\to\check.pck'
 python3 tools/pack_check.py /mnt/c/path/to/check.pck
 
+# The performance budget, on a RELEASE BUILD (editor numbers lie). Needs the 4.7.2 export
+# templates under %APPDATA%\Godot\export_templates\4.7.2.stable\ (installed 2026-09-06). The game
+# stages its own desk from the flag, on its own save slot, and reports what it staged
+# (docs/decisions.md D42). Modes: empty | idle | load.
+"$GODOT" --headless --path "$PROJ" --export-release "Windows Desktop" 'C:\path\to\Bonehead Friend.exe'
+powershell -File tools/perf_measure.ps1 -Exe 'C:\path\to\Bonehead Friend.exe' -Mode idle
+
 # Seed res://Data (writes only files that do not exist; add `-- --force` to overwrite)
 "$GODOT" --headless --path "$PROJ" res://tools/seed_data.tscn
 "$GODOT" --headless --path "$PROJ" res://tools/seed_friendly.tscn
@@ -382,8 +389,11 @@ them cost real time to find.
 
 **The shell and the roster are drawn.** The Bonecard `Theme` (`Scripts/UI/ui_theme.gd`)
 is finished to `docs/art-direction.md` § UI; all 100 M3.7 items have sprites and icons;
-the explosion is a generated animation. All sounds are still synthesised at boot in
-`AudioManager` (docs/decisions.md D12). What is *not* drawn, as of the September 2026
+the explosion is a generated animation. Contacts, blasts, coins, keys, cards and landings are
+CC0 recordings under `Assets/audio/` with the synthesised voice as the fallback (D42); the chimes,
+his breaths, the roar and the knockout clatter are still synthesised at boot in `AudioManager`
+(D12) on purpose. **The recorded levels have not been heard by a person yet.** Turrets mirror and
+aim at him and fire from an authored muzzle (D43). What is *not* drawn, as of the September 2026
 assessment (`docs/assessment-2026-09.md`): the walk cycle and the five animation families,
 the fist icon (still the prototype render), sprites for five of the six hands-on kind
 items added in M3.8 (on placeholder silhouettes; the soft brush has a plotted icon),

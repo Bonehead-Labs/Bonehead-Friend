@@ -87,6 +87,7 @@ func _ready() -> void:
 	await _the_purse_can_count_high()
 	await _the_payouts_are_visible()
 	await _the_world_has_juice()
+	await _the_sounds_are_recorded()
 	await _the_hud_points_at_the_next_toy()
 	await _the_shell_hides_until_hovered()
 	await _nothing_overflows_its_box()
@@ -1865,4 +1866,65 @@ func _the_upgrades_are_worn(centre: Vector2) -> void:
 	spawner.call("refresh_augments")
 	_check("and Focus back on wakes it", aura != null and aura.emitting)
 	bat.call("bin_myself")
+	await _settle()
+	await _the_turret_faces_him(centre)
+
+## The recorded voices (D42) resolve through the import remap, and every id that has no
+## recording still has its synthesised voice — a missing import must never silence anything.
+func _the_sounds_are_recorded() -> void:
+	_suite("audio")
+	for id in [&"impact", &"impact_metal", &"explode_small", &"purchase", &"ui_click", &"card_deal", &"land"]:
+		_check("%s plays a recording" % id, AudioManager.is_recorded(id))
+	for id in [&"rank_up", &"prestige", &"oof", &"knockout", &"npc_roar", &"wheel_tick"]:
+		_check("%s keeps its synthesised voice" % id,
+			not AudioManager.is_recorded(id) and AudioManager.get("_streams").has(id))
+	_check("a recorded id still has its synthesised fallback", AudioManager.get("_streams").has(&"impact"))
+	var recorded: Dictionary = AudioManager.ASSETS
+	for id in recorded:
+		_check("%s: every listed file imported (%d)" % [id, int(recorded[id])],
+			AudioManager.is_recorded(id) and (AudioManager.get("_variants")[id] as Array).size() == int(recorded[id]))
+
+## A turret looks at him (D43): the sprite mirrors when he is on the side the art does not
+## face, the barrel turns toward him within its cap, and the shot leaves from the nozzle.
+func _the_turret_faces_him(centre: Vector2) -> void:
+	var buddy := _find(_main, "Buddy") as RigidBody2D
+	var spawner := _find(_main, "ItemSpawner")
+	var world := spawner.get("world") as Node2D if spawner else null
+	var scene := load("res://Scenes/Turrets/pellet_turret.tscn") as PackedScene
+	if buddy == null or world == null or scene == null:
+		_check("a turret can be staged", false)
+		return
+	buddy.freeze = true
+	buddy.global_position = centre
+	var turret := scene.instantiate() as Node2D
+	turret.set("item_id", &"pellet_turret")
+	world.add_child(turret)
+	turret.freeze = true
+	# On his right, so a right-facing gun has to mirror to look at him.
+	turret.global_position = centre + Vector2(220, 0)
+	await _settle()
+	await _settle()
+	var sprite := turret.get("sprite") as Sprite2D
+	_check("the pellet turret has a muzzle", turret.get("muzzle") != Vector2.ZERO)
+	_check("standing on his right, it mirrors to face him", sprite != null and sprite.flip_h)
+	var muzzle: Vector2 = turret.call("muzzle_position")
+	_check("and its nozzle is on his side of it", muzzle.x < turret.global_position.x - 20.0,
+		"muzzle %s body %s" % [muzzle, turret.global_position])
+	# Then on his left: back the way the art faces, nozzle to the right.
+	turret.global_position = centre + Vector2(-220, 0)
+	await _settle()
+	await _settle()
+	_check("standing on his left, it faces the way it was drawn", sprite != null and not sprite.flip_h)
+	muzzle = turret.call("muzzle_position")
+	_check("and the nozzle swings to his side", muzzle.x > turret.global_position.x + 20.0)
+	# Overhead: the barrel turns up toward him, but no further than its cap.
+	turret.global_position = centre + Vector2(-80, 200)
+	await _settle()
+	await _settle()
+	await _settle()
+	var cap: float = deg_to_rad(float(turret.get("aim_lean_degrees")))
+	_check("with him above, the barrel turns up", sprite != null and sprite.rotation < -0.05, str(sprite.rotation))
+	_check("but no further than its cap", sprite != null and absf(sprite.rotation) <= cap + 0.01)
+	turret.queue_free()
+	buddy.freeze = false
 	await _settle()

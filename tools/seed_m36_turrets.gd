@@ -64,6 +64,10 @@ const LADDER_ROOT := &"pistol"
 ##
 ## **Rhythm is the design, not force.** Eight turrets that differ only in `blast_force` are
 ## one turret with a price ladder attached, so every row here moves at least two of
+## The `muzzle` is where the shot leaves, in the sprite's own pixels from its centre, read off
+## the art with a probe of its opaque pixels (D43); `faces` is the way the art points and
+## `flips` whether it mirrors to face him — a coil, a lattice and a rack do not. Aim caps are
+## how far the whole sprite may turn toward him: a gun swings, a mortar tips, a rack barely.
 ## `fire_interval`, `pellets`, `spread` and `max_range` as well: a nail gun is a stream you
 ## can barely see the individual shots in, a mortar is one enormous thump every few seconds,
 ## a flamethrower has to be carried over and set down beside him, and a rail gun reaches
@@ -84,7 +88,7 @@ const TURRETS := {
 		"turret": {
 			"fire_interval": 1.1, "blast_radius": 30.0, "blast_force": 900.0,
 			"damage_mult": 1.0, "pellets": 1, "spread": 0.0, "max_range": 340.0,
-			"aim_lean_degrees": 10.0, "recoil_pixels": 3.0,
+			"aim_lean_degrees": 32.0, "muzzle": Vector2(19, -3), "faces": 1.0, "flips": true, "recoil_pixels": 3.0,
 		},
 		"body": {
 			"mass": 8.0,
@@ -110,7 +114,7 @@ const TURRETS := {
 		"turret": {
 			"fire_interval": 0.14, "blast_radius": 18.0, "blast_force": 420.0,
 			"damage_mult": 0.9, "pellets": 1, "spread": 7.0, "max_range": 260.0,
-			"aim_lean_degrees": 7.0, "recoil_pixels": 2.0,
+			"aim_lean_degrees": 28.0, "muzzle": Vector2(12, -13), "faces": 1.0, "flips": true, "recoil_pixels": 2.0,
 		},
 		"body": {
 			"mass": 9.0,
@@ -134,7 +138,7 @@ const TURRETS := {
 		"turret": {
 			"fire_interval": 1.6, "blast_radius": 64.0, "blast_force": 2400.0,
 			"damage_mult": 1.35, "pellets": 1, "spread": 0.0, "max_range": 300.0,
-			"aim_lean_degrees": 5.0, "recoil_pixels": 1.0,
+			"aim_lean_degrees": 5.0, "muzzle": Vector2(-1, -21), "faces": 1.0, "flips": false, "recoil_pixels": 1.0,
 		},
 		"body": {
 			"mass": 14.0,
@@ -160,7 +164,7 @@ const TURRETS := {
 		"turret": {
 			"fire_interval": 0.1, "blast_radius": 44.0, "blast_force": 400.0,
 			"damage_mult": 1.15, "pellets": 1, "spread": 16.0, "max_range": 150.0,
-			"aim_lean_degrees": 14.0, "recoil_pixels": 1.0,
+			"aim_lean_degrees": 30.0, "muzzle": Vector2(-27, -2), "faces": -1.0, "flips": true, "recoil_pixels": 1.0,
 		},
 		"body": {
 			"mass": 11.0,
@@ -185,7 +189,7 @@ const TURRETS := {
 		"turret": {
 			"fire_interval": 2.8, "blast_radius": 22.0, "blast_force": 7200.0,
 			"damage_mult": 2.2, "pellets": 1, "spread": 0.0, "max_range": 900.0,
-			"aim_lean_degrees": 9.0, "recoil_pixels": 6.0,
+			"aim_lean_degrees": 24.0, "muzzle": Vector2(45, -7), "faces": 1.0, "flips": true, "recoil_pixels": 6.0,
 		},
 		"body": {
 			"mass": 20.0,
@@ -210,7 +214,7 @@ const TURRETS := {
 		"turret": {
 			"fire_interval": 3.6, "blast_radius": 110.0, "blast_force": 9000.0,
 			"damage_mult": 2.6, "pellets": 1, "spread": 0.0, "max_range": 700.0,
-			"aim_lean_degrees": 6.0, "recoil_pixels": 7.0,
+			"aim_lean_degrees": 18.0, "muzzle": Vector2(-17, -9), "faces": -1.0, "flips": true, "recoil_pixels": 7.0,
 		},
 		"body": {
 			"mass": 18.0,
@@ -235,7 +239,7 @@ const TURRETS := {
 		"turret": {
 			"fire_interval": 0.45, "blast_radius": 26.0, "blast_force": 1300.0,
 			"damage_mult": 1.6, "pellets": 3, "spread": 48.0, "max_range": 240.0,
-			"aim_lean_degrees": 4.0, "recoil_pixels": 0.0,
+			"aim_lean_degrees": 4.0, "muzzle": Vector2(0, 0), "faces": 1.0, "flips": false, "recoil_pixels": 0.0,
 		},
 		"body": {
 			"mass": 22.0,
@@ -261,7 +265,7 @@ const TURRETS := {
 		"turret": {
 			"fire_interval": 0.9, "blast_radius": 34.0, "blast_force": 1800.0,
 			"damage_mult": 1.9, "pellets": 6, "spread": 72.0, "max_range": 620.0,
-			"aim_lean_degrees": 11.0, "recoil_pixels": 4.0,
+			"aim_lean_degrees": 6.0, "muzzle": Vector2(0, -26), "faces": 1.0, "flips": false, "recoil_pixels": 4.0,
 		},
 		"body": {
 			"mass": 26.0,
