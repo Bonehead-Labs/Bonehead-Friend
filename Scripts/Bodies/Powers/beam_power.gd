@@ -83,7 +83,11 @@ func _burn(at: Vector2) -> void:
 	# the sunbeam was a number and a face and nothing at the point being cooked.
 	var fx := WorldFX.of(self)
 	if fx:
-		fx.heat(at)
+		var tier := Progression.juice_tier(item_id)
+		fx.heat(at, tier)
+		# The beam itself, from above the cursor to the spot, for as long as the tick lasts —
+		# a sunbeam is a line of light or it is nothing. Wider with the tier.
+		fx.tracer(at + Vector2(0, -240), at, WorldFX.SPARK, tick_seconds * 1.1, 1.5 + float(tier))
 	EventBus.contract_event.emit(&"use:%s" % item_id, 1)
 
 ## Declining a click leaves it unhandled, so the world still sees it — the same contract

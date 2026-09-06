@@ -90,7 +90,9 @@ func _flash(strength: float) -> void:
 	if is_instance_valid(sprite) and token == _flash_token:
 		_flash_material.set_shader_parameter(&"flash", 0.0)
 
-func explosion_effect(at: Vector2) -> void:
+## `size` is the item's juice tier as a scale (D41): one for a fresh grenade, up to 1.75 for a
+## finished one. The art grows with it, capped so a big charge still fits on a small desk.
+func explosion_effect(at: Vector2, size: float = 1.0) -> void:
 	if ExplosionScene == null:
 		return
 	var explosion := ExplosionScene.instantiate()
@@ -100,11 +102,12 @@ func explosion_effect(at: Vector2) -> void:
 		return
 	host.add_child(explosion)
 	explosion.global_position = at
+	explosion.scale = Vector2.ONE * clampf(size, 1.0, 1.6)
 	# The physical half: a shockwave, smoke, sparks and a jolt from the world's pool. The
 	# animation alone was a picture of an explosion; this is one happening on the desk.
 	var fx := WorldFX.of(host)
 	if fx:
-		fx.boom(at, 1.0)
+		fx.boom(at, size)
 	# The effect is a generated animation, found by what it is rather than by name: the
 	# scene was rebuilt once and a name lookup across its boundary is the same bug as an
 	# absolute node path (CLAUDE.md).

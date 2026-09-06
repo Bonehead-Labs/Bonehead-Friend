@@ -66,6 +66,7 @@ func _initialize() -> void:
 	_test_pool_checkpoints_compound()
 	_test_pool_flat_bonus()
 	_test_item_rank_bonus_is_a_step()
+	_test_juice_tier_ladders()
 
 	_suite("damage and payout")
 	_test_impulse_below_threshold_is_free()
@@ -742,3 +743,16 @@ func _check(what: String, condition: bool) -> void:
 	else:
 		_failed += 1
 		printerr("    FAIL %s  [%s]" % [what, _current_suite])
+
+## The juice tier (D41) is presentation only, and either ladder reaches a tier on its own:
+## the ranks the economy already treats as beats, or a first / committed / finished build.
+func _test_juice_tier_ladders() -> void:
+	_check("nothing is tier 0", Mastery.juice_tier(0, 0) == 0)
+	_check("a first augment is tier 1", Mastery.juice_tier(0, 1) == 1)
+	_check("rank 3 is tier 1", Mastery.juice_tier(3, 0) == 1)
+	_check("rank 9 with five levels is still tier 1", Mastery.juice_tier(9, 5) == 1)
+	_check("rank 10 is tier 2", Mastery.juice_tier(10, 0) == 2)
+	_check("six levels is tier 2", Mastery.juice_tier(0, 6) == 2)
+	_check("rank 25 is tier 3", Mastery.juice_tier(25, 0) == 3)
+	_check("fifteen levels is tier 3", Mastery.juice_tier(0, 15) == 3)
+	_check("the cap is still tier 3", Mastery.juice_tier(Mastery.MAX_RANK, 999) == 3)

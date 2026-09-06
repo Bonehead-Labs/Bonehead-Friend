@@ -1834,3 +1834,35 @@ func _the_desk_has_a_rhythm(fx: Node2D, hud: Node) -> void:
 		Settings.focus_intensity = Settings.Intensity.NORMAL
 		tub.queue_free()
 		await _settle()
+	await _the_upgrades_are_worn(centre)
+
+## An upgraded item looks upgraded (D41): the tier is read from rank and augments, and a
+## spawned body wears it as a glow, a wider trail and an aura that Focus Off stills.
+func _the_upgrades_are_worn(centre: Vector2) -> void:
+	_check("an untouched item is tier 0", Progression.juice_tier(&"scythe") == 0)
+	Progression.add_mastery_xp(&"baseball_bat", 1.0e9)
+	await _settle()
+	_check("a rank-capped bat is tier 3", Progression.juice_tier(&"baseball_bat") == 3,
+		str(Progression.juice_tier(&"baseball_bat")))
+	var spawner := _find(_main, "ItemSpawner")
+	EventBus.spawn_requested.emit(&"baseball_bat", centre + Vector2(-200, -60))
+	await _settle()
+	var bat: Node2D
+	for node in get_tree().get_nodes_in_group(&"spawned_item"):
+		if node.get("item_id") == &"baseball_bat":
+			bat = node
+	_check("the bat spawns", bat != null)
+	if bat == null:
+		return
+	_check("and wears its tier", int(bat.get("juice_tier")) == 3)
+	_check("as a glow on its sprite", ItemGlow.strength_of(bat.get("sprite")) > 0.9)
+	var aura := bat.get_node_or_null("Aura") as GPUParticles2D
+	_check("and an aura of chips", aura != null and aura.emitting)
+	Settings.focus_intensity = Settings.Intensity.OFF
+	spawner.call("refresh_augments")
+	_check("Focus Off stills the aura", aura != null and not aura.emitting)
+	Settings.focus_intensity = Settings.Intensity.NORMAL
+	spawner.call("refresh_augments")
+	_check("and Focus back on wakes it", aura != null and aura.emitting)
+	bat.call("bin_myself")
+	await _settle()

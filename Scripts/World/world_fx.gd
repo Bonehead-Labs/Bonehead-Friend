@@ -72,6 +72,18 @@ const MARROW := Color("46c48f")
 ## Gold for a star: the payout ramp's bone gold, not the purse's brown, which vanishes on him.
 const GOLD := Color("ffc247")
 
+## The tier ramps (D41): what an upgraded thing's effects are coloured. Harm runs gold →
+## orange → red-orange → white-hot; kind runs rose → magenta → lilac → white. Both end near
+## white because the top tier is the one that should read as *light* rather than as paint.
+const HARM_TIERS: Array[Color] = [Color("ffc247"), Color("ff8c1a"), Color("ff4d2e"), Color("fff4dc")]
+const KIND_TIERS: Array[Color] = [Color("ff5f9e"), Color("ff2f86"), Color("d9a0ff"), Color("fff0f8")]
+
+static func harm_colour(tier: int) -> Color:
+	return HARM_TIERS[clampi(tier, 0, HARM_TIERS.size() - 1)]
+
+static func kind_colour(tier: int) -> Color:
+	return KIND_TIERS[clampi(tier, 0, KIND_TIERS.size() - 1)]
+
 ## GPU emitters, like `FXLayer` and `UIMotion`. The first version of this file used
 ## `CPUParticles2D`, and in this project those emit and never draw a pixel — the pool sat
 ## "emitting" at the right place with the right texture and the screen stayed empty, which
@@ -187,11 +199,20 @@ func _on_damage_dealt(info: HitInfo) -> void:
 	var full := maxf(1.0, ItemDB.balance.hit_stop_full_damage)
 	var heat_of_hit := clampf(info.amount / full, 0.0, 1.0)
 	var streak := clampf(float(Economy.damage_streak()) / STREAK_HOT_AT, 0.0, 1.0)
-	burst(info.position, &"bone", UIStyle.BONES.lerp(HEAT, streak),
-		int(lerpf(CHIPS_MIN, CHIPS_MAX, heat_of_hit)), lerpf(110.0, 340.0, heat_of_hit))
+	# The weapon's tier (D41): an upgraded weapon throws more, in its tier's colour, and from
+	# the second tier every hit gets a ring, not only the heavy ones.
+	var tier := Progression.juice_tier(info.source_id)
+	var colour := UIStyle.BONES.lerp(HEAT, streak)
+	if tier > 0:
+		colour = colour.lerp(harm_colour(tier), 0.6)
+	burst(info.position, &"bone", colour,
+		int(lerpf(CHIPS_MIN, CHIPS_MAX, heat_of_hit) * (1.0 + 0.35 * tier)),
+		lerpf(110.0, 340.0, heat_of_hit) * (1.0 + 0.1 * tier))
 	# A heavy hit gets a ring at the contact too — the chips say where, the ring says how hard.
-	if heat_of_hit >= 0.6:
-		ring(info.position, 36.0 + 44.0 * heat_of_hit, UIStyle.BONES.lerp(HEAT, streak), 0.25, 2.0)
+	if heat_of_hit >= 0.6 or tier >= 2:
+		ring(info.position, 30.0 + 44.0 * heat_of_hit + 8.0 * tier, colour, 0.25, 2.0)
+	if tier >= 3:
+		_emit(info.position, _chip, HARM_TIERS[3], 6, 260.0, 0.35, Vector2(0, 500), 0.8, 1.6)
 	if Economy.damage_streak() >= STREAK_EMBERS_FROM and _ember_timer and _ember_timer.is_stopped():
 		_ember_timer.start()
 		_tick_embers()
@@ -320,14 +341,17 @@ func puff(at: Vector2, count: int, colour: Color, speed: float = 60.0, lifetime:
 
 ## A shot landing: a few hot sparks and, for a spread, a small ring. Cheap enough to run
 ## twenty times a second, which the minigun does.
-func shot(at: Vector2, spread: bool = false) -> void:
-	_emit(at, _chip, SPARK, 5 if spread else 3, 220.0, 0.3, Vector2(0, 600), 0.8, 1.6)
-	if spread:
-		ring(at, 40.0, SPARK, 0.18, 2.0)
+func shot(at: Vector2, spread: bool = false, tier: int = 0) -> void:
+	var colour := SPARK.lerp(harm_colour(tier), 0.5) if tier > 0 else SPARK
+	_emit(at, _chip, colour, (5 if spread else 3) + 2 * tier, 220.0 + 30.0 * tier, 0.3,
+		Vector2(0, 600), 0.8, 1.6)
+	if spread or tier >= 2:
+		ring(at, 40.0 + 6.0 * tier, colour, 0.18, 2.0)
 
 ## A tick of the sunbeam: heat rising off the spot.
-func heat(at: Vector2) -> void:
-	_emit(at, _chip, HEAT, 3, 70.0, 0.5, Vector2(0, -160), 1.0, 2.0)
+func heat(at: Vector2, tier: int = 0) -> void:
+	_emit(at, _chip, HEAT.lerp(harm_colour(tier), 0.4) if tier > 0 else HEAT, 3 + 2 * tier, 70.0, 0.5,
+		Vector2(0, -160), 1.0, 2.0)
 
 ## Something went off. A shockwave, a smoke puff, a spray of sparks and a jolt, all scaled
 ## by `size` (one is a grenade).
@@ -347,12 +371,12 @@ func ring(at: Vector2, radius: float, colour: Color, time: float = 0.35, width: 
 	r.show_ring(at, radius, colour, time, width)
 
 ## The line a shot travelled, gone in a tenth of a second. Thin, and thinner as it goes.
-func tracer(from: Vector2, to: Vector2, colour: Color = TRACER) -> void:
-	_line(PackedVector2Array([from, to]), colour, 0.1, 2.0)
+func tracer(from: Vector2, to: Vector2, colour: Color = TRACER, time: float = 0.1, width: float = 2.0) -> void:
+	_line(PackedVector2Array([from, to]), colour, time, width)
 
 ## A bolt through `points` — each leg broken into jagged segments, because a straight line
 ## is a laser and this is lightning. Sky blue, and gone in a sixth of a second.
-func bolt(points: PackedVector2Array, colour: Color = BOLT) -> void:
+func bolt(points: PackedVector2Array, colour: Color = BOLT, width: float = 3.0, forks: int = 0) -> void:
 	if points.size() < 2:
 		return
 	var jagged := PackedVector2Array()
@@ -366,7 +390,18 @@ func bolt(points: PackedVector2Array, colour: Color = BOLT) -> void:
 			var t := float(k) / float(legs)
 			jagged.append(a.lerp(b, t) + side * randf_range(-11.0, 11.0))
 	jagged.append(points[points.size() - 1])
-	_line(jagged, colour, 0.16, 3.0)
+	_line(jagged, colour, 0.16, width)
+	# Forks off the trunk, for an upgraded bolt (D41): short branches from a random joint,
+	# thinner and gone sooner. The line pool is four, so two at most.
+	for _f in mini(forks, 2):
+		if jagged.size() < 3:
+			break
+		var at := 1 + randi() % (jagged.size() - 2)
+		var root := jagged[at]
+		var heading := (jagged[at + 1] - jagged[at - 1]).normalized().rotated(randf_range(-1.1, 1.1) + (PI * 0.5 if randf() < 0.5 else -PI * 0.5))
+		var mid := root + heading * randf_range(18.0, 34.0)
+		var tip := mid + heading.rotated(randf_range(-0.6, 0.6)) * randf_range(16.0, 30.0)
+		_line(PackedVector2Array([root, mid, tip]), colour, 0.12, maxf(1.0, width * 0.6))
 	# The first strike gets a small ring; the chain does not, or three rings arrive at once.
 	ring(points[1], 34.0, colour, 0.2, 2.0)
 
@@ -401,6 +436,55 @@ func _process(_delta: float) -> void:
 
 func is_shaking() -> bool:
 	return is_processing()
+
+## A continuous emitter that rides on a node: the aura of an upgraded item, the fuse of a
+## primed charge, the swirl of the vortex (D41). Parented to `parent` so it goes where the
+## parent goes and dies with it. `glyph` is `&"chip"` or a UI glyph; `orbit` above zero makes
+## the chips circle the emitter instead of rising — a black hole rather than a campfire.
+func aura(parent: Node2D, glyph: StringName, colour: Color, amount: int, node_name: String,
+		box: Vector2 = Vector2(10, 10), orbit: float = 0.0) -> GPUParticles2D:
+	var emitter := GPUParticles2D.new()
+	emitter.name = node_name
+	emitter.one_shot = false
+	emitter.local_coords = false
+	emitter.z_index = 30
+	emitter.texture = _chip if glyph == &"chip" else UIStyle.glyph(glyph)
+	emitter.modulate = colour
+	emitter.amount = maxi(1, amount)
+	emitter.lifetime = 0.9
+	if orbit > 0.0:
+		emitter.process_material = _orbit_material(orbit, box)
+	else:
+		emitter.process_material = _material(40.0, -90.0, 1.0, 1.8, glyph != &"chip", box)
+	emitter.emitting = _on()
+	parent.add_child(emitter)
+	return emitter
+
+## Chips circling a point: `orbit` turns per second, within `box`, with a slow fall inward.
+func _orbit_material(orbit: float, box: Vector2) -> ParticleProcessMaterial:
+	var key := "orbit|%d|%d|%d" % [int(orbit * 100.0), int(box.x), int(box.y)]
+	if _materials.has(key):
+		return _materials[key]
+	var mat := ParticleProcessMaterial.new()
+	mat.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
+	mat.emission_box_extents = Vector3(box.x, box.y, 1.0)
+	mat.gravity = Vector3.ZERO
+	mat.initial_velocity_min = 0.0
+	mat.initial_velocity_max = 0.0
+	mat.orbit_velocity_min = orbit * 0.7
+	mat.orbit_velocity_max = orbit
+	mat.radial_velocity_min = -60.0
+	mat.radial_velocity_max = -20.0
+	mat.scale_min = 0.8
+	mat.scale_max = 1.6
+	var curve := CurveTexture.new()
+	var shape := Curve.new()
+	shape.add_point(Vector2(0.0, 1.0))
+	shape.add_point(Vector2(1.0, 0.0))
+	curve.curve = shape
+	mat.scale_curve = curve
+	_materials[key] = mat
+	return mat
 
 # --- pools ----------------------------------------------------------------
 

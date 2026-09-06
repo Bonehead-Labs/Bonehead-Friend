@@ -99,6 +99,11 @@ func _physics_process(delta: float) -> void:
 	var touching := buddy != null
 	if touching and not _was_touching and entry_sound != &"":
 		AudioManager.play(entry_sound, 0.10, -8.0)
+	# He got in: a burst of hearts off him, more for an upgraded item (D41).
+	if touching and not _was_touching and (hearts_per_second_touching > 0.0 or hearts_per_contact > 0.0):
+		var fx := WorldFX.of(self)
+		if fx:
+			fx.burst(buddy.global_position, &"heart", trail_colour(), 5 + 3 * juice_tier, 130.0)
 	_was_touching = touching
 	if buddy != null:
 		if hearts_per_second_touching > 0.0:
@@ -183,9 +188,18 @@ func _despawn() -> void:
 func _exit_tree() -> void:
 	_flush()
 
-## A kind item leaves a rose trail, not a gold one.
+## A kind item leaves a rose trail, not a gold one, and its aura is hearts.
 func trail_colour() -> Color:
-	return Color("ff5f9e")
+	return WorldFX.kind_colour(juice_tier)
+
+func aura_glyph() -> StringName:
+	return &"heart"
+
+## An upgraded kind item has more life on it: the ambient emitter grows with the tier.
+func apply_juice() -> void:
+	super.apply_juice()
+	if _ambient and _ambient_base_amount > 0:
+		_ambient.amount = int(round(_ambient_base_amount * (1.0 + 0.5 * juice_tier)))
 
 # --- ambient life -------------------------------------------------------------
 #
@@ -210,6 +224,7 @@ const NOTE := Color("2fb5b0")
 static var _ambient_materials: Dictionary = {}
 static var _ambient_chip: Texture2D
 var _ambient: GPUParticles2D
+var _ambient_base_amount := 0
 
 func ambient_kind() -> StringName:
 	return AMBIENT.get(item_id, &"")
@@ -257,6 +272,7 @@ func _build_ambient() -> void:
 			_ambient.position = Vector2(0, -extent.y)
 			_ambient.process_material = _ambient_material(kind, 45.0, -40.0, 1.2, 1.8,
 				Vector2(extent.x * 0.3, 2.0), false)
+	_ambient_base_amount = _ambient.amount
 	add_child(_ambient)
 	_gate_ambient()
 

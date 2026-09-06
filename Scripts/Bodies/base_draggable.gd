@@ -44,6 +44,7 @@ func _ready() -> void:
 	custom_integrator = false
 	continuous_cd = RigidBody2D.CCD_MODE_CAST_RAY
 	add_to_group(GROUP_INTERACTIVE)
+	apply_juice()
 
 ## World-space rect worth treating as a click target. Derived from the actual collision
 ## shape where there is one, so a mace and a grenade get appropriately sized regions.
@@ -167,9 +168,9 @@ var _trail: Line2D
 ## farthest from the grip, which on a bat is the end of the barrel. The centre otherwise.
 var _trail_tip := Vector2.ZERO
 
-## Gold for a weapon; the kind items and the buddy say otherwise.
+## Gold for a weapon, heating with its tier; the kind items and the buddy say otherwise.
 func trail_colour() -> Color:
-	return Color("ffc247")
+	return WorldFX.harm_colour(juice_tier)
 
 func _trail_step() -> void:
 	var fast := Settings.focus_intensity != Settings.Intensity.OFF \
@@ -178,7 +179,7 @@ func _trail_step() -> void:
 		if _trail == null:
 			_build_trail()
 		_trail.add_point(to_global(_trail_tip))
-		while _trail.get_point_count() > TRAIL_POINTS:
+		while _trail.get_point_count() > TRAIL_POINTS + 3 * juice_tier:
 			_trail.remove_point(0)
 		_trail.visible = true
 	elif _trail != null and _trail.get_point_count() > 0:
@@ -198,7 +199,7 @@ func _build_trail() -> void:
 	_trail.antialiased = false
 	_trail.joint_mode = Line2D.LINE_JOINT_BEVEL
 	_trail.default_color = trail_colour()
-	_trail.width = TRAIL_WIDTH
+	_trail.width = TRAIL_WIDTH + TRAIL_TIER_WIDTH * juice_tier
 	# Thin at the tail, full at the head — the whole reason it reads as motion.
 	var taper := Curve.new()
 	taper.add_point(Vector2(0.0, 0.1))
@@ -224,3 +225,53 @@ func _find_tip() -> Vector2:
 			far = distance
 			best = local
 	return best
+
+# --- how upgraded it looks -------------------------------------------------------
+#
+# A level-three bat has to look like a level-three bat (docs/decisions.md D41). The art is
+# one sprite per item, so the upgrade is worn as light and motion: a breathing outline in the
+# tier's colour (`ItemGlow`), a wider and longer trail, and from the second tier an aura of
+# chips rising off the thing. Read from Progression on spawn and again whenever a purchase, a
+# rank or a Focus change lands (`ItemSpawner.refresh_augments`). Nothing here is a number in
+# the economy; it is only what the number looks like.
+
+const TRAIL_TIER_WIDTH := 2.5
+const GLOW_STRENGTH: Array[float] = [0.0, 0.55, 0.8, 1.0]
+const AURA_AMOUNT: Array[int] = [0, 0, 4, 9]
+
+var juice_tier := 0
+var _aura: GPUParticles2D
+
+## What the aura is made of: chips for a weapon, hearts for a kind item.
+func aura_glyph() -> StringName:
+	return &"chip"
+
+func apply_juice() -> void:
+	juice_tier = Progression.juice_tier(item_id) if item_id != &"" else 0
+	var colour := trail_colour()
+	var moving := Settings.focus_intensity != Settings.Intensity.OFF
+	if _trail:
+		_trail.default_color = colour
+		_trail.width = TRAIL_WIDTH + TRAIL_TIER_WIDTH * juice_tier
+	if sprite is CanvasItem:
+		ItemGlow.apply(sprite, colour, GLOW_STRENGTH[juice_tier], moving)
+	var amount: int = AURA_AMOUNT[juice_tier]
+	if amount > 0:
+		if _aura == null or not is_instance_valid(_aura):
+			var fx := WorldFX.of(self)
+			if fx:
+				_aura = fx.aura(self, aura_glyph(), colour, amount, "Aura", _aura_box())
+		if _aura:
+			_aura.amount = amount
+			_aura.modulate = colour
+			_aura.emitting = moving
+	elif _aura and is_instance_valid(_aura):
+		_aura.emitting = false
+
+## Half the collision shape, so the aura rises off the whole thing rather than its centre.
+func _aura_box() -> Vector2:
+	if collider and collider.shape and collider.shape.has_method("get_rect"):
+		var rect: Rect2 = collider.shape.get_rect()
+		if rect.size.length() > 0.0:
+			return (rect.size * 0.5 * collider.scale.abs()).clamp(Vector2(4, 4), Vector2(60, 60))
+	return Vector2(10, 10)

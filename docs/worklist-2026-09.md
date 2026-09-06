@@ -294,3 +294,23 @@ Counts after: **unit 216 · loop 595 · ui 408 · pacing untouched**.
 Not done and why: a swing *sound* pitched to speed (the synth has no whoosh voice yet); afterimage
 ghosts of the puppet when flung (the trail covers it at a tenth of the cost); a streak-lost
 sting (the genre punishes enough — the bar draining is the whole warning).
+
+## 11. Every item, juiced by its level (2026-09-06, late) ✅
+
+Owner's brief: "go through every single item one by one and juice them up … as they are upgraded,
+making them even more juiced up, for instance a level 3 baseball bat … looks much cooler than the
+base one, or at least emits more effects". Recorded as **D41**.
+
+| # | What | Where |
+|---|---|---|
+| 11.1 | **The tier.** `MasteryMath.juice_tier(rank, levels)` (rank 3/10/25 or levels 1/6/15 → tier 1/2/3); `Progression.juice_tier(item_id)` cached and invalidated on purchase / rank / reset / load | `mastery_math.gd`, `progression.gd` |
+| 11.2 | **Worn on every body.** `ItemGlow` outline shader (one texel, breathing via `TIME`, stilled at Focus Off); trail width +2.5/tier and +3 points/tier; `Aura` emitter from tier 2 (chips / hearts); `apply_juice()` on spawn and from `ItemSpawner.refresh_augments` on purchase, rank and Focus change; colour ramps `WorldFX.harm_colour` / `kind_colour` | `item_glow.gd` (new), `base_draggable.gd`, `friendly_base.gd`, `item_spawner.gd`, `world_fx.gd` |
+| 11.3 | **Per family.** Hits: chips ×(1+0.35·tier) in the tier colour, ring every hit from tier 2, white sparks at 3. Explosions: art and boom ×(1+0.25·tier), fuse sparks while primed. Guns: sparks +2/tier, ring from tier 2. Sunbeam: a visible beam from above, width 1.5+tier, heat +2/tier. Lightning: width 3+tier, `tier` forks. Vortex: orbiting `Swirl` at the cursor, 10+6·tier chips. Fist: sparks on a punch, ring from tier 2. Turrets: tracer 2+0.7·tier wide in the tier colour, muzzle puff from tier 2. Kind items: ambience ×(1+0.5·tier), heart burst 5+3·tier when he gets in. Trampoline: ring from tier 2 | `world_fx.gd`, `effects_player.gd`, `throwable_base.gd`, `missile.gd`, `cluster_bomb.gd`, `gun_power.gd`, `beam_power.gd`, `lightning_power.gd`, `vortex_power.gd`, `fist_power.gd`, `turret_base.gd`, `friendly_base.gd`, `trampoline.gd` |
+| 11.4 | **Proof.** 9 unit assertions on the ladders; `ui_check` spawns a rank-capped bat (tier 3, glow > 0.9, aura emitting, Focus Off stills it, Focus on wakes it); `16-juice` shots stage a rank-40 bat beside a rank-8 mace | `run_tests.gd`, `ui_check.gd`, `ui_shots.gd` |
+
+Counts after: **unit 225 · loop 595 · ui 416 · pacing untouched** (the tier is presentation; no rate moved).
+
+Not done and why: per-item bespoke effects beyond the family (a chainsaw's sawdust, a katana's
+clean cut, a rubber duck's squeak ring) — the family treatment covers all hundred today and a
+per-id table is the next step once the art pass fixes which items are hero items; a tier-4
+"mastered" look at rank 50 (the economy's rank-50 bonus) — worth adding when a playtest reaches it.

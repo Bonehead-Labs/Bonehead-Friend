@@ -21,6 +21,7 @@ var _mastery_pool: int = 0
 ## hit. Recomputing a pow() per item per payout would be paying for the cache miss sixty
 ## times a second in a game designed to idle for eight hours.
 var _mastery_rank_cache: Dictionary = {}  ## StringName (item id) -> int
+var _juice_cache: Dictionary = {}         ## StringName (item id) -> int (D41)
 
 ## Automation capstones the player has switched off. Absent means on, so a newly bought
 ## capstone starts running — and so a save written before this existed does not arrive with
@@ -200,6 +201,7 @@ func purchase_augment(node_id: StringName, levels: int = 1) -> int:
 
 	_augment_levels[node_id] = owned + affordable
 	_automation_rates.clear()
+	_juice_cache.erase(node.item_id)
 	if node.exclusive_group != &"":
 		_exclusive_choices[_exclusive_key(node.item_id, node.exclusive_group)] = node.id
 	_modifier_cache.clear()
@@ -275,6 +277,20 @@ func mastery_progress(item_id: StringName) -> float:
 func mastery_pool() -> int:
 	return _mastery_pool
 
+## How upgraded an item looks, 0..3 (D41, `MasteryMath.juice_tier`). Cached per item and
+## dropped on a purchase, a rank, a reset or a load — it is read on every hit.
+func juice_tier(item_id: StringName) -> int:
+	if item_id == &"" or not ItemDB.has_item(item_id):
+		return 0
+	if _juice_cache.has(item_id):
+		return int(_juice_cache[item_id])
+	var levels := 0
+	for node in ItemDB.augments_for(item_id):
+		levels += augment_level(node.id)
+	var tier := MasteryMath.juice_tier(mastery_rank(item_id), levels)
+	_juice_cache[item_id] = tier
+	return tier
+
 ## XP earned by using a thing, proportional to the value it delivered. A rank gained drops a
 ## point into the shared pool — that pool is the answer to the genre's oldest question, why
 ## you would ever use the shotgun once you own the rocket launcher.
@@ -288,6 +304,7 @@ func add_mastery_xp(item_id: StringName, amount: float) -> void:
 	_mastery_rank_cache[item_id] = after
 	if after <= before:
 		return
+	_juice_cache.erase(item_id)
 	_mastery_pool += after - before
 	_automation_rates.clear()
 	EventBus.mastery_rank_up.emit(item_id, after)
@@ -511,6 +528,7 @@ func reset_for_prestige() -> void:
 	_exclusive_choices.clear()
 	_mastery_xp.clear()
 	_mastery_rank_cache.clear()
+	_juice_cache.clear()
 	_automation_off.clear()
 	_automation_rates.clear()
 	_mastery_pool = 0
@@ -590,6 +608,7 @@ func from_save(root: Dictionary) -> void:
 
 	_mastery_pool = int(root.get("mastery_pool", 0))
 	_mastery_rank_cache.clear()
+	_juice_cache.clear()
 	_automation_rates.clear()
 
 	_automation_off.clear()

@@ -62,6 +62,7 @@ func fire(at: Vector2) -> void:
 func _shoot(at: Vector2) -> void:
 	var space := get_world_2d().direct_space_state
 	var mult := effective_damage_mult()
+	var tier := Progression.juice_tier(item_id)
 	var fx := WorldFX.of(self)
 	for i in maxi(1, pellets):
 		var point := at
@@ -74,5 +75,5 @@ func _shoot(at: Vector2) -> void:
 		# Sparks where the shot landed, hit or miss — a miss that shows nothing reads as a
 		# click that did nothing.
 		if fx:
-			fx.shot(point, pellets > 1)
+			fx.shot(point, pellets > 1, tier)
 	EventBus.contract_event.emit(&"use:%s" % item_id, 1)

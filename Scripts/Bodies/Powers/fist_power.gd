@@ -69,3 +69,8 @@ func fire(at: Vector2) -> void:
 	var dir := at - body.global_position
 	dir = dir.normalized() if dir.length() > 1.0 else Vector2.DOWN
 	body.apply_impulse(dir * punch_impulse * effective_damage_mult(), Vector2.ZERO)
+	# The punch itself: sparks off the knuckles, a ring from the second tier.
+	var fx := WorldFX.of(self)
+	if fx:
+		var tier := Progression.juice_tier(item_id)
+		fx.shot(body.global_position, tier >= 2, tier)

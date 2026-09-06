@@ -73,3 +73,23 @@ static func pool_flat_bonus(points: int, thresholds: Array, per_checkpoint: int)
 ## capstone), so rank 50 is the only one that needs to be worth something numerically.
 static func item_rank_multiplier(rank: int, bonus_rank: int, bonus: float) -> float:
 	return bonus if rank >= bonus_rank else 1.0
+
+# --- how upgraded a thing looks -----------------------------------------------
+
+## The juice tier of an item (docs/decisions.md D41): how loud its effects are, 0..3. A
+## presentation value, never a number in the economy — it reads the rank and the augment
+## levels the player has already earned and turns them into a look, so a rank-25 bat is
+## visibly a different object from a fresh one. Either ladder reaches a tier on its own:
+## rank 3 / 10 / 25 are the ranks the economy already treats as beats (the Tier 2 branch at
+## 10, automation at 25), and 1 / 6 / 15 augment levels are a first buy, a committed build
+## and a finished one.
+const JUICE_RANKS: Array[int] = [3, 10, 25]
+const JUICE_LEVELS: Array[int] = [1, 6, 15]
+const JUICE_TIERS := 3
+
+static func juice_tier(rank: int, augment_levels: int) -> int:
+	var tier := 0
+	for i in JUICE_TIERS:
+		if rank >= JUICE_RANKS[i] or augment_levels >= JUICE_LEVELS[i]:
+			tier = i + 1
+	return tier

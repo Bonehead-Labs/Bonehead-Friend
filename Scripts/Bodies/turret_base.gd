@@ -154,7 +154,11 @@ func _fire(target: Buddy) -> void:
 	# that leaned and a buddy that flinched, with nothing between them.
 	var fx := WorldFX.of(self)
 	if fx:
-		fx.tracer(global_position, at)
+		var tier := Progression.juice_tier(item_id)
+		fx.tracer(global_position, at, WorldFX.harm_colour(tier) if tier > 0 else WorldFX.TRACER,
+			0.1, 2.0 + 0.7 * float(tier))
+		if tier >= 2:
+			fx.puff(global_position + Vector2(0, -12), 2, WorldFX.SPARK, 60.0, 0.3)
 	# Quiet and wide: the fastest turret fires twenty times a second, and this is the
 	# background of the desk, not the event of the desk.
 	AudioManager.play(&"turret_fire", 0.16, -16.0)

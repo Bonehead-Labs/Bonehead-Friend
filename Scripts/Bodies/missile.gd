@@ -87,7 +87,7 @@ func explode() -> void:
 		explosion_area.monitoring = false
 
 	if Effects_Player:
-		Effects_Player.explosion_effect(global_position)
+		Effects_Player.explosion_effect(global_position, 1.0 + 0.25 * Progression.juice_tier(_source_id))
 	if sprite:
 		sprite.visible = false
 	if flame_effect:

@@ -59,6 +59,8 @@ func _physics_process(delta: float) -> void:
 		var fx := WorldFX.of(self)
 		if fx:
 			fx.puff(Vector2(rigid.global_position.x, global_position.y), int(lerpf(3.0, 8.0, clampf(falling / 900.0, 0.0, 1.0))), WorldFX.DUST, 80.0, 0.5)
+			if juice_tier >= 2:
+				fx.ring(Vector2(rigid.global_position.x, global_position.y), 26.0 + 10.0 * juice_tier, trail_colour(), 0.25, 2.0)
 		# Louder for a harder landing, the same way a hit is.
 		AudioManager.play(&"bounce", 0.15, lerpf(-16.0, -4.0, clampf(falling / 900.0, 0.0, 1.0)))
 		EventBus.contract_event.emit(&"bounce", 1)

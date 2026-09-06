@@ -28,6 +28,7 @@ extends CursorPowerBase
 
 var _pulling := false
 var _aim := Vector2.ZERO
+var _swirl: GPUParticles2D
 
 func _on_activated() -> void:
 	set_physics_process(true)
@@ -35,6 +36,8 @@ func _on_activated() -> void:
 func _on_deactivated() -> void:
 	set_physics_process(false)
 	_pulling = false
+	if _swirl:
+		_swirl.emitting = false
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion:
@@ -48,10 +51,24 @@ func _input(event: InputEvent) -> void:
 func fire(at: Vector2) -> void:
 	_aim = at
 	_pulling = true
+	# The eye of it: chips circling the cursor while it pulls, more and hotter with the tier.
+	if _swirl == null or not is_instance_valid(_swirl):
+		var fx := WorldFX.of(self)
+		if fx:
+			var tier := Progression.juice_tier(item_id)
+			_swirl = fx.aura(self, &"chip", WorldFX.harm_colour(tier), 10 + 6 * tier, "Swirl",
+				Vector2(radius * 0.45, radius * 0.45), 2.2 + 0.4 * float(tier))
+	if _swirl:
+		_swirl.global_position = at
+		_swirl.emitting = Settings.focus_intensity != Settings.Intensity.OFF
 
 func _physics_process(delta: float) -> void:
 	if not active or not _pulling:
+		if _swirl:
+			_swirl.emitting = false
 		return
+	if _swirl:
+		_swirl.global_position = _aim
 	for body in _bodies():
 		var to_centre := _aim - body.global_position
 		var distance := to_centre.length()

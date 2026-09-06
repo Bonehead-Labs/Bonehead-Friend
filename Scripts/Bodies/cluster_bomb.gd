@@ -44,7 +44,7 @@ func explode() -> void:
 			global_position)
 		explosion_area.monitoring = false
 	if Effects_Player:
-		Effects_Player.explosion_effect(global_position)
+		Effects_Player.explosion_effect(global_position, 1.0 + 0.25 * juice_tier)
 
 	# The casing stops being an object on the desk here rather than at the end of the burst.
 	# A napalm charge burns for six seconds, and the slot the player spent on it should come
@@ -90,7 +90,7 @@ func _submunition(i: int) -> void:
 		_report(ExplosionUtil.point_blast(get_world_2d().direct_space_state, at,
 			submunition_radius, submunition_force), at)
 		if Effects_Player:
-			Effects_Player.explosion_effect(at)
+			Effects_Player.explosion_effect(at, 0.6 + 0.15 * juice_tier)
 		i += 1
 		if i < submunitions and submunition_interval > 0.0:
 			get_tree().create_timer(submunition_interval).timeout.connect(_submunition.bind(i))

@@ -102,6 +102,9 @@ func _ready() -> void:
 	tub.set("item_id", &"hot_tub")
 	(_find(_main, "ItemSpawner").get("world") as Node2D).add_child(tub)
 	tub.global_position = centre + Vector2(-140, 220)
+	# A rank-40 bat (tier 3, white-hot) beside a rank-8 mace (tier 1): the upgrade, worn.
+	EventBus.spawn_requested.emit(&"baseball_bat", centre + Vector2(-330, 60))
+	EventBus.spawn_requested.emit(&"mace", centre + Vector2(330, 110))
 	for step in [["16-juice", 2], ["16b-juice", 6], ["16c-juice", 12]]:
 		for i in int(step[1]):
 			await get_tree().process_frame

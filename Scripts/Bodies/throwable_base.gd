@@ -38,6 +38,12 @@ func prime_explosion() -> void:
 		explosion_area.monitoring = true
 	# The fuse is lit: he can see it too.
 	EventBus.threat_changed.emit(&"fuse", global_position, 1.0)
+	# And so can the player: sparks off the fuse until it goes, more for an upgraded charge.
+	var fx := WorldFX.of(self)
+	if fx:
+		var fuse := fx.aura(self, &"chip", WorldFX.HEAT, 4 + 2 * juice_tier, "Fuse", Vector2(3, 3))
+		fuse.position = grip_offset
+		fuse.lifetime = 0.5
 	if sprite:
 		# Simple readable tell that it is live; the fuse animation lands with the art pass.
 		var tween := create_tween().set_loops()
@@ -66,7 +72,7 @@ func explode() -> void:
 					effective_damage_mult(), global_position)
 		explosion_area.monitoring = false
 	if Effects_Player:
-		Effects_Player.explosion_effect(global_position)
+		Effects_Player.explosion_effect(global_position, 1.0 + 0.25 * juice_tier)
 	if sprite:
 		sprite.visible = false
 	EventBus.item_despawned.emit(self)

@@ -930,6 +930,41 @@ that wants a different trail colour overrides `trail_colour()`. `ui_check`'s `ju
 asserts the row appears at three hits and lapses, embers and bliss obey Focus Mode, a trail is
 world-space and hidden at rest, and a hot tub steams and stops.
 
+## D41 — An upgraded item looks upgraded: the juice tier (2026-09-06)
+
+**Decision.** Every item has a *juice tier*, 0..3, read from what the player has already earned
+on it: `MasteryMath.juice_tier(rank, augment_levels)` reaches a tier by either ladder — rank
+3 / 10 / 25 (the ranks the economy already treats as beats) or 1 / 6 / 15 augment levels (a
+first buy, a committed build, a finished one). `Progression.juice_tier(item_id)` caches it and
+drops the cache on a purchase, a rank, a reset or a load. The tier is presentation only; no
+number in the economy reads it.
+
+What the tier is worn as, on every body (`BaseDraggable.apply_juice`): a one-texel breathing
+outline in the tier's colour (`ItemGlow`, a shader from the sprite's own alpha, so it fits
+all hundred items with no second sprite), a wider and longer trail, and from tier 2 an aura of
+chips (hearts on a kind item) rising off the thing. Harm runs gold → orange → red-orange →
+white-hot; kind runs rose → magenta → lilac → white. Then per family: hit chips multiply and
+take the tier's colour, every hit rings from tier 2 and throws white sparks at tier 3;
+explosions grow (art and shockwave) and a primed charge sparks at its fuse; guns throw more
+sparks and ring from tier 2; the sunbeam is a visible beam from above, wider by tier; the bolt
+is wider and forks; the vortex has a swirl of chips orbiting the cursor; the fist sparks on a
+punch; turrets' tracers thicken and take the colour, with a muzzle puff from tier 2; kind items
+grow their ambient life by half per tier and throw hearts when he gets in; the trampoline rings.
+
+**Why.** The owner's ask, and the genre's: a level-three bat has to *look* like a level-three
+bat, or the upgrade tree is a spreadsheet. The art is one sprite per item and the generator is
+blocked, so the upgrade is carried by light and motion instead — which also means every future
+item gets it for free the day it is seeded.
+
+**Budget.** The glow is a shader with `TIME` for its breath: zero CPU. Auras are GPU, four or
+nine chips. The tier is read per hit from a cache. Focus Off stills the breath and every aura
+and keeps the outline — the outline is information (which tier this is) and information stays.
+
+*Consequence:* a body that wants its own colour ramp overrides `trail_colour()`; its aura glyph,
+`aura_glyph()`. Anything that spawns bodies outside `ItemSpawner` must call `apply_juice()` when
+upgrades land, or the look goes stale. Unit tests pin the ladders; `ui_check` spawns a rank-capped
+bat and asserts the glow, the aura, and Focus Off stilling it.
+
 ## Recommendations not yet decided
 
 Carried in the spec, owner's call before they matter:

@@ -29,6 +29,9 @@ func _ready() -> void:
 	EventBus.spawn_requested.connect(_on_spawn_requested)
 	EventBus.item_despawned.connect(_on_item_despawned)
 	EventBus.prestige_performed.connect(_on_prestige)
+	# A rank moves the tier as a purchase does, and Focus Mode stills or wakes every aura.
+	EventBus.mastery_rank_up.connect(func(_id: StringName, _rank: int) -> void: refresh_augments())
+	EventBus.focus_mode_changed.connect(func(_level: int) -> void: refresh_augments())
 
 ## A Reincarnation wipes what the player owns, so it has to wipe what is on the desk too.
 ##
@@ -177,3 +180,13 @@ func refresh_augments() -> void:
 	for node in _active:
 		if node is WeaponBase:
 			(node as WeaponBase).apply_augments()
+		# And how it looks (D41): the glow, the trail and the aura follow the tier, which a
+		# purchase or a rank just moved. Duck-typed: NPCs and toys are on the desk too.
+		if node.has_method("apply_juice"):
+			node.apply_juice()
+	for power in _powers.values():
+		if not is_instance_valid(power):
+			continue
+		var body = power.get("body")
+		if body and body.has_method("apply_juice"):
+			body.apply_juice()

@@ -47,7 +47,8 @@ func fire(at: Vector2) -> void:
 
 	var fx := WorldFX.of(self)
 	if fx:
-		fx.bolt(path)
+		var tier := Progression.juice_tier(item_id)
+		fx.bolt(path, WorldFX.BOLT, 3.0 + float(tier), tier)
 	EventBus.contract_event.emit(&"use:%s" % item_id, 1)
 
 ## The next link: the closest body inside `chain_range` that this bolt has not already
