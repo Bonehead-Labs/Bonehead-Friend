@@ -386,7 +386,9 @@ func _on_phase_changed(phase: StringName, routine: int, _target_id: StringName) 
 		var row: StringName = ROUTINE_HOLDS.get(routine, &"")
 		if row == &"":
 			return
-		attend(ATTEND_TOY, _attention_point)
+		# The player's cursor over him outranks his toy: he is being looked at.
+		if _attention != ATTEND_CURSOR:
+			attend(ATTEND_TOY, _attention_point)
 		# Pleased to be there first, then settle into it.
 		if react(&"arrived"):
 			_pending_hold = row

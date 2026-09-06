@@ -28,9 +28,20 @@ const STATS := [
 	[&"damage_dealt", "Damage dealt"],
 	[&"pets", "Kind acts"],
 	[&"knockouts", "Knockouts"],
+	[&"best_streak", "Best streak"],
 	[&"items_owned", "Toys owned"],
 	[&"reincarnations", "Lives"],
 	[&"marrow", "Marrow"],
+]
+
+## The receipt for today: what this sitting earned and did. Never saved — that is the point.
+const SESSION := [
+	[&"session_bones", "Bones"],
+	[&"session_hearts", "Hearts"],
+	[&"session_hits", "Hits"],
+	[&"session_pets", "Kind acts"],
+	[&"session_knockouts", "Knockouts"],
+	[&"session_best_streak", "Best streak"],
 ]
 
 func _ready() -> void:
@@ -59,15 +70,18 @@ func _build_page() -> void:
 	_stats.add_theme_constant_override("h_separation", 12)
 	_stats.add_theme_constant_override("v_separation", 3)
 	tile.add_child(_stats)
-	for entry in STATS:
-		var caption := UIStyle.label(String(entry[1]).to_upper(), UIStyle.MICRO, UIStyle.TEXT_DIM)
-		caption.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		_stats.add_child(caption)
-		var value := UIStyle.label("", UIStyle.LABEL, UIStyle.TEXT)
-		value.theme_type_variation = &"Numeral"
-		value.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		_stats.add_child(value)
-		_stat_values[entry[0]] = value
+	_fill_grid(_stats, STATS)
+
+	add_child(UIStyle.eyebrow("This session"))
+	var today := PanelContainer.new()
+	today.theme_type_variation = &"Sunk"
+	add_child(today)
+	var session_grid := GridContainer.new()
+	session_grid.columns = 2
+	session_grid.add_theme_constant_override("h_separation", 12)
+	session_grid.add_theme_constant_override("v_separation", 3)
+	today.add_child(session_grid)
+	_fill_grid(session_grid, SESSION)
 
 	add_child(UIStyle.eyebrow("Deeds"))
 	# No scroll of its own: the card's host is already a ScrollContainer.
@@ -76,6 +90,17 @@ func _build_page() -> void:
 	_list.add_theme_constant_override("separation", 5)
 	_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	add_child(_list)
+
+func _fill_grid(grid: GridContainer, rows: Array) -> void:
+	for entry in rows:
+		var caption := UIStyle.label(String(entry[1]).to_upper(), UIStyle.MICRO, UIStyle.TEXT_DIM)
+		caption.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		grid.add_child(caption)
+		var value := UIStyle.label("", UIStyle.LABEL, UIStyle.TEXT)
+		value.theme_type_variation = &"Numeral"
+		value.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		grid.add_child(value)
+		_stat_values[entry[0]] = value
 
 ## Once: the board is data and does not change at runtime.
 func _rebuild() -> void:
@@ -152,6 +177,8 @@ func _refresh() -> void:
 
 	for entry in STATS:
 		(_stat_values[entry[0]] as Label).text = _stat_value(entry[0])
+	for entry in SESSION:
+		(_stat_values[entry[0]] as Label).text = _stat_value(entry[0])
 
 	for milestone in board:
 		if not _rows.has(milestone.id):
@@ -209,4 +236,18 @@ func _stat_value(key: StringName) -> String:
 			return str(Economy.prestige_count)
 		&"marrow":
 			return "%.2f" % Economy.marrow
+		&"best_streak":
+			return "x%d" % int(Economy.stats.get("best_streak", 0))
+		&"session_bones":
+			return UIStyle.format_amount(float(Economy.session["bones"]))
+		&"session_hearts":
+			return UIStyle.format_amount(float(Economy.session["hearts"]))
+		&"session_hits":
+			return str(int(Economy.session["hits"]))
+		&"session_pets":
+			return str(int(Economy.session["pets"]))
+		&"session_knockouts":
+			return str(int(Economy.session["knockouts"]))
+		&"session_best_streak":
+			return "x%d" % int(Economy.session["best_streak"])
 	return ""

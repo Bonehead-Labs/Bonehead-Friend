@@ -96,6 +96,8 @@ func grant(currency: StringName, amount: float, world_pos: Vector2 = Vector2.ZER
 		# Dollars are not income: they are a count of acts, and Marrow is scaled by income.
 		# Letting them into either total would make cosmetics pay for prestige.
 		_lifetime[currency] = lifetime_of(currency) + amount
+		if session.has(String(currency)):
+			session[String(currency)] = float(session[String(currency)]) + amount
 		run_earnings += amount
 	# Only a payout that happened *somewhere* moves it. Contract claims and arcade wins are
 	# granted from a panel and carry no world position at all, and letting their Vector2.ZERO
@@ -257,10 +259,21 @@ func damage_streak() -> int:
 ## Set for the duration of a kind act's own payout emit (see `_on_kindness_given`).
 var paying_kind_act := false
 
+## This session only, never saved: the receipt on the Deeds page. Earnings land here from
+## `grant`, acts from their handlers.
+var session: Dictionary = {"bones": 0.0, "hearts": 0.0, "hits": 0, "pets": 0, "knockouts": 0, "best_streak": 0}
+
 func _on_damage_dealt(info: HitInfo) -> void:
 	var now := Time.get_ticks_msec()
 	_streak_count = _streak_count + 1 if now < _streak_deadline_msec else 1
 	_streak_deadline_msec = now + int(STREAK_WINDOW * 1000.0)
+	# The streak's record — the one number a streak leaves behind. Saved in `stats`, which is
+	# a free dictionary, so no schema change.
+	if _streak_count > int(stats.get("best_streak", 0)):
+		stats["best_streak"] = _streak_count
+	if _streak_count > int(session["best_streak"]):
+		session["best_streak"] = _streak_count
+	session["hits"] = int(session["hits"]) + 1
 	round_damage += info.amount
 	stats["damage_dealt"] = float(stats.get("damage_dealt", 0.0)) + info.amount
 	var bones := payout_for(
@@ -298,6 +311,7 @@ func _on_kindness_given(source_id: StringName, value: float, world_pos: Vector2)
 	paying_kind_act = false
 	_bank_dollars(ItemDB.balance.dollars_per_kind_act)
 	stats["pets"] = int(stats.get("pets", 0)) + 1
+	session["pets"] = int(session["pets"]) + 1
 	EventBus.contract_event.emit(&"kindness", 1)
 
 ## Rate-paid kindness. The same pipeline, minus the combo — see the signal's note on the
@@ -322,6 +336,7 @@ func _on_buddy_state_changed(state: StringName) -> void:
 		&"knockout")
 	grant(BONES, bonus, _last_payout_pos)
 	stats["knockouts"] = int(stats.get("knockouts", 0)) + 1
+	session["knockouts"] = int(session["knockouts"]) + 1
 	round_damage = 0.0
 	EventBus.knockout_payout.emit(bonus)
 	EventBus.contract_event.emit(&"knockout", 1)

@@ -757,6 +757,10 @@ func _streaks_are_counted() -> void:
 	_check("and a pause ends it", Economy.damage_streak() == 0)
 	EventBus.damage_dealt.emit(HitInfo.new(10.0, &"baseball_bat", Vector2(100, 100), 1000.0))
 	_check("the next hit starts a new one", Economy.damage_streak() == 1)
+	_check("and the record remembers the three", int(Economy.stats.get("best_streak", 0)) >= 3)
+	_check("which the save carries", int(Economy.to_save()["stats"].get("best_streak", 0)) >= 3)
+	_check("and the session counted every hit", int(Economy.session["hits"]) >= 5
+		and int(Economy.session["best_streak"]) >= 3)
 	Economy._streak_deadline_msec = 0
 
 ## Two of the three augments a kindness-first player can buy were placebos: OpenHandPower

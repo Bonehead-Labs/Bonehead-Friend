@@ -80,6 +80,7 @@ func _ready() -> void:
 	await _the_deeds_board_is_on_the_page()
 	await _the_hud_calls_for_rebirth()
 	await _the_wardrobe_is_on_the_arcade_page()
+	await _the_jobs_tab_wears_a_badge()
 	await _the_purse_can_count_high()
 	await _the_payouts_are_visible()
 	await _the_hud_points_at_the_next_toy()
@@ -861,8 +862,37 @@ func _the_deeds_board_is_on_the_page() -> void:
 		masked == hidden_unearned)
 	_check("the record shows his lifetime Bones",
 		_label_containing(UIStyle.format_amount(Economy.lifetime_of(Economy.BONES)), page) != null)
+	_check("and the best streak", _label_containing("BEST STREAK", page) != null)
+	_check("and this session's receipt", _label_containing("THIS SESSION", page) != null
+		or _label_containing("This session", page) != null)
 	panels.call("close")
 	await _settle()
+
+## The Jobs tab wears a count when a finished contract is waiting to be claimed — the one page
+## that can owe the player money while it is shut.
+func _the_jobs_tab_wears_a_badge() -> void:
+	_suite("jobs badge")
+	var badge := _find(_main, "Badge_contracts") as Control
+	_check("the Jobs tab has a badge", badge != null)
+	if badge == null:
+		return
+	Progression.refresh_contracts(true)
+	var contract := ItemDB.get_contract(&"daily_damage")
+	if contract == null:
+		_check("a damage contract exists to finish", false)
+		return
+	if not Progression._active_contracts.has(contract.id):
+		Progression._active_contracts.append(contract.id)
+	EventBus.contract_board_changed.emit()
+	await _settle()
+	_check("with nothing claimable it is hidden", not badge.visible)
+	EventBus.contract_event.emit(&"deal_damage", contract.target)
+	await _settle()
+	_check("a finished contract shows a count", badge.visible
+		and _label_containing("1", badge) != null)
+	_check("claiming it clears the badge", Progression.claim_contract(contract.id))
+	await _settle()
+	_check("(badge hidden again)", not badge.visible)
 
 ## The wardrobe is the one thing in the Arcade that is not a gamble, and the Dollars sink the
 ## design owed the currency: a row per finish, and the button buys, wears or says worn.
@@ -1277,6 +1307,11 @@ func _he_notices_the_player() -> void:
 	var focus_before := Settings.focus_intensity
 	Settings.focus_intensity = Settings.Intensity.NORMAL
 	buddy.freeze = true
+	# The run is long enough by now for the idle brain to set off for a toy, which would take
+	# his attention mid-suite. A disturbance stands him down and stamps the clock.
+	var idle_brain := get_tree().get_first_node_in_group(&"idle_brain") as IdleBrain
+	if idle_brain:
+		idle_brain._disturb()
 	await _settle()
 
 	# Away and back.

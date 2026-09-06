@@ -197,6 +197,8 @@ func _on_payout(currency: StringName, amount: float, world_pos: Vector2, source_
 ## from the third hit or the second pet — never for automation, which is not a rhythm.
 const STREAK_SHOW_FROM := 3
 const COMBO_SHOW_FROM := 1
+## Below this a "best" is not worth announcing: the first few hits of any session set one.
+const RECORD_SHOW_FROM := 6
 
 func _tag_streak(currency: StringName, source_id: StringName, at: Vector2, ramp: Array,
 		tier: int) -> void:
@@ -206,7 +208,10 @@ func _tag_streak(currency: StringName, source_id: StringName, at: Vector2, ramp:
 	if currency == Economy.BONES:
 		var streak := Economy.damage_streak()
 		if streak >= STREAK_SHOW_FROM:
-			spawn_number("x%d" % streak, at + Vector2(30, -22), ramp[hot], 0.8, hot)
+			# A record in progress says so: the one time a streak is worth pushing for.
+			var record := streak >= RECORD_SHOW_FROM and streak >= int(Economy.stats.get("best_streak", 0))
+			spawn_number("x%d best" % streak if record else "x%d" % streak,
+				at + Vector2(30, -22), ramp[hot], 0.8, hot)
 		return
 	if currency == Economy.HEARTS:
 		# Only on the act's own number, not on a hot tub's trickle arriving mid-streak.

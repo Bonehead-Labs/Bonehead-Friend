@@ -50,6 +50,12 @@ func _ready() -> void:
 	EventBus.ui_spend.connect(_on_spend)
 	EventBus.ui_show_item.connect(_on_show_item)
 	EventBus.ui_show_panel.connect(_on_show_panel)
+	EventBus.contract_completed.connect(func(_id: StringName) -> void: _update_badges())
+	EventBus.contract_claimed.connect(func(_id: StringName, _d: int) -> void: _update_badges())
+	EventBus.contract_board_changed.connect(_update_badges)
+	EventBus.prestige_performed.connect(func(_m: float) -> void: _update_badges())
+	# Deferred: the board is rolled by Progression on its own schedule, possibly after this.
+	_update_badges.call_deferred()
 	EventBus.ui_scale_changed.connect(func(_f: int) -> void: _fit())
 	get_viewport().size_changed.connect(_fit)
 	# `size_changed` is not enough on its own. Changing the play area resizes the OS window,
@@ -161,6 +167,46 @@ func _add_page(id: StringName, caption: String, mark: StringName, page: Control)
 	tab.pressed.connect(func() -> void: toggle(id))
 	_strip.add_child(tab)
 	_buttons[id] = tab
+
+	# A count on the tab's corner, for the one page whose contents can owe the player money
+	# while it is shut: a finished contract nobody has claimed. Anchored *and* given an
+	# explicit rect — a Button is not a Container, so nothing else would size it (the shop's
+	# category badges are built the same way).
+	var badge := PanelContainer.new()
+	badge.name = "Badge_%s" % id
+	badge.theme_type_variation = &"Badge"
+	badge.set_anchors_preset(Control.PRESET_TOP_RIGHT, true)
+	badge.offset_left = -24.0
+	badge.offset_top = -6.0
+	badge.offset_right = 4.0
+	badge.offset_bottom = 15.0
+	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	badge.visible = false
+	var count := UIStyle.label("0", UIStyle.MICRO, UIStyle.PANEL)
+	count.theme_type_variation = &"Numeral"
+	count.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	count.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	badge.add_child(count)
+	tab.add_child(badge)
+	_badges[id] = {"panel": badge, "count": count}
+
+## Tab badges: only Jobs has one today. Refreshed on the contract signals, never per frame.
+var _badges: Dictionary = {}
+
+func _update_badges() -> void:
+	if not _badges.has(&"contracts"):
+		return
+	var claimable := 0
+	for contract in Progression.active_contracts():
+		if Progression.is_contract_complete(contract.id) and not Progression.is_contract_claimed(contract.id):
+			claimable += 1
+	var badge: Dictionary = _badges[&"contracts"]
+	var panel := badge["panel"] as Control
+	var was := panel.visible
+	panel.visible = claimable > 0
+	(badge["count"] as Label).text = str(claimable)
+	if panel.visible and not was:
+		UIMotion.punch(panel, 1.3)
 
 ## The card is sized here and nowhere else, and it is the same size whichever page is
 ## showing. On a window too small to hold it, it shrinks — but it still does not change
