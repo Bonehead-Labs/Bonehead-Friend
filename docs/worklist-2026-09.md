@@ -27,6 +27,10 @@ Reincarnation 9:16). All green. Nothing committed since `21adb6c` (2026-08-30).*
 Everything through §2.4's spawn-on-purchase is committed; the tree is clean. What is left needs a
 human (the playtest, the sandbox walk on two monitors), the owner (§4) or the art generator (§3).**
 
+
+**As of 2026-09-06 late (end of session 4): unit 225 · loop 595 · ui 455 · pacing 4/4; release build
+measured at 0.44 / 0.42 / 0.69 % of the machine. §7–§13 below record the day; everything still
+outstanding is consolidated in `handoff-2026-09-06.md` — read that first.**
 ---
 
 ## 0. Commit what is green

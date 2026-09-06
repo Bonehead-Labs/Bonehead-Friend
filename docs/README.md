@@ -20,6 +20,7 @@ Production spec for **Bonehead Friend**, a Windows desktop-overlay idle game.
 | [roadmap.md](roadmap.md) | Milestones M0–M5 with exit gates and per-milestone art needs |
 | [uplift-m3.5.md](uplift-m3.5.md) | The M3.5 content & systems uplift: loop-depth findings, content budget, sub-milestones and gates |
 | [assessment-2026-09.md](assessment-2026-09.md) | Holistic assessment after M3.7: code, balance, visuals, genre feel, ranked with a five-step sequence |
+| [handoff-2026-09-06.md](handoff-2026-09-06.md) | **Start here.** Everything outstanding at the end of session 4, by who can do it: the person, the generator (Codex/Retro Diffusion), small code, storefront, owner decisions |
 | [worklist-2026-09.md](worklist-2026-09.md) | **The working list.** Every M3.8 task with status, order, exact next steps, commit plan and owner decisions — start here in a new session |
 | [plan-expressive-buddy.md](plan-expressive-buddy.md) | The reactive, expressive buddy: reaction tables, the expression brain, animation set, phasing (Phases 0–2 built; D36) |
 | [plan-movement-hitboxes.md](plan-movement-hitboxes.md) | Why he hops and gets hurt walking, and the fix: a fall floor by source, a bounded central walk, gated climbs; the multi-hitbox designed for the art pass |
