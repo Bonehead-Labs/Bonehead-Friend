@@ -772,6 +772,48 @@ eight hours and a substring sweep per hit is a substring sweep per hit.
 field on `ItemData` and the lookup goes away. It is written down here so that pass knows
 the intent rather than inheriting a table it does not understand.
 
+---
+
+### D36 — At Focus Off he reacts; he does not initiate — and beats are not states
+**2026-09-06 · Proposed** in `plan-expressive-buddy.md` §3.5 and implemented as written;
+the owner's confirmation of the wording is still open (`worklist-2026-09.md` §4).
+
+Two systems had already invented compatible answers to what the character may do at Focus
+Off — `idle_brain.gd` skips the walk and is simply there, `npc_base.gd` stands its animals
+down — and nothing wrote the rule down, so the third system would have invented a third.
+The expressive buddy is that third system: some forty triggers, which ungated would make Off
+louder than today's Normal and break the promise to a player in a meeting. Focus Mode is
+also the project's de-facto reduced-motion switch until M4.
+
+**At Focus Off he reacts; he does not initiate.** A beat caused by something the player just
+did still plays, because the player caused it and is looking at it — as a face and a body tag
+with **zero** procedural amplitude. Nothing initiates: no fidgets, no blinks, no gaze, no
+travel, no landing dust, no sleep, no posture, no attention-seeking. And nothing leaves his
+silhouette: tag and face may change; `position`, `scale`, `rotation` and `skew` offsets may
+not. Amplitude is `Settings.intensity_scale()` (0.0 / 0.4 / 1.0 / 1.6), reused verbatim
+rather than a third ladder, and every code motion multiplies by it — so Off zeroes motion
+arithmetically rather than through forty scattered `if`s. Timings never scale with the
+setting, only amounts (D21): a reaction damped to nothing reads as a hit that missed.
+
+**Gaze has its own gate**, Normal and above. Looking at the cursor is the single most
+attention-grabbing thing a desktop character can do and it is free, which is exactly why it is
+dangerous — this game refuses to be Desktop Goose by default. He looks; he never chases.
+Chase stays where the ideas backlog put it, as an opt-in unlock.
+
+**Beats are not states.** `Buddy.state` is a public contract: Economy mints the knockout
+bonus off `buddy_state_changed`, WorldFX throws its bone shower, the idle brain stands down,
+the art picks posture. A reaction is a *beat* — a bounded presentation overlay owned by
+`ExpressionBrain`, arbitrated in one slot by priority (ambient 0 · attention 10 · reaction
+20 · pain 25 · heavy 30 · beat 40) — and never enters the state machine. `hurt` and `happy`
+stay states because contracts and suites depend on them; everything else in the reaction
+table is a beat. The knockout is the one thing in the other direction: while his real state
+is inside collapse → pile → reassemble, nothing below `beat` plays.
+
+*Consequence:* a new reaction is a row in `ExpressionBrain.ROWS`, not a state and not a
+`connect()` somewhere else — every connect on the character lives in one `_ready`, and
+`loop_check`'s `expression` suite asserts each by name. Any future system that wants to move
+him at Off has to argue with this entry first.
+
 ## Recommendations not yet decided
 
 Carried in the spec, owner's call before they matter:

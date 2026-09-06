@@ -1056,6 +1056,22 @@ func _the_expression_brain_arbitrates() -> void:
 	for category in brain.HURT_FACES:
 		_check("hurt face '%s' exists" % brain.HURT_FACES[category],
 			faces.has_animation(brain.HURT_FACES[category]))
+	# He has a voice now (D12: synthesised at boot). Every row that names one must find it,
+	# or the beat is silent with no warning — `play()` returns on an unknown id.
+	var missing_voices := 0
+	for id in brain.ROWS:
+		var voice: StringName = brain.ROWS[id].get("sound", &"")
+		if voice != &"" and not AudioManager._streams.has(voice):
+			printerr("    row '%s' names voice '%s', which is not synthesised" % [id, voice])
+			missing_voices += 1
+	_check("every row's voice is synthesised (%d missing)" % missing_voices, missing_voices == 0)
+	for voice in [&"oof", &"greet", &"yawn", &"gasp"]:
+		_check("he can say '%s'" % voice, AudioManager._streams.has(voice))
+	# Escalation (plan §6.6): a light hit is strictly shorter than a heavy one, both real.
+	var light := brain._duration(brain.ROWS[&"hit_light"], brain._resolve_tag(brain.ROWS[&"hit_light"]))
+	var heavy := brain._duration(brain.ROWS[&"hit_heavy"], brain._resolve_tag(brain.ROWS[&"hit_heavy"]))
+	_check("a light hit (%.2fs) is shorter than a heavy one (%.2fs), both real" % [light, heavy],
+		light > 0.0 and heavy > light)
 
 	# The run is at Focus Off. D36: he reacts, he does not initiate, and his silhouette does
 	# not move. Pin it explicitly so the assertions do not depend on the suite order.

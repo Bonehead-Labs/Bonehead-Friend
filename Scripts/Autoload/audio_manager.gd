@@ -199,6 +199,18 @@ func _build_streams() -> void:
 	# A toy landing on the desk: a short soft knock, not a chime — it is furniture arriving.
 	_streams[&"spawn"] = _wav(_tick_samples(0.06, 520.0, 0.7))
 
+	# --- his voice ---
+	#
+	# He had none: every sound attributed to him belonged to the thing that hit him. Four
+	# breaths for the expression brain (docs/plan-expressive-buddy.md §3.6), all the same
+	# sweep-plus-breath body so they read as one throat. `oof` falls and is short; `gasp`
+	# rises and is shorter; `yawn` falls slowly with almost no breath; `greet` is a rising
+	# two-tone, because coming back after an hour deserves a note rather than a grunt.
+	_streams[&"oof"] = _wav(_voice_samples(0.14, 260.0, 130.0, 0.5))
+	_streams[&"gasp"] = _wav(_voice_samples(0.12, 300.0, 720.0, 0.6))
+	_streams[&"yawn"] = _wav(_voice_samples(0.70, 420.0, 180.0, 0.15))
+	_streams[&"greet"] = _wav(_chime_samples([523.0, 784.0], 0.25))
+
 	# --- the shell ---
 	#
 	# The menus are keys and card stock, so they click and knock rather than chime. These
@@ -302,6 +314,27 @@ func _sweep_samples(duration: float, from_hz: float, to_hz: float) -> PackedFloa
 		phase += TAU * lerpf(from_hz, to_hz, progress) / float(MIX_RATE)
 		var envelope := sin(PI * clampf(progress, 0.0, 1.0))
 		out[i] = clampf(sin(phase) * 0.30 * envelope, -1.0, 1.0)
+	return out
+
+## A breath with a pitch in it: a sine sweep under filtered noise, both inside one soft
+## envelope. `breath` is how much noise rides the tone — a gasp is mostly air, a yawn mostly
+## tone. Every one of his four voices is this with different numbers.
+func _voice_samples(duration: float, from_hz: float, to_hz: float, breath: float) -> PackedFloat32Array:
+	var count := int(MIX_RATE * duration)
+	var out := PackedFloat32Array()
+	out.resize(count)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 20260906
+	var phase := 0.0
+	var low := 0.0
+	for i in count:
+		var t := float(i) / float(MIX_RATE)
+		var progress := t / duration
+		phase += TAU * lerpf(from_hz, to_hz, progress) / float(MIX_RATE)
+		# Quick in, slow out: a breath starts on the beat and trails off.
+		var envelope := minf(progress * 8.0, 1.0) * (1.0 - progress) * (1.0 - progress)
+		low = lerpf(low, rng.randf_range(-1.0, 1.0), 0.25)
+		out[i] = clampf((sin(phase) * 0.32 + low * 0.5 * breath) * envelope, -1.0, 1.0)
 	return out
 
 ## Struck metal: partials that are not whole multiples of the fundamental, which is the

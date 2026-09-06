@@ -393,7 +393,19 @@ The prototype sprites were all drawn to fill their cell, which is how a hand gre
 **The layout code is production and stays** (docs/decisions.md D13) — every shop tile, augment
 row and contract card is generated from `ItemDB`. Only the look is placeholder.
 
-`buddy.tscn` has **not** been opened in the editor since M3, so `MoodComponent` and
-`GrimeComponent` are `@export` slots that `buddy.gd` fills in at `_ready()` when the scene
-leaves them null. That is a tooling accommodation, not a design — the art pass opens the
-scene and should author both properly.
+`buddy.tscn` has **not** been opened in the editor since M3, so `MoodComponent`,
+`GrimeComponent`, `BuddyArt` and `ExpressionBrain` are `@export` slots that `buddy.gd` fills in
+at `_ready()` when the scene leaves them null. That is a tooling accommodation, not a design —
+the art pass opens the scene and should author them properly.
+
+**The buddy has a mind** (`Scripts/Buddy/expression_brain.gd`, docs/plan-expressive-buddy.md,
+D36). Every reaction is a row in `ExpressionBrain.ROWS` — face, body tag, code motion, duration,
+priority, Focus gate — arbitrated in one slot; **beats are not states**, and nothing in the brain
+may call `_set_state`. Every `connect()` on the character lives in the brain's `_ready` and
+`loop_check`'s `expression` suite asserts each by name, so a new trigger is a row plus a connect
+there, never a `connect` somewhere else. All code motion is an accumulator folded into
+`BuddyArt`'s one body write and one face write — a `Tween` on `body.position` or `body.scale` is
+overwritten a frame later. At Focus Off he reacts as face and tag only, with zero amplitude, and
+initiates nothing. The brain has no `_process`: one re-armed `Timer` and a `_clock_skew` the
+suites advance instead of winding timestamps back past zero. F3 prints his beat, arousal,
+attention and away clock.

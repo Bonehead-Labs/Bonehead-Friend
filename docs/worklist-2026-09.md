@@ -59,13 +59,13 @@ If splitting a file between two units is more trouble than it is worth, fold 0.2
 | 7 | Sounds | ✅ | New voices upgrade/milestone/welcome/spawn; augment buys climb in pitch; orphaned voices wired (turret_fire, npc_roar by mass, card_deal, bounce, splash/impact_soft via `entry_sound`, explode_big by hint). `play()` gained a `pitch` argument. |
 | 8 | Walk is broken; wall damage too easy; multi-hitbox plan | 🟡 | Nine agent notes in `docs/research/movement-workflow-notes.md`; the plan was never synthesised. **Next: write `docs/plan-movement-hitboxes.md` from those notes** (§2.2), then implement. |
 | 9 | Fades, flash, fist icon | ✅ / 🚫 | Fades and white shader flash done. Fist icon needs the generator (§4). |
-| 10 | Highly reactive, expressive buddy | 🟡 | Plan written: `docs/plan-expressive-buddy.md`. Phase 0 and Phase 1 pieces 1–4 green: `ExpressionBrain`, the `BuddyArt` accumulator, all eight tables wired (`threat_changed` from fuses, windups and turrets; `IdleBrain.phase_changed`; blink, fidget, the mood-trough posture; an F3 row). **Next: §2.1 piece 5** (D36 into decisions.md, four voices, any suite gaps). |
+| 10 | Highly reactive, expressive buddy | ✅ Phase 1 · ⬜ Phases 2–3 | `docs/plan-expressive-buddy.md` Phases 0–1 built and green: `ExpressionBrain` (one arbitrated beat slot, D36), the `BuddyArt` accumulator, all eight reaction tables wired, four voices, F3 row, 80+ loop and 20 ui assertions. Phase 2 (personality on the surface, plan §5) and Phase 3 (art, needs the generator) remain. |
 
 ---
 
 ## 2. Next up, in order
 
-### 2.1 Expressive buddy — Phase 1 (the mind, no new art) 🟡
+### 2.1 Expressive buddy — Phase 1 (the mind, no new art) ✅ (2026-09-06, five commits `1931c33` → see log)
 
 Plan: `docs/plan-expressive-buddy.md` §3.7 steps 8–15, tables in §2, tests in §6. About 14 h in
 the plan's own estimate. Do it as five sequential pieces, suites after each:
@@ -86,7 +86,7 @@ the plan's own estimate. Do it as five sequential pieces, suites after each:
 4. ✅ **Steps 12–13** — `EventBus.threat_changed(kind, world_pos, level)` from throwables (prime
    and explode), NPC windup, turret fire; `IdleBrain.phase_changed` + `seconds_since_disturbance()`;
    table G; then table H (blink, fidget on the timer, mood-trough posture).
-5. **Steps 14–15** — D36 into `docs/decisions.md`; the "expression" suite in `loop_check.gd`
+5. ✅ **Steps 14–15** — D36 into `docs/decisions.md`; the "expression" suite in `loop_check.gd`
    (every connect exists, a beat never changes state, Focus Off → zero amplitude and nothing
    initiated, face never detaches, art stops processing after a beat, `hover_changed` and
    `threat_changed` fire); four voices `oof`, `greet`, `yawn`, `gasp` in `audio_manager.gd`.
