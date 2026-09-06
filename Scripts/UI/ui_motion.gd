@@ -201,6 +201,80 @@ static func _settle(sprite: Control) -> void:
 
 # --- reactions -------------------------------------------------------------
 
+## A burst of chips over a control — the shell's own particles, for a win, a deed done, a
+## finish worn. A one-shot `GPUParticles2D` parented to the control, so it rides the control's
+## canvas layer and integer scale and draws above it; it frees itself when it is spent. The
+## chip is a four-pixel square, the same one the world's payout numbers throw: pixel art must
+## not have the one soft round particle on screen. Off at Focus Off and in headless like every
+## other motion here, so no test ever meets one.
+const CHIP_LIFETIME := 0.7
+static var _chip_texture: Texture2D
+static var _chip_materials: Dictionary = {}   ## speed -> ParticleProcessMaterial
+
+static func sparkle(control: Control, colour: Color, count: int = 14, speed: float = 180.0) -> void:
+	if not enabled() or control == null or not control.is_inside_tree():
+		return
+	var sparks := GPUParticles2D.new()
+	sparks.name = "Sparkle"
+	sparks.texture = _chips()
+	sparks.process_material = _chip_material(speed)
+	sparks.one_shot = true
+	sparks.explosiveness = 1.0
+	sparks.lifetime = CHIP_LIFETIME
+	sparks.amount = maxi(1, int(round(float(count) * strength())))
+	sparks.position = control.size * 0.5
+	sparks.modulate = colour
+	# Above its siblings in the same layer: a burst under the very row it celebrates is a
+	# burst nobody sees.
+	sparks.z_index = 60
+	sparks.emitting = true
+	control.add_child(sparks)
+	control.get_tree().create_timer(CHIP_LIFETIME + 0.3).timeout.connect(sparks.queue_free)
+
+static func _chips() -> Texture2D:
+	if _chip_texture == null:
+		var image := Image.create_empty(4, 4, false, Image.FORMAT_RGBA8)
+		image.fill(Color.WHITE)
+		_chip_texture = ImageTexture.create_from_image(image)
+	return _chip_texture
+
+static func _chip_material(speed: float) -> ParticleProcessMaterial:
+	var key := int(round(speed))
+	if _chip_materials.has(key):
+		return _chip_materials[key]
+	var mat := ParticleProcessMaterial.new()
+	mat.direction = Vector3(0, -1, 0)
+	mat.spread = 180.0
+	mat.initial_velocity_min = speed * 0.4
+	mat.initial_velocity_max = speed
+	mat.gravity = Vector3(0, 380.0, 0)
+	mat.scale_min = 1.0
+	mat.scale_max = 2.2
+	# Shrinking to nothing rather than fading: alpha on a pixel chip reads as a smudge.
+	var curve := CurveTexture.new()
+	var shape := Curve.new()
+	shape.add_point(Vector2(0.0, 1.0))
+	shape.add_point(Vector2(0.65, 0.85))
+	shape.add_point(Vector2(1.0, 0.0))
+	curve.curve = shape
+	mat.scale_curve = curve
+	mat.damping_min = 40.0
+	mat.damping_max = 120.0
+	_chip_materials[key] = mat
+	return mat
+
+## A progress bar that moves to its value rather than jumping there. `value` is a property,
+## not a rect, so a Container cannot fight it; with motion off it is set outright.
+static func fill(bar: Range, value: float, time: float = 0.35) -> void:
+	if bar == null:
+		return
+	if not enabled() or not bar.is_inside_tree():
+		bar.value = value
+		return
+	var tween := _tween(bar, &"_fill_tween")
+	tween.tween_property(bar, "value", value, time).set_trans(Tween.TRANS_QUAD) \
+		.set_ease(Tween.EASE_OUT)
+
 ## "Yes." A quick overshoot and settle — for the thing that just changed because the
 ## player pressed something.
 static func punch(control: Control, amount: float = 1.16) -> void:

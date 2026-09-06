@@ -413,7 +413,7 @@ attention and away clock. **Personality is on the surface too**: six tell fields
 flinch) that touch no number (D19); edit them through `tools/seed_m38_personality_tells.tscn`,
 never by hand.
 
-**The last mile is built** (worklist §5): the damage streak and kindness combo are drawn and
+**The Arcade is rooms and the shell has particles** (D37, worklist §7): one machine on screen behind a tab strip at mini-game size, `UIMotion.sparkle` for the moments the player made happen. **The last mile is built** (worklist §5): the damage streak and kindness combo are drawn and
 heard but the streak pays nothing; the Deeds tab lists every milestone with its next rung; the
 HUD links to Reincarnation once a run is worth a Marrow; the welcome is a Dream Journal
 (`Data/dreams.txt`) with a small timed buff; the offline cap is sold on the Reincarnation page.

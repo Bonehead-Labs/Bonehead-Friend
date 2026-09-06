@@ -465,6 +465,7 @@ func _refresh_next() -> void:
 		# The flip is the moment. Once, when it becomes true, never on every tick after.
 		UIMotion.punch(_next_row, 1.08)
 		UIMotion.flash(_box, Color(1.15, 1.25, 1.1), 0.4)
+		UIMotion.sparkle(_next_row, UIStyle.AFFORDABLE, 12, 150.0)
 		_next_price.add_theme_color_override("font_color", UIStyle.AFFORDABLE)
 		_next_fill.bg_color = UIStyle.AFFORDABLE
 	elif not affordable and _next_affordable:
@@ -525,6 +526,8 @@ func _refresh_rebirth() -> void:
 	# moments the number means something, never every tick.
 	if first_time or floorf(pending) > floorf(_rebirth_shown):
 		UIMotion.punch(_rebirth_row, 1.06)
+	if first_time:
+		UIMotion.sparkle(_rebirth_row, UIStyle.HEARTS, 12, 150.0)
 	_rebirth_shown = pending
 
 func _on_rebirth_input(event: InputEvent) -> void:
@@ -570,6 +573,12 @@ func _on_clear_pressed() -> void:
 ## because of them: offline earnings, a rank up, a contract finishing. Deliberately not a
 ## modal — this game runs while someone is working, and a dialog box over their editor is
 ## the fastest way to get uninstalled.
+## A toast with chips: for the one toast in a session that is a score rather than a notice.
+func celebrate_toast(text: String, colour: Color, seconds: float = 7.0) -> void:
+	show_toast(text, seconds)
+	if _toast and _toast.visible:
+		UIMotion.sparkle(_toast, colour, 24, 220.0)
+
 func show_toast(text: String, seconds: float = 6.0) -> void:
 	if _toast == null:
 		return

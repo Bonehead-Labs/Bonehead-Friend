@@ -40,6 +40,7 @@ var _pool: Array[CPUParticles2D] = []
 var _next := 0
 
 func _ready() -> void:
+	add_to_group(&"world_fx")
 	for i in POOL:
 		var emitter := CPUParticles2D.new()
 		# Named, not left as @CPUParticles2D@31: a node with a generated name cannot be

@@ -65,37 +65,59 @@ func _ready() -> void:
 ## be kept in step with this page's.
 var _prestige: PrestigePanel
 
-func _build_page() -> void:
-	add_theme_constant_override("separation", 10)
-	add_child(UIStyle.eyebrow("Arcade"))
+## The room strip and the rooms. One machine on screen at a time, at the size a machine
+## deserves: three cabinets stacked in a 520px card gave each a 132px wheel and 32px reels and
+## put the third below the fold. Now every room gets the whole card and a tab, like the shop's
+## categories, and the wardrobe and Reincarnation are rooms too.
+const ROOM_WARDROBE := &"wardrobe"
+const ROOM_REBIRTH := &"rebirth"
+## Height reserved for a machine's well, in UI pixels: the same for every machine, so
+## switching rooms never moves the footer under the cursor.
+const STAGE_WELL := 270
 
-	var intro := UIStyle.body("Everything here is played with Dollars, and pays in Dollars, "
-		+ "time and hats. Nothing in this room pays income — Bones and Hearts are a garnish, "
-		+ "and always will be.")
+var _room_strip: HBoxContainer
+var _rooms: Dictionary = {}          ## id -> {"tab": Button, "view": Control}
+var _room_order: Array[StringName] = []
+var _current_room: StringName = &""
+
+func _build_page() -> void:
+	add_theme_constant_override("separation", 8)
+	# One line, because every line above the stage is a line taken from the stage: the page
+	# eyebrow and a two-line intro pushed the Play key under the fold of a 520px card.
+	var intro := UIStyle.body("Dollars in, Dollars out. Nothing here pays income.")
 	intro.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	intro.custom_minimum_size = Vector2(320, 0)
 	add_child(intro)
 
 	_build_boost_strip()
 
+	_room_strip = HBoxContainer.new()
+	_room_strip.name = "Rooms"
+	_room_strip.add_theme_constant_override("separation", 4)
+	add_child(_room_strip)
+
 	for path in MACHINES:
 		_add_machine(path)
 
 	_build_wardrobe()
 
-	add_child(UIStyle.eyebrow("The back room"))
 	# PrestigePanel instanced whole rather than reimplemented. It is a `PanelPage`, so nested
 	# here it keeps every property that made it work as a tab: its bus handlers still defer
 	# through `request_refresh()`, and `is_visible_in_tree()` — the question PanelPage asks —
 	# now follows this page instead of its own. Its armed confirm still drops when the card
 	# shuts, because `visibility_changed` propagates to children.
+	var back_room := VBoxContainer.new()
+	back_room.name = "BackRoom"
+	back_room.add_theme_constant_override("separation", 8)
+	back_room.add_child(UIStyle.eyebrow("The back room"))
 	var prestige := PrestigePanel.new()
 	# Named explicitly. A control built in code comes out as `@VBoxContainer@31`, which no
 	# test can find and nobody can read in the remote scene tree — and this one is looked up
 	# by name by `ui_check`.
 	prestige.name = "PrestigePanel"
-	add_child(prestige)
+	back_room.add_child(prestige)
 	_prestige = prestige
+	_add_room(ROOM_REBIRTH, "Rebirth", &"star", back_room)
 	# A nested page's own `visible` flag is written by nobody. `panel_layer` sets it on each
 	# registered page when the card switches, and this one is not registered — so it sat
 	# flagged visible under a shut card, which is the exact discrepancy `ui_check` asserts
@@ -104,6 +126,48 @@ func _build_page() -> void:
 	# the original bug was made of. It is mirrored below instead.
 	visibility_changed.connect(_mirror_prestige_visibility)
 	_mirror_prestige_visibility()
+
+	if not _room_order.is_empty():
+		show_room(_room_order[0])
+
+## A room: a tab on the strip and a view below it. Views are siblings; one is visible.
+func _add_room(id: StringName, caption: String, mark: StringName, view: Control) -> void:
+	view.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	view.visible = false
+	add_child(view)
+	var tab := UIStyle.button(caption, UIStyle.MICRO)
+	tab.name = "Room_%s" % id
+	tab.theme_type_variation = &"IconTab"
+	tab.toggle_mode = true
+	tab.custom_minimum_size = Vector2(0, 30)
+	tab.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	UIStyle.set_icon(tab, UIStyle.glyph(mark))
+	tab.pressed.connect(func() -> void: show_room(id))
+	_room_strip.add_child(tab)
+	_rooms[id] = {"tab": tab, "view": view}
+	_room_order.append(id)
+
+## Bring one room forward. The others stay built and hidden — a spin still running in a room
+## the player left keeps running and still pays.
+func show_room(id: StringName) -> void:
+	if not _rooms.has(id):
+		return
+	var changed := id != _current_room
+	_current_room = id
+	for key in _rooms:
+		var room: Dictionary = _rooms[key]
+		(room["view"] as Control).visible = key == id
+		(room["tab"] as Button).set_pressed_no_signal(key == id)
+	_mirror_prestige_visibility()
+	if changed:
+		UIMotion.page_in(_rooms[id]["view"] as Control)
+	request_refresh()
+
+func current_room() -> StringName:
+	return _current_room
+
+func room_ids() -> Array[StringName]:
+	return _room_order
 
 ## The Reincarnation page nested here, for the HUD's link to scroll to.
 func prestige_panel() -> PrestigePanel:
@@ -120,18 +184,22 @@ func _build_wardrobe() -> void:
 	var rail := ItemDB.all_cosmetics()
 	if rail.is_empty():
 		return
-	add_child(UIStyle.eyebrow("The wardrobe"))
+	var room := VBoxContainer.new()
+	room.name = "WardrobeRoom"
+	room.add_theme_constant_override("separation", 8)
+	room.add_child(UIStyle.eyebrow("The wardrobe"))
 	var blurb := UIStyle.body("How he looks, for Dollars. A finish never changes what he earns.")
 	blurb.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	blurb.custom_minimum_size = Vector2(320, 0)
-	add_child(blurb)
+	room.add_child(blurb)
 	var list := VBoxContainer.new()
 	list.name = "Wardrobe"
 	list.add_theme_constant_override("separation", 5)
 	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	add_child(list)
+	room.add_child(list)
 	for cosmetic in rail:
 		list.add_child(_make_wardrobe_row(cosmetic))
+	_add_room(ROOM_WARDROBE, "Wardrobe", &"hand", room)
 
 func _make_wardrobe_row(cosmetic: CosmeticData) -> Control:
 	var row_panel := PanelContainer.new()
@@ -174,10 +242,24 @@ func _make_wardrobe_row(cosmetic: CosmeticData) -> Control:
 	button.custom_minimum_size = Vector2(110, 34)
 	button.pressed.connect(func() -> void: _on_wardrobe_pressed(cosmetic.id, row_panel, button))
 	row.add_child(button)
-	UIMotion.hook(button, row_panel)
+	# Hovering the price nudges the swatch, the way a shop tile nudges the toy inside it.
+	UIMotion.hook(button, row_panel, swatch)
 
-	_wardrobe_rows[cosmetic.id] = {"button": button, "row": row_panel}
+	_wardrobe_rows[cosmetic.id] = {"button": button, "row": row_panel, "swatch": swatch,
+		"colour": fill.bg_color}
 	return row_panel
+
+## Worn: chips off the swatch in the finish's own colour, and a shower of stars over him in
+## the world — he is the thing that changed.
+func _celebrate_wear(id: StringName) -> void:
+	if not _wardrobe_rows.has(id):
+		return
+	var controls: Dictionary = _wardrobe_rows[id]
+	UIMotion.sparkle(controls["swatch"] as Control, controls["colour"], 18, 220.0)
+	var fx := get_tree().get_first_node_in_group(&"world_fx") as WorldFX
+	var buddy := get_tree().get_first_node_in_group(Buddy.GROUP_BUDDY) as Node2D
+	if fx and buddy:
+		fx.burst(buddy.global_position - Vector2(0, 40), &"star", controls["colour"], 14, 160.0, 0.9)
 
 ## One button, three meanings, like the shop's: buy it, wear it, or it is worn. A refusal is a
 ## reaction, not a silence.
@@ -187,6 +269,7 @@ func _on_wardrobe_pressed(id: StringName, row_panel: Control, button: Button) ->
 	if Economy.owns_cosmetic(id):
 		if Economy.wear_cosmetic(id):
 			UIMotion.confirm(row_panel)
+			_celebrate_wear(id)
 			_refresh_wardrobe()
 		return
 	if not Economy.buy_cosmetic(id):
@@ -197,6 +280,7 @@ func _on_wardrobe_pressed(id: StringName, row_panel: Control, button: Button) ->
 		UIScale.screen_centre(button))
 	# Bought is worn: nobody buys a colour to keep it in the drawer.
 	Economy.wear_cosmetic(id)
+	_celebrate_wear(id)
 	_refresh_wardrobe()
 
 func _refresh_wardrobe() -> void:
@@ -231,7 +315,7 @@ func _refresh_wardrobe() -> void:
 ## answer whichever way it is asked.
 func _mirror_prestige_visibility() -> void:
 	if _prestige:
-		_prestige.visible = is_visible_in_tree()
+		_prestige.visible = is_visible_in_tree() and _current_room == ROOM_REBIRTH
 
 ## The live timed multiplier, wherever it came from — an arcade boost today, the Dream
 ## Journal and Overtime Pay later. It reads the one shared slot on `Economy`, so a second
@@ -277,42 +361,42 @@ func _add_machine(path: String) -> void:
 	add_child(game)
 
 	var cabinet := PanelContainer.new()
+	cabinet.name = "Cabinet_%s" % game.name
 	cabinet.theme_type_variation = &"Tile"
-	add_child(cabinet)
+	_add_room(StringName(game.name), game.display_name, game.mark, cabinet)
 
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 6)
 	cabinet.add_child(column)
 
+	# The machine's name is on its tab, so the header is its rules in one line beside its
+	# mark — a second copy of the name was 24px of stage.
 	var header := HBoxContainer.new()
 	header.add_theme_constant_override("separation", 8)
 	column.add_child(header)
 	header.add_child(UIStyle.icon(game.mark, UIStyle.GLYPH, UIStyle.DOLLARS))
-	var text := VBoxContainer.new()
-	text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	text.add_theme_constant_override("separation", 0)
-	header.add_child(text)
-	var title := UIStyle.label(game.display_name, UIStyle.NAME)
-	title.theme_type_variation = &"NameLabel"
-	text.add_child(title)
 	var blurb := UIStyle.body(game.blurb)
 	blurb.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	blurb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	blurb.custom_minimum_size = Vector2(240, 0)
-	text.add_child(blurb)
+	header.add_child(blurb)
 
 	# The well the machine draws itself into: a sunk panel, and a VBox inside it. Both are
 	# needed. A `PanelContainer` lays every child into the same rect, so a machine with three
 	# reels would stack them on top of each other; a bare `Control` lays out none of them at
 	# all and they keep the zero size they were created with.
 	var well := PanelContainer.new()
+	well.name = "Well"
 	well.theme_type_variation = &"Sunk"
 	column.add_child(well)
 	var host := VBoxContainer.new()
 	host.name = "Body"
-	host.add_theme_constant_override("separation", 4)
-	# The cabinet is the same height spinning as it is idle. Without a reserved well the whole
-	# page shifts under the cursor every time a machine draws a card.
-	host.custom_minimum_size = Vector2(0, game.body_height)
+	host.add_theme_constant_override("separation", 6)
+	host.alignment = BoxContainer.ALIGNMENT_CENTER
+	# The cabinet is the same height spinning as it is idle, and the same height as every
+	# other room's — a machine gets the whole stage whether it fills it or not. Without a
+	# reserved well the whole page shifts under the cursor every time a machine draws a card.
+	host.custom_minimum_size = Vector2(0, maxi(game.body_height, STAGE_WELL))
 	well.add_child(host)
 
 	# The readout. A figure, so it is set in the display face — the body face draws 5 as a
@@ -324,7 +408,7 @@ func _add_machine(path: String) -> void:
 	var readout_mark := UIStyle.icon(&"dollar", UIStyle.GLYPH, UIStyle.DOLLARS)
 	readout_mark.visible = false
 	readout_row.add_child(readout_mark)
-	var readout := UIStyle.label("", UIStyle.LABEL, UIStyle.TEXT)
+	var readout := UIStyle.label("", UIStyle.NAME, UIStyle.TEXT)
 	readout.theme_type_variation = &"Numeral"
 	readout.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	readout_row.add_child(readout)
@@ -339,7 +423,7 @@ func _add_machine(path: String) -> void:
 	footer.add_child(price)
 	var play := UIStyle.button(game.play_caption, UIStyle.LABEL)
 	play.theme_type_variation = &"BuyButton"
-	play.custom_minimum_size = Vector2(104, 34)
+	play.custom_minimum_size = Vector2(150, 44)
 	footer.add_child(play)
 	# Hovering the key lifts the whole cabinet, the way a shop tile lifts with its price.
 	UIMotion.hook(play, cabinet)
@@ -348,7 +432,7 @@ func _add_machine(path: String) -> void:
 	# capturing a copy — the same property that makes a lambda's captured *int* useless.
 	var machine := {
 		"game": game, "cabinet": cabinet, "play": play, "price": price,
-		"readout": readout, "mark": readout_mark,
+		"readout": readout, "mark": readout_mark, "well": well,
 	}
 	_machines.append(machine)
 	play.pressed.connect(func() -> void: _on_play(machine))
@@ -426,6 +510,15 @@ func _on_finished(machine: Dictionary, prize: ArcadeGame.Prize) -> void:
 	if prize.is_win():
 		UIMotion.confirm(cabinet)
 		UIMotion.flash(machine["readout"] as Control, Color(1.6, 1.8, 1.4), 0.6)
+		UIMotion.punch(machine["readout"] as Control, 1.25)
+		# Chips out of the well in the prize's colour — a handful for a win, a shower for a
+		# jackpot or a boost. The one place in the shell that is allowed to celebrate loudly,
+		# because the player just paid for the moment.
+		var game := machine["game"] as ArcadeGame
+		var big := prize.kind == ArcadeGame.Prize.BOOST \
+			or (prize.kind == ArcadeGame.Prize.DOLLARS and prize.amount >= game.cost * 8.0)
+		UIMotion.sparkle(machine["well"] as Control, _prize_colour(prize), 60 if big else 22,
+			320.0 if big else 200.0)
 	else:
 		UIMotion.buzz(cabinet)
 	# One save per completed play. A spin is a deliberate act a second or two apart, not the
@@ -436,23 +529,31 @@ func _on_finished(machine: Dictionary, prize: ArcadeGame.Prize) -> void:
 ## The prize, in the cabinet's readout: a mark and a line. The mark is what carries the
 ## meaning — roughly one player in twelve cannot use the colour difference the palette leans
 ## on — and the colour only reinforces it.
-func _show_prize(machine: Dictionary, prize: ArcadeGame.Prize) -> void:
-	var mark: StringName = &"cross"
-	var colour := UIStyle.TEXT_DIM
+## The colour a prize wears everywhere it is shown: the readout, the chips.
+func _prize_colour(prize: ArcadeGame.Prize) -> Color:
 	if prize.kind == ArcadeGame.Prize.DOLLARS:
-		mark = &"dollar"
-		colour = UIStyle.DOLLARS
-	elif prize.kind == ArcadeGame.Prize.BOOST:
-		mark = &"bolt"
+		return UIStyle.DOLLARS
+	if prize.kind == ArcadeGame.Prize.BOOST:
 		# Bones brown rather than the teal a boost's "everything is faster" reading suggests:
 		# teal is the only cool colour in the skin and it is spent entirely on automation.
-		colour = UIStyle.BONES
+		return UIStyle.BONES
+	if prize.kind == ArcadeGame.Prize.GARNISH:
+		return UIStyle.currency_colour(prize.currency)
+	if prize.kind == ArcadeGame.Prize.COSMETIC or prize.kind == ArcadeGame.Prize.BOON:
+		return UIStyle.HEARTS
+	return UIStyle.TEXT_DIM
+
+func _show_prize(machine: Dictionary, prize: ArcadeGame.Prize) -> void:
+	var mark: StringName = &"cross"
+	var colour := _prize_colour(prize)
+	if prize.kind == ArcadeGame.Prize.DOLLARS:
+		mark = &"dollar"
+	elif prize.kind == ArcadeGame.Prize.BOOST:
+		mark = &"bolt"
 	elif prize.kind == ArcadeGame.Prize.GARNISH:
 		mark = &"heart" if prize.currency == Economy.HEARTS else &"bone"
-		colour = UIStyle.currency_colour(prize.currency)
 	elif prize.kind == ArcadeGame.Prize.COSMETIC or prize.kind == ArcadeGame.Prize.BOON:
 		mark = &"star"
-		colour = UIStyle.HEARTS
 
 	var rect := machine["mark"] as TextureRect
 	rect.visible = true

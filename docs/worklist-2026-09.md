@@ -215,3 +215,21 @@ Decisions this pass made that the owner may revisit: finish prices (600–3,500 
 starts at the first hit. Still open and why: music (assets); hats and alternate-headphone *shapes*
 (art — the wardrobe's tint slots are where they plug in); Working Hours / Overtime (needs global
 input or a policy call); Lunch Break, Insurance Fraud, Loyalty (design calls, some need art).
+
+## 7. The visual uplift (2026-09-06, late) ✅
+
+Brief: every feature from §5–§6 and the Arcade get animation and particles; the Arcade gives
+each game the real estate of a proper mini game. Recorded as **D37**.
+
+| # | What | Where |
+|---|---|---|
+| 7.1 | **Arcade rooms.** One machine on screen behind a five-tab `IconTab` strip (Wheel, Three Ghosts, Blackjack, Wardrobe, Rebirth); one 270px stage for every machine; wheel 132→262, reels 32→96, cards 30x46→60x92 with a hero rank and 32px pips; Play key 150x44; page chrome cut to one line each | `arcade_panel.gd`, `spin_wheel.gd`, `slot_machine.gd`, `blackjack.gd`, `panel_layer.gd` |
+| 7.2 | **`UIMotion.sparkle` / `UIMotion.fill`.** Pixel-chip particle burst on a control; tweened progress bars | `ui_motion.gd` |
+| 7.3 | **Celebrations.** Arcade win/jackpot chips in the prize's colour; deed claimed (row confirm + chips, bars tween); finish worn (swatch chips + `WorldFX` stars on him); next toy affordable; rebirth row's first appearance; Jobs badge appearance; record round → chipped toast and a "NEW BEST ROUND" line under the knockout headline | `arcade_panel.gd`, `deeds_panel.gd`, `hud.gd`, `panel_layer.gd`, `fx_layer.gd`, `main.gd` |
+| 7.4 | **Proof.** `ui_check` `rooms` suite (29 assertions: five rooms, tabs at real rects, one view visible, wells equal and ≥280, prestige flag follows the room); `ui_shots` gains one shot per room and a Deeds shot | `ui_check.gd`, `ui_shots.gd` |
+
+Counts after: **unit 216 · loop 595 · ui 292 · pacing 4/4** (nothing here touches a rate).
+
+Seen in the shots and fixed before commit: the first cut's 300px stage put the Play key under the
+fold on every machine (page eyebrow, two-line intro and a duplicated machine name were the cost);
+the face-down card at 60x92 was a black slab and is now a double frame.

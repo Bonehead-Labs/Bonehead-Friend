@@ -49,9 +49,13 @@ const BLACKJACK_PAYS := 1.5
 #
 # Every colour below still comes from `UIStyle`, so the contrast grid already grades them.
 
-const CARD_W := 30
-const CARD_H := 46
-const CARD_GAP := 4
+const CARD_W := 60
+const CARD_H := 92
+const CARD_GAP := 10
+## The rank is set in the hero size and the pip boxed to twice the glyph: a 60x92 card with a
+## 20px rank and a 16px pip is a big card wearing a small card's face.
+const RANK_SIZE := UIStyle.HERO
+const PIP_BOX := 32
 
 # --- timing ----------------------------------------------------------------
 #
@@ -101,7 +105,7 @@ func _init() -> void:
 	cost = 20.0
 	# Two hands of cards, their readings, and the two keys — sized for the busiest frame,
 	# because a cabinet that changes height mid-hand moves the page under the cursor.
-	body_height = 152
+	body_height = 270
 
 # --- the cabinet -----------------------------------------------------------
 
@@ -149,7 +153,7 @@ func _build_body(host: VBoxContainer) -> void:
 func _build_side(host: VBoxContainer, caption: String, is_dealer: bool) -> Dictionary:
 	var line := HBoxContainer.new()
 	line.name = caption + "Side"
-	line.add_theme_constant_override("separation", 6)
+	line.add_theme_constant_override("separation", 14)
 	host.add_child(line)
 
 	var column := VBoxContainer.new()
@@ -158,7 +162,7 @@ func _build_side(host: VBoxContainer, caption: String, is_dealer: bool) -> Dicti
 	column.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	line.add_child(column)
 	column.add_child(UIStyle.eyebrow(caption))
-	var total := UIStyle.label("", UIStyle.LABEL, UIStyle.TEXT)
+	var total := UIStyle.label("", UIStyle.HERO, UIStyle.TEXT)
 	total.name = caption + "Total"
 	total.theme_type_variation = &"Numeral"
 	column.add_child(total)
@@ -188,12 +192,12 @@ func _build_side(host: VBoxContainer, caption: String, is_dealer: bool) -> Dicti
 ## two spend most of the hand disabled. `_key` and `_key_pressed` are the same height by
 ## construction, so a BuyButton is the same size in every state it has.
 func _build_key(caption: String, handler: Callable) -> Button:
-	var key := UIStyle.button(caption, UIStyle.MICRO)
+	var key := UIStyle.button(caption, UIStyle.LABEL)
 	key.name = caption
 	key.theme_type_variation = &"BuyButton"
 	# Wide enough for the disabled box's fatter margins as well as the resting one's, so the
 	# row does not shuffle sideways every time the hand changes hands.
-	key.custom_minimum_size = Vector2(84, 0)
+	key.custom_minimum_size = Vector2(120, 40)
 	key.pressed.connect(handler)
 	return key
 
@@ -480,25 +484,27 @@ func _paint(row: Control, is_dealer: bool) -> void:
 			# The back: a sunk field with the same rule stamped into it, so a face-down card
 			# reads as a card rather than as a gap where one failed to draw.
 			row.draw_rect(inner, UIStyle.SUNK, true)
-			row.draw_rect(inner.grow(-4.0), UIStyle.EDGE, true)
+			# A frame, not a slab: at 60x92 a filled box read as a black hole in the table.
+			row.draw_rect(inner.grow(-8.0), UIStyle.EDGE, false, rule)
+			row.draw_rect(inner.grow(-16.0), UIStyle.EDGE, false, rule)
 			continue
 
 		row.draw_rect(inner, UIStyle.PANEL, true)
 		var suit := cards[index] / RANKS.size()
 		var ink := _suit_ink(suit)
 		row.draw_string(font,
-			Vector2(face.position.x + rule + 2.0, rule + font.get_ascent(UIStyle.LABEL)),
+			Vector2(face.position.x + rule + 4.0, rule + 2.0 + font.get_ascent(RANK_SIZE)),
 			RANKS[cards[index] % RANKS.size()],
-			HORIZONTAL_ALIGNMENT_LEFT, -1.0, UIStyle.LABEL, ink)
+			HORIZONTAL_ALIGNMENT_LEFT, -1.0, RANK_SIZE, ink)
 		# Through `UIStyle.boxed()` at the glyph's own canvas size, so the picture is exactly
 		# the box that holds it (docs/decisions.md D27) and nothing is ever stepped down —
 		# `ui_check` asserts `UIStyle.shrunk` is empty, and asking for a 16px glyph in a
 		# smaller box is how that list gets its first entry.
-		var pip := UIStyle.boxed(UIStyle.glyph(_suit_glyph(suit)), UIStyle.GLYPH)
+		var pip := UIStyle.boxed(UIStyle.glyph(_suit_glyph(suit)), PIP_BOX)
 		if pip != null:
 			row.draw_texture(pip, Vector2(
-				face.position.x + float(CARD_W) - rule - float(UIStyle.GLYPH),
-				float(CARD_H) - rule - float(UIStyle.GLYPH)), ink)
+				face.position.x + float(CARD_W) - rule - 2.0 - float(PIP_BOX),
+				float(CARD_H) - rule - 2.0 - float(PIP_BOX)), ink)
 
 ## Four suits made out of the things this game is about, because the glyph set has no spade
 ## and no club and a card face is the wrong place to gamble on a font shipping one. Shape

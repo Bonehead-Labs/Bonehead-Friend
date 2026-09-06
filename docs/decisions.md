@@ -814,6 +814,31 @@ is inside collapse → pile → reassemble, nothing below `beat` plays.
 `loop_check`'s `expression` suite asserts each by name. Any future system that wants to move
 him at Off has to argue with this entry first.
 
+### D37 — The Arcade is rooms, one on screen at a time — and the shell has particles
+
+Three cabinets stacked in a 520px card gave each machine a 132px wheel, 32px reels and a
+third room below the fold, in a game whose whole pitch is that the toys are worth looking at.
+The Arcade page now has its own strip of `IconTab`s — The Wheel, Three Ghosts, Blackjack,
+Wardrobe, Rebirth — and exactly one room below it. Every machine gets the same 270px stage
+(`ArcadePanel.STAGE_WELL`), so switching rooms never moves the Play key under the cursor; the
+wheel is 262px, the reels 96px (a 16px glyph boxed by six), the cards 60x92 with a hero-size
+rank. Rooms stay built when hidden, so a spin in a room the player left still lands and still
+pays. Everything above the stage was cut to one line each — page intro, machine rules — because
+every line above the stage is a line taken from it. `show_room(id)` is the one entry point;
+`EventBus.show_panel(&"prestige")` selects the Rebirth room through it.
+
+`UIMotion.sparkle(control, colour, count, speed)` is the shell's own particle burst: a one-shot
+`GPUParticles2D` of four-pixel chips, parented to the control so it rides the control's layer
+and integer scale, shrinking to nothing rather than fading, freed when spent, and off wherever
+`UIMotion` is off. It marks the moments the player made happen — an arcade win (a shower for a
+jackpot or a boost), a deed claimed, a finish worn (with a star burst on him in the world), the
+next toy becoming affordable, the rebirth row first appearing, a job coming good on the tab, a
+record round's toast. `UIMotion.fill(bar, value)` tweens a `Range`'s value the same way.
+
+*Consequence:* a new machine is a script in `ArcadePanel.MACHINES` and nothing else — it gets
+its tab, its stage and its celebration for free. A new celebration is a `sparkle` call at the
+moment of change, never on a refresh; anything that fires on every tick is a bug.
+
 ## Recommendations not yet decided
 
 Carried in the spec, owner's call before they matter:

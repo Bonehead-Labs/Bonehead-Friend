@@ -61,9 +61,13 @@ func _ready() -> void:
 			return
 		var when := "" if float(r["seconds"]) <= 0.0 else " in %s" % _round_time(float(r["seconds"]))
 		var against := "  ·  new best!" if bool(r["record"]) else "  ·  best %s" % UIStyle.format_amount(float(r["best_before"]))
-		_hud.show_toast("Round %d: %s damage%s for %s Bones%s" % [int(r["number"]),
+		var line := "Round %d: %s damage%s for %s Bones%s" % [int(r["number"]),
 			UIStyle.format_amount(float(r["damage"])), when,
-			UIStyle.format_amount(float(r["bones"])), against], 7.0))
+			UIStyle.format_amount(float(r["bones"])), against]
+		if bool(r["record"]):
+			_hud.celebrate_toast(line, UIStyle.BONES)
+		else:
+			_hud.show_toast(line, 7.0))
 	# Milestones claim themselves (docs/decisions.md D34) — a board of forty unclaimed
 	# collect buttons is homework, so the toast IS the reward moment and there is nowhere
 	# else the player finds out. A rung count is printed when several land at once, which

@@ -60,12 +60,15 @@ const GARNISH_SHARE := 0.55
 
 ## UI pixels, before `UIScale`. `body_height` matches it exactly, so the cabinet is the same
 ## height spinning as it is idle and the page never moves under the cursor mid-spin.
-const FACE := 132
+const FACE := 262
 ## Room above the rim for the pointer.
 const POINTER_REACH := 12.0
 ## Hub radius, and where in the band a wedge's mark sits (0 at the hub, 1 at the rim).
 const HUB_FRACTION := 0.38
-const GLYPH_RING := 0.72
+const GLYPH_RING := 0.62
+## The marks on the ring and the hub are drawn at twice the glyph — a 16px glyph on a 262px
+## wheel was a speck. Boxed by a whole number through `UIStyle.boxed()`, so still crisp (D27).
+const MARK_BOX := 32
 ## Straight up. Screen y grows downward, so angles increase clockwise and this is -90 degrees.
 const POINTER_ANGLE := -PI / 2.0
 
@@ -140,7 +143,7 @@ func _init() -> void:
 	mark = &"star"
 	play_caption = "Spin"
 	cost = COST
-	body_height = FACE
+	body_height = 270
 	_build_ring()
 
 # --- the ring --------------------------------------------------------------
@@ -261,14 +264,14 @@ func _build_body(host: VBoxContainer) -> void:
 	_face.draw.connect(_draw_wheel)
 	row.add_child(_face)
 
-	# The wheel is 132px in a well several hundred wide, so the legend costs nothing but
+	# The wheel is 262px in a well over 600 wide, so the legend costs nothing but
 	# horizontal space that was already spare. Every string in it is short on purpose: this
 	# page's widest declared minimum is the intro paragraph at 320, and a legend that grew
 	# past it would widen the card for every other page in the shell.
 	var legend := VBoxContainer.new()
 	legend.name = "WheelLegend"
 	legend.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	legend.add_theme_constant_override("separation", 2)
+	legend.add_theme_constant_override("separation", 6)
 	legend.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	legend.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(legend)
@@ -302,17 +305,19 @@ func _build_legend_row(entry: LegendRow) -> Control:
 	line.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	line.add_theme_constant_override("separation", 6)
 	# Through `UIStyle.icon()`, which delivers the glyph at exactly its 16px box (D27).
-	line.add_child(UIStyle.icon(entry.glyph, UIStyle.GLYPH, entry.ink))
+	# Boxed at twice the glyph: one art pixel to two screen pixels, whole-number crisp, and a
+	# legend that holds its own beside a wheel this size.
+	line.add_child(UIStyle.icon(entry.glyph, MARK_BOX, entry.ink))
 
 	# Three of the five rows are figures and the odds column is figures throughout, so the
 	# whole legend is set in the display face rather than mixing two faces down one column —
 	# the body face draws 5 as a rounded form that reads as an 8.
-	var what := UIStyle.label(entry.text, UIStyle.MICRO, entry.ink)
+	var what := UIStyle.label(entry.text, UIStyle.LABEL, entry.ink)
 	what.theme_type_variation = &"Numeral"
 	what.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	line.add_child(what)
 
-	var odds := UIStyle.label("%d%%" % _percent(entry.weight), UIStyle.MICRO, UIStyle.TEXT_DIM)
+	var odds := UIStyle.label("%d%%" % _percent(entry.weight), UIStyle.LABEL, UIStyle.TEXT_DIM)
 	odds.theme_type_variation = &"Numeral"
 	line.add_child(odds)
 	return line
@@ -479,7 +484,7 @@ func _draw_wheel() -> void:
 
 	_face.draw_circle(centre, hub, UIStyle.PANEL)
 	_face.draw_arc(centre, hub - rule * 0.5, 0.0, TAU, 40, UIStyle.EDGE, rule)
-	_stamp(UIStyle.glyph(mark), centre, UIStyle.TEXT)
+	_stamp(UIStyle.boxed(UIStyle.glyph(mark), MARK_BOX), centre, UIStyle.TEXT)
 
 	_draw_pointer(centre, radius)
 
@@ -489,7 +494,7 @@ func _draw_wheel() -> void:
 ## drawn one screen pixel per art pixel at every moment of the spin.
 func _draw_marks(centre: Vector2, ring: float) -> void:
 	for wedge in _wedges:
-		var texture := UIStyle.glyph(wedge.glyph)
+		var texture := UIStyle.boxed(UIStyle.glyph(wedge.glyph), MARK_BOX)
 		if texture == null:
 			continue
 		var at := centre + Vector2.from_angle(wedge.start + wedge.span * 0.5 + _angle) * ring
@@ -507,9 +512,9 @@ func _draw_pointer(centre: Vector2, radius: float) -> void:
 	var hinge := Vector2(centre.x, centre.y - radius - POINTER_REACH + 2.0)
 	var swing := _flick()
 	var points := PackedVector2Array([
-		_swung(Vector2(centre.x, centre.y - radius + 3.0), hinge, swing),
-		_swung(hinge + Vector2(-7.0, 0.0), hinge, swing),
-		_swung(hinge + Vector2(7.0, 0.0), hinge, swing),
+		_swung(Vector2(centre.x, centre.y - radius + 6.0), hinge, swing),
+		_swung(hinge + Vector2(-11.0, 0.0), hinge, swing),
+		_swung(hinge + Vector2(11.0, 0.0), hinge, swing),
 	])
 	_face.draw_colored_polygon(points, UIStyle.PANEL)
 	_face.draw_polyline(PackedVector2Array([points[0], points[1], points[2], points[0]]),
@@ -519,9 +524,9 @@ func _swung(point: Vector2, hinge: Vector2, angle: float) -> Vector2:
 	return hinge + (point - hinge).rotated(angle)
 
 ## Enough segments that a wedge's outer edge reads as a curve and no more: this runs on every
-## frame of a spin, and the ring is 120px across.
+## frame of a spin, and the ring is under 300px across.
 func _steps(span: float) -> int:
-	return maxi(3, int(span / 0.10))
+	return maxi(4, int(span / 0.06))
 
 # --- odds ------------------------------------------------------------------
 

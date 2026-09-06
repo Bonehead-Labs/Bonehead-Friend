@@ -80,6 +80,7 @@ func _ready() -> void:
 	await _the_deeds_board_is_on_the_page()
 	await _the_hud_calls_for_rebirth()
 	await _the_wardrobe_is_on_the_arcade_page()
+	await _the_arcade_is_one_room_at_a_time()
 	await _the_jobs_tab_wears_a_badge()
 	await _the_purse_can_count_high()
 	await _the_payouts_are_visible()
@@ -468,6 +469,7 @@ func _the_rebirth_page_refuses_an_empty_reset() -> void:
 	if panels == null:
 		return
 	panels.call("show_panel", &"arcade")
+	_find(_main, "ArcadePanel").call("show_room", &"rebirth")
 	await _settle()
 
 	var page := _find(_main, "PrestigePanel")
@@ -510,6 +512,7 @@ func _the_rebirth_page_refuses_an_empty_reset() -> void:
 	panels.call("close")
 	await _settle()
 	panels.call("show_panel", &"arcade")
+	_find(_main, "ArcadePanel").call("show_room", &"rebirth")
 	await _settle()
 	_check("closing the card disarms the reset",
 		_button_labelled("Reincarnate", page) != null)
@@ -903,6 +906,7 @@ func _the_wardrobe_is_on_the_arcade_page() -> void:
 	if panels == null:
 		return
 	panels.call("show_panel", &"arcade")
+	_find(_main, "ArcadePanel").call("show_room", &"wardrobe")
 	await _settle()
 	var list := _find(_main, "Wardrobe")
 	_check("the arcade has a wardrobe", list != null)
@@ -1520,3 +1524,66 @@ func _clear_slot() -> void:
 	for path in [SaveManager.save_path(), SaveManager.backup_path(), SaveManager.tmp_path()]:
 		if FileAccess.file_exists(path):
 			DirAccess.remove_absolute(path)
+
+## The Arcade shows one room at a time behind its own strip: three machines, the wardrobe
+## and the back room. Each tab is a real button at a real rect; every view but the chosen one
+## is hidden, so a spin in a room the player left stays built and keeps paying, and nothing
+## on the page is ever under a second thing.
+func _the_arcade_is_one_room_at_a_time() -> void:
+	_suite("rooms")
+	var panels := _find(_main, "PanelLayer")
+	var arcade := _find(_main, "ArcadePanel")
+	if panels == null or arcade == null:
+		_check("the arcade page exists", false)
+		return
+	panels.call("show_panel", &"arcade")
+	await _settle()
+	var ids: Array = arcade.call("room_ids")
+	_check("the arcade has five rooms (%d)" % ids.size(), ids.size() == 5,
+		", ".join(ids))
+	var strip := _find(arcade, "Rooms")
+	_check("with a tab strip", strip != null)
+	if strip == null:
+		return
+	_check("one tab per room", strip.get_child_count() == ids.size())
+	# A room stays chosen across visits — the wardrobe suite before this one left it there —
+	# so what is asserted is that *some* room is open, never a fresh page with nothing showing.
+	var first: StringName = arcade.call("current_room")
+	_check("a room is open on arrival", ids.has(first), String(first))
+	var rooms: Dictionary = arcade.get("_rooms")
+	# Click into every other room through its tab, and prove the views swap.
+	for id in ids:
+		var tab := rooms[id]["tab"] as Button
+		_click(UIScale.screen_centre(tab))
+		await _settle()
+		_check("clicking %s opens it" % id, arcade.call("current_room") == id)
+		var shown := 0
+		for other in ids:
+			if (rooms[other]["view"] as Control).visible:
+				shown += 1
+		_check("%s: one view on screen (%d)" % [id, shown], shown == 1)
+		_check("%s: its tab reads pressed" % id, tab.button_pressed)
+		var view := rooms[id]["view"] as Control
+		_check("%s: the view has a size" % id, view.size.x > 100.0 and view.size.y > 60.0,
+			str(view.size))
+	# Every machine's well is the same height, so the footer never moves between rooms.
+	var wells: Array[float] = []
+	for id in ids:
+		var well := _find(rooms[id]["view"], "Well")
+		if well:
+			wells.append((well as Control).size.y)
+	_check("three machine wells (%d)" % wells.size(), wells.size() == 3)
+	if wells.size() == 3:
+		_check("all the same height", absf(wells[0] - wells[1]) < 1.0 and absf(wells[1] - wells[2]) < 1.0,
+			str(wells))
+		_check("and tall enough to be a stage (%.0f)" % wells[0], wells[0] >= 280.0)
+	# The rebirth page's own flag follows the room, not just the card (D28).
+	var prestige := _find(_main, "PrestigePanel") as Control
+	arcade.call("show_room", &"rebirth")
+	await _settle()
+	_check("rebirth room: the prestige page is visible", prestige != null and prestige.is_visible_in_tree())
+	arcade.call("show_room", ids[0])
+	await _settle()
+	_check("machine room: the prestige page is not", prestige != null and not prestige.visible)
+	panels.call("close")
+	await _settle()

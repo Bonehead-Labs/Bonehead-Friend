@@ -52,7 +52,10 @@ const REEL_COUNT := 3
 ## baseball bat fill identical windows with no fraction anywhere (D27, `UIStyle.boxed`). At
 ## 44 — the shop's well — the glyph would sit at 16px inside it and the bat at 32, and three
 ## reels would show symbols at two different sizes.
-const REEL_BOX := UIStyle.ICON_CANVAS
+## Three times the icon canvas: a 16px glyph steps up by a whole number to 96, so the reel is
+## drawn one art pixel to six screen pixels, crisp — and a slot machine you can read from the
+## other side of the room.
+const REEL_BOX := 96
 
 const SYM_DOLLAR := &"dollar"
 const SYM_BONE := &"bone"
@@ -144,7 +147,7 @@ func _init() -> void:
 	cost = 12.0
 	# The well never changes height, spinning or idle, because nothing in it changes size:
 	# 32 art + 8 + 8 tile margins + 4 separation + the top-prize line, with a little slack.
-	body_height = 76
+	body_height = 270
 
 # --- the cabinet -----------------------------------------------------------
 
@@ -154,7 +157,7 @@ func _build_body(host: VBoxContainer) -> void:
 	# the remote scene tree and unfindable from a test.
 	glass.name = "Reels"
 	glass.alignment = BoxContainer.ALIGNMENT_CENTER
-	glass.add_theme_constant_override("separation", 6)
+	glass.add_theme_constant_override("separation", 14)
 	# Nothing in this well is clickable — the Play key belongs to the page — so the body
 	# claims no mouse events at all rather than swallowing one that was meant for the card.
 	glass.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -184,12 +187,12 @@ func _build_body(host: VBoxContainer) -> void:
 	var top_prize := HBoxContainer.new()
 	top_prize.name = "TopPrize"
 	top_prize.alignment = BoxContainer.ALIGNMENT_CENTER
-	top_prize.add_theme_constant_override("separation", 3)
+	top_prize.add_theme_constant_override("separation", 8)
 	top_prize.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	host.add_child(top_prize)
 	for _reel in REEL_COUNT:
-		top_prize.add_child(UIStyle.icon(SYM_ECTO, UIStyle.GLYPH, UIStyle.TEXT))
-	var multiple := UIStyle.label("x%d" % int(PAY_JACKPOT), UIStyle.MICRO, UIStyle.DOLLARS)
+		top_prize.add_child(UIStyle.icon(SYM_ECTO, UIStyle.ICON_CANVAS, UIStyle.TEXT))
+	var multiple := UIStyle.label("x%d" % int(PAY_JACKPOT), UIStyle.TITLE, UIStyle.DOLLARS)
 	# Every figure in the game is set in the display face: the body face draws 5 as a rounded
 	# form that reads as an 8, and x300 misread as x800 is a promise the machine cannot keep.
 	multiple.theme_type_variation = &"Numeral"

@@ -256,6 +256,12 @@ func _on_buddy_state_changed(state: StringName) -> void:
 	var centre := get_viewport().get_visible_rect().size * 0.5
 	spawn_number("KNOCKOUT  +%s" % _format(total), centre, BONES_RAMP[BONES_RAMP.size() - 2],
 		1.6, TIER_SIZE.size() - 1)
+	# A record round gets a second line under the headline. Economy has already closed the
+	# round by the time he lands, because it connects to the bus before this layer does.
+	var round := Economy.last_round
+	if not round.is_empty() and bool(round.get("record", false)) and int(round.get("number", 0)) > 1:
+		spawn_number("NEW BEST ROUND", centre + Vector2(0.0, 56.0), BONES_RAMP[BONES_RAMP.size() - 1],
+			1.1, TIER_SIZE.size() - 1)
 	_fountain(_buddy_position(centre), total)
 
 ## Coins bursting out of the heap. Each is a share of the bonus rather than a decoration,

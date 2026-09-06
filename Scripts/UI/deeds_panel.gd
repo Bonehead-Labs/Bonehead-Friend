@@ -50,7 +50,8 @@ func _ready() -> void:
 	EventBus.contract_event.connect(func(_k: StringName, _c: int) -> void: request_refresh())
 	EventBus.item_purchased.connect(func(_id: StringName) -> void: request_refresh())
 	EventBus.prestige_performed.connect(func(_gained: float) -> void: request_refresh())
-	Milestones.milestone_claimed.connect(func(_id: StringName, _r: int, _d: int) -> void:
+	Milestones.milestone_claimed.connect(func(id: StringName, _r: int, _d: int) -> void:
+		_celebrate(id)
 		request_refresh())
 	super()
 
@@ -210,14 +211,23 @@ func _refresh() -> void:
 		var bar := controls["bar"] as ProgressBar
 		var counter := controls["counter"] as Label
 		if done and not ladder:
-			bar.value = 1.0
+			UIMotion.fill(bar, 1.0)
 			counter.text = UIStyle.format_amount(progress)
 		else:
 			var floor_value := milestone.next_target(maxi(claimed - 1, 0)) if claimed > 0 else 0.0
 			var span := maxf(next_target - floor_value, 0.000001)
-			bar.value = clampf((progress - floor_value) / span, 0.0, 1.0)
+			UIMotion.fill(bar, clampf((progress - floor_value) / span, 0.0, 1.0))
 			counter.text = "%s / %s" % [UIStyle.format_amount(progress), UIStyle.format_amount(next_target)]
 		(controls["row"] as PanelContainer).theme_type_variation = &"TileHot" if done else &"Tile"
+
+## A rung claimed while the page is open: the row confirms and its reward chips off the badge.
+## Deeds claim themselves (D34), so this is the only place the claim is *seen* happen.
+func _celebrate(id: StringName) -> void:
+	if not is_visible_in_tree() or not _rows.has(id):
+		return
+	var controls: Dictionary = _rows[id]
+	UIMotion.confirm(controls["row"] as Control)
+	UIMotion.sparkle(controls["bar"] as Control, UIStyle.DOLLARS, 16, 180.0)
 
 func _stat_value(key: StringName) -> String:
 	match key:

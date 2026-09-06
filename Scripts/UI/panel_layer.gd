@@ -207,6 +207,8 @@ func _update_badges() -> void:
 	(badge["count"] as Label).text = str(claimable)
 	if panel.visible and not was:
 		UIMotion.punch(panel, 1.3)
+		# A job came good while the card was shut: a few chips off the tab, so the eye goes there.
+		UIMotion.sparkle(panel, UIStyle.DOLLARS, 10, 140.0)
 
 ## The card is sized here and nowhere else, and it is the same size whichever page is
 ## showing. On a window too small to hold it, it shrinks — but it still does not change
@@ -319,8 +321,10 @@ func _on_show_panel(panel: StringName) -> void:
 	if panel == &"prestige":
 		show_panel(&"arcade")
 		var arcade := _pages.get(&"arcade") as ArcadePanel
-		if arcade and arcade.prestige_panel():
-			_host.ensure_control_visible.call_deferred(arcade.prestige_panel())
+		if arcade:
+			arcade.show_room(ArcadePanel.ROOM_REBIRTH)
+			if arcade.prestige_panel():
+				_host.ensure_control_visible.call_deferred(arcade.prestige_panel())
 		return
 	if _pages.has(panel):
 		show_panel(panel)
