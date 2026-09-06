@@ -12,7 +12,7 @@ start the next milestone until the current gate passes.
 | M3.5 — Content & systems uplift ([uplift-m3.5.md](uplift-m3.5.md)) | 4–6 wk | 🟡 **0, A and B built** — playtests pending, C (live on the desktop) to come |
 | M3.6 — The content explosion | 1 wk | ✅ **built** (2026-08-30) — 80 items, 50 jobs, arcade, milestones |
 | M3.7 — The desk you can clear, the kind half, a buddy who plays ([uplift-m3.7.md](uplift-m3.7.md)) | 1 wk | ✅ **built and drawn** (2026-08-30) — walk cycle and animation families outstanding |
-| M3.8 — The assessment's top ten ([assessment-2026-09.md](assessment-2026-09.md)) | 1–2 wk | 🟡 **in progress** (2026-09-06) — code fixes, kind rates, six hands-on items, HUD next-up, onboarding, sounds, and the expressive buddy's Phase 1 (`ExpressionBrain`, D36) done; movement plan pending |
+| M3.8 — The assessment's top ten ([assessment-2026-09.md](assessment-2026-09.md)) | 1–2 wk | 🟡 **code complete** (2026-09-06) — code fixes, kind rates, six hands-on items, HUD next-up, onboarding, sounds, the expressive buddy's Phase 1 (`ExpressionBrain`, D36), the walk and fall-floor fix ([plan-movement-hitboxes.md](plan-movement-hitboxes.md)) and the assessment's code findings all done; left: the five-minute playtest, a sandbox walk on two monitors, the owner decisions in [worklist-2026-09.md](worklist-2026-09.md) §4, and the art-generator items |
 | M4 — Demo / Next Fest | 2–3 wk | ⬜ |
 | M5 — 1.0 | 4+ wk | ⬜ |
 | M6 — The Arcade (post-1.0, [D32](decisions.md)) | 2–3 wk | ⬜ **planned** (2026-08-30) |
