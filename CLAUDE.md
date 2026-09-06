@@ -417,4 +417,6 @@ never by hand.
 heard but the streak pays nothing; the Deeds tab lists every milestone with its next rung; the
 HUD links to Reincarnation once a run is worth a Marrow; the welcome is a Dream Journal
 (`Data/dreams.txt`) with a small timed buff; the offline cap is sold on the Reincarnation page.
-Streak, buff and cap prices are `BalanceData` knobs.
+Streak, buff and cap prices are `BalanceData` knobs. The wardrobe (`CosmeticData`, worklist §6) tints the
+bone and headphone masks of the same shader; a Jobs badge, a best streak, a per-round score and a
+session receipt round out the hooks.

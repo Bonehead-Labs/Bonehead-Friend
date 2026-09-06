@@ -197,3 +197,21 @@ Still open from the assessment's list, and why: music (audio pass); a cosmetics 
 Martyr/Tyrant/Stoic tells (owner, plan §8 item 4). New owner decisions this pass added: the
 Dream buff's size (x1.15 / 5 min is a knob), the sleep prices (knobs), and whether a damage
 streak should ever pay (it deliberately does not).
+
+## 6. The second stickiness pass (2026-09-06, night) ✅
+
+Same brief, same method: the docs' own unbuilt promises, chosen for stickiness, no art.
+
+| # | What | Where | Commit |
+|---|---|---|---|
+| 6.1 | **The Wardrobe.** `CosmeticData` (slot bone/phones, Dollar price, tint) on the shader's masks; ten finishes seeded by `tools/seed_m38_finishes.tscn`; owned/worn in `Economy`, saved in the schema's existing `cosmetics` shape; a rail on the Arcade page | `cosmetic_data.gd`, `effects_player.gd`, `economy.gd`, `item_db.gd`, `buddy_art.gd`, `arcade_panel.gd` | `cff7b32` |
+| 6.2 | **Jobs badge** (claimable count on the tab) and the **streak's record**: `stats.best_streak`, "x12 best" tag from six, Deeds shows best streak and a never-saved "This session" receipt; cursor outranks toy for his attention | `panel_layer.gd`, `economy.gd`, `fx_layer.gd`, `deeds_panel.gd`, `expression_brain.gd` | `741cd68` |
+| 6.3 | **Round score.** `Economy.last_round` (number, damage, seconds from first hit, Bones incl. bonus, record vs `stats.best_round_bones`); one-line toast; Deeds shows best round | `economy.gd`, `main.gd`, `deeds_panel.gd` | (this commit's successor) |
+
+Counts after: **unit 216 · loop 595 · ui 263 · pacing 4/4** (unchanged; nothing here touches a rate).
+
+Decisions this pass made that the owner may revisit: finish prices (600–3,500 Dollars, headphones
+800–2,500 — knobs in the seeder table); "best" shown on the streak tag from six; the round clock
+starts at the first hit. Still open and why: music (assets); hats and alternate-headphone *shapes*
+(art — the wardrobe's tint slots are where they plug in); Working Hours / Overtime (needs global
+input or a policy call); Lunch Break, Insurance Fraud, Loyalty (design calls, some need art).
