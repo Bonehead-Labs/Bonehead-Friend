@@ -293,13 +293,19 @@ func show_toast(text: String, seconds: float = 6.0) -> void:
 	if _toast_tween and _toast_tween.is_valid():
 		_toast_tween.kill()
 	_toast_label.text = text
-	_toast.modulate = Color.WHITE
+	_toast.scale = Vector2.ONE
 	_toast.visible = true
 	UIMotion.rise(_toast)
+	# Leaves by rolling up, never by fading: the window is transparent behind the card, and
+	# a half-faded toast is grey ink over the desktop (CLAUDE.md: never fade a card).
+	UIMotion.pivot(_toast, UIMotion.Pivot.TOP)
 	_toast_tween = create_tween()
 	_toast_tween.tween_interval(seconds)
-	_toast_tween.tween_property(_toast, "modulate:a", 0.0, 0.6)
-	_toast_tween.tween_callback(func() -> void: _toast.visible = false)
+	_toast_tween.tween_property(_toast, "scale", Vector2(1.0, 0.04), 0.15) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	_toast_tween.tween_callback(func() -> void:
+		_toast.visible = false
+		_toast.scale = Vector2.ONE)
 
 func _on_buddy_state_changed(state: StringName) -> void:
 	if state == &"knockout" and _meter:

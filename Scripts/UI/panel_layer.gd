@@ -301,7 +301,6 @@ func _on_spend(currency: StringName, _amount: float, screen_pos: Vector2) -> voi
 	var here := _flight.get_global_transform_with_canvas().affine_inverse()
 	UIMotion.fly(_flight, UIStyle.currency_glyph(currency), UIStyle.currency_colour(currency),
 		here * screen_pos, here * purse.chip_centre(currency))
-	# Landing, not launch: the chip reacts when the coin gets there.
-	get_tree().create_timer(0.41).timeout.connect(func() -> void:
-		if is_instance_valid(purse):
-			purse.catch(currency))
+	# Landing, not launch: the chip reacts when the coin gets there. Bound, not a lambda —
+	# a lambda capturing a Node prints "Lambda capture was freed" if the purse dies first.
+	get_tree().create_timer(0.41).timeout.connect(purse.catch.bind(currency))

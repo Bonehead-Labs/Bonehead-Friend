@@ -302,14 +302,12 @@ static func roll_up(card: Control, done: Callable, from: int = Pivot.TOP) -> voi
 		done.call()
 		return
 	pivot(card, from)
+	# Scale only — no alpha. The window is transparent behind the card, so a fading card
+	# is grey ink over the desktop for six frames (CLAUDE.md: never fade a card).
 	var tween := _tween(card, &"_card_tween")
-	tween.set_parallel(true)
-	tween.tween_property(card, "scale", Vector2(1.0, 0.78), 0.12) \
+	tween.tween_property(card, "scale", Vector2(1.0, 0.04), 0.12) \
 		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-	tween.tween_property(card, "modulate:a", 0.0, 0.12)
-	tween.set_parallel(false)
 	tween.tween_callback(func() -> void:
-		card.modulate.a = 1.0
 		card.scale = Vector2.ONE
 		done.call())
 	_sfx(&"ui_close", -14.0, 0.03)

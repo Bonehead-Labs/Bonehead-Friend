@@ -51,6 +51,7 @@ var pinned := false:
 		pinned = value
 		if _mark:
 			_mark.queue_redraw()
+		_wake()
 		pin_toggled.emit(pinned)
 
 var _panel: Control
@@ -89,6 +90,7 @@ func _input(event: InputEvent) -> void:
 	var motion := event as InputEventMouseMotion
 	if motion:
 		_mouse = motion.position
+		_wake()
 
 func _notification(what: int) -> void:
 	# The cursor left the window entirely, which sends no further motion. Without this the
@@ -96,17 +98,27 @@ func _notification(what: int) -> void:
 	# of the time, and exactly the case it exists for.
 	if what == NOTIFICATION_WM_MOUSE_EXIT:
 		_mouse = Vector2(-9999, -9999)
+		_wake()
 
 ## The panel's resting place, recomputed by the owner whenever the layout moves.
 func set_home(home: Vector2) -> void:
 	_home = home
 	_snap()
+	_wake()
 
 func is_open() -> bool:
 	return _open or pinned
 
+## The drawer only has anything to do after the mouse moves, the layout moves or the pin
+## flips; everything it decides is a function of those. Between events it sleeps — two
+## drawers polling `screen_rect()` every frame for eight hours was the largest "runs when
+## nothing is happening" cost in the shell.
+func _wake() -> void:
+	set_process(true)
+
 func _process(delta: float) -> void:
 	if _panel == null or not is_instance_valid(_panel):
+		set_process(false)
 		return
 	var over_mark := UIScale.screen_rect(_mark).grow(GRACE * 0.5).has_point(_mouse)
 	if over_mark != _over_mark:
@@ -125,6 +137,8 @@ func _process(delta: float) -> void:
 	_panel.position = _panel.position.lerp(target, 1.0 - exp(-SPEED * delta))
 	if _panel.position.distance_to(target) < 0.5:
 		_panel.position = target
+		# Settled. Nothing here can change until the next event wakes it.
+		set_process(false)
 	_place_mark()
 
 func _on_mark_input(event: InputEvent) -> void:
@@ -134,6 +148,7 @@ func _on_mark_input(event: InputEvent) -> void:
 		_mark.tooltip_text = "Unpin" if pinned else "Pin open"
 		_mark.accept_event()
 		UIMotion.punch(_mark, 1.25)
+		_wake()
 
 func _closed_position() -> Vector2:
 	var size := _panel.size

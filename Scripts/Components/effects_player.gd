@@ -45,23 +45,33 @@ func explosion_effect(at: Vector2) -> void:
 		return
 	host.add_child(explosion)
 	explosion.global_position = at
-	# The effect is a generated animation now, not an untextured particle spray. Kept behind
-	# the same node name so the scene swap needed no change here beyond starting it.
-	var animation := explosion.get_node_or_null("_particleEffect") as AnimatedSprite2D
+	# The effect is a generated animation, found by what it is rather than by name: the
+	# scene was rebuilt once and a name lookup across its boundary is the same bug as an
+	# absolute node path (CLAUDE.md).
+	var animation := _find_animation(explosion)
 	if animation and animation.sprite_frames:
 		# An explosion must never loop. The Aseprite importer marks every animation as
 		# looping, so the effect replayed for the whole life of the node — a 0.5s animation
 		# inside a 1.5s node is three explosions for one grenade. Set on the shared
 		# SpriteFrames deliberately: there is no case where a looping explosion is right.
 		animation.sprite_frames.set_animation_loop(&"explosion", false)
-		animation.animation_finished.connect(func() -> void:
-			if is_instance_valid(explosion):
-				explosion.queue_free())
+		animation.animation_finished.connect(explosion.queue_free)
 		animation.play(&"explosion")
 	# Every explosion used to leak its node permanently. In a game left running all day
-	# that is an unbounded node count.
-	explosion.get_tree().create_timer(EXPLOSION_LIFETIME).timeout.connect(
-		func() -> void:
-			if is_instance_valid(explosion):
-				explosion.queue_free()
-	)
+	# that is an unbounded node count — so a timer frees it whether or not the animation
+	# ever finishes. A *bound method*, not a lambda: a lambda capturing `explosion` holds a
+	# bare object id, and when the animation has already freed the node the callable
+	# validates its captures before running, prints "Lambda capture at index 0 was freed"
+	# and hands the body a null — once per explosion, fifteen per cluster throw, and no
+	# `is_instance_valid` inside the body can ever see it. A Callable bound to the node is
+	# disconnected for free when the node dies.
+	explosion.get_tree().create_timer(EXPLOSION_LIFETIME).timeout.connect(explosion.queue_free)
+
+static func _find_animation(root: Node) -> AnimatedSprite2D:
+	if root is AnimatedSprite2D:
+		return root
+	for child in root.get_children():
+		var found := _find_animation(child)
+		if found:
+			return found
+	return null
