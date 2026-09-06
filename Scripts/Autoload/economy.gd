@@ -87,7 +87,8 @@ func spend(currency: StringName, amount: float) -> bool:
 	return true
 
 ## Credits a currency and announces it. `world_pos` is where the floating number appears.
-func grant(currency: StringName, amount: float, world_pos: Vector2 = Vector2.ZERO) -> void:
+func grant(currency: StringName, amount: float, world_pos: Vector2 = Vector2.ZERO,
+		source_id: StringName = &"") -> void:
 	if amount <= 0.0:
 		return
 	_balances[currency] = balance_of(currency) + amount
@@ -101,8 +102,25 @@ func grant(currency: StringName, amount: float, world_pos: Vector2 = Vector2.ZER
 	# through parks the knockout fountain in the corner of the screen until the next hit.
 	if world_pos != Vector2.ZERO:
 		_last_payout_pos = world_pos
-	EventBus.payout.emit(currency, amount, world_pos)
+	EventBus.payout.emit(currency, amount, world_pos, source_id)
 	EventBus.currency_changed.emit(currency, balance_of(currency))
+
+## Per-act Dollars are banked and paid on the automation tick rather than granted per hit.
+## A hit is the busiest event in the game (seven a second per source, twenty under a fast
+## turret), and each grant is two bus signals every listener on the shell reacts to; the
+## Dollar itself is a flat count of acts that nobody can act on within the second. Flushed by
+## the tick, and by `flush_dollars()` for anything that needs the count to be exact right now.
+var _dollars_banked := 0.0
+
+func _bank_dollars(amount: float) -> void:
+	_dollars_banked += amount
+
+func flush_dollars() -> void:
+	if _dollars_banked <= 0.0:
+		return
+	var amount := _dollars_banked
+	_dollars_banked = 0.0
+	grant(DOLLARS, amount, Vector2.ZERO, &"acts")
 
 # --- payout pipeline -------------------------------------------------------
 
@@ -230,16 +248,17 @@ func _on_damage_dealt(info: HitInfo) -> void:
 	stats["damage_dealt"] = float(stats.get("damage_dealt", 0.0)) + info.amount
 	var bones := payout_for(
 		info.amount * ItemDB.balance.bones_per_damage * grime_multiplier(), info.source_id)
-	grant(BONES, bones, info.position)
+	grant(BONES, bones, info.position, info.source_id)
 	# `damage:<item_id>`, which turns "deal N damage with the mace" into pure data for every
 	# weapon in the game at once — HitInfo has always carried source_id and nothing read it
 	# for this. Emitted with the damage as its count, so a contract counts damage rather
 	# than swings; `use:<item_id>` counts the swings and the two are different questions.
 	EventBus.contract_event.emit(&"damage:%s" % info.source_id, int(info.amount))
 	# Flat, whatever the weapon and whatever the damage: Dollars count acts, not power
-	# (docs/decisions.md D31). No world position, so no floating number — a "+1" beside
-	# every Bones payout would double the noise of the busiest event in the game.
-	grant(DOLLARS, ItemDB.balance.dollars_per_hit)
+	# (docs/decisions.md D31). Banked, not granted: no floating number and no bus traffic per
+	# hit — a "+1" beside every Bones payout would double the noise of the busiest event in
+	# the game, and the count is paid on the automation tick.
+	_bank_dollars(ItemDB.balance.dollars_per_hit)
 	EventBus.contract_event.emit(&"deal_damage", int(info.amount))
 
 ## How many kind acts in a row are inside the combo window right now. Read-only, for the
@@ -255,8 +274,8 @@ func _on_kindness_given(source_id: StringName, value: float, world_pos: Vector2)
 
 	var combo := EconomyMath.kindness_combo(_combo_count, b.kindness_combo_step, b.kindness_combo_max)
 	var hearts := payout_for(value * b.hearts_per_kindness * combo, source_id)
-	grant(HEARTS, hearts, world_pos)
-	grant(DOLLARS, ItemDB.balance.dollars_per_kind_act)
+	grant(HEARTS, hearts, world_pos, source_id)
+	_bank_dollars(ItemDB.balance.dollars_per_kind_act)
 	stats["pets"] = int(stats.get("pets", 0)) + 1
 	EventBus.contract_event.emit(&"kindness", 1)
 
@@ -265,7 +284,7 @@ func _on_kindness_given(source_id: StringName, value: float, world_pos: Vector2)
 ## silently keep a petting combo alive.
 func _on_kindness_sustained(source_id: StringName, value: float, world_pos: Vector2) -> void:
 	var hearts := payout_for(value * ItemDB.balance.hearts_per_kindness, source_id)
-	grant(HEARTS, hearts, world_pos)
+	grant(HEARTS, hearts, world_pos, source_id)
 	# Deliberately no contract_event. A contract counting kindness counts *acts*, and a
 	# generator is not acting — it flushes twice a second forever, so one boombox left on
 	# the desk would finish a "be kind 150 times" contract in seventy-five seconds with
@@ -300,11 +319,13 @@ func _on_grime_changed(value: float) -> void:
 func _process(delta: float) -> void:
 	var bones_rate := Progression.automation_rate_per_second(BONES)
 	var hearts_rate := Progression.automation_rate_per_second(HEARTS)
-	if bones_rate <= 0.0 and hearts_rate <= 0.0:
+	var automating := bones_rate > 0.0 or hearts_rate > 0.0
+	if not automating and _dollars_banked <= 0.0:
 		return
 
-	_automation_banked[BONES] = float(_automation_banked[BONES]) + bones_rate * delta
-	_automation_banked[HEARTS] = float(_automation_banked[HEARTS]) + hearts_rate * delta
+	if automating:
+		_automation_banked[BONES] = float(_automation_banked[BONES]) + bones_rate * delta
+		_automation_banked[HEARTS] = float(_automation_banked[HEARTS]) + hearts_rate * delta
 
 	_automation_timer += delta
 	if _automation_timer < ItemDB.balance.automation_payout_interval:
@@ -318,11 +339,14 @@ func _process(delta: float) -> void:
 		# Through the pipeline like everything else, so mood, mastery and Marrow apply to
 		# automated income exactly as they do to a swing. Attributed to &"automation" rather
 		# than to an item, because several capstones pay into the same tick.
-		grant(currency, payout_for(banked, &"automation"), _last_payout_pos)
-	# And a trickle of Dollars for the devices' trouble, at a fraction of what a hand on the
-	# game earns. The one deliberately idle-unfriendly rate in the economy.
-	var b := ItemDB.balance
-	grant(DOLLARS, b.dollars_per_hit * b.dollars_idle_efficiency * b.automation_payout_interval)
+		grant(currency, payout_for(banked, &"automation"), _last_payout_pos, &"automation")
+	# The devices' own trickle of Dollars, at a fraction of what a hand on the game earns —
+	# the one deliberately idle-unfriendly rate in the economy — joins the acts banked since
+	# the last tick, and the till is paid once.
+	if automating:
+		var b := ItemDB.balance
+		_bank_dollars(b.dollars_per_hit * b.dollars_idle_efficiency * b.automation_payout_interval)
+	flush_dollars()
 
 # --- offline ---------------------------------------------------------------
 

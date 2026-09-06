@@ -148,7 +148,7 @@ func _add_page(id: StringName, caption: String, mark: StringName, page: Control)
 	var tab := UIStyle.button(caption, UIStyle.MICRO)
 	tab.theme_type_variation = &"TabButton"
 	tab.toggle_mode = true
-	tab.icon = UIStyle.glyph(mark)
+	UIStyle.set_icon(tab, UIStyle.glyph(mark))
 	tab.custom_minimum_size = Vector2(0, 32)
 	# Width is `_fit()`'s to decide (see there); a caption too long for its share is clipped
 	# rather than allowed to widen its own tab.

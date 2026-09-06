@@ -54,7 +54,22 @@ func _rebuild() -> void:
 func _refresh() -> void:
 	pass
 
+## Coalesced to one repaint a frame. `currency_changed` fires on every hit and every pet, and
+## a page repainting fourteen times a second is fourteen repaints of the same numbers;
+## deferring lets every request this frame land in one `_refresh()`.
+var _refresh_queued := false
+
 func request_refresh() -> void:
+	if not is_visible_in_tree():
+		_dirty_refresh = true
+		return
+	if _refresh_queued:
+		return
+	_refresh_queued = true
+	_flush_refresh.call_deferred()
+
+func _flush_refresh() -> void:
+	_refresh_queued = false
 	if not is_visible_in_tree():
 		_dirty_refresh = true
 		return

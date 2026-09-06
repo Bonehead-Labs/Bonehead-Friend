@@ -172,7 +172,7 @@ func _spark_material() -> ParticleProcessMaterial:
 
 # --- floating numbers ------------------------------------------------------
 
-func _on_payout(currency: StringName, amount: float, world_pos: Vector2) -> void:
+func _on_payout(currency: StringName, amount: float, world_pos: Vector2, _source_id: StringName) -> void:
 	if amount < 0.01:
 		return
 	# **Not everything that is granted is a moment.** Dollars are minted flat on every hit

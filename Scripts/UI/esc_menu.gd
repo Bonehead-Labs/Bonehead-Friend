@@ -61,7 +61,7 @@ func _build() -> void:
 			func() -> void: EventBus.save_requested.emit()],
 			["Save and quit", &"close", _on_quit]]:
 		var button := UIStyle.button(entry[0], UIStyle.LABEL)
-		button.icon = UIStyle.glyph(entry[1])
+		UIStyle.set_icon(button, UIStyle.glyph(entry[1]))
 		button.custom_minimum_size = Vector2(200, 38)
 		button.pressed.connect(entry[2])
 		column.add_child(button)

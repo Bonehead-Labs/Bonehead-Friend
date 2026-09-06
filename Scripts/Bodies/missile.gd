@@ -82,6 +82,6 @@ func explode() -> void:
 	if flame_effect:
 		flame_effect.emitting = false
 
-	await get_tree().create_timer(CLEANUP_DELAY).timeout
-	if is_instance_valid(self):
-		queue_free()
+	# Bound, not awaited: a Callable bound to the node is dropped when the node dies, where a
+	# coroutine resumed on a freed instance errors before its guard runs.
+	get_tree().create_timer(CLEANUP_DELAY).timeout.connect(queue_free)

@@ -63,32 +63,39 @@ func explode() -> void:
 		drag_area.set_deferred(&"monitoring", false)
 	EventBus.item_despawned.emit(self)
 
-	await _scatter()
-	queue_free()
-
-func _scatter() -> void:
 	# One physics frame before the first submunition, whatever the interval: the casing's
 	# own blast has just been applied, and the next blast should measure its distances
-	# against where that one put everything.
-	await get_tree().physics_frame
-	if not is_instance_valid(self) or not is_inside_tree():
-		return
+	# against where that one put everything. Bound methods rather than awaits throughout: the
+	# player can bin a burning charge and the desk can be cleared under it, and a coroutine
+	# resumed on a freed instance errors before any guard inside it runs, where a Callable
+	# bound to the node is simply dropped with it.
+	get_tree().physics_frame.connect(_begin_scatter, CONNECT_ONE_SHOT)
 
-	var origin := global_position
-	for i in submunitions:
+var _scatter_origin := Vector2.ZERO
+
+func _begin_scatter() -> void:
+	if not is_inside_tree():
+		return
+	_scatter_origin = global_position
+	_submunition(0)
+
+## Fires submunition `i` and schedules the next, or frees the casing after the last.
+func _submunition(i: int) -> void:
+	if not is_inside_tree():
+		return
+	while i < submunitions:
 		# sqrt on the radius, or the scatter piles up in the middle: drawing r uniformly
 		# over [0, spread] is not drawing uniformly over the disc.
-		var at := origin + Vector2.RIGHT.rotated(randf() * TAU) * (spread * sqrt(randf()))
+		var at := _scatter_origin + Vector2.RIGHT.rotated(randf() * TAU) * (spread * sqrt(randf()))
 		_report(ExplosionUtil.point_blast(get_world_2d().direct_space_state, at,
 			submunition_radius, submunition_force), at)
 		if Effects_Player:
 			Effects_Player.explosion_effect(at)
-		if submunition_interval <= 0.0 or i == submunitions - 1:
-			continue
-		await get_tree().create_timer(submunition_interval).timeout
-		# The player can bin a burning charge, and the desk can be cleared under it.
-		if not is_instance_valid(self) or not is_inside_tree():
+		i += 1
+		if i < submunitions and submunition_interval > 0.0:
+			get_tree().create_timer(submunition_interval).timeout.connect(_submunition.bind(i))
 			return
+	queue_free()
 
 ## Hands each blast home the way a grenade's does: the impulse it actually applied, reported
 ## to the receiver, which decides what it costs him. Never a second damage model.

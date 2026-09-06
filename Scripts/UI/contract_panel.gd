@@ -151,13 +151,13 @@ func _refresh() -> void:
 		var row_panel := controls["row"] as PanelContainer
 		if Progression.is_contract_claimed(contract.id):
 			claim.text = "Claimed"
-			claim.icon = UIStyle.glyph(&"check")
+			UIStyle.set_icon(claim, UIStyle.glyph(&"check"))
 			claim.disabled = true
 			UIStyle.tint_button(claim, UIStyle.TEXT_DIM)
 			row_panel.theme_type_variation = &"Tile"
 		elif Progression.is_contract_complete(contract.id):
 			claim.text = "Claim"
-			claim.icon = UIStyle.glyph(&"dollar")
+			UIStyle.set_icon(claim, UIStyle.glyph(&"dollar"))
 			claim.disabled = false
 			UIStyle.tint_button(claim, UIStyle.DOLLARS)
 			row_panel.theme_type_variation = &"TileHot"

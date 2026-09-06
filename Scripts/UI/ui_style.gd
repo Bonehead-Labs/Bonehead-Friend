@@ -197,6 +197,12 @@ static func sprite(texture: Texture2D, box: int = 44) -> TextureRect:
 ## Swaps the picture in a well built by `sprite()`, keeping the size contract. Writing
 ## `rect.texture` directly is the one way to reintroduce the whole class of bug, so every
 ## live swap goes through here.
+## The one way a Button gets a picture (D27). A Button *grows* to fit its icon, so the texture
+## is boxed to the size the row was laid out for first — one oversized PNG once doubled a
+## shop row's height. `box` defaults to a glyph; pass the row's own icon size otherwise.
+static func set_icon(button: Button, texture: Texture2D, box: int = GLYPH) -> void:
+	button.icon = boxed(texture, box) if texture else null
+
 static func set_sprite(rect: TextureRect, texture: Texture2D) -> void:
 	if rect == null:
 		return

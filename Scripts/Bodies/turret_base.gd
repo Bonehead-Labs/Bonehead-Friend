@@ -158,9 +158,7 @@ func _fire(target: Buddy) -> void:
 
 ## What Bonehead multiplies the notional impulse by, read the same way a weapon reads it.
 func effective_damage_mult() -> float:
-	if item_id == &"":
-		return damage_mult
-	return damage_mult * Progression.get_modifier(item_id, &"damage_mult")
+	return Progression.damage_mult_for(item_id, damage_mult)
 
 ## Motion stops when Focus Mode is Off (docs/decisions.md D21). **The firing does not.**
 ## That is the contract every automation in this game keeps: a player who set Focus Mode

@@ -99,25 +99,32 @@ func _ready() -> void:
 	_on_grime_changed(Economy.grime)
 	_mark_next_dirty()
 
-func _process(_delta: float) -> void:
+## Driven by the meter's own signals, not polled: a HUD reading `fill_fraction()` every
+## rendered frame for eight hours was the one per-frame cost left in the shell.
+func _on_health_changed() -> void:
 	if _health == null or _meter == null:
 		return
 	var fill := _health.fill_fraction()
 	_meter.value = fill
-	# A tenth of the bar in one frame is a real hit, not decay.
+	# A tenth of the bar in one step is a real hit, not decay.
 	if fill - _meter_shown > 0.1:
 		UIMotion.punch(_box, 1.04)
 	_meter_shown = fill
 
-## Nothing to poll until the buddy hands his meter over.
-func _enter_tree() -> void:
-	set_process(false)
-
 ## The meter belongs to the buddy, so main.gd hands it over rather than the HUD hunting
 ## for a node path across scenes (docs/decisions.md D9).
 func bind_health(health: HealthComponent) -> void:
+	if _health and _health.meter_reset.is_connected(_on_health_changed):
+		_health.damaged.disconnect(_on_health_damaged)
+		_health.meter_reset.disconnect(_on_health_changed)
 	_health = health
-	set_process(true)
+	if _health:
+		_health.damaged.connect(_on_health_damaged)
+		_health.meter_reset.connect(_on_health_changed)
+	_on_health_changed()
+
+func _on_health_damaged(_amount: float, _total: float) -> void:
+	_on_health_changed()
 
 func bind_spawner(spawner: ItemSpawner) -> void:
 	_spawner = spawner
@@ -315,7 +322,7 @@ func _build_rate_row() -> Control:
 func _glyph_id(currency: StringName) -> StringName:
 	return &"bone" if currency == Economy.BONES else &"heart"
 
-func _on_payout(currency: StringName, amount: float, _world_pos: Vector2) -> void:
+func _on_payout(currency: StringName, amount: float, _world_pos: Vector2, _source_id: StringName) -> void:
 	if not _income.has(currency) or amount <= 0.0:
 		return
 	(_income[currency] as Array).append([Time.get_ticks_msec() / 1000.0, amount])

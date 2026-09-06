@@ -88,7 +88,12 @@ func _physics_process(delta: float) -> void:
 	if hearts_per_second_placed > 0.0:
 		_bank(hearts_per_second_placed * value * delta, global_position)
 
-	var buddy := _touching_buddy()
+	# Nothing to ask the physics server when nothing here pays for touching him and there is
+	# no entry sound to play: twenty ambience items polling `get_colliding_bodies()` every
+	# tick for eight hours was a cost with no reader.
+	var cares := hearts_per_second_touching > 0.0 or cleans_grime or hearts_per_contact > 0.0 \
+		or entry_sound != &""
+	var buddy := _touching_buddy() if cares else null
 	var touching := buddy != null
 	if touching and not _was_touching and entry_sound != &"":
 		AudioManager.play(entry_sound, 0.10, -8.0)

@@ -769,13 +769,13 @@ func _the_payouts_are_visible() -> void:
 	# asserted from both sides — the suite runs with it Off, which is why the payout below
 	# has to turn it on deliberately.
 	var before := _visible_numbers(fx)
-	EventBus.payout.emit(Economy.BONES, 480.0, Vector2(VIEW_SIZE) * 0.5)
+	EventBus.payout.emit(Economy.BONES, 480.0, Vector2(VIEW_SIZE) * 0.5, &"baseball_bat")
 	await _settle()
 	_check("with Focus Mode Off a payout draws nothing", _visible_numbers(fx) == before)
 
 	Settings.focus_intensity = Settings.Intensity.NORMAL
-	EventBus.payout.emit(Economy.BONES, 480.0, Vector2(VIEW_SIZE) * 0.5)
-	EventBus.payout.emit(Economy.HEARTS, 7300.0, Vector2(VIEW_SIZE) * 0.5)
+	EventBus.payout.emit(Economy.BONES, 480.0, Vector2(VIEW_SIZE) * 0.5, &"baseball_bat")
+	EventBus.payout.emit(Economy.HEARTS, 7300.0, Vector2(VIEW_SIZE) * 0.5, &"open_hand")
 	await _settle()
 	_check("and with it on, a payout puts a number on screen",
 		_visible_numbers(fx) >= before + 2, "%d -> %d" % [before, _visible_numbers(fx)])

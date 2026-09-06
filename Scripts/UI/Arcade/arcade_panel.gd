@@ -360,7 +360,7 @@ func _refresh() -> void:
 		var play := machine["play"] as Button
 		play.text = game.play_caption
 		play.disabled = not playable
-		play.icon = UIStyle.glyph(&"dollar" if purse >= cost else &"lock")
+		UIStyle.set_icon(play, UIStyle.glyph(&"dollar" if purse >= cost else &"lock"))
 		UIStyle.tint_button(play, UIStyle.DOLLARS if purse >= cost else UIStyle.LOCKED)
 		(machine["cabinet"] as PanelContainer).theme_type_variation = \
 			&"TileHot" if playable else &"Tile"

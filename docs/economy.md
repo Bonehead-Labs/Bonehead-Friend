@@ -1,7 +1,7 @@
 # Economy
 
 Every number in this document is a **starting point**, not a law. The authoritative values
-live in `res://Data/balance.tres`; this doc explains the shapes and why they were chosen.
+live in `Scripts/Data/balance_data.gd` as `BalanceData` defaults — `res://Data/balance.tres` overrides only two of them (`mastery_xp_per_damage`, `mood_curve`); this doc explains the shapes and why they were chosen.
 When you retune, update both.
 
 ## Payout pipeline
@@ -485,7 +485,7 @@ that's what the Mastery Pool and the exclusive branches exist to prevent.
 
 ## Tuning workflow
 
-1. All knobs live in `res://Data/balance.tres` — never hard-code a rate.
+1. All knobs are `BalanceData` exports with their defaults in `Scripts/Data/balance_data.gd`; `res://Data/balance.tres` holds only the two values that override a default. Change a default in the script, or override it in the resource — never hard-code a rate.
 2. Debug builds log every payout and purchase to a local CSV — `Scripts/Economy/tuning_log.gd`,
    writing `user://logs/session_<timestamp>.csv`, installed by `main.gd` only under
    `OS.is_debug_build()`. Every row carries the full economic context (mood, grime, both

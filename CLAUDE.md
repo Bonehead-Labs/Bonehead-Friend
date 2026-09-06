@@ -52,7 +52,7 @@ Read `docs/README.md` first — it indexes the full spec. Design questions are a
   between `ItemData`, `AugmentNode`, `MasteryTrack`, save data and analytics. Never rename an
   id without a save migration.
 - **Data lives in resources**, not code: `res://Data/Items/*.tres`, `res://Data/Augments/*.tres`,
-  and one `res://Data/balance.tres` holding every global tuning knob. Systems read `ItemDB`.
+  and one `BalanceData` (`Scripts/Data/balance_data.gd` holds every global tuning knob as an export default; `res://Data/balance.tres` overrides just two). Systems read `ItemDB`.
   Adding an item must never require editing a script.
 - **Spelling**: it is "Missile", not "Missle". The prototype misspells it in filenames, class
   names and a user-facing label; correct it as you touch each.
@@ -90,7 +90,7 @@ that are not obvious from the code:
   so every capture after it was silently at 2x — including the ones used to judge whether
   1x was readable.
 - **Every picture is exactly the size of the box that holds it** (D27). Go through
-  `UIStyle.icon()` / `sprite()` / `set_sprite()` / `item_face(item, box)`, never `rect.texture`
+  `UIStyle.icon()` / `sprite()` / `set_sprite()` / `set_icon(button, texture, box)` / `item_face(item, box)`, never `rect.texture`
   or `button.icon` directly — a Button *grows* to fit its icon, so one 64px PNG made a shop row
   nearly twice the height of the row under it and pushed that row's name 30px right. Oversized
   art is stepped down by a whole number and centred on a box-sized canvas; nothing is resampled

@@ -451,25 +451,27 @@ func _on_knocked_out(_round_damage: float) -> void:
 	# The art topples him now, so the body must NOT also be rotated — doing both would turn
 	# a sprite that has already fallen sideways on its side again. The tween version of this
 	# beat is the fallback for a build with no art, which is what `_beat_time` picks between.
-	await tree.create_timer(_beat_time(&"collapse", b.knockout_collapse_time)).timeout
+	#
+	# Three timers chained through bound methods rather than three awaits. A coroutine
+	# resumed on a freed instance prints an error before the `is_instance_valid(self)` guard
+	# it was written for can run; a Callable bound to the node is dropped with the node.
+	tree.create_timer(_beat_time(&"collapse", b.knockout_collapse_time)).timeout.connect(_knockout_pile)
 
-	if not is_instance_valid(self):
-		return
+func _knockout_pile() -> void:
 	_set_state(&"pile")
 	AudioManager.play(&"clatter", 0.2)
-	await tree.create_timer(b.knockout_downtime).timeout
+	get_tree().create_timer(ItemDB.balance.knockout_downtime).timeout.connect(_knockout_reassemble)
 
-	if not is_instance_valid(self):
-		return
+func _knockout_reassemble() -> void:
 	_set_state(&"reassemble")
 	AudioManager.play(&"rattle", 0.2)
 	# Moved rather than tweened: he is invisible mid-reassembly anyway (a heap of bones on
 	# the floor), so sliding the heap across the screen would read as the pile skating.
 	global_position = _home_position()
-	await tree.create_timer(_beat_time(&"reassemble", b.knockout_reassemble_time)).timeout
+	var b := ItemDB.balance
+	get_tree().create_timer(_beat_time(&"reassemble", b.knockout_reassemble_time)).timeout.connect(_knockout_stand)
 
-	if not is_instance_valid(self):
-		return
+func _knockout_stand() -> void:
 	freeze = false
 	linear_velocity = Vector2.ZERO
 	health.reset_meter()

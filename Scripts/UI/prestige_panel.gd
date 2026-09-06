@@ -125,7 +125,7 @@ func _refresh() -> void:
 	_ghost.modulate = UIStyle.DOLLARS if worth_taking else UIStyle.TEXT_DIM
 	if not worth_taking:
 		_button.text = "Not yet"
-		_button.icon = UIStyle.glyph(&"lock")
+		UIStyle.set_icon(_button, UIStyle.glyph(&"lock"))
 		_button.disabled = true
 		_button.theme_type_variation = &"Button"
 		UIStyle.tint_button(_button, UIStyle.TEXT_DIM)
@@ -134,13 +134,13 @@ func _refresh() -> void:
 		# knows they are sure, what they need is the consequence spelled out. It is also
 		# the only red button in the game, and it only turns red at this point.
 		_button.text = "Press again to reset"
-		_button.icon = UIStyle.glyph(&"cross")
+		UIStyle.set_icon(_button, UIStyle.glyph(&"cross"))
 		_button.disabled = false
 		_button.theme_type_variation = &"DangerButton"
 		UIStyle.tint_button(_button, UIStyle.PANEL)
 	else:
 		_button.text = "Reincarnate"
-		_button.icon = UIStyle.glyph(&"dollar")
+		UIStyle.set_icon(_button, UIStyle.glyph(&"dollar"))
 		_button.disabled = false
 		_button.theme_type_variation = &"Button"
 		UIStyle.tint_button(_button, UIStyle.DOLLARS)

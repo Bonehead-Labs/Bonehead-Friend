@@ -108,7 +108,7 @@ Then implement it in the same sequential, suite-after-each way as 2.1. The owner
 satisfy: he must walk, not hop; self-motion and settling must not pay or hurt; a throw, a
 drop or a swing still must.
 
-### 2.3 The rest of the assessment's code findings ⬜
+### 2.3 The rest of the assessment's code findings ✅ (2026-09-06, one commit; every item below done — `world_bounds` names its layer bit, `playtime_sec` dropped, 22 button icons through `UIStyle.set_icon`)
 
 All in `docs/assessment-2026-09.md` §1, none started:
 

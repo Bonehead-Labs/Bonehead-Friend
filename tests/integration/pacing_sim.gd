@@ -179,6 +179,7 @@ func _simulate(seconds: float, divisor: float) -> void:
 			_marrow += gain
 			_prestiges += 1
 			_reset_run(false)
+			_invalidate_prices()
 
 func _earn(delta: float, playing: bool) -> void:
 	var b := ItemDB.balance
@@ -247,10 +248,43 @@ func _grant(amount: float, bones: bool) -> void:
 ## a new toy, then automation, then upgrades. Repeats until nothing is affordable, so a
 ## windfall is spent in the same tick it lands.
 func _spend() -> void:
+	# Nothing to scan until a balance crosses the cheapest thing it could not afford last
+	# time. Three full walks of the roster and every open node on every simulated tick made
+	# a 72-hour run take eight minutes; with this it is seconds, and the buyer is unchanged.
+	if _balance(&"bones") < float(_next_price[&"bones"]) \
+			and _balance(&"hearts") < float(_next_price[&"hearts"]):
+		return
 	while true:
 		if _buy_item() or _buy_capstone() or _buy_node():
 			continue
-		return
+		break
+	_record_next_prices()
+
+## The cheapest unaffordable price per currency, or INF when nothing on that side is even
+## gated open. Anything that changes what is for sale — a purchase, a rank crossed, a
+## Reincarnation — resets both to zero so the next tick scans again.
+var _next_price: Dictionary = {&"bones": 0.0, &"hearts": 0.0}
+
+func _invalidate_prices() -> void:
+	_next_price[&"bones"] = 0.0
+	_next_price[&"hearts"] = 0.0
+
+func _record_next_prices() -> void:
+	var cheapest := {&"bones": INF, &"hearts": INF}
+	for item in ItemDB.all_items():
+		if _owned.has(item.id) or item.cost <= 0 or not _requirements_met(item):
+			continue
+		var currency := item.currency_id()
+		cheapest[currency] = minf(float(cheapest[currency]), float(item.cost))
+	for node in _available_nodes():
+		if not node.is_automation and node.exclusive_group != &"" and _has_branch(node):
+			continue
+		var cost := _next_cost(node)
+		if cost < 0.0:
+			continue
+		var currency := node.currency_id()
+		cheapest[currency] = minf(float(cheapest[currency]), cost)
+	_next_price = cheapest
 
 func _buy_item() -> bool:
 	var best: ItemData = null
@@ -423,6 +457,8 @@ func _add_xp(item_id: StringName, amount: float) -> void:
 	var after := MasteryMath.rank_for_xp(b.mastery_base, _xp[item_id], b.mastery_exponent)
 	if after > before:
 		_pool += after - before
+		# A rank can open a node (`requires_mastery`) and the pool discounts every price.
+		_invalidate_prices()
 
 func _rank(item_id: StringName) -> int:
 	var b := ItemDB.balance

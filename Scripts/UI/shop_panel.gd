@@ -289,7 +289,7 @@ func _make_row(item: ItemData) -> Button:
 	row.theme_type_variation = &"ListRow"
 	row.toggle_mode = true
 	row.alignment = HORIZONTAL_ALIGNMENT_LEFT
-	row.icon = UIStyle.item_face(item, ROW_ICON)
+	UIStyle.set_icon(row, UIStyle.item_face(item, ROW_ICON), ROW_ICON)
 	row.custom_minimum_size = Vector2(0, ROW_HEIGHT)
 	row.clip_text = true
 	# An ellipsis rather than a hard cut. The row has always clipped — `ui_stress` even
@@ -522,10 +522,10 @@ func _refresh_detail(active_power: StringName) -> void:
 		if item.is_cursor_power():
 			var equipped := active_power == item.id
 			_detail_action.text = "Unequip" if equipped else "Equip"
-			_detail_action.icon = UIStyle.glyph(&"hand")
+			UIStyle.set_icon(_detail_action, UIStyle.glyph(&"hand"))
 		else:
 			_detail_action.text = "Spawn"
-			_detail_action.icon = UIStyle.glyph(&"spawn")
+			UIStyle.set_icon(_detail_action, UIStyle.glyph(&"spawn"))
 		_detail_action.disabled = false
 		UIStyle.tint_button(_detail_action, UIStyle.TEXT)
 		return
@@ -534,7 +534,7 @@ func _refresh_detail(active_power: StringName) -> void:
 	# amount of money that would change the answer today.
 	if not Progression.can_purchase(item.id):
 		_detail_action.text = "Locked"
-		_detail_action.icon = UIStyle.glyph(&"lock")
+		UIStyle.set_icon(_detail_action, UIStyle.glyph(&"lock"))
 		_detail_action.disabled = true
 		UIStyle.tint_button(_detail_action, UIStyle.TEXT_DIM)
 		_detail_note.text = _requirement_text(item)
@@ -543,7 +543,7 @@ func _refresh_detail(active_power: StringName) -> void:
 	var currency := item.currency_id()
 	var can := Economy.can_afford(currency, float(item.cost))
 	_detail_action.text = UIStyle.format_amount(item.cost)
-	_detail_action.icon = UIStyle.currency_glyph(currency)
+	UIStyle.set_icon(_detail_action, UIStyle.currency_glyph(currency))
 	_detail_action.disabled = false
 	UIStyle.tint_button(_detail_action, UIStyle.currency_colour(currency) if can
 		else UIStyle.TEXT_DIM)

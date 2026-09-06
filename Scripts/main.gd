@@ -104,7 +104,7 @@ func _onboard() -> void:
 	# the player has money and no idea where it goes.
 	EventBus.payout.connect(_on_first_payout)
 
-func _on_first_payout(_currency: StringName, _amount: float, _pos: Vector2) -> void:
+func _on_first_payout(_currency: StringName, _amount: float, _pos: Vector2, _source_id: StringName) -> void:
 	if Settings.hint_seen(HINT_FIRST_BONES):
 		return
 	Settings.mark_hint_seen(HINT_FIRST_BONES)

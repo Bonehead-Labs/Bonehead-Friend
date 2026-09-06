@@ -28,11 +28,15 @@ func _ready() -> void:
 	rebuild()
 	get_viewport().size_changed.connect(rebuild)
 
+## Physics layer bits, by the names Project Settings gives them: 1 world · 2 buddy · 3 item ·
+## 4 handle · 5 pickup · 6 sensor. Bit values, so a bare `1` never has to be read as a layer.
+const LAYER_WORLD := 1 << 0
+
 func _build_walls() -> void:
 	for i in 4:
 		var body := StaticBody2D.new()
-		# Layer 1 = "world" (named in Project Settings). Collides with buddy and items.
-		body.collision_layer = 1
+		# The "world" layer, as named in Project Settings; the buddy and every item mask it.
+		body.collision_layer = LAYER_WORLD
 		body.collision_mask = 0
 		var shape := CollisionShape2D.new()
 		shape.shape = RectangleShape2D.new()

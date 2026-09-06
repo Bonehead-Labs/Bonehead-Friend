@@ -265,10 +265,10 @@ func _rebuild() -> void:
 			# a bare 16px glyph handed to a Button draws at 16px inside a 32px box, which
 			# here read as an empty chip. And *not* `art_icons` — this is a glyph, so it
 			# takes the theme's ink rather than the full white item art needs.
-			chip.icon = UIStyle.boxed(UIStyle.glyph(&"bolt"), CHIP_ICON)
+			UIStyle.set_icon(chip, UIStyle.glyph(&"bolt"), CHIP_ICON)
 			chip.tooltip_text = GLOBAL_NAME
 		else:
-			chip.icon = UIStyle.item_face(item, CHIP_ICON)
+			UIStyle.set_icon(chip, UIStyle.item_face(item, CHIP_ICON), CHIP_ICON)
 			if UIStyle.has_art(item):
 				UIStyle.art_icons(chip)
 			chip.tooltip_text = item.display_name
@@ -639,7 +639,7 @@ func _refresh_card(card: Control) -> void:
 			# that does not exist yet is a button that does nothing when pressed.
 			toggle.visible = owned > 0
 			toggle.text = "ON" if running else "OFF"
-			toggle.icon = UIStyle.glyph(&"bolt" if running else &"lock")
+			UIStyle.set_icon(toggle, UIStyle.glyph(&"bolt" if running else &"lock"))
 			UIStyle.tint_button(toggle, UIStyle.TEAL if running else UIStyle.TEXT_DIM)
 		if output:
 			var item := ItemDB.get_item(node.item_id)
@@ -667,7 +667,7 @@ func _refresh_card(card: Control) -> void:
 	# so pressing it can refuse out loud instead of swallowing the click.
 	buy.text = UIStyle.format_amount(cost) if quoted == 1 else "x%d  %s" % [quoted,
 		UIStyle.format_amount(cost)]
-	buy.icon = UIStyle.currency_glyph(node.currency_id())
+	UIStyle.set_icon(buy, UIStyle.currency_glyph(node.currency_id()))
 	buy.disabled = false
 	UIStyle.tint_button(buy, UIStyle.currency_colour(node.currency_id()) if can_buy > 0
 		else UIStyle.TEXT_DIM)
@@ -774,12 +774,12 @@ func _wear_lock(buy: Button, reason: String) -> void:
 	buy.disabled = true
 	if reason == "maxed":
 		buy.text = "MAX"
-		buy.icon = UIStyle.glyph(&"check")
+		UIStyle.set_icon(buy, UIStyle.glyph(&"check"))
 		UIStyle.tint_button(buy, UIStyle.AFFORDABLE)
 		return
 	if reason == EXCLUDED:
 		buy.text = ""
-		buy.icon = UIStyle.glyph(&"cross")
+		UIStyle.set_icon(buy, UIStyle.glyph(&"cross"))
 		UIStyle.tint_button(buy, UIStyle.LOCKED)
 		return
 	# "requires mastery 25" and "requires reincarnation 2" both carry the one number the
@@ -790,13 +790,13 @@ func _wear_lock(buy: Button, reason: String) -> void:
 			digits = chunk
 	if reason.begins_with("requires mastery") and digits != "":
 		buy.text = digits
-		buy.icon = UIStyle.glyph(&"star")
+		UIStyle.set_icon(buy, UIStyle.glyph(&"star"))
 	elif reason.begins_with("requires reincarnation") and digits != "":
 		buy.text = digits
-		buy.icon = UIStyle.glyph(&"dollar")
+		UIStyle.set_icon(buy, UIStyle.glyph(&"dollar"))
 	else:
 		buy.text = ""
-		buy.icon = UIStyle.glyph(&"lock")
+		UIStyle.set_icon(buy, UIStyle.glyph(&"lock"))
 	UIStyle.tint_button(buy, UIStyle.TEXT_DIM)
 
 ## "+15% damage per level" / "-5% time between uses per level", derived from the data so a

@@ -201,10 +201,16 @@ func _every_colour_can_be_read() -> void:
 ## throwable, so the loudest mechanic in the game was silently gone.
 func _explosives_still_explode() -> void:
 	_suite("explosives")
+	# Freed after the check: two probe bodies made with `.new()` and never freed were the exit-
+	# time "RID allocations leaked" report on every run.
+	var probe_throwable := ThrowableBase.new()
+	var probe_plain := BaseDraggable.new()
 	_check("a throwable claims right-click for its fuse",
-		ThrowableBase.new().right_click_is_mine())
+		probe_throwable.right_click_is_mine())
 	_check("and an ordinary item does not, so it can be thrown away",
-		not BaseDraggable.new().right_click_is_mine())
+		not probe_plain.right_click_is_mine())
+	probe_throwable.free()
+	probe_plain.free()
 
 	var spawner := get_tree().get_first_node_in_group(&"item_spawner") as ItemSpawner
 	var buddy := _buddy()
@@ -576,6 +582,7 @@ func _being_kind_pays_hearts() -> void:
 	var bones_before := Economy.balance_of(Economy.BONES)
 	var mood_before: float = buddy.mood.value if buddy else 0.0
 	EventBus.kindness_given.emit(&"open_hand", 1.0, Vector2(100, 100))
+	Economy.flush_dollars()
 	var earned := Economy.balance_of(Economy.HEARTS) - before
 	_check("a pet pays Hearts", earned > 0.0)
 	_check("and pays no Bones", is_equal_approx(Economy.balance_of(Economy.BONES), bones_before))
@@ -614,8 +621,14 @@ func _being_kind_pays_hearts() -> void:
 func _dollars_count_acts_not_power() -> void:
 	_suite("dollars")
 	var b := ItemDB.balance
+	# Earlier suites hit and petted him without a frame passing, so the till holds their
+	# banked acts. Empty it first: this suite is about the rate of one act.
+	Economy.flush_dollars()
 	var before := Economy.balance_of(Economy.DOLLARS)
 	EventBus.damage_dealt.emit(HitInfo.new(40.0, &"baseball_bat", Vector2(100, 100), 3000.0))
+	# Per-act Dollars are banked and paid on the automation tick; the till is flushed here so
+	# the assertion is about the rate, not the schedule.
+	Economy.flush_dollars()
 	var per_hit := Economy.balance_of(Economy.DOLLARS) - before
 	_check("a hit pays Dollars", per_hit > 0.0)
 	_check("exactly the flat rate", is_equal_approx(per_hit, b.dollars_per_hit))
@@ -625,6 +638,7 @@ func _dollars_count_acts_not_power() -> void:
 	before = Economy.balance_of(Economy.DOLLARS)
 	var bones_before := Economy.balance_of(Economy.BONES)
 	EventBus.damage_dealt.emit(HitInfo.new(4000.0, &"baseball_bat", Vector2(100, 100), 3000.0))
+	Economy.flush_dollars()
 	_check("a hit a hundred times bigger pays a hundred times the Bones",
 		Economy.balance_of(Economy.BONES) - bones_before > 0.0)
 	_check("and exactly the same Dollar",
@@ -632,6 +646,7 @@ func _dollars_count_acts_not_power() -> void:
 
 	before = Economy.balance_of(Economy.DOLLARS)
 	EventBus.kindness_given.emit(&"open_hand", 1.0, Vector2(100, 100))
+	Economy.flush_dollars()
 	_check("a kind act pays its own flat rate", is_equal_approx(
 		Economy.balance_of(Economy.DOLLARS) - before, b.dollars_per_kind_act))
 
@@ -1321,10 +1336,10 @@ func _the_expression_brain_arbitrates() -> void:
 	brain._on_prestige_performed(1.0)
 	_check("a reincarnation", brain.beat_id() == &"reincarnated")
 	brain.clear()
-	brain._on_payout(Economy.BONES, 50000.0, here)
+	brain._on_payout(Economy.BONES, 50000.0, here, &"mace")
 	_check("a big payout is nothing outside Chaos", not brain.beat_active())
 	Settings.focus_intensity = Settings.Intensity.CHAOS
-	brain._on_payout(Economy.BONES, 50000.0, here)
+	brain._on_payout(Economy.BONES, 50000.0, here, &"mace")
 	_check("and smug at Chaos", brain.beat_id() == &"big_payout")
 	brain.clear()
 	Settings.focus_intensity = Settings.Intensity.NORMAL
@@ -2191,6 +2206,10 @@ func _real_physics_produces_hits() -> void:
 	buddy.global_position = Vector2(320, 100)
 	buddy.linear_velocity = Vector2.ZERO
 	buddy.angular_velocity = 0.0
+	# Upright, so he lands flat and the whole impulse arrives in one tick. A body dropped on a
+	# corner takes part of the impact as spin and can land under the fall floor — which is
+	# physics, not a bug, but it is not the measurement this suite is making.
+	buddy.global_rotation = 0.0
 	for i in 90:
 		await get_tree().physics_frame
 	_check("a real collision produced a hit (pos %s vel %s freeze %s down %s lock %s sleeping %s grounded %s)" % [buddy.global_position, buddy.linear_velocity, buddy.freeze, buddy.health.down, buddy.lock_rotation, buddy.sleeping, buddy.is_grounded()], not _observed.is_empty())

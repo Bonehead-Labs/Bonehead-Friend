@@ -84,9 +84,7 @@ func _cooldown_ready() -> bool:
 	return true
 
 func effective_damage_mult() -> float:
-	if item_id == &"":
-		return damage_mult
-	return damage_mult * Progression.get_modifier(item_id, &"damage_mult")
+	return Progression.damage_mult_for(item_id, damage_mult)
 
 # --- subclass hooks --------------------------------------------------------
 

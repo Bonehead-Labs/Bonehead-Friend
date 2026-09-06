@@ -19,7 +19,7 @@ static func new_save() -> Dictionary:
 		"version": SAVE_VERSION,
 		"saved_at_unix": 0,
 		"last_played_unix": 0,
-		"playtime_sec": 0,
+
 		"currencies": {"bones": 0.0, "hearts": 0.0, "dollars": 0.0},
 		"lifetime": {"bones": 0.0, "hearts": 0.0},
 		"prestige": {"marrow": 0.0, "count": 0, "personality": "stoic", "run_earnings": 0.0},

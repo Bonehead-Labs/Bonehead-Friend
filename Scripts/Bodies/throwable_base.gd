@@ -43,10 +43,11 @@ func prime_explosion() -> void:
 		var tween := create_tween().set_loops()
 		tween.tween_property(sprite, "modulate", Color(1.6, 0.6, 0.6), throwable_delay * 0.25)
 		tween.tween_property(sprite, "modulate", Color.WHITE, throwable_delay * 0.25)
-	await get_tree().create_timer(throwable_delay).timeout
-	# The player can bin a primed grenade before it goes off.
-	if is_instance_valid(self):
-		explode()
+	# A bound method, not an `await`. The player can bin a primed grenade before it goes off,
+	# and a coroutine resumed on a freed instance prints "Resumed function after await, but
+	# script is gone" before any guard inside it can run; a Callable bound to the node is
+	# simply dropped when the node dies.
+	get_tree().create_timer(throwable_delay).timeout.connect(explode)
 
 func explode() -> void:
 	# An explosive's "use" is the detonation, not the hit: one that went off in an empty
@@ -69,10 +70,7 @@ func explode() -> void:
 	if sprite:
 		sprite.visible = false
 	EventBus.item_despawned.emit(self)
-	await get_tree().create_timer(0.5).timeout
-	queue_free()
+	get_tree().create_timer(0.5).timeout.connect(queue_free)
 
 func effective_damage_mult() -> float:
-	if item_id == &"":
-		return damage_mult
-	return damage_mult * Progression.get_modifier(item_id, &"damage_mult")
+	return Progression.damage_mult_for(item_id, damage_mult)

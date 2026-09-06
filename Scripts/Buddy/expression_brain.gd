@@ -642,7 +642,7 @@ func _on_milestone_claimed(_id: StringName, _rungs: int, _dollars: int) -> void:
 func _on_prestige_performed(_marrow: float) -> void:
 	react(&"reincarnated")
 
-func _on_payout(_currency: StringName, amount: float, _world_pos: Vector2) -> void:
+func _on_payout(_currency: StringName, amount: float, _world_pos: Vector2, _source_id: StringName) -> void:
 	# The cheap test first: this fires on every hit and every pet.
 	if Settings.focus_intensity != Settings.Intensity.CHAOS or amount < 1.0:
 		return

@@ -221,9 +221,17 @@ func affordable_augment_levels(node_id: StringName) -> int:
 ## Combined multiplier for one effect on one source: the item's own nodes and every
 ## &"global" node, multiplied together. 1.0 when nothing applies.
 func get_modifier(source_id: StringName, effect_key: StringName) -> float:
-	var key := "%s/%s" % [source_id, effect_key]
-	if _modifier_cache.has(key):
-		return float(_modifier_cache[key])
+	# Nested StringName dictionaries, not a formatted String key. This is the hottest lookup
+	# in the game — every payout asks it several times, sixty times a second under a turret —
+	# and the old `"%s/%s"` built and hashed a fresh String on every one of them.
+	var per_source: Dictionary
+	if _modifier_cache.has(source_id):
+		per_source = _modifier_cache[source_id]
+		if per_source.has(effect_key):
+			return float(per_source[effect_key])
+	else:
+		per_source = {}
+		_modifier_cache[source_id] = per_source
 
 	var entries: Array = []
 	for node in ItemDB.augments_for(source_id):
@@ -235,8 +243,15 @@ func get_modifier(source_id: StringName, effect_key: StringName) -> float:
 				entries.append([node.effect_per_level, augment_level(node.id)])
 
 	var value := AugmentMath.total_modifier(entries)
-	_modifier_cache[key] = value
+	per_source[effect_key] = value
 	return value
+
+## The one place the "item's own multiplier times its damage nodes" product lives. Five
+## classes — weapon, throwable, cursor power, turret, animal — each had their own copy.
+func damage_mult_for(item_id: StringName, base: float) -> float:
+	if item_id == &"":
+		return base
+	return base * get_modifier(item_id, &"damage_mult")
 
 # --- mastery ---------------------------------------------------------------
 

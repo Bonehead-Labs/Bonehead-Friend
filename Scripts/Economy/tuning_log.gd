@@ -58,8 +58,8 @@ func _notification(what: int) -> void:
 
 # --- events ----------------------------------------------------------------
 
-func _on_payout(currency: StringName, amount: float, _world_pos: Vector2) -> void:
-	_row("payout", String(currency), amount, "")
+func _on_payout(currency: StringName, amount: float, _world_pos: Vector2, source_id: StringName) -> void:
+	_row("payout", String(currency), amount, String(source_id))
 
 func _on_item_purchased(item_id: StringName) -> void:
 	var item := ItemDB.get_item(item_id)

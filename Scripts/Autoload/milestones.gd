@@ -60,7 +60,8 @@ func _process(delta: float) -> void:
 		return
 	_poll = 0.0
 	_refresh_self_counters()
-	_award()
+	for key in SELF_KEYS:
+		_award_for(key)
 
 ## The third income axis, multiplied into every payout. One number, cached.
 func income_multiplier() -> float:
@@ -85,11 +86,28 @@ func status(milestone: MilestoneData) -> Array:
 	var claimed := rungs_claimed(milestone.id)
 	return [claimed, progress_of(milestone.goal_key), milestone.next_target(claimed)]
 
+## goal_key -> Array of MilestoneData watching it. Built once, lazily, from the board: an
+## event used to walk every milestone on the board to find the one or two that cared, and
+## `contract_event` fires on every hit.
+var _by_key: Dictionary = {}
+
+func _watchers(key: StringName) -> Array[MilestoneData]:
+	if _by_key.is_empty():
+		for milestone in ItemDB.all_milestones():
+			if not _by_key.has(milestone.goal_key):
+				var fresh: Array[MilestoneData] = []
+				_by_key[milestone.goal_key] = fresh
+			(_by_key[milestone.goal_key] as Array[MilestoneData]).append(milestone)
+	if not _by_key.has(key):
+		var none: Array[MilestoneData] = []
+		return none
+	return _by_key[key]
+
 func _on_contract_event(key: StringName, count: int) -> void:
 	if count <= 0:
 		return
 	_progress[key] = progress_of(key) + float(count)
-	_award()
+	_award_for(key)
 
 ## Totals rather than events. `automation_rate` is a rate rather than an accumulation, so it
 ## is the one counter that can go *down* — a player who switches a device off has not
@@ -114,9 +132,14 @@ func _refresh_self_counters() -> void:
 ## lifetime Bones past two rungs of a x10 ladder in one tick, and paying one of them would
 ## quietly lose the other forever.
 func _award() -> void:
+	for key in _progress.keys():
+		_award_for(key)
+
+## The same, for the milestones watching one key — which is what an event actually changed.
+func _award_for(key: StringName) -> void:
 	var dirty := false
-	for milestone in ItemDB.all_milestones():
-		var progress := progress_of(milestone.goal_key)
+	var progress := progress_of(key)
+	for milestone in _watchers(key):
 		var reached := milestone.rungs_at(progress)
 		var claimed := rungs_claimed(milestone.id)
 		if reached <= claimed:

@@ -419,10 +419,15 @@ func _attack() -> void:
 	AudioManager.play(&"npc_roar", 0.12, -8.0, clampf(2.4 / maxf(sqrt(mass), 0.8), 0.6, 1.8))
 	# And a face: the buddy's expression watches the tell.
 	EventBus.threat_changed.emit(&"windup", global_position, 1.0)
-	await tree.create_timer(windup_seconds).timeout
+	# Bound methods, not awaits: an animal binned mid-swing would have its coroutine resumed
+	# on a freed instance, which errors before any guard inside it runs. A Callable bound to
+	# the node is dropped with it, and the token still catches every other way the swing can
+	# stop belonging to the world it started in.
+	tree.create_timer(windup_seconds).timeout.connect(_swing.bind(token))
+
+func _swing(token: int) -> void:
 	if not _swing_still_valid(token):
 		return
-
 	_play(&"attack")
 	if is_instance_valid(_buddy) and _land_blow(_buddy):
 		# Only a blow that connected is billed. A contract that counts uses of the gorilla is
@@ -431,14 +436,16 @@ func _attack() -> void:
 	EventBus.threat_changed.emit(&"windup", global_position, 0.0)
 
 	_set_state(STATE_RECOVER)
-	await tree.create_timer(_recover_seconds()).timeout
+	get_tree().create_timer(_recover_seconds()).timeout.connect(_recovered.bind(token))
+
+func _recovered(token: int) -> void:
 	if not _swing_still_valid(token):
 		return
 	_set_state(STATE_IDLE)
 
-## Whether the swing that started this coroutine still belongs to the world it started in.
+## Whether the swing that started this still belongs to the world it started in.
 func _swing_still_valid(token: int) -> bool:
-	if not is_instance_valid(self) or is_queued_for_deletion():
+	if is_queued_for_deletion():
 		return false
 	return token == _swing_token and not dragging and not _leaving
 
@@ -539,9 +546,7 @@ func _shake_grapple() -> void:
 
 ## What Bonehead multiplies the impulse by, read the way a weapon and a turret both read it.
 func effective_damage_mult() -> float:
-	if item_id == &"":
-		return damage_mult
-	return damage_mult * Progression.get_modifier(item_id, &"damage_mult")
+	return Progression.damage_mult_for(item_id, damage_mult)
 
 # --- arriving and leaving --------------------------------------------------
 

@@ -23,6 +23,8 @@ extends BaseDraggable
 @export var relaunch_cooldown: float = 0.25
 
 var _next_launch: Dictionary = {}
+## Above this many remembered bodies, expired entries are swept.
+const SWEEP_AT := 32
 
 func _ready() -> void:
 	super._ready()
@@ -44,6 +46,12 @@ func _physics_process(delta: float) -> void:
 		var id := rigid.get_instance_id()
 		if now < int(_next_launch.get(id, 0)):
 			continue
+		# Swept like the buddy's own hit cooldowns: instance ids are never reused, so a mat
+		# left out all day otherwise remembers every prop that ever bounced off it.
+		if _next_launch.size() >= SWEEP_AT:
+			for key in _next_launch.keys():
+				if now >= int(_next_launch[key]):
+					_next_launch.erase(key)
 		_next_launch[id] = now + int(relaunch_cooldown * 1000.0)
 		var launch := maxf(falling * bounce_gain, minimum_launch)
 		rigid.linear_velocity = Vector2(rigid.linear_velocity.x, -launch)

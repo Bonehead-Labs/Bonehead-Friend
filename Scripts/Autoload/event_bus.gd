@@ -16,7 +16,10 @@ signal kindness_given(source_id: StringName, value: float, world_pos: Vector2)
 ## outside the combo multiplier — a combo is a reward for repeated *acts*, and a box left
 ## switched on would otherwise sit at the 3x ceiling forever (docs/economy.md).
 signal kindness_sustained(source_id: StringName, value: float, world_pos: Vector2)
-signal payout(currency: StringName, amount: float, world_pos: Vector2)
+## `source_id` is the item that earned it (`&"automation"`, `&"acts"` for banked Dollars,
+## `&""` for a grant with no source such as a contract claim) — so the tuning CSV can say
+## which toy the money came from, which the Aug 31 log could not.
+signal payout(currency: StringName, amount: float, world_pos: Vector2, source_id: StringName)
 signal currency_changed(currency: StringName, balance: float)
 
 # --- items ---
