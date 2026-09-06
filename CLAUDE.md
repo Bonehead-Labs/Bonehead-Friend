@@ -408,4 +408,13 @@ there, never a `connect` somewhere else. All code motion is an accumulator folde
 overwritten a frame later. At Focus Off he reacts as face and tag only, with zero amplitude, and
 initiates nothing. The brain has no `_process`: one re-armed `Timer` and a `_clock_skew` the
 suites advance instead of winding timestamps back past zero. F3 prints his beat, arousal,
-attention and away clock.
+attention and away clock. **Personality is on the surface too**: six tell fields on
+`PersonalityData` (hurt face, celebration face, face swaps, amplitude, fidget period, early
+flinch) that touch no number (D19); edit them through `tools/seed_m38_personality_tells.tscn`,
+never by hand.
+
+**The last mile is built** (worklist §5): the damage streak and kindness combo are drawn and
+heard but the streak pays nothing; the Deeds tab lists every milestone with its next rung; the
+HUD links to Reincarnation once a run is worth a Marrow; the welcome is a Dream Journal
+(`Data/dreams.txt`) with a small timed buff; the offline cap is sold on the Reincarnation page.
+Streak, buff and cap prices are `BalanceData` knobs.

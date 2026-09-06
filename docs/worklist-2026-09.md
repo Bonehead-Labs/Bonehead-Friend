@@ -174,3 +174,26 @@ The Retro Diffusion MCP was not connected in the sessions that did this work (`d
 - Whether the pacing simulator's new attention model (favourite + five newest toys) is the
   player you want it to model. It is what the Aug 31 session showed; it is not what the docs
   described before.
+
+---
+
+## 5. The stickiness pass (2026-09-06, evening) ✅
+
+Done after §0–§2.4 on the owner's standing instruction to act as project lead. Four commits,
+each closing an open item from `assessment-2026-09.md` §4's "ten changes by impact per effort",
+all code, no art, suites green after each:
+
+| # | What | Where | Commit |
+|---|---|---|---|
+| 5.1 | **Streak and combo drawn and heard.** `Economy.damage_streak()` (presentation only — pays nothing, asserted); FXLayer tags `x7` / `x1.3` above the number; impact pitch +3%/hit, kindness chime +5%/act | `economy.gd`, `fx_layer.gd`, `audio_manager.gd` | `b51e148` |
+| 5.2 | **Deeds page** (sixth tab: every milestone with its next rung, secrets masked, the record) and the HUD's **"Reincarnate for +N Marrow"** link (opens the Arcade scrolled to Rebirth, never resets) | `deeds_panel.gd`, `hud.gd`, `panel_layer.gd`, `EventBus.ui_show_panel` | `0ef373a` |
+| 5.3 | **Personality on the surface** (expressive plan Phase 2): six tell fields on `PersonalityData`, nine `.tres` written by `tools/seed_m38_personality_tells.tscn`, the mood row names him | `personality_data.gd`, `expression_brain.gd`, `buddy_art.gd`, `hud.gd` | `b3b7bc6` |
+| 5.4 | **Dream Journal** welcome (`Data/dreams.txt`, x1.15 for 5 min, the cap sting said once) and the **offline cap for sale** on the Reincarnation page (2 h → 8 h → 24 h for 4,000 / 40,000 Hearts) | `main.gd`, `economy.gd`, `balance_data.gd`, `prestige_panel.gd` | `19df327` |
+
+Counts after: **unit 216 · loop 571 · ui 250 · pacing 4/4 (9:16)**. Tree clean.
+
+Still open from the assessment's list, and why: music (audio pass); a cosmetics store (hat art,
+§3); the idle mood floor, the arcade boost and whether the arcade is in the demo (owner, §4);
+Martyr/Tyrant/Stoic tells (owner, plan §8 item 4). New owner decisions this pass added: the
+Dream buff's size (x1.15 / 5 min is a knob), the sleep prices (knobs), and whether a damage
+streak should ever pay (it deliberately does not).

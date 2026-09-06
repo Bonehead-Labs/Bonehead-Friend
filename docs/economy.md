@@ -429,10 +429,15 @@ earnings = automation_rate_per_second × elapsed × balance.offline_efficiency
   deliberately not mood, item augments or item rank (see Automation above).
 - `offline_efficiency` starts at **0.5** — idle-while-closed should be worse than idle-while-open,
   or the game's own pitch (keep it on your desktop) is undermined.
-- Cap starts at **2 hours**, upgradeable with Hearts to 8 then 24. Capping is load-bearing: an
+- Cap starts at **2 hours**, upgradeable with Hearts to 8 then 24 — `balance.offline_cap_hours_ladder`,
+  sold on the Reincarnation page ("Between lives") for `balance.offline_cap_cost_hearts`
+  (4,000 then 40,000), because the cap is meta and survives the reset. Capping is load-bearing: an
   uncapped accumulator removes the reason to return, and the small sting of a hit cap is what
   drives the next session.
 - Only automation earns offline. Active-play income does not accrue.
+- The return is a beat, not a receipt: the welcome toast carries a line from `Data/dreams.txt`
+  and a small timed buff (`dream_boost_multiplier` x `dream_boost_minutes`, x1.15 for 5 minutes,
+  through the arcade's shared timed slot), and says once when the cap was what decided the number.
 - **Always clamp negative elapsed to zero** — clock changes, timezone shifts and cloud-sync skew
   are all real and all exploitable.
 
