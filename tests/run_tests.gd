@@ -70,6 +70,7 @@ func _initialize() -> void:
 	_suite("damage and payout")
 	_test_impulse_below_threshold_is_free()
 	_test_damage_scales_with_weapon()
+	_test_contact_floor_by_source()
 	_test_payout_applies_every_multiplier()
 	_test_knockout_bonus_is_soft_capped()
 	_test_kindness_combo_ceiling()
@@ -410,6 +411,16 @@ func _test_damage_scales_with_weapon() -> void:
 	var heavy: float = Math.damage_from_impulse(4000.0, 350.0, 0.01, 1.35)
 	_check("weapon multiplier applies", is_equal_approx(heavy, plain * 1.35))
 	_check("negative multiplier cannot pay", Math.damage_from_impulse(4000.0, 350.0, 0.01, -2.0) == 0.0)
+
+## The fall floor (docs/plan-movement-hitboxes.md). Who put the energy in decides which floor a
+## contact has to clear: a swing for the harm side, a fall for the world and kind items.
+func _test_contact_floor_by_source() -> void:
+	_check("the harm side needs a swing", Math.contact_floor(true, 350.0, 1500.0) == 350.0)
+	_check("the world and kind items need a fall", Math.contact_floor(false, 350.0, 1500.0) == 1500.0)
+	_check("the fall floor is never below the swing floor", Math.contact_floor(false, 350.0, 100.0) == 350.0)
+	_check("a self-landing is under the fall floor", Math.damage_from_impulse(703.0, Math.contact_floor(false, 350.0, 1500.0), 0.01, 1.0) == 0.0)
+	_check("a drop from above his head is over it", Math.damage_from_impulse(1878.0, Math.contact_floor(false, 350.0, 1500.0), 0.01, 1.0) > 0.0)
+	_check("a bat lay-on still pays at the swing floor", Math.damage_from_impulse(350.0, Math.contact_floor(true, 350.0, 1500.0), 0.01, 1.0) > 0.0)
 
 func _test_payout_applies_every_multiplier() -> void:
 	# base 10, x0.6 mood, x2 augments, x1.1 mastery, x1.5 prestige

@@ -17,7 +17,9 @@ extends Node
 ## **He is a rigid body, so he is moved by pushing him.** Nothing in this file writes
 ## `global_position`, `linear_velocity` or `rotation` — the drag joint, the contact-impulse
 ## damage model and every collision assumption in the game are built on him being simulated
-## rather than placed, and one teleport is enough to break all three.
+## rather than placed, and one teleport is enough to break all three. It does hold
+## `lock_rotation` while it drives him, the way `NpcBase` does for its animals: a character,
+## not a prop. The lock comes off the moment he stands down, so a throw still tumbles.
 ##
 ## ### The one rule about money
 ##
@@ -117,25 +119,42 @@ const ARRIVE_SLACK := 20.0
 
 # --- how he moves ----------------------------------------------------------
 
-## Proportional gain on the gap between his current speed and his walking speed.
+## Proportional gain on the gap between his current speed and his walking speed, on top of
+## friction paid for up front (docs/plan-movement-hitboxes.md §2).
 ##
-## It has to beat friction before he moves at all: Godot's default body friction is 1.0, so
-## the floor resists a sliding body with about `mass * gravity` — near 3,000 for a 3-mass
-## skeleton at the project's 980 — and a polite nudge does nothing whatsoever. At a full gap
-## this reaches roughly three times that, which starts him inside a fifth of a second, and it
-## settles on its own because the push shrinks as the gap closes.
-const WALK_GAIN := 30.0
+## Godot's default body friction is 1.0, so the floor resists a sliding body with about
+## `mass * gravity` — near 3,000 for a 3-mass skeleton at the project's 980. The old gain of
+## 30 was there to beat that, and a bare P-controller against a constant disturbance never
+## reaches its target: he cruised at 84 px/s of the 117 the code derived, and the 10,500 N
+## kick at every start tipped him onto a corner. Now `_walk` adds `direction * m * g` as
+## feed-forward, so steady state is push = friction at zero gap and he cruises at the full
+## walking speed, and this term only has to close the gap.
+const WALK_GAIN := 12.0
+## The push is clamped at this many g's worth of force. 2.5 bounds the reversal kick at
+## 7,350 N (it was 21,000) and still starts him inside a tenth of a second.
+const WALK_PUSH_G := 2.5
 
-## Vertical speed below which he counts as standing on something. Only used to decide whether
-## a climb would do anything; nothing here needs to know what he is standing *on*.
-const GROUNDED_SPEED := 50.0
-
-## Clearance above a toy's top edge that a climb aims for, and the ceiling on one.
-## 640 px/s is a rise of about 209 px, which is taller than anything in the roster.
-const CLIMB_CLEARANCE := 28.0
-const MAX_CLIMB_SPEED := 640.0
-## Shortest gap between climb attempts, so a stall is four or five tries rather than sixty.
-const CLIMB_INTERVAL := 0.55
+## A climb is the exception, not the gait. Clearance above a toy's top edge that one aims for
+## — 12 px, not 28: the 28 was compensating for a rect that put his feet 32 px above where
+## they are, and every landing was a 703-impulse fall — and the ceiling on one: 500 px/s is a
+## rise of 128 px, his own height, so a missed climb lands at the fall floor rather than over
+## it (docs/plan-movement-hitboxes.md §3).
+const CLIMB_CLEARANCE := 12.0
+const MAX_CLIMB_SPEED := 500.0
+## Shortest gap between climb attempts, so a stall is four or five tries rather than fourteen;
+## and the most per trip, because a bounded count is a stronger guarantee than a timer against
+## a toy pinned somewhere he can never reach.
+const CLIMB_INTERVAL := 1.5
+const MAX_CLIMBS_PER_TRIP := 3
+## How long "not reached" has to persist while playing before he tries a climb — the same
+## "walking has stopped working" rule travelling already applies through its stall.
+const CLIMB_PATIENCE := 1.5
+## The lean, as a multiple of his own weight: over his friction (1.0), under his friction plus
+## the lightest toy he walks to (the 0.3-mass rubber duck adds 0.1), so he creeps the last
+## twenty pixels and stops against anything.
+const LEAN_G := 1.05
+## He does not set off lying on his side. Rotation is locked for the trip.
+const START_UPRIGHT_DEG := 20.0
 
 ## The side-to-side shuffle he does at a boombox. Horizontal only, deliberately: a hopping
 ## dance lands him above `min_damage_impulse` every bar, and dancing must not hurt.
@@ -188,6 +207,10 @@ var _routine := ROUTINE_NONE
 var _phase: StringName = PHASE_WATCHING
 var _phase_seconds := 0.0
 var _stalled_seconds := 0.0
+## Seconds spent "not reached" while playing, and climbs so far this trip — the two gates that
+## make a climb the exception (docs/plan-movement-hitboxes.md §2).
+var _lost_seconds := 0.0
+var _climbs_this_trip := 0
 var _best_distance := INF
 var _moved_since_think := false
 
@@ -237,6 +260,8 @@ func _ready() -> void:
 ## think window of Hearts.
 func _exit_tree() -> void:
 	_flush()
+	if is_instance_valid(_buddy):
+		_buddy.lock_rotation = false
 
 # --- the loop --------------------------------------------------------------
 
@@ -262,6 +287,10 @@ func _think() -> void:
 
 func _consider_starting() -> void:
 	if Time.get_ticks_msec() - _last_disturbance_msec < int(IDLE_SECONDS * 1000.0):
+		return
+	# Rotation is locked for the trip, so setting off from his side would walk him across the
+	# desk on his face. Nothing rights him but the out-of-bounds rescue; he waits.
+	if absf(wrapf(_buddy.rotation, -PI, PI)) > deg_to_rad(START_UPRIGHT_DEG):
 		return
 	var pick := _choose_toy()
 	if pick == null:
@@ -305,7 +334,12 @@ func _tick_play() -> void:
 ## Steering. Runs only while he is going somewhere and never when Focus Mode is Off, so the
 ## per-frame cost of this feature is zero for the whole of a session spent playing normally.
 func _physics_process(delta: float) -> void:
-	if _buddy == null or _phase == PHASE_WATCHING or _buddy.freeze or _buddy.dragging:
+	if _buddy == null or _phase == PHASE_WATCHING:
+		return
+	if _buddy.freeze or _buddy.dragging:
+		# Picked up mid-stride: the stride ends this frame, not when the bob decays.
+		if _buddy.art:
+			_buddy.art.stop_travelling()
 		return
 	if _buddy.linear_velocity.length() > MOTION_FLOOR:
 		_moved_since_think = true
@@ -319,48 +353,74 @@ func _physics_process(delta: float) -> void:
 		return
 
 	var reached := _touching_target()
+	var direction := signf(_target.global_position.x - _buddy.global_position.x)
 	if _phase == PHASE_TRAVELLING:
 		if reached:
 			_enter(PHASE_PLAYING)
 		else:
-			_walk(signf(_target.global_position.x - _buddy.global_position.x))
-			# Only when walking has stopped working: a climb costs him a landing, and a
-			# hopping walk would put one impact above `min_damage_impulse` under him every
-			# stride — a Bones firehose dressed up as locomotion.
+			_walk(direction)
+			# Only when walking has stopped working: a climb is a hop, and a hopping walk is
+			# not a walk. `_climb` has its own gates on top of the stall.
 			if _stalled_seconds > 0.0:
 				_climb()
 		return
 
 	# Playing. The steer never stops, so a skeleton who rolls out of the hot tub climbs back
-	# in rather than sitting beside it earning nothing for the rest of his dwell.
+	# in rather than sitting beside it earning nothing for the rest of his dwell — but with
+	# the same patience the travelling branch has: walk first, and climb only once walking
+	# has visibly stopped working.
 	if not reached:
-		_walk(signf(_target.global_position.x - _buddy.global_position.x))
-		_climb()
+		_lost_seconds += delta
+		_walk(direction)
+		if _lost_seconds >= CLIMB_PATIENCE:
+			_climb()
+		return
+	_lost_seconds = 0.0
+	if _routine == ROUTINE_PLAY:
+		_jig()
+	elif not _in_contact():
+		# "Reached" fires a little before real contact, and the toy pays only on real
+		# contact. The last twenty pixels are a lean, not a walk.
+		_lean(direction)
 	elif _routine == ROUTINE_BOUNCE:
 		# The mat does the work; this is only the shove that gets him going again once a
-		# bounce has died out.
-		_climb()
-	elif _routine == ROUTINE_PLAY:
-		_jig()
+		# bounce has died out. Its launch is external energy and pays, by design.
+		_climb(true)
 
-## Pushed at his feet rather than through his middle: a horizontal shove at the centre of a
-## box standing on a floor is a torque before it is a translation, and the first thing it does
-## is tip him onto his face.
+## Pushed through his middle, bounded, with friction paid for up front. Central, because
+## rotation is locked while the brain drives him: the old shove "at his feet" was aimed 32 px
+## above them by a rect half his real size, and a 3x-friction push there tipped him onto a
+## corner at every start. Feed-forward of `direction * m * g` (Godot's default friction of
+## 1.0) plus a gentle proportional term means steady state is push = friction at zero gap, so
+## he reaches the walking speed the code derives instead of settling 30% under it, and the
+## clamp bounds the reversal kick when he crosses a toy's centre.
 func _walk(direction: float) -> void:
 	if is_zero_approx(direction):
 		return
-	# Tell his art which way he is going before the early-out below. He is still walking when
-	# he is already at top speed and needs no push this tick — that is precisely when he is
-	# walking hardest — and reporting travel only on the frames that happened to need force
-	# made the bob stutter at exactly the moment it should have been steadiest.
+	# Tell his art which way he is going, every tick he is walking. He is still walking when
+	# he is already at top speed — that is precisely when he is walking hardest — and
+	# reporting travel only on the frames that happened to need force made the bob stutter at
+	# exactly the moment it should have been steadiest.
 	if _buddy.art:
 		var top := _walk_speed()
 		var effort := 1.0 if top <= 0.0 else clampf(absf(_buddy.linear_velocity.x) / top, 0.35, 1.0)
 		_buddy.art.travel(direction, effort)
+	var weight := _buddy.mass * _gravity
 	var gap := direction * _walk_speed() - _buddy.linear_velocity.x
-	if absf(gap) < 1.0:
+	var limit := WALK_PUSH_G * weight
+	var push := clampf(direction * weight + gap * _buddy.mass * WALK_GAIN, -limit, limit)
+	_buddy.apply_central_force(Vector2(push, 0.0))
+
+## The last twenty pixels. With his real rect, "reached" fires a little before contact, and
+## `FriendlyBase` pays only on real collision — so he leans in: a push just over his own
+## friction and under his friction plus the lightest toy he walks to, so he creeps and stops
+## against anything, including a hot tub or a toy pinned on a wall.
+func _lean(direction: float) -> void:
+	if is_zero_approx(direction):
 		return
-	_buddy.apply_force(Vector2(gap * _buddy.mass * WALK_GAIN, 0.0), _foot_offset())
+	if _buddy.art:
+		_buddy.art.travel(direction, 0.35)
+	_buddy.apply_central_force(Vector2(direction * _buddy.mass * _gravity * LEAN_G, 0.0))
 
 ## Top walking speed, derived rather than picked: a body arriving at `min_damage_impulse`
 ## divided by its own mass is, by definition, the fastest one whose contact cannot register
@@ -373,16 +433,32 @@ func _walk_speed() -> float:
 ## One attempt at getting on top of whatever he is walking into. `v = sqrt(2 g h)` is the
 ## speed that just clears a rise of `h`, measured from his own feet to the toy's top edge —
 ## so the same line steps over a sponge and climbs into a hot tub without a table of heights.
-func _climb() -> void:
+##
+## The exception, not the gait, so it is gated five ways: the interval; standing on something
+## (a *contact*, from the buddy's own normals — a velocity test re-fired at the apex of any
+## hop); pressed against something, which is what "walking has stopped working" looks like
+## from here; a bounded count per trip; and only when the toy's top is actually above his
+## feet, because a hop cannot help with a beanbag that is not. The trampoline routine passes
+## `minimum_hop`: standing on the mat, the smallest hop is the shove that restarts a bounce,
+## and the mat's launch is external energy that should pay.
+func _climb(minimum_hop: bool = false) -> void:
 	if _climb_timer > 0.0 or not is_instance_valid(_target):
 		return
-	if absf(_buddy.linear_velocity.y) > GROUNDED_SPEED:
+	if not _buddy.is_grounded():
 		return
-	_climb_timer = CLIMB_INTERVAL
+	if not minimum_hop:
+		if _climbs_this_trip >= MAX_CLIMBS_PER_TRIP:
+			return
+		if absf(_buddy.linear_velocity.x) >= MOTION_FLOOR:
+			return
 	var feet := _buddy.get_interaction_rect().end.y
 	var top := _rect_of(_target).position.y
-	var rise := maxf(0.0, feet - top) + CLIMB_CLEARANCE
-	var speed := minf(sqrt(2.0 * _gravity * rise), MAX_CLIMB_SPEED)
+	var rise := feet - top
+	if rise <= 0.0 and not minimum_hop:
+		return
+	_climb_timer = CLIMB_INTERVAL
+	_climbs_this_trip += 1
+	var speed := minf(sqrt(2.0 * _gravity * (maxf(rise, 0.0) + CLIMB_CLEARANCE)), MAX_CLIMB_SPEED)
 	_buddy.apply_central_impulse(Vector2(0.0, -_buddy.mass * speed))
 
 ## The dance. A shuffle rather than a hop, and never *into* the generator: steering him at a
@@ -403,12 +479,6 @@ func _wander_direction() -> float:
 	elif x > rect.end.x - WANDER_MARGIN:
 		_wander_dir = -1.0
 	return _wander_dir
-
-## Below his centre of mass in world space, which is where a sliding body wants to be pushed.
-## `apply_force`'s offset is not rotated by the body, so this stays under him however he has
-## ended up lying.
-func _foot_offset() -> Vector2:
-	return Vector2(0.0, _buddy.get_interaction_rect().size.y * 0.5)
 
 # --- choosing a toy --------------------------------------------------------
 
@@ -611,11 +681,21 @@ func _enter(phase: StringName) -> void:
 	_phase = phase
 	_phase_seconds = 0.0
 	_stalled_seconds = 0.0
+	_lost_seconds = 0.0
+	_climbs_this_trip = 0
 	_best_distance = INF
 	_moved_since_think = false
 	_climb_timer = 0.0
 	_jig_timer = 0.0
 	set_physics_process(phase != PHASE_WATCHING and not _focus_off())
+	if is_instance_valid(_buddy):
+		# A character, not a prop, for exactly as long as the brain is driving him. Unlocked
+		# the moment he stands down — synchronously on pick-up, through `dragged` →
+		# `_disturb` → here — so the pin joint never swings a locked body and a throw still
+		# tumbles exactly as it did.
+		_buddy.lock_rotation = phase != PHASE_WATCHING
+		if phase == PHASE_WATCHING and _buddy.art:
+			_buddy.art.stop_travelling()
 	phase_changed.emit(phase, _routine, _target_id)
 
 func _cool(toy: Node2D, seconds: float) -> void:
@@ -672,7 +752,18 @@ func _focus_off() -> bool:
 ## question — a radius would have to be sized for the biggest prop in the roster and would
 ## then call him "arrived" a body's width from a sponge.
 func _touching_target() -> bool:
-	return _rect_of(_target).grow(ARRIVE_SLACK).intersects(_buddy.get_interaction_rect())
+	if not is_instance_valid(_target):
+		return false
+	if _rect_of(_target).grow(ARRIVE_SLACK).intersects(_buddy.get_interaction_rect()):
+		return true
+	# Or real contact, which is what the toy pays on — so "reached" and "paid" can never
+	# disagree about whether he is there.
+	return _in_contact()
+
+## Actually touching it, as the physics server sees it — the same question
+## `FriendlyBase._touching_buddy()` asks before it pays.
+func _in_contact() -> bool:
+	return is_instance_valid(_target) and _target in _buddy.get_colliding_bodies()
 
 func _rect_of(node: Node2D) -> Rect2:
 	var body := node as BaseDraggable

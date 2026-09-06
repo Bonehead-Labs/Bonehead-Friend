@@ -67,6 +67,17 @@ const LANDING_SPEED := 250.0
 ## Flung about while held faster than this reads as being shaken.
 const SHAKE_SPEED := 900.0
 
+## Standing on something, from the contact normals the damage loop already reads: any contact
+## whose normal points up into him. Read by the idle brain's climb — a velocity test re-fires
+## at the apex of a hop; a contact test does not. Stale while the body sleeps, and nothing
+## reads it then. The sign convention is pinned by a loop_check assertion, because it is the
+## one thing in docs/plan-movement-hitboxes.md nobody could verify on paper.
+var _grounded := false
+const GROUND_NORMAL_Y := -0.7
+
+func is_grounded() -> bool:
+	return _grounded
+
 func _ready() -> void:
 	super._ready()
 	add_to_group(GROUP_BUDDY)
@@ -224,14 +235,42 @@ func _integrate_forces(state_: PhysicsDirectBodyState2D) -> void:
 		expression.notice_airborne(state_.get_contact_count() == 0 and not freeze,
 			state_.linear_velocity)
 	_prev_vy = vy
+	var contacts := state_.get_contact_count()
+	_grounded = false
+	for i in contacts:
+		if state_.get_contact_local_normal(i).y < GROUND_NORMAL_Y:
+			_grounded = true
+			break
 	if health == null or health.down:
 		return
 	var b := ItemDB.balance
-	for i in state_.get_contact_count():
-		var impulse: float = state_.get_contact_impulse(i).length()
+	for i in contacts:
+		var src := state_.get_contact_collider_object(i)
+		# One impact, one measurement. A body landing flat — and with rotation locked while
+		# the idle brain drives him, he lands flat — splits one impact across two manifold
+		# points on the same collider, each carrying half. He took the whole of it, so the
+		# points are summed per collider; a free body landing on a corner is the same sum
+		# with one term. Earlier points already folded this collider in, so skip repeats.
+		# Quadratic in at most eight contacts, and it allocates nothing.
+		var repeat := false
+		for j in i:
+			if state_.get_contact_collider_object(j) == src:
+				repeat = true
+				break
+		if repeat:
+			continue
+		var total := state_.get_contact_impulse(i)
+		for k in range(i + 1, contacts):
+			if state_.get_contact_collider_object(k) == src:
+				total += state_.get_contact_impulse(k)
+		var impulse := total.length()
+		# Cheapest reject first: resting contact is 49 a tick.
 		if impulse < b.min_damage_impulse:
 			continue
-		var src := state_.get_contact_collider_object(i)
+		# Then who put the energy in — before the cooldown, so a self-contact that is
+		# discarded here never stamps the cooldown a real hit would then eat.
+		if impulse < _min_impulse_for(src, b):
+			continue
 		if not _cooldown_ready(src, b.damage_cooldown):
 			continue
 		var attribution := _attribute(src)
@@ -268,6 +307,48 @@ func _deal(info: HitInfo) -> void:
 	# knockout on this frame finds the state it is supposed to pay out against.
 	_react(&"hurt")
 	health.apply_damage(info.amount)
+
+## The floor this contact has to clear, by what he touched (docs/plan-movement-hitboxes.md).
+## The world and kind-side items need a fall; harm-side items need a swing. Asked of the data
+## (`ItemData.is_kind`), so a new comfort item is classified by the seed tool that wrote it
+## and never by an edit here. Two deliberate exceptions: a `Trampoline` is kind-side data but
+## its launch is external energy and the idle brain's Bones engine is tuned around it, so the
+## mat pays at the swing floor; and an unknown or empty id is treated as harm — conservative.
+## This is the seam the per-part floor plugs into when the multi-hitbox lands (plan §5).
+func _min_impulse_for(src: Object, b: BalanceData) -> float:
+	var body := src as BaseDraggable
+	var harm_side := true
+	if body == null:
+		# A scriptless StaticBody2D: the walls, the test floor. The world never swings.
+		harm_side = false
+	elif body is Trampoline:
+		harm_side = true
+	else:
+		var item := ItemDB.get_item(body.item_id)
+		if item != null and item.is_kind():
+			harm_side = false
+	return EconomyMath.contact_floor(harm_side, b.min_damage_impulse, b.min_fall_impulse)
+
+## His real body. `BaseDraggable`'s version scales the shape by the *body's* transform, and he
+## is the one body in the roster whose collider carries its size on the node (44x60 at scale
+## 2, offset (0,2)) — so it reported 44x60 for an 88x120 box, and the idle brain pushed 32 px
+## above his feet, measured every climb from the wrong place and could never call a beanbag
+## against his side "reached". Overridden here rather than fixed for everyone: several
+## authored weapons have off-centre colliders too, nothing reads their rect today, and a
+## silent change to it is not this commit's business.
+func get_interaction_rect() -> Rect2:
+	if collider == null or collider.shape == null:
+		return super.get_interaction_rect()
+	var xf := collider.global_transform
+	var extent := Vector2(48, 48)
+	if collider.shape.has_method("get_rect"):
+		var r: Rect2 = collider.shape.get_rect()
+		if r.size.length() > 0.0:
+			extent = (r.size * 0.5 * xf.get_scale()).abs()
+	elif collider.shape is CircleShape2D:
+		var radius: float = (collider.shape as CircleShape2D).radius
+		extent = Vector2(radius, radius) * xf.get_scale().abs()
+	return Rect2(xf.origin - extent, extent * 2.0)
 
 ## Who to bill the hit to, and by how much. Anything without a script is still a weapon —
 ## it just has no multiplier and no mastery.

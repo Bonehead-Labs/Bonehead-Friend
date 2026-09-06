@@ -49,6 +49,18 @@ static func damage_from_impulse(impulse: float, min_impulse: float, per_impulse:
 		return 0.0
 	return impulse * per_impulse * maxf(0.0, weapon_mult)
 
+## Which floor a contact has to clear, by who put the energy in. Something on the harm side —
+## a weapon, a throwable, an animal, the trampoline's launch — means it, and a swing is enough.
+## The world and kind-side items only hurt him if he *fell* onto them: a walk into a wall, a
+## climb onto a beanbag or a tip-over is under the fall floor, a drop from above his head is
+## over it. A cliff, not a knee: the grapple shake and the beam's per-tick impulse are sized
+## against `min_impulse` exactly (docs/plan-movement-hitboxes.md §2). Never below the swing
+## floor, so a misconfigured fall floor cannot make the world pay more easily than a bat.
+static func contact_floor(harm_side: bool, min_impulse: float, fall_impulse: float) -> float:
+	if harm_side:
+		return min_impulse
+	return maxf(min_impulse, fall_impulse)
+
 ## The one payout pipeline, used by damage and kindness alike:
 ##   base -> x mood -> x augments -> x mastery -> x prestige
 ## Written out as a function so there is exactly one place the order can be wrong.

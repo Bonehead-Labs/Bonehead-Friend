@@ -1996,7 +1996,8 @@ func _he_goes_and_plays_with_his_toys() -> void:
 	#   per-frame face offsets are authored for one facing, so walking left is the path that
 	#   can put his face on the back of his head; walking right would prove nothing.
 	Economy.grant(Economy.HEARTS, 10000.0)
-	_check("the beanbag can be bought", Progression.purchase_item(&"beanbag"))
+	_check("the beanbag can be bought (or already was, by the contact suite)",
+		Progression.is_unlocked(&"beanbag") or Progression.purchase_item(&"beanbag"))
 	var toy_x := buddy.global_position.x - 260.0
 	EventBus.spawn_requested.emit(&"beanbag", Vector2(toy_x, 100.0))
 	for i in 40:
@@ -2029,12 +2030,36 @@ func _he_goes_and_plays_with_his_toys() -> void:
 	# nudging back the other way — so a snapshot at the end asks about the correction rather
 	# than the journey, and fails for a buddy who did everything right.
 	var faced_left_while_walking := false
+	# The walk itself, measured (docs/plan-movement-hitboxes.md §4). The old suite passed a
+	# hop-and-stumble gait that paid the floor seven damage a landing: it asserted forty pixels
+	# of progress and nothing about how he got there.
+	_observed.clear()
+	EventBus.damage_dealt.connect(_observe)
+	buddy.health.reset_meter()
+	var lowest_vy := 0.0
+	var most_tilt := 0.0
+	var locked_while_travelling := true
+	var frames_playing := 0
+	var frames_in_contact := 0
+	var frames_settled := 0
 	for i in 420:
 		await get_tree().physics_frame
 		closest = minf(closest, absf(toy_x - buddy.global_position.x))
-		if brain.phase_name() == &"travelling" and buddy.art and buddy.art.body \
-				and buddy.art.body.flip_h:
-			faced_left_while_walking = true
+		lowest_vy = minf(lowest_vy, buddy.linear_velocity.y)
+		most_tilt = maxf(most_tilt, absf(wrapf(buddy.rotation, -PI, PI)))
+		var phase := brain.phase_name()
+		if phase == &"travelling":
+			locked_while_travelling = locked_while_travelling and buddy.lock_rotation
+			if buddy.art and buddy.art.body and buddy.art.body.flip_h:
+				faced_left_while_walking = true
+		elif phase == &"playing":
+			frames_playing += 1
+			if buddy.get_colliding_bodies().any(func(b: Node) -> bool:
+					return b is BaseDraggable and (b as BaseDraggable).item_id == &"beanbag"):
+				frames_in_contact += 1
+			if absf(buddy.linear_velocity.y) < 100.0:
+				frames_settled += 1
+	EventBus.damage_dealt.disconnect(_observe)
 
 	# Distance closed, not "x increased": he can overshoot a target he is standing in, and
 	# asserting on the raw coordinate would then fail for a buddy who did exactly the right
@@ -2046,6 +2071,17 @@ func _he_goes_and_plays_with_his_toys() -> void:
 	_check("and being in it pays Hearts (+%.2f)"
 		% (Economy.balance_of(Economy.HEARTS) - hearts_before),
 		Economy.balance_of(Economy.HEARTS) > hearts_before)
+	_check("walking to a toy costs him nothing (%d hits, %.1f damage)"
+		% [_observed.size(), buddy.health.damage], _observed.is_empty() and buddy.health.damage == 0.0)
+	_check("he walks, he does not hop (fastest rise %.0f px/s)" % -lowest_vy, lowest_vy > -150.0)
+	_check("he stays upright (worst tilt %.1f deg)" % rad_to_deg(most_tilt), most_tilt < 0.1)
+	_check("and rotation is locked while he travels", locked_while_travelling)
+	_check("he is actually in it: touching the beanbag on %d of %d playing frames"
+			% [frames_in_contact, frames_playing],
+		frames_playing > 0 and frames_in_contact >= int(frames_playing * 0.9))
+	_check("and settled there, not bouncing (%d of %d frames under 100 px/s)"
+			% [frames_settled, frames_playing],
+		frames_playing > 0 and frames_settled >= int(frames_playing * 0.95))
 
 	# The art half. He has no walk tag, so travel is carried by facing and a bob — and the
 	# bob is a heartbeat that decays, so nothing can leave him bobbing on the spot.
@@ -2060,9 +2096,70 @@ func _he_goes_and_plays_with_his_toys() -> void:
 		% [phase_before, brain.phase_name()], brain.phase_name() == phase_before)
 	EventBus.damage_dealt.emit(HitInfo.new(1.0, &"baseball_bat", buddy.global_position, 1.0))
 	_check("but the player swinging a bat does", brain.phase_name() == &"watching")
+	_check("and standing down unlocks his rotation", not buddy.lock_rotation)
+
+	# A wall between him and a toy stops him without paying: he stalls, tries a bounded number
+	# of climbs, gives up and wanders — and the world never bills him for any of it.
+	_clear_spawned()
+	for i in 10:
+		await get_tree().physics_frame
+	buddy.health.reset_meter()
+	buddy.global_position = Vector2(320, 100)
+	buddy.linear_velocity = Vector2.ZERO
+	for i in 60:
+		await get_tree().physics_frame
+	var wall := StaticBody2D.new()
+	wall.name = "TestWall"
+	wall.collision_layer = 1
+	wall.collision_mask = 0
+	var wall_shape := CollisionShape2D.new()
+	var wall_rect := RectangleShape2D.new()
+	wall_rect.size = Vector2(20, 200)
+	wall_shape.shape = wall_rect
+	wall.add_child(wall_shape)
+	wall.global_position = Vector2(buddy.global_position.x - 120.0, 400.0)
+	buddy.get_parent().add_child(wall)
+	EventBus.spawn_requested.emit(&"beanbag", Vector2(buddy.global_position.x - 300.0, 100.0))
+	for i in 40:
+		await get_tree().physics_frame
+	_observed.clear()
+	EventBus.damage_dealt.connect(_observe)
+	brain.pretend_idle()
+	brain.think_now()
+	_check("he sets off for the toy behind the wall", brain.phase_name() == &"travelling")
+	var launches := 0
+	var was_rising := false
+	for i in 720:
+		await get_tree().physics_frame
+		var rising := buddy.linear_velocity.y < -150.0
+		if rising and not was_rising:
+			launches += 1
+		was_rising = rising
+	EventBus.damage_dealt.disconnect(_observe)
+	_check("the wall never bills him (%d hits)" % _observed.size(), _observed.is_empty())
+	_check("he tries a bounded number of climbs (%d)" % launches, launches <= 3)
+	_check("and gives up rather than hopping forever (phase '%s')" % brain.phase_name(),
+		brain.phase_name() != &"travelling")
+	wall.queue_free()
+	_clear_spawned()
+	for i in 10:
+		await get_tree().physics_frame
+
+	# He does not set off lying on his side: rotation is locked for the trip, so a start from
+	# 45 degrees would walk him across the desk on his face.
+	buddy.global_rotation = deg_to_rad(45.0)
+	EventBus.spawn_requested.emit(&"beanbag", Vector2(buddy.global_position.x - 200.0, 100.0))
+	for i in 20:
+		await get_tree().physics_frame
+	brain.pretend_idle()
+	brain.think_now()
+	_check("he does not set off on his side (phase '%s')" % brain.phase_name(),
+		brain.phase_name() == &"watching")
+	buddy.global_rotation = 0.0
+	buddy.angular_velocity = 0.0
+	_clear_spawned()
 
 	Settings.focus_intensity = focus_before
-	_clear_spawned()
 
 func _real_physics_produces_hits() -> void:
 	_suite("contact impulse")
@@ -2077,6 +2174,15 @@ func _real_physics_produces_hits() -> void:
 	_clear_spawned()
 	_observed.clear()
 	EventBus.damage_dealt.connect(_observe)
+	# The idle brain must not be walking him during a physics measurement. It found the sponge
+	# suite's sponge worth a visit once the run had been quiet for twenty-five seconds, and
+	# whether it had set off — and locked his rotation, so he landed flat on two contact
+	# points — depended on how long the earlier suites took. A disturbance stands him down and
+	# stamps the clock. (The flat landing itself is now measured correctly: contact impulses
+	# are summed per collider in `_integrate_forces`.)
+	var idle_brain := get_tree().get_first_node_in_group(&"idle_brain") as IdleBrain
+	if idle_brain:
+		idle_brain._disturb()
 
 	# Drop him onto the scene's own floor. WorldBounds is deliberately NOT in this scene:
 	# it derives the walls from the viewport, and a headless viewport is 64x64, so the
@@ -2087,11 +2193,67 @@ func _real_physics_produces_hits() -> void:
 	buddy.angular_velocity = 0.0
 	for i in 90:
 		await get_tree().physics_frame
-	_check("a real collision produced a hit", not _observed.is_empty())
+	_check("a real collision produced a hit (pos %s vel %s freeze %s down %s lock %s sleeping %s grounded %s)" % [buddy.global_position, buddy.linear_velocity, buddy.freeze, buddy.health.down, buddy.lock_rotation, buddy.sleeping, buddy.is_grounded()], not _observed.is_empty())
 	_check("the impulse cleared the damage floor", _observed.any(
 		func(h: HitInfo) -> bool: return h.raw_impulse >= ItemDB.balance.min_damage_impulse))
 	_check("world contact is attributed, not anonymous", _observed.any(
 		func(h: HitInfo) -> bool: return h.source_id != &""))
+	# The fall floor (docs/plan-movement-hitboxes.md §4): a 338 px drop onto the world — floor
+	# top 500, him at 100, feet +62 — lands at about 3 * sqrt(2 * 980 * 338) = 2,442, well over
+	# `min_fall_impulse`. Pinned with the number so the new floor can never silently switch
+	# player drops off.
+	_check("the drop is billed to the world at about 2,442 (got %s)"
+			% [_observed.map(func(h: HitInfo) -> float: return h.raw_impulse)],
+		_observed.any(func(h: HitInfo) -> bool:
+			return h.source_id == &"world" and absf(h.raw_impulse - 2442.0) < 2442.0 * 0.15))
+	_check("and it cleared the fall floor", _observed.any(
+		func(h: HitInfo) -> bool: return h.raw_impulse >= ItemDB.balance.min_fall_impulse))
+	_check("a hit names the part it landed on (torso until the hitboxes exist)",
+		_observed.all(func(h: HitInfo) -> bool: return h.part == &"torso"))
+
+	# A drop from below his own height is free: feet 60 px up (about 1,029 on landing) is a
+	# step off a chair, not a throw. This is the self-motion exemption, structurally — the
+	# idle brain's climbs and tip-overs all land here or lower.
+	while buddy.health.down:
+		await get_tree().physics_frame
+	_observed.clear()
+	buddy.health.reset_meter()
+	buddy.global_position = Vector2(320, 500.0 - 62.0 - 60.0)
+	buddy.linear_velocity = Vector2.ZERO
+	buddy.angular_velocity = 0.0
+	buddy.global_rotation = 0.0
+	for i in 90:
+		await get_tree().physics_frame
+	_check("a drop from below his own height is free (%d hits)" % _observed.size(),
+		_observed.is_empty())
+	_check("and costs him nothing", buddy.health.damage == 0.0)
+
+	# Grounded, from contact normals. This pins the sign convention: resting on the floor he
+	# is grounded; a few frames into a launch he is not.
+	_check("resting on the floor he is grounded", buddy.is_grounded())
+	buddy.apply_central_impulse(Vector2(0.0, -buddy.mass * 400.0))
+	for i in 5:
+		await get_tree().physics_frame
+	_check("and five frames into a launch he is not", not buddy.is_grounded())
+	for i in 90:
+		await get_tree().physics_frame
+	_check("the 400 px/s launch landed free too (%d hits)" % _observed.size(), _observed.is_empty())
+
+	# A kind item dropped onto him is not it hitting him: a beanbag (mass 1.2) from 100 px
+	# lands at about 530 on him — over the swing floor, under the fall floor. Pins the kind
+	# side of the classifier. Bought here; the toys suite below checks ownership or buys.
+	_observed.clear()
+	Economy.grant(Economy.HEARTS, 10000.0)
+	_check("the beanbag can be bought for the drop",
+		Progression.is_unlocked(&"beanbag") or Progression.purchase_item(&"beanbag"))
+	EventBus.spawn_requested.emit(&"beanbag", Vector2(320, buddy.global_position.y - 58.0 - 15.0 - 100.0))
+	for i in 90:
+		await get_tree().physics_frame
+	_check("a beanbag dropped on him from 100 px is free (%d hits)" % _observed.size(),
+		_observed.is_empty())
+	_clear_spawned()
+	for i in 10:
+		await get_tree().physics_frame
 
 	# Now a weapon, to prove attribution reaches the item id the augments are keyed on.
 	_observed.clear()
@@ -2126,13 +2288,23 @@ func _real_physics_produces_hits() -> void:
 		_check("and is attributed to the missile", _observed.any(
 			func(h: HitInfo) -> bool: return h.source_id == &"missile"))
 
-	# Resting contact must not farm. He is settled on the floor by now.
+	# Resting contact must not farm. Resting contact is 49 a tick, thirty times under the fall
+	# floor, so exactly none, not "at most one" — the old tolerance was quietly absorbing the
+	# landing from the missile's blast, which is not resting. Wait until he has actually
+	# settled before the window opens.
 	_clear_spawned()
 	buddy.health.reset_meter()
+	var still := 0
+	for i in 300:
+		await get_tree().physics_frame
+		still = still + 1 if buddy.is_grounded() and buddy.linear_velocity.length() < 5.0 else 0
+		if still >= 10:
+			break
+	_check("he settles after the strike", still >= 10)
 	_observed.clear()
 	for i in 120:
 		await get_tree().physics_frame
-	_check("resting contact does not farm damage", _observed.size() <= 1)
+	_check("resting contact does not farm damage (%d hits)" % _observed.size(), _observed.is_empty())
 
 	EventBus.damage_dealt.disconnect(_observe)
 

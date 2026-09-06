@@ -14,6 +14,13 @@ extends Resource
 ## leaning against Bonehead farms Bones forever.
 @export var min_damage_impulse: float = 350.0
 
+## Contacts with the world and with kind-side items need a real *fall* before they hurt, not
+## a swing. 1500 on his 3-mass body is 500 px/s — a drop of about his own height (128 px).
+## Everything he can do to himself (a step, a climb onto a toy, a tip-over) lands under it; a
+## throw, a drop from above his head, or a bat carrying him into the wall lands over it.
+## Weapons, throwables and animals keep `min_damage_impulse` (docs/plan-movement-hitboxes.md).
+@export var min_fall_impulse: float = 1500.0
+
 ## Damage per unit of contact impulse, before the weapon's own damage_mult.
 @export var damage_per_impulse: float = 0.01
 
