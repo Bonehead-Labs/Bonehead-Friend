@@ -86,6 +86,7 @@ func _ready() -> void:
 	await _the_jobs_tab_wears_a_badge()
 	await _the_purse_can_count_high()
 	await _the_payouts_are_visible()
+	await _the_world_has_juice()
 	await _the_hud_points_at_the_next_toy()
 	await _the_shell_hides_until_hovered()
 	await _nothing_overflows_its_box()
@@ -1640,3 +1641,128 @@ func _the_backdrop_is_a_choice() -> void:
 	OverlayManager.set_backdrop(_restore["backdrop"])
 	panels.call("close")
 	await _settle()
+
+# --- the world's effects ------------------------------------------------------
+
+## The world has physical effects (D39): dust where he lands, a ring where something went
+## off, a tracer where a turret fired, a bolt where the lightning went, and the picture
+## jolting on a real hit. All pooled and named, all silent at Focus Off, and every one of
+## them puts itself away when it is spent — a ring that stayed visible would be a ring drawn
+## for eight hours.
+func _the_world_has_juice() -> void:
+	_suite("juice")
+	var fx := _find(_main, "WorldFX") as Node2D
+	var numbers := _find(_main, "FXLayer")
+	var hud := _find(_main, "HUD")
+	_check("the world has an effects node", fx != null)
+	if fx == null or numbers == null or hud == null:
+		return
+	for slot in ["Burst0", "Burst9", "Ring0", "Ring3", "Line0", "Line3"]:
+		_check("the %s pool slot is named" % slot, fx.has_node(slot))
+	for signal_name in ["buddy_landed", "item_spawned", "item_despawned", "mood_changed",
+			"grime_changed", "mastery_rank_up", "prestige_performed", "kindness_sustained"]:
+		_check("the world listens to %s" % signal_name, _wired(signal_name, fx))
+	for signal_name in ["mastery_rank_up", "prestige_performed", "grime_changed"]:
+		_check("the numbers listen to %s" % signal_name, _wired(signal_name, numbers))
+
+	var view := fx.get_viewport()
+	var centre := Vector2(VIEW_SIZE) * 0.5
+	var across := PackedVector2Array([centre, centre + Vector2(120, 0)])
+	# Focus Off is the suite's resting state: nothing may draw.
+	Settings.focus_intensity = Settings.Intensity.OFF
+	fx.call("ring", centre, 80.0, Color.WHITE)
+	fx.call("bolt", across)
+	fx.call("shake", 8.0)
+	# A point of its own: the payouts suite has just thrown chips at the centre, and a one-shot
+	# emitter reads as emitting until its last chip has died.
+	var spot := centre + Vector2(33.0, 77.0)
+	fx.call("puff", spot, 6, Color.WHITE)
+	await _settle()
+	_check("at Focus Off a ring draws nothing", not _any_visible(fx, "Ring"))
+	_check("a bolt draws nothing", not _any_visible(fx, "Line"))
+	_check("a puff throws nothing", _emitter_at(fx, spot) == null)
+	_check("and a shake moves nothing",
+		not bool(fx.call("is_shaking")) and view.canvas_transform == Transform2D.IDENTITY)
+
+	Settings.focus_intensity = Settings.Intensity.NORMAL
+	fx.call("ring", centre, 80.0, Color.WHITE)
+	fx.call("bolt", across)
+	fx.call("tracer", centre, centre + Vector2(0, 100))
+	fx.call("shake", 8.0)
+	await get_tree().process_frame
+	_check("with it on, a ring is drawn", _any_visible(fx, "Ring"))
+	_check("a bolt and a tracer are drawn", _any_visible(fx, "Line"))
+	_check("and the picture is jolting", bool(fx.call("is_shaking")))
+	await get_tree().create_timer(0.8).timeout
+	await _settle()
+	_check("the ring is put away when spent", not _any_visible(fx, "Ring"))
+	_check("the lines too", not _any_visible(fx, "Line"))
+	_check("and the jolt stops with the picture back where it was",
+		not bool(fx.call("is_shaking")) and view.canvas_transform == Transform2D.IDENTITY,
+		str(view.canvas_transform))
+
+	# Through the bus, the way the game does it.
+	EventBus.buddy_landed.emit(centre, 900.0)
+	await get_tree().process_frame
+	_check("a landing throws dust at his feet", _emitter_at(fx, centre) != null)
+	var star := UIStyle.glyph(&"star")
+	EventBus.mastery_rank_up.emit(&"baseball_bat", 3)
+	await _settle()
+	_check("a rank up prints over him", _visible_tag(numbers, "BASEBALL BAT  RANK 3"))
+	_check("and throws stars", _emitter_with(fx, star) != null)
+	EventBus.grime_changed.emit(0.6)
+	EventBus.grime_changed.emit(0.0)
+	await _settle()
+	_check("a full clean says so", _visible_tag(numbers, "SQUEAKY CLEAN"))
+	# Reincarnation rebuilds half the shell, so the two listeners are called rather than the
+	# bus being fired.
+	numbers.call("_on_prestige_performed", 2.5)
+	fx.call("_on_prestige_performed", 2.5)
+	await get_tree().process_frame
+	_check("a rebirth is the headline", _visible_tag(numbers, "REINCARNATED"))
+	_check("and says what it paid", _visible_tag(numbers, "+2.50 MARROW"))
+	_check("and jolts the desk", bool(fx.call("is_shaking")))
+	await get_tree().create_timer(0.9).timeout
+
+	# The knockout meter glows when it is nearly full, and stops when it is not.
+	var meter := hud.get("_meter") as Control
+	hud.call("_set_meter_hot", true)
+	await get_tree().process_frame
+	# Headless has no menu motion (UIMotion is off), so the lit state is the flag and a bar
+	# left at plain white rather than a running tween.
+	_check("a nearly-full meter is lit", bool(hud.get("_meter_hot")) and meter != null
+		and meter.modulate == Color.WHITE)
+	hud.call("_set_meter_hot", false)
+	await get_tree().process_frame
+	_check("and goes out when it is not", not bool(hud.get("_meter_hot"))
+		and meter != null and meter.modulate == Color.WHITE)
+	Settings.focus_intensity = Settings.Intensity.OFF
+	await get_tree().create_timer(0.3).timeout
+	await _settle()
+
+func _wired(signal_name: String, target: Object) -> bool:
+	for connection in EventBus.get_signal_connection_list(signal_name):
+		if connection["callable"].get_object() == target:
+			return true
+	return false
+
+func _any_visible(root: Node, prefix: String) -> bool:
+	for child in root.get_children():
+		var item := child as CanvasItem
+		if item and String(item.name).begins_with(prefix) and item.visible:
+			return true
+	return false
+
+func _emitter_at(root: Node, at: Vector2) -> GPUParticles2D:
+	for child in root.get_children():
+		var emitter := child as GPUParticles2D
+		if emitter and emitter.emitting and emitter.global_position.is_equal_approx(at):
+			return emitter
+	return null
+
+func _emitter_with(root: Node, texture: Texture2D) -> GPUParticles2D:
+	for child in root.get_children():
+		var emitter := child as GPUParticles2D
+		if emitter and emitter.emitting and emitter.texture == texture:
+			return emitter
+	return null

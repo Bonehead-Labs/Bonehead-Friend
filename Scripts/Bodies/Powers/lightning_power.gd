@@ -29,6 +29,8 @@ func fire(at: Vector2) -> void:
 	var struck: Array[RID] = []
 	var origin := at
 	var force := blast_force
+	# The bolt comes down from above the first strike and then follows the chain.
+	var path := PackedVector2Array([at + Vector2(0, -160), at])
 
 	for jump in maxi(1, chains + 1):
 		for hit in ExplosionUtil.point_blast(space, origin, blast_radius, force):
@@ -41,7 +43,11 @@ func fire(at: Vector2) -> void:
 			break
 		origin = next.global_position
 		force *= chain_falloff
+		path.append(origin)
 
+	var fx := WorldFX.of(self)
+	if fx:
+		fx.bolt(path)
 	EventBus.contract_event.emit(&"use:%s" % item_id, 1)
 
 ## The next link: the closest body inside `chain_range` that this bolt has not already

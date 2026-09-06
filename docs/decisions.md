@@ -864,6 +864,43 @@ layer outright, so the window is exactly as transparent as it was. Chroma is the
 buttons from that table, and `ui_check`'s `backdrop` suite clicks every one. The canvas is a
 full-rect Control on a CanvasLayer and MUST stay `MOUSE_FILTER_IGNORE` (CLAUDE.md).
 
+## D39 — The world has juice: every physical event is drawn where it happened, and one
+## particle system (2026-09-06)
+
+**Decision.** `WorldFX` is the one pool for everything physical that is not a body, and every
+event on the desk goes through it: a landing throws dust at his feet, a toy pops in and out
+with a puff, an explosion is a shockwave ring, smoke, sparks and a jolt, a turret shot is a
+tracer, the lightning is a jagged bolt from above, the sunbeam gives off heat, a trampoline
+kicks dust, a missile trails smoke, a rank throws stars off him, a full clean throws white,
+mood crossing into delighted or miserable sends hearts or a dark cloud off him, and a
+Reincarnation is three rings, a shower of stars, a jolt and a headline. The hit chips run
+hotter with the streak. `FXLayer` prints a rank, a rebirth and a clean over him in the payout
+face, and shows what he earned offline as coins off him. The knockout meter glows once it is
+nearly full. Every toast that is a score rather than a notice is chipped.
+
+**Why.** The shell had motion everywhere (D37) and the world had almost none: a grenade was a
+sprite that vanished and a number that appeared, the pistol was a click with no mark, a rank
+was a toast in the corner, and the biggest decision in the game — Reincarnation — was one line
+of text and a chime. The genre's whole feeling is that things *happen*, where they happen.
+
+**What it turned up.** The world's pool was `CPUParticles2D` since D30, and in this project a
+`CPUParticles2D` emits and never draws — the emitters sat "emitting" at the right place with the
+right texture and the screen stayed empty, which only the shot tool could show. Every bone chip
+off a hit and every heart off a pet had been invisible for the whole of M3. The pool is now
+`GPUParticles2D`, like `FXLayer` and `UIMotion`, with one cached `ParticleProcessMaterial` per
+recipe. Rule from it: **no `CPUParticles2D` anywhere; a particle effect is not done until a
+shot shows it.**
+
+**The shake** is the viewport's canvas transform, which is how a Camera2D would do it: rendering
+only, so no body moves, the mouse still maps through it, and the shell on its own CanvasLayers
+stays still. Normal and Chaos only, capped at nine pixels, 220 ms, whole pixels — a player
+working beside the window must never find it rude.
+
+*Consequence:* a new physical event is a call into `WorldFX` from the thing that happened, found
+by group via `WorldFX.of(self)` and treated as optional. `ui_check`'s `juice` suite asserts the
+pools are named, every listener is wired, nothing draws at Focus Off, and every ring, line and
+jolt puts itself away. `ui_shots` catches the effects mid-flight in three frames (`16-juice`).
+
 ## Recommendations not yet decided
 
 Carried in the spec, owner's call before they matter:

@@ -51,6 +51,7 @@ signal mood_changed(value: float)  ## -100..+100
 signal grime_changed(value: float)  ## 0..1; suppresses Bones income until sponged off
 signal buddy_state_changed(state: StringName)
 signal knockout_payout(total: float)
+signal buddy_landed(world_pos: Vector2, speed: float)  ## his feet, and how fast he came down
 ## Something on the desk is about to hurt him, or just did. `kind` is `fuse` (a primed
 ## explosive: level 1 lit, 0 gone off), `windup` (an NPC's tell: 1 winding up, 0 swung) or
 ## `turret` (a shot: always 1). Presentation only — the buddy's expression reads it, nothing in

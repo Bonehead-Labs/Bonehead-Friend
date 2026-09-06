@@ -276,6 +276,11 @@ GDScript quirks already paid for once each:
   resize has not landed when the setting is applied, so a layout done then is against the
   previous window. `OverlayManager.window_rect_changed` fires once it has settled.
 - **`Image.create()` is deprecated; `Image.create_empty()` is the current spelling.**
+- **A `CPUParticles2D` emits and never draws in this project.** The world's burst pool sat
+  "emitting" at the right place with the right texture for the whole of M3 and no chip ever
+  reached the screen — every hit chip and pet heart since D30 was invisible, and only the shot
+  tool showed it. Use `GPUParticles2D` with a `ParticleProcessMaterial` (as `FXLayer`, `UIMotion`
+  and `WorldFX` do), and treat a particle effect as unfinished until a capture shows it.
 - **A pinned `Settings.ui_scale` must be allowed to lose.** Play area size and menu size are two
   settings the player reaches independently, and the smallest rung at 2x leaves a 240x180 root —
   smaller than the card's own minimum in both axes, so the card clamps *up* past the window and
@@ -414,7 +419,7 @@ attention and away clock. **Personality is on the surface too**: six tell fields
 flinch) that touch no number (D19); edit them through `tools/seed_m38_personality_tells.tscn`,
 never by hand.
 
-**The Arcade is rooms and the shell has particles** (D37, worklist §7): one machine on screen behind a tab strip at mini-game size, `UIMotion.sparkle` for the moments the player made happen. **The last mile is built** (worklist §5): the damage streak and kindness combo are drawn and
+**The world has juice** (D39, worklist §9): `WorldFX` is one GPU pool for everything physical — dust, rings, tracers, bolts, a viewport-transform shake — and every event on the desk calls it via `WorldFX.of(self)`; `ui_shots` `16-juice` catches it mid-flight. **The Arcade is rooms and the shell has particles** (D37, worklist §7): one machine on screen behind a tab strip at mini-game size, `UIMotion.sparkle` for the moments the player made happen. **The last mile is built** (worklist §5): the damage streak and kindness combo are drawn and
 heard but the streak pays nothing; the Deeds tab lists every milestone with its next rung; the
 HUD links to Reincarnation once a run is worth a Marrow; the welcome is a Dream Journal
 (`Data/dreams.txt`) with a small timed buff; the offline cap is sold on the Reincarnation page.

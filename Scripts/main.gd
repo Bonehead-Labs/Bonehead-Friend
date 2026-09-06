@@ -47,13 +47,13 @@ func _ready() -> void:
 	# invisible otherwise: mastery ticks up inside a panel nobody has open.
 	EventBus.mastery_rank_up.connect(func(item_id: StringName, rank: int) -> void:
 		var item := ItemDB.get_item(item_id)
-		_hud.show_toast("%s reached mastery %d" % [item.display_name if item else item_id, rank], 4.0))
+		_hud.celebrate_toast("%s reached mastery %d" % [item.display_name if item else item_id, rank], UIStyle.BONES, 4.0))
 	EventBus.contract_completed.connect(func(contract_id: StringName) -> void:
 		var contract := ItemDB.get_contract(contract_id)
 		if contract:
-			_hud.show_toast("Contract ready to claim: %s" % contract.display_name, 8.0))
+			_hud.celebrate_toast("Contract ready to claim: %s" % contract.display_name, UIStyle.DOLLARS, 8.0))
 	EventBus.prestige_performed.connect(func(gained: float) -> void:
-		_hud.show_toast("Reincarnated. +%.2f marrow, and he is somebody new." % gained, 8.0))
+		_hud.celebrate_toast("Reincarnated. +%.2f marrow, and he is somebody new." % gained, UIStyle.DOLLARS, 8.0))
 	# The round, as a score: what it took, how long, what it paid, and the best to beat. The
 	# knockout was the harm loop's climax and it ended with a fountain and no number to chase.
 	EventBus.knockout_payout.connect(func(_bonus: float) -> void:
@@ -114,8 +114,13 @@ func _report_offline(offline: Dictionary) -> void:
 		Economy.add_temp_multiplier(DREAM_BOOST_ID, b.dream_boost_multiplier, b.dream_boost_minutes * 60.0)
 		lines.append("He woke up refreshed: x%.2f to everything for %d minutes." % [
 			b.dream_boost_multiplier, int(round(b.dream_boost_minutes))])
-	_hud.show_toast(" ".join(lines), 14.0)
+	_hud.celebrate_toast(" ".join(lines), UIStyle.BONES if bones >= hearts else UIStyle.HEARTS, 14.0)
 	AudioManager.play(&"welcome", 0.0, -4.0)
+	# The coins themselves, once the window is up and he is standing somewhere. A second is
+	# long enough for the first layout and the rescue that puts him on the floor.
+	get_tree().create_timer(1.0).timeout.connect(func() -> void:
+		if is_instance_valid(_fx):
+			_fx.welcome_shower(bones, hearts))
 
 ## "48 s" or "2 m 05 s": a round is a short thing and reads as one.
 func _round_time(seconds: float) -> String:

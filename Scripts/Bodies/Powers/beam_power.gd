@@ -79,6 +79,11 @@ func _burn(at: Vector2) -> void:
 	# also double the damage — it makes the same damage arrive in smaller, more frequent
 	# pieces, which is what a fire-rate upgrade should mean on a beam.
 	buddy.take_impulse(impulse_per_second * tick_seconds, item_id, effective_damage_mult(), at)
+	# Heat off the spot. The beam has no impulse and so no chips of its own; without this
+	# the sunbeam was a number and a face and nothing at the point being cooked.
+	var fx := WorldFX.of(self)
+	if fx:
+		fx.heat(at)
 	EventBus.contract_event.emit(&"use:%s" % item_id, 1)
 
 ## Declining a click leaves it unhandled, so the world still sees it — the same contract

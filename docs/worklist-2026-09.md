@@ -252,3 +252,26 @@ Not done and why: a scene per monitor (the setting is one value; the window is o
 a time); animated scenes (the budget is < 3% idle — a static repaint on resize costs nothing, a
 drifting sky would not); art-generated backdrops (§3, the generator). The scene palette is a
 first pass by eye and is the kind of thing a playtest should look at on a real ultrawide.
+
+## 9. The world has juice (2026-09-06, late) ✅
+
+Owner's brief: "another visual deep dive game wide, consider animations for things that dont have
+them consider particle effects and addictive dopamine triggering special effects where possible".
+The shell already moved (§7); this pass is the world. Recorded as **D39**.
+
+| # | What | Where |
+|---|---|---|
+| 9.1 | **`WorldFX` vocabulary.** `puff` (dust/soot/smoke/heat), `ring` (drawn shockwave, pooled `Ring` Node2D), `tracer`, `bolt` (jagged), `shot`, `heat`, `boom`, `shake` (viewport canvas transform, Normal+ only, ≤9px, 220 ms); `WorldFX.of(node)` finds it by group | `Scripts/World/world_fx.gd` |
+| 9.2 | **Wired to the world.** Landing dust (`EventBus.buddy_landed`, from his feet); spawn pop + puff and despawn puff; explosion boom; pistol/shotgun/minigun sparks; turret tracer; lightning bolt from above along the chain; sunbeam heat; trampoline dust; missile smoke trail; hit chips heat up with the streak; one heart every 1.4 s from a kind item in use; mood band crossings; grime stages and a white burst at clean; stars at a rank; three rings + stars + jolt at Reincarnation; ring + jolt at knockout | `buddy.gd`, `event_bus.gd`, `effects_player.gd`, `gun_power.gd`, `turret_base.gd`, `lightning_power.gd`, `beam_power.gd`, `trampoline.gd`, `missile.gd`, `world_fx.gd` |
+| 9.3 | **Over his head.** `FXLayer` prints "MACE  RANK 4", "REINCARNATED / +2.50 MARROW" (centre, top tier, Ectoplasm), "SQUEAKY CLEAN"; `welcome_shower` throws offline Bones and Hearts off him as coins a second after boot | `fx_layer.gd`, `main.gd` |
+| 9.4 | **The shell's last gaps.** Knockout meter glows (looping modulate) from 85% and punches the card on entry; rank, contract-ready, rebirth and offline toasts are `celebrate_toast`s in their currency's colour | `hud.gd`, `main.gd` |
+| 9.5 | **The bug it found.** `WorldFX`'s `CPUParticles2D` pool never drew a pixel in this project — every hit chip and pet heart since D30 was invisible. Pool is now `GPUParticles2D` with cached materials | `world_fx.gd`, CLAUDE.md gotcha |
+| 9.6 | **Proof.** `ui_check` `juice` suite (37 assertions: pools named, listeners wired, nothing at Focus Off, rings/lines/jolt put away, landing dust, rank line + stars, clean line, rebirth headline + Marrow line + jolt, meter glow on/off); `ui_shots` `16/16b/16c-juice` at 2/6/12 frames | `ui_check.gd`, `ui_shots.gd` |
+
+Counts after: **unit 216 · loop 595 · ui 395 · pacing untouched** (nothing here changes a rate).
+
+Not done and why: a motion trail on him when flung and a swing trail on melee weapons (both need a
+per-frame process on a body — worth it, but it is the one per-frame cost this pass refused to add
+without measuring on an exported build); a vortex swirl (same); NPC arrival beats beyond the spawn
+puff (the art pass owns their animation); screen flash on a knockout (a white flash over a
+transparent window tints the player's whole desktop).

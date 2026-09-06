@@ -72,6 +72,12 @@ var _spawner: ItemSpawner
 ## The knockout meter only reacts when it jumps, not when it creeps — a bar that punches
 ## on every physics frame is a flicker.
 var _meter_shown := 0.0
+## The meter glows once it is nearly full. Anticipation is the genre's cheapest reward: a
+## bar at 90% is a promise, and a promise that pulses gets kept. One looping tween, only while
+## in the zone, and never at Focus Off.
+const METER_HOT_FROM := 0.85
+var _meter_hot := false
+var _hot_tween: Tween
 
 func _ready() -> void:
 	layer = 10
@@ -113,6 +119,7 @@ func _on_health_changed() -> void:
 	if fill - _meter_shown > 0.1:
 		UIMotion.punch(_box, 1.04)
 	_meter_shown = fill
+	_set_meter_hot(fill >= METER_HOT_FROM and not _health.down)
 
 ## The meter belongs to the buddy, so main.gd hands it over rather than the HUD hunting
 ## for a node path across scenes (docs/decisions.md D9).
@@ -606,6 +613,7 @@ func _on_buddy_state_changed(state: StringName) -> void:
 	if state == &"knockout" and _meter:
 		_meter.value = 1.0
 		_meter_shown = 1.0
+		_set_meter_hot(false)
 		UIMotion.punch(_box, 1.1)
 		UIMotion.flash(_box, Color(1.6, 1.4, 1.0), 0.6)
 
@@ -651,3 +659,23 @@ func _on_grime_changed(value: float) -> void:
 ## See PanelLayer.shell_rect — screen pixels, not canvas pixels.
 func shell_rect() -> Rect2:
 	return UIScale.screen_rect(_box) if _box else Rect2()
+
+## The knockout meter, nearly there. A slow warm pulse on the bar while it is within reach,
+## and a punch on the card the moment it gets there — so the player who has been tapping
+## away finishes him rather than wandering off at 87%.
+func _set_meter_hot(hot: bool) -> void:
+	if hot == _meter_hot or _meter == null:
+		return
+	_meter_hot = hot
+	if _hot_tween and _hot_tween.is_valid():
+		_hot_tween.kill()
+	_hot_tween = null
+	if not hot or not UIMotion.enabled():
+		_meter.modulate = Color.WHITE
+		return
+	UIMotion.punch(_box, 1.06)
+	_hot_tween = _meter.create_tween().set_loops()
+	_hot_tween.tween_property(_meter, "modulate", Color(1.45, 1.25, 0.85), 0.42) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	_hot_tween.tween_property(_meter, "modulate", Color.WHITE, 0.42) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)

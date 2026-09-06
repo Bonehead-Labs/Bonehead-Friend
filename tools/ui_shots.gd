@@ -83,6 +83,24 @@ func _ready() -> void:
 	await _shot("14-backdrop-night")
 	OverlayManager.set_backdrop(&"desk")
 	await _shot("15-backdrop-desk")
+	# The world's effects, caught mid-flight against a flat ground: a boom, a bolt, a landing, a
+	# rank line. Six frames in rather than the usual forty-five, because a ring lasts twenty.
+	OverlayManager.set_backdrop(&"charcoal")
+	await _idle(10)
+	var world_fx := _find(_main, "WorldFX")
+	var centre := Vector2(SIZE) * 0.5
+	world_fx.call("boom", centre + Vector2(-220, 40), 1.0)
+	world_fx.call("bolt", PackedVector2Array([centre + Vector2(200, -200), centre + Vector2(200, -40), centre + Vector2(300, 20)]))
+	world_fx.call("tracer", centre + Vector2(-380, 120), centre + Vector2(60, 60))
+	EventBus.buddy_landed.emit(centre + Vector2(60, 120), 1000.0)
+	EventBus.mastery_rank_up.emit(&"mace", 4)
+	for step in [["16-juice", 2], ["16b-juice", 6], ["16c-juice", 12]]:
+		for i in int(step[1]):
+			await get_tree().process_frame
+		await RenderingServer.frame_post_draw
+		_grab().save_png("%s/%s.png" % [OUT, step[0]])
+		print("  %s" % step[0])
+	await _idle(40)
 	OverlayManager.set_backdrop(had_backdrop)
 
 	panels.call("close")

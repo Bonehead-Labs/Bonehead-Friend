@@ -140,6 +140,9 @@ func _ready() -> void:
 	EventBus.damage_dealt.connect(_on_damage_dealt)
 	EventBus.knockout_payout.connect(_on_knockout_payout)
 	EventBus.buddy_state_changed.connect(_on_buddy_state_changed)
+	EventBus.mastery_rank_up.connect(_on_mastery_rank_up)
+	EventBus.prestige_performed.connect(_on_prestige_performed)
+	EventBus.grime_changed.connect(_on_grime_changed)
 
 ## A 4px square, plotted rather than imported. The game is pixel art and a soft round
 ## particle would be the one blurred thing on screen; four hard pixels are a chip of bone.
@@ -425,3 +428,58 @@ func _hit_stop(seconds: float) -> void:
 	# ignore_time_scale, or the timer that ends the hit-stop is itself slowed by it.
 	await get_tree().create_timer(seconds, true, false, true).timeout
 	Engine.time_scale = 1.0
+
+# --- the things that happen to him ------------------------------------------
+#
+# Progression used to be invisible: a rank ticked up inside a panel nobody had open, a
+# Reincarnation was a toast in the corner, a full clean was a face. Each of these is now a
+# line over his head in the same face as a payout, because they are the same kind of thing —
+# a reward — and the player has already learned where to look for one.
+
+const MARROW_COLOUR := Color("46c48f")
+const CLEAN_COLOUR := Color("8fd8ff")
+
+func _on_mastery_rank_up(item_id: StringName, rank: int) -> void:
+	var item := ItemDB.get_item(item_id)
+	var short := item.display_name if item else String(item_id)
+	spawn_number("%s  RANK %d" % [short.to_upper(), rank], _buddy_position(_centre()) + Vector2(0, -78),
+		BONES_RAMP[2], 0.9, 2)
+
+## The headline of the whole game. Centre of the play area like the knockout, top tier,
+## in Ectoplasm — and the Marrow it paid on a second line, so the number the player just
+## chose to reset everything for is the biggest number they see that session.
+func _on_prestige_performed(gained: float) -> void:
+	var centre := _centre()
+	spawn_number("REINCARNATED", centre, MARROW_COLOUR, 1.6, TIER_SIZE.size() - 1)
+	spawn_number("+%.2f MARROW" % gained, centre + Vector2(0, 60), MARROW_COLOUR, 1.1,
+		TIER_SIZE.size() - 1)
+
+var _last_grime := 0.0
+
+func _on_grime_changed(value: float) -> void:
+	if is_zero_approx(value) and _last_grime > 0.25:
+		spawn_number("SQUEAKY CLEAN", _buddy_position(_centre()) + Vector2(0, -78), CLEAN_COLOUR, 0.9, 2)
+	_last_grime = value
+
+## Coming back to the game: what he earned while you were out, thrown off him as coins the
+## moment the window is up. The Dream Journal toast says it; this shows it, because the
+## reunion is the genre's whole point and it deserves more than a line of text.
+func welcome_shower(bones: float, hearts: float) -> void:
+	if Settings.intensity_scale() <= 0.0:
+		return
+	var from := _buddy_position(_centre()) - Vector2(0, ARC_ORIGIN_LIFT)
+	var index := 0
+	for pair in [[bones, BONES_COLOUR, 6], [hearts, HEARTS_COLOUR, 4]]:
+		var total := float(pair[0])
+		if total < 0.01:
+			continue
+		var coins := int(pair[2])
+		for i in coins:
+			var angle := lerpf(-PI * 0.85, -PI * 0.15, float(i) / float(maxi(1, coins - 1)))
+			spawn_arc("+%s" % _format(total / float(coins)), from,
+				Vector2.RIGHT.rotated(angle) * randf_range(ARC_SPEED_MIN * 0.8, ARC_SPEED_MAX * 0.8),
+				pair[1], float(index) * ARC_STAGGER)
+			index += 1
+
+func _centre() -> Vector2:
+	return get_viewport().get_visible_rect().size * 0.5

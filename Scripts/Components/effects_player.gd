@@ -100,6 +100,11 @@ func explosion_effect(at: Vector2) -> void:
 		return
 	host.add_child(explosion)
 	explosion.global_position = at
+	# The physical half: a shockwave, smoke, sparks and a jolt from the world's pool. The
+	# animation alone was a picture of an explosion; this is one happening on the desk.
+	var fx := WorldFX.of(host)
+	if fx:
+		fx.boom(at, 1.0)
 	# The effect is a generated animation, found by what it is rather than by name: the
 	# scene was rebuilt once and a name lookup across its boundary is the same bug as an
 	# absolute node path (CLAUDE.md).

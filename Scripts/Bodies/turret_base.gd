@@ -150,6 +150,11 @@ func _fire(target: Buddy) -> void:
 				(body as Buddy).take_impulse(float(hit["impulse"]), item_id, mult, point)
 	if _animating():
 		_recoil = recoil_pixels
+	# The line the shot took, for a tenth of a second. Without it a turret was a device
+	# that leaned and a buddy that flinched, with nothing between them.
+	var fx := WorldFX.of(self)
+	if fx:
+		fx.tracer(global_position, at)
 	# Quiet and wide: the fastest turret fires twenty times a second, and this is the
 	# background of the desk, not the event of the desk.
 	AudioManager.play(&"turret_fire", 0.16, -16.0)

@@ -55,6 +55,10 @@ func _physics_process(delta: float) -> void:
 		_next_launch[id] = now + int(relaunch_cooldown * 1000.0)
 		var launch := maxf(falling * bounce_gain, minimum_launch)
 		rigid.linear_velocity = Vector2(rigid.linear_velocity.x, -launch)
+		# Dust off the mat, more for a harder landing.
+		var fx := WorldFX.of(self)
+		if fx:
+			fx.puff(Vector2(rigid.global_position.x, global_position.y), int(lerpf(3.0, 8.0, clampf(falling / 900.0, 0.0, 1.0))), WorldFX.DUST, 80.0, 0.5)
 		# Louder for a harder landing, the same way a hit is.
 		AudioManager.play(&"bounce", 0.15, lerpf(-16.0, -4.0, clampf(falling / 900.0, 0.0, 1.0)))
 		EventBus.contract_event.emit(&"bounce", 1)

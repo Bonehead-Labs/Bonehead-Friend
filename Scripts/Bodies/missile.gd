@@ -41,6 +41,10 @@ func _ready() -> void:
 ## Called by the power immediately after spawning. Everything the missile needs to
 ## attribute its damage is passed in, so the projectile never reaches for the cursor,
 ## the player's augments or any autoload state of its own.
+## Milliseconds between puffs of the trail.
+const TRAIL_EVERY_MSEC := 45
+var _trail_msec := 0
+
 func launch(at: Vector2, source_id: StringName, damage_mult: float, force: float) -> void:
 	target = at
 	_source_id = source_id
@@ -61,6 +65,13 @@ func _process(delta: float) -> void:
 		explode()
 		return
 	global_position += to_target.normalized() * step
+	# A smoke trail, one puff every few frames: a missile with no trail is a sprite sliding.
+	_trail_msec += int(delta * 1000.0)
+	if _trail_msec >= TRAIL_EVERY_MSEC:
+		_trail_msec = 0
+		var fx := WorldFX.of(self)
+		if fx:
+			fx.puff(global_position, 2, WorldFX.SOOT, 30.0, 0.45)
 
 func explode() -> void:
 	if _spent:

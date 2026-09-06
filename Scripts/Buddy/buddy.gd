@@ -229,9 +229,14 @@ func _integrate_forces(state_: PhysicsDirectBodyState2D) -> void:
 	# A landing is a fall that stopped. Before the damage early-out: the sub-threshold
 	# contacts it discards are exactly the ones a soft landing is made of.
 	var vy := state_.linear_velocity.y
-	if expression:
-		if _prev_vy > LANDING_SPEED and vy < LANDING_SPEED * 0.2:
+	if _prev_vy > LANDING_SPEED and vy < LANDING_SPEED * 0.2:
+		if expression:
 			expression.notice_landing(_prev_vy)
+		# Where his feet are, for the dust (WorldFX). The bottom of his interaction rect, so
+		# it sits on whatever he landed on rather than at his centre of mass.
+		var rect := get_interaction_rect()
+		EventBus.buddy_landed.emit(Vector2(rect.get_center().x, rect.end.y), _prev_vy)
+	if expression:
 		expression.notice_airborne(state_.get_contact_count() == 0 and not freeze,
 			state_.linear_velocity)
 	_prev_vy = vy
