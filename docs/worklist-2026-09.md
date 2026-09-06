@@ -233,3 +233,22 @@ Counts after: **unit 216 · loop 595 · ui 292 · pacing 4/4** (nothing here tou
 Seen in the shots and fixed before commit: the first cut's 300px stage put the Play key under the
 fold on every machine (page eyebrow, two-line intro and a duplicated machine name were the cost);
 the face-down card at 60x92 was a black slab and is now a double frame.
+
+## 8. Backdrops (2026-09-06, late) ✅
+
+Owner's idea, same session: "the option of selecting different backgrounds, not forcing the
+transparent one … a basic solid grey, and then other colours and scenes that don't conflict …
+ensuring they work with the various scales, fullscreen on various monitors". Recorded as **D38**.
+
+| # | What | Where |
+|---|---|---|
+| 8.1 | **`Backdrop`** layer under the world: Desktop (transparent, default), six flat colours incl. Chroma key green, five drawn scenes (Night sky, Dusk, Hills, Graph paper, Desk) painted to the window rect in whole blocks sized from the window height | `Scripts/World/backdrop.gd`, `main.gd` |
+| 8.2 | **Setting.** `Settings.backdrop` in `settings.cfg`; `OverlayManager.set_backdrop()`; `EventBus.backdrop_changed`; a BACKDROP section of two choice rows on the Settings page, built from `Backdrop.CHOICES` | `settings.gd`, `overlay_manager.gd`, `event_bus.gd`, `settings_panel.gd` |
+| 8.3 | **Proof.** `ui_check` `backdrop` suite (66 assertions: every choice clicked at its real rect, layer shown/hidden, canvas equals the viewport, canvas ignores the mouse, save/load round trip, unknown id falls back); `ui_shots` adds the settings rows and three scenes, restoring the player's choice | `ui_check.gd`, `ui_shots.gd` |
+
+Counts after: **unit 216 · loop 595 · ui 358 · pacing 4/4**.
+
+Not done and why: a scene per monitor (the setting is one value; the window is on one monitor at
+a time); animated scenes (the budget is < 3% idle — a static repaint on resize costs nothing, a
+drifting sky would not); art-generated backdrops (§3, the generator). The scene palette is a
+first pass by eye and is the kind of thing a playtest should look at on a real ultrawide.

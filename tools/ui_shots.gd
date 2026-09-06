@@ -71,6 +71,19 @@ func _ready() -> void:
 	await _shot("06b-deeds")
 	panels.call("show_panel", &"settings")
 	await _shot("08-settings")
+	(panels.get("_host") as ScrollContainer).scroll_vertical = 100000
+	await _shot("08b-settings-backdrop")
+	# Two backdrops, on the real window: the shots are how anyone reviews a scene, and the
+	# setting is restored because ui_shots shares settings.cfg with the player.
+	var had_backdrop := Settings.backdrop
+	panels.call("close")
+	OverlayManager.set_backdrop(&"hills")
+	await _shot("13-backdrop-hills")
+	OverlayManager.set_backdrop(&"night")
+	await _shot("14-backdrop-night")
+	OverlayManager.set_backdrop(&"desk")
+	await _shot("15-backdrop-desk")
+	OverlayManager.set_backdrop(had_backdrop)
 
 	panels.call("close")
 	var esc := _find(_main, "EscMenu")

@@ -82,6 +82,17 @@ func _build_page() -> void:
 		_choice(scale_row, entry[0], StringName("uiscale_%d" % value), func() -> void:
 			Settings.set_ui_scale(value))
 
+	_section("BACKDROP")
+	# Two rows: flat colours, then scenes. Desktop is the transparent default. Every choice
+	# is a `Backdrop` entry; the panel adds nothing of its own, so a new backdrop is a row in
+	# that table and appears here by itself.
+	var backdrop_rows := [_row(), _row()]
+	for entry in Backdrop.CHOICES:
+		var id: StringName = entry["id"]
+		_choice(backdrop_rows[int(entry["row"])], entry["name"], StringName("backdrop_%s" % id),
+			func() -> void: OverlayManager.set_backdrop(id))
+	_column.add_child(_note("Chroma is pure key green, for a stream. Scenes are drawn to the window, so they fit every size and monitor."))
+
 	_section("PERFORMANCE")
 	var power_row := _row()
 	_rows[&"low_power"] = _stat(power_row, "Low power mode", "—")
@@ -117,6 +128,8 @@ func _refresh() -> void:
 		_set_choice(StringName("focus_%d" % level), int(Settings.focus_intensity) == level)
 	for value in 4:
 		_set_choice(StringName("uiscale_%d" % value), Settings.ui_scale == value)
+	for entry in Backdrop.CHOICES:
+		_set_choice(StringName("backdrop_%s" % entry["id"]), Settings.backdrop == entry["id"])
 
 	_set_stat(&"size", "%d x %d" % [Settings.play_area_size.x, Settings.play_area_size.y])
 	_set_stat(&"monitor", "%d of %d" % [Settings.monitor_id, DisplayServer.get_screen_count()])

@@ -349,9 +349,10 @@ five-minute non-developer test and M3's 30-minute no-dead-ends session.
 See the M3 and M2 progress notes in `docs/roadmap.md` for exactly what is and is not
 finished — they are the handoff list, kept current.
 
-The settings panel covers window mode, play-area size, corner, monitor, Focus Mode, Low
-Power and volumes (docs/decisions.md D16). Streamer mode and hibernate are still M4 — though
-auto-hide (D29) delivers most of what streamer mode was for. The F3
+The settings panel covers window mode, play-area size, corner, monitor, Focus Mode, UI size,
+backdrop (D38: the desktop by default, or a flat colour or drawn scene painted to the window),
+Low Power and volumes (docs/decisions.md D16). Streamer mode and hibernate are still M4 — though
+auto-hide (D29) and the Chroma backdrop (D38) deliver most of what streamer mode was for. The F3
 dev hotkeys still work and change the same `Settings` values, which is why the panel re-reads
 them on every refresh instead of caching.
 

@@ -256,6 +256,13 @@ func set_low_power_mode(enabled: bool) -> void:
 	Settings.save_settings()
 	apply_performance_settings()
 
+## What is painted behind him (D38). Owned here with the other window settings: the F3
+## hotkeys and the settings page both come through this one door.
+func set_backdrop(id: StringName) -> void:
+	Settings.backdrop = Backdrop.choice(id)["id"]
+	Settings.save_settings()
+	EventBus.backdrop_changed.emit(Settings.backdrop)
+
 # --- mouse passthrough: REMOVED --------------------------------------------
 #
 # There is no click-through. The window is transparent, so you see through it, but it

@@ -839,6 +839,31 @@ record round's toast. `UIMotion.fill(bar, value)` tweens a `Range`'s value the s
 its tab, its stage and its celebration for free. A new celebration is a `sparkle` call at the
 moment of change, never on a refresh; anything that fires on every tick is a bug.
 
+### D38 — What is behind him is a choice; the desktop stays the default
+
+The transparent overlay is the game's pitch and stays the default, but it is not what everyone
+wants behind a skeleton: a streamer needs a key colour, a player in a play-area window wants a
+room, a player with a busy wallpaper wants a wall. `Backdrop` is a `CanvasLayer` under the world
+that paints one of a fixed menu to the window's own rect — six flat colours (Slate, Charcoal,
+Forest, Plum, Navy, Chroma) and five drawn scenes (Night sky, Dusk, Hills, Graph paper, Desk).
+
+Scenes are **drawn, not pictured**: hard bands, stepped discs, ridge silhouettes sampled once
+per block, a star field from a fixed seed with a count that follows the area. One block is
+`floor(height / 240)` screen pixels, so a scene is as chunky in a 480px play area as on a
+1440px monitor and nothing is ever stretched. Every backdrop is dark or mid-toned, because he is
+white, the cards are cream and the inks are the palette's — a light backdrop would swallow all
+three. The Desk puts its top at the bottom quarter of the window, which is where the generated
+floor is, so he stands on it in every mode.
+
+The choice is `Settings.backdrop`, machine-local like the rest of `settings.cfg`, set through
+`OverlayManager.set_backdrop()` and announced on `EventBus.backdrop_changed`. "Desktop" hides the
+layer outright, so the window is exactly as transparent as it was. Chroma is the colour
+`streamer_bg_color` was reserved for; with auto-hide (D29) it closes what streamer mode owed.
+
+*Consequence:* a new backdrop is a row in `Backdrop.CHOICES` — the settings page builds its
+buttons from that table, and `ui_check`'s `backdrop` suite clicks every one. The canvas is a
+full-rect Control on a CanvasLayer and MUST stay `MOUSE_FILTER_IGNORE` (CLAUDE.md).
+
 ## Recommendations not yet decided
 
 Carried in the spec, owner's call before they matter:

@@ -53,6 +53,9 @@ var ui_scale: int = 0
 var focus_intensity: Intensity = Intensity.NORMAL
 var streamer_mode: bool = false
 var streamer_bg_color: Color = Color(0, 1, 0)  ## Chroma key green
+## What is painted behind him: `&"transparent"` is the desktop, anything else is a `Backdrop`
+## choice (D38). Machine-local like the rest of this file — a streamer keys one machine.
+var backdrop: StringName = &"transparent"
 
 # --- audio ---
 var volume_master: float = 0.6
@@ -99,6 +102,7 @@ func load_settings() -> void:
 
 	focus_intensity = cfg.get_value("presentation", "focus_intensity", focus_intensity)
 	ui_scale = int(cfg.get_value("presentation", "ui_scale", ui_scale))
+	backdrop = StringName(String(cfg.get_value("presentation", "backdrop", String(backdrop))))
 	streamer_mode = cfg.get_value("presentation", "streamer_mode", streamer_mode)
 	streamer_bg_color = cfg.get_value("presentation", "streamer_bg_color", streamer_bg_color)
 
@@ -134,6 +138,7 @@ func save_settings() -> void:
 	cfg.set_value("presentation", "ui_scale", ui_scale)
 	cfg.set_value("presentation", "streamer_mode", streamer_mode)
 	cfg.set_value("presentation", "streamer_bg_color", streamer_bg_color)
+	cfg.set_value("presentation", "backdrop", String(backdrop))
 
 	cfg.set_value("audio", "volume_master", volume_master)
 	cfg.set_value("audio", "volume_sfx", volume_sfx)

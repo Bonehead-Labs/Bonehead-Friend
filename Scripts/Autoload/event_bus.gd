@@ -77,4 +77,5 @@ signal focus_mode_changed(level: int)
 ## Whole-number UI zoom. Every CanvasLayer in the shell rescales itself and resizes its
 ## root Control; nothing else in the game cares.
 signal ui_scale_changed(factor: int)
+signal backdrop_changed(id: StringName)  ## what is painted behind him (D38)
 signal save_requested()

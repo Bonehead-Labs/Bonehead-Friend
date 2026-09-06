@@ -841,8 +841,8 @@ uncovered one item that has to come first.
 - Settings UI: window mode, play-area size and corner, monitor picker, Focus Mode, Low Power
   and volumes all shipped in M3 (D16). Whole-number UI scaling (D23) was not on any list.
 - Auto-hide (D29) was built as a UX fix but is most of what *streamer mode* was for — the shell
-  parks off screen and leaves a mark. What streamer mode still owes beyond it is the chroma-key
-  background and hiding figures a viewer should not see.
+  parks off screen and leaves a mark. The chroma-key background shipped as the Chroma backdrop
+  (D38, 2026-09-06); what streamer mode still owes is hiding figures a viewer should not see.
 
 **Do first, before anything is built for release:** *(pulled into M3.5-0)*
 

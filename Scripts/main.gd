@@ -25,6 +25,7 @@ func _ready() -> void:
 	spawner.world = world
 	spawner.add_to_group(&"item_spawner")
 
+	_build_backdrop()
 	_build_ui()
 	_build_devices()
 	_build_world_fx()
@@ -189,6 +190,13 @@ func _build_ui() -> void:
 	_esc.name = "EscMenu"
 	_esc.world = world
 	add_child(_esc)
+
+## What is behind him when it is not the desktop (D38): a layer under the world, painting one
+## of a fixed menu of flat colours and drawn scenes to the window's own rect.
+func _build_backdrop() -> void:
+	var backdrop := Backdrop.new()
+	backdrop.name = "Backdrop"
+	add_child(backdrop)
 
 ## Bursts at the point of contact — bone chips off a hit, hearts off a kind act. The
 ## floating numbers say how much; this says where, which is the half that was missing.

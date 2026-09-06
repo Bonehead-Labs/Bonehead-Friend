@@ -35,6 +35,7 @@ func _ready() -> void:
 		"play_area": Settings.play_area_size,
 		"hud_pinned": Settings.hud_pinned,
 		"tabs_pinned": Settings.tabs_pinned,
+		"backdrop": Settings.backdrop,
 	}
 	Settings.focus_intensity = Settings.Intensity.OFF
 	# Pinned, so the suite's coverage is a property of the suite and not of whatever the
@@ -81,6 +82,7 @@ func _ready() -> void:
 	await _the_hud_calls_for_rebirth()
 	await _the_wardrobe_is_on_the_arcade_page()
 	await _the_arcade_is_one_room_at_a_time()
+	await _the_backdrop_is_a_choice()
 	await _the_jobs_tab_wears_a_badge()
 	await _the_purse_can_count_high()
 	await _the_payouts_are_visible()
@@ -109,6 +111,7 @@ func _restore_settings() -> void:
 	# pinned their HUD open would find it unpinned after every test run.
 	Settings.hud_pinned = _restore["hud_pinned"]
 	Settings.tabs_pinned = _restore["tabs_pinned"]
+	Settings.backdrop = _restore["backdrop"]
 	Settings.save_settings()
 
 # --- checks ----------------------------------------------------------------
@@ -1585,5 +1588,55 @@ func _the_arcade_is_one_room_at_a_time() -> void:
 	arcade.call("show_room", ids[0])
 	await _settle()
 	_check("machine room: the prestige page is not", prestige != null and not prestige.visible)
+	panels.call("close")
+	await _settle()
+
+## What is behind him is a choice (D38): every entry in `Backdrop.CHOICES` is a real button on
+## the settings page, choosing one paints the whole window with it and hides the layer for the
+## desktop, the canvas never takes a click, and the choice survives a save and load.
+func _the_backdrop_is_a_choice() -> void:
+	_suite("backdrop")
+	var panels := _find(_main, "PanelLayer")
+	var backdrop := _find(_main, "Backdrop") as CanvasLayer
+	_check("the game has a backdrop layer", backdrop != null)
+	if panels == null or backdrop == null:
+		return
+	_check("under the world", backdrop.layer < 0)
+	var canvas := _find(backdrop, "Canvas") as Control
+	_check("with a canvas that ignores the mouse",
+		canvas != null and canvas.mouse_filter == Control.MOUSE_FILTER_IGNORE)
+	panels.call("show_panel", &"settings")
+	await _settle()
+	var page := _find(_main, "SettingsPanel")
+	var rows: Dictionary = page.get("_rows")
+	var ids: Array = Backdrop.ids()
+	_check("twelve choices (%d)" % ids.size(), ids.size() == 12)
+	for id in ids:
+		var button := rows.get(StringName("backdrop_%s" % id)) as Button
+		_check("%s: has a button" % id, button != null)
+		if button == null:
+			continue
+		# The backdrop section is below the fold of the card: scroll it into view the way the
+		# card itself does, then click at the rect it lands at.
+		(panels.get("_host") as ScrollContainer).ensure_control_visible(button)
+		await _settle()
+		_click(UIScale.screen_centre(button))
+		await _settle()
+		_check("%s: chosen" % id, Settings.backdrop == id, String(Settings.backdrop))
+		_check("%s: its button reads pressed" % id, button.button_pressed)
+		var kind: StringName = Backdrop.choice(id)["kind"]
+		_check("%s: the layer is %s" % [id, "hidden" if kind == &"none" else "showing"],
+			backdrop.visible == (kind != &"none"))
+		if canvas:
+			_check("%s: the canvas is the window" % id,
+				canvas.size.is_equal_approx(canvas.get_viewport().get_visible_rect().size), str(canvas.size))
+	# Round trip: what was saved is what loads.
+	OverlayManager.set_backdrop(&"hills")
+	var before := Settings.backdrop
+	Settings.backdrop = &"transparent"
+	Settings.load_settings()
+	_check("the choice survives a save and load", Settings.backdrop == before, String(Settings.backdrop))
+	_check("an unknown id falls back to the desktop", Backdrop.choice(&"nope")["id"] == &"transparent")
+	OverlayManager.set_backdrop(_restore["backdrop"])
 	panels.call("close")
 	await _settle()
