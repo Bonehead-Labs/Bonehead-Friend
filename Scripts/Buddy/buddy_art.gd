@@ -431,7 +431,7 @@ func _advance_motion() -> void:
 			var count := 2.0 if _motion == &"hop2" else 1.0
 			var u := e / 0.32
 			if u < count:
-				_hop_y = -5.0 * a * absf(sin(PI * u))
+				_hop_y = -5.0 * a * (0.7 + 0.6 * _motion_heat) * absf(sin(PI * u))
 			finished = u >= count
 		&"nod":
 			if e < d:

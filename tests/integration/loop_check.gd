@@ -1158,8 +1158,191 @@ func _the_expression_brain_arbitrates() -> void:
 
 	# Arousal rises with a beat and decays on its own clock.
 	_check("a beat raises arousal", brain.arousal() > 0.0)
-	brain._arousal_msec -= int(brain.AROUSAL_HALF_LIFE * 4000.0)
+	brain._clock_skew += int(brain.AROUSAL_HALF_LIFE * 4000.0)
 	_check("and it decays", brain.arousal() < 0.1)
+
+	# The wires (plan §6.3). Every connect asserted by name — the FXLayer scar was four
+	# `connect()` calls stranded after a `return` — and then every handler driven directly,
+	# because emitting most of these on the real bus would pay money or pop a panel.
+	for pair in [
+			[EventBus.damage_dealt, brain._on_damage_dealt],
+			[EventBus.kindness_given, brain._on_kindness_given],
+			[EventBus.kindness_sustained, brain._on_kindness_sustained],
+			[EventBus.grime_changed, brain._on_grime_changed],
+			[EventBus.cursor_power_changed, brain._on_cursor_power_changed],
+			[EventBus.item_purchased, brain._on_item_purchased],
+			[EventBus.mastery_rank_up, brain._on_mastery_rank_up],
+			[EventBus.contract_claimed, brain._on_contract_claimed],
+			[Milestones.milestone_claimed, brain._on_milestone_claimed],
+			[EventBus.prestige_performed, brain._on_prestige_performed],
+			[EventBus.payout, brain._on_payout],
+			[EventBus.ui_panel_changed, brain._on_ui_panel_changed],
+			[EventBus.buddy_state_changed, brain._on_buddy_state_changed]]:
+		var sig: Signal = pair[0]
+		_check("%s is connected" % sig.get_name(), sig.is_connected(pair[1]))
+	_check("the hover sensor is connected", buddy.drag_area != null
+		and buddy.drag_area.hover_changed.is_connected(brain._on_hover_changed))
+
+	var here := buddy.global_position + Vector2(30, 0)
+	var full := maxf(1.0, ItemDB.balance.hit_stop_full_damage)
+	var harm_power: StringName = &""
+	for item in ItemDB.all_items():
+		if item.category == ItemData.CATEGORY_CURSOR_POWER and not item.is_kind():
+			harm_power = item.id
+			break
+
+	# A — the hit ladder, read off the whole HitInfo rather than a fixed reaction.
+	brain._hits.clear()
+	brain._on_damage_dealt(HitInfo.new(full * 0.1, &"baseball_bat", here, 100.0))
+	_check("a light hit is a light hit", brain.beat_id() == &"hit_light")
+	brain.clear()
+	brain._on_damage_dealt(HitInfo.new(full * 0.5, &"baseball_bat", here, 100.0))
+	_check("an ordinary hit is a hit", brain.beat_id() == &"hit")
+	_check("and a bat pulls the shocked face", art.face.animation == &"shocked")
+	brain.clear()
+	brain._on_damage_dealt(HitInfo.new(full, &"baseball_bat", here, 100.0))
+	_check("a full hit is heavy", brain.beat_id() == &"hit_heavy")
+	brain.clear()
+	if harm_power != &"":
+		brain._hits.clear()
+		brain._on_damage_dealt(HitInfo.new(full * 0.5, harm_power, here, 100.0))
+		_check("a cursor power pulls the angry face", art.face.animation == &"angry")
+		brain._on_damage_dealt(HitInfo.new(full * 0.5, harm_power, here, 100.0))
+		_check("and ticking again inside 0.4 s is cooking, not a second hit",
+			brain.beat_id() == &"cooking" and art.face.animation == &"crying")
+		brain.clear()
+	brain._hits.clear()
+	for i in brain.ANNOYED_HITS:
+		brain._on_damage_dealt(HitInfo.new(full * 0.5, &"mace", here, 100.0))
+	_check("five from one source in three seconds queues annoyance", brain._annoyed_pending)
+	brain.clear()
+	_check("which he shows on the settle, not on the hit",
+		brain.beat_id() == &"hit_annoyed" and art.face.animation == &"angry")
+	brain.clear()
+
+	# B — kindness. The sponge line is the regression test for the bug that shipped M3:
+	# `kindness_sustained` was connected to nothing on the character.
+	brain._on_kindness_sustained(&"sponge", 1.0, here)
+	_check("THE SPONGE REACTS: sustained kindness is a live beat",
+		brain.beat_id() == &"cared_for" and art.face.animation == &"happy")
+	brain.clear()
+	var combo_before: int = Economy._combo_count
+	var deadline_before: int = Economy._combo_deadline_msec
+	Economy._combo_count = 0
+	brain._on_kindness_given(&"open_hand", 1.0, here)
+	_check("a pet is a pet", brain.beat_id() == &"pet")
+	brain.clear()
+	Economy._combo_count = 4
+	Economy._combo_deadline_msec = Time.get_ticks_msec() + 5000
+	brain._on_kindness_given(&"open_hand", 1.0, here)
+	_check("a petting streak is a combo", brain.beat_id() == &"pet_combo")
+	brain.clear()
+	Economy._combo_count = combo_before
+	Economy._combo_deadline_msec = deadline_before
+	var pizza := ItemDB.get_item(&"pizza")
+	if pizza and pizza.category == ItemData.CATEGORY_FOOD:
+		brain._on_kindness_given(&"pizza", 1.0, here)
+		_check("food is eaten", brain.beat_id() == &"eat")
+		brain.clear()
+	var ball := ItemDB.get_item(&"tennis_ball")
+	if ball and ball.category == ItemData.CATEGORY_TOY:
+		brain._on_kindness_given(&"tennis_ball", 1.0, here)
+		_check("a toy that reached him is a catch", brain.beat_id() == &"catch"
+			and art.face.animation == &"smug")
+		brain.clear()
+	brain._last_grime = 0.5
+	brain._on_grime_changed(0.0)
+	_check("grime reaching zero sparkles", brain.beat_id() == &"sparkling")
+	brain.clear()
+
+	# C — the cursor and the hands.
+	brain._on_cursor_power_changed(&"open_hand")
+	_check("equipping the open hand pleases him", brain.beat_id() == &"kind_equipped")
+	brain.clear()
+	if harm_power != &"":
+		brain._on_cursor_power_changed(harm_power)
+		_check("equipping a harm power worries him", brain.beat_id() == &"harm_equipped")
+		brain.clear()
+	brain.notice_drag(true)
+	_check("being picked up is a surprise", brain.beat_id() == &"picked_up"
+		and art.face.animation == &"shocked")
+	brain.clear()  # in real time the 0.3 s surprise is long over by the sixth second
+	brain._clock_skew += brain.HELD_LONG_MSEC + 100
+	brain._on_timer()
+	_check("held too long, he gets annoyed", brain.beat_id() == &"held_long"
+		and art.face.animation == &"angry")
+	brain.notice_drag(false)
+	_check("and being put down ends it", not brain.beat_active())
+	brain.notice_shake()
+	_check("a shake while not held is nothing", not brain.beat_active())
+	brain.notice_landing(600.0)
+	_check("a landing squashes him", brain.beat_id() == &"landed" and art.body.scale != base_scale)
+	brain.clear()
+
+	# E — one connect each.
+	brain._on_item_purchased(&"mace")
+	_check("a purchase", brain.beat_id() == &"purchase")
+	brain.clear()
+	brain._on_mastery_rank_up(&"mace", 3)
+	_check("a rank up is smug", brain.beat_id() == &"rank_up" and art.face.animation == &"smug")
+	brain.clear()
+	brain._on_contract_claimed(&"c", 10)
+	_check("a contract claimed", brain.beat_id() == &"claimed")
+	brain.clear()
+	brain._on_milestone_claimed(&"m", 1, 10)
+	_check("a milestone claimed", brain.beat_id() == &"claimed")
+	brain.clear()
+	brain._on_prestige_performed(1.0)
+	_check("a reincarnation", brain.beat_id() == &"reincarnated")
+	brain.clear()
+	brain._on_payout(Economy.BONES, 50000.0, here)
+	_check("a big payout is nothing outside Chaos", not brain.beat_active())
+	Settings.focus_intensity = Settings.Intensity.CHAOS
+	brain._on_payout(Economy.BONES, 50000.0, here)
+	_check("and smug at Chaos", brain.beat_id() == &"big_payout")
+	brain.clear()
+	Settings.focus_intensity = Settings.Intensity.NORMAL
+
+	# F — the desktop.
+	brain.notice_focus(false)
+	_check("losing focus starts the away clock", brain._away_since > 0)
+	brain._clock_skew += brain.REUNION_AFTER_MSEC + 1000
+	brain.notice_focus(true)
+	_check("back after a minute is a reunion", brain.beat_id() == &"reunion")
+	brain.clear()
+	brain.notice_focus(false)
+	brain.notice_focus(true)
+	_check("back after a moment is not", not brain.beat_active())
+	brain.notice_focus(false)
+	brain._clock_skew += brain.SLEEP_AFTER_MSEC + 1
+	brain._on_timer()
+	_check("unfocused for ninety seconds, he sleeps", brain.beat_id() == &"asleep"
+		and art.face.animation == &"asleep" and is_equal_approx(art.body.speed_scale, 0.35))
+	brain.notice_focus(true)
+	_check("and wakes when you are back", brain.beat_id() != &"asleep")
+	brain.clear()
+	brain._on_ui_panel_changed(&"shop")
+	_check("a card opening turns his head", brain.beat_id() == &"card_opened")
+	brain.clear()
+	brain._on_ui_panel_changed(&"")
+	_check("closing it does not", not brain.beat_active())
+	brain._clock_skew = 0
+
+	# Meter reset after the reassembly, off the state machine leaving the lock.
+	buddy.state = &"knockout"
+	brain._on_buddy_state_changed(&"knockout")
+	buddy.state = &"idle"
+	brain._on_buddy_state_changed(&"idle")
+	_check("back on his feet he shakes it off", brain.beat_id() == &"meter_reset")
+	brain.clear()
+
+	# D36's second rule: a reaction still plays at Off.
+	Settings.focus_intensity = Settings.Intensity.OFF
+	art.set_expression(&"neutral")
+	brain._on_damage_dealt(HitInfo.new(full * 0.5, &"baseball_bat", here, 100.0))
+	_check("a hit at Off still changes his face", art.face.animation == &"shocked")
+	_check("and still does not move him", art.body.scale == base_scale and art.body.position == home)
+	brain.clear()
 
 	Settings.focus_intensity = focus_before
 	_check("state never changed: beats are not states", buddy.state == &"idle")

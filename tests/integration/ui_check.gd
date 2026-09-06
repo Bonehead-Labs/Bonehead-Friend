@@ -84,6 +84,7 @@ func _ready() -> void:
 	await _nothing_overflows_its_box()
 	await _closed_pages_do_no_work()
 	await _the_buddy_still_takes_clicks()
+	await _he_notices_the_player()
 	await _escape_menu_opens_and_closes()
 
 	print("")
@@ -1088,6 +1089,86 @@ func _the_buddy_still_takes_clicks() -> void:
 ## now the back room of the Arcade, below three machines, so a click at its centre lands on
 ## whatever the card is actually showing — which is a real click on a real widget and
 ## therefore fails in a way that looks like the button not working.
+## He notices the player (docs/plan-expressive-buddy.md §6.18-21). Headless, so there is no
+## DisplayServer focus event to raise: the notifications are sent by hand. The cursor is a
+## synthetic motion event through the viewport and the sensor's own `mouse_entered` — the
+## one path a test can drive, which is why nothing on the character may poll the OS cursor.
+func _he_notices_the_player() -> void:
+	_suite("he notices you")
+	var panels := _find(_main, "PanelLayer")
+	if panels and panels.call("is_open"):
+		panels.call("close")
+		await _settle()
+	var buddy := _find(_main, "Buddy") as Buddy
+	_check("buddy exists", buddy != null)
+	if buddy == null or buddy.expression == null or buddy.art == null or buddy.drag_area == null:
+		_check("with an expression brain, art and a hover sensor", false)
+		return
+	var brain: ExpressionBrain = buddy.expression
+	var art: BuddyArt = buddy.art
+	var focus_before := Settings.focus_intensity
+	Settings.focus_intensity = Settings.Intensity.NORMAL
+	buddy.freeze = true
+	await _settle()
+
+	# Away and back.
+	buddy._notification(NOTIFICATION_APPLICATION_FOCUS_OUT)
+	_check("losing focus starts the away clock", brain._away_since > 0)
+	brain._clock_skew += brain.REUNION_AFTER_MSEC + 1000
+	buddy._notification(NOTIFICATION_APPLICATION_FOCUS_IN)
+	_check("coming back after a minute is a reunion", brain.beat_id() == &"reunion")
+	_check("and it shows on his face", art.face.animation == &"shocked")
+	_check("and the clock is cleared", brain.away_seconds() == 0.0)
+	brain.clear()
+	buddy._notification(NOTIFICATION_APPLICATION_FOCUS_OUT)
+	buddy._notification(NOTIFICATION_APPLICATION_FOCUS_IN)
+	_check("a moment away earns no greeting", brain.beat_id() != &"reunion")
+
+	# Hover and gaze: over his grab rect, the other side of it, off it, out of the window.
+	var centre := buddy.global_position
+	var where := buddy.global_position
+	await _move(centre + Vector2(30, -10))
+	await _settle()
+	_check("motion over him sets hover", buddy.drag_area.is_hovered)
+	_check("and he attends to the cursor", brain.attention() == ExpressionBrain.ATTEND_CURSOR)
+	_check("and at Normal his gaze leans toward it", art.look_x() > 0.0)
+	await _move(centre + Vector2(-30, -10))
+	await _settle()
+	_check("and follows it to the other side", art.look_x() < 0.0)
+	_check("he looks; he never chases", buddy.global_position == where)
+	await _move(centre + Vector2(400, -300))
+	await _settle()
+	_check("motion away clears hover", not buddy.drag_area.is_hovered)
+	_check("and drops the gaze", is_zero_approx(art.look_x()))
+	await _move(centre + Vector2(30, -10))
+	await _settle()
+	_check("(hovering again)", buddy.drag_area.is_hovered)
+	buddy._notification(NOTIFICATION_WM_MOUSE_EXIT)
+	_check("leaving the window drops it too", is_zero_approx(art.look_x())
+		and brain.attention() != ExpressionBrain.ATTEND_CURSOR)
+	await _move(centre + Vector2(400, -300))
+	await _settle()
+
+	# At Off he still knows you are there, but he does not look.
+	Settings.focus_intensity = Settings.Intensity.OFF
+	await _move(centre + Vector2(30, -10))
+	await _settle()
+	_check("at Off, hover still registers", buddy.drag_area.is_hovered)
+	_check("but the gaze stays home", is_zero_approx(art.look_x()))
+	await _move(centre + Vector2(400, -300))
+	await _settle()
+
+	# Nothing on the character reads the OS cursor: a synthetic event cannot move it.
+	for path in ["res://Scripts/Buddy/expression_brain.gd", "res://Scripts/Buddy/buddy_art.gd",
+			"res://Scripts/Buddy/buddy.gd"]:
+		var source := FileAccess.get_file_as_string(path)
+		_check("%s never polls the mouse" % path.get_file(),
+			not source.contains("get_mouse_position(") and not source.contains("get_global_mouse_position("))
+
+	buddy.freeze = false
+	Settings.focus_intensity = focus_before
+	await _settle()
+
 func _scroll_into_view(control: Control) -> void:
 	var node: Node = control.get_parent()
 	while node != null and not (node is ScrollContainer):

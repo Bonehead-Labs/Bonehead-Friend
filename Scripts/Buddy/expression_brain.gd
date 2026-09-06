@@ -24,7 +24,7 @@ extends Node
 ## it. Rows gated `S`, `N`, `G` and `C` need Subtle, Normal, Normal (gaze) and Chaos.
 ##
 ## **No `_process`.** Event-driven plus one re-armed `Timer` that wakes for the next deadline
-## and stops when there is none. Every deadline is `Time.get_ticks_msec()`, never a frame
+## and stops when there is none. Every deadline is `_now()`, never a frame
 ## count — `Engine.max_fps` drops to 20 at idle and in Low Power.
 
 ## Priority ladder. Higher preempts. Equal preempts, except under damping.
@@ -94,7 +94,7 @@ const ROWS := {
 	&"pet_combo": {"face": &"blissful", "tag": &"happy",
 		"motion": &"hop", "seconds": 0.45, "priority": REACTION, "gate": GATE_REACTIVE},
 	&"cared_for": {"face": &"happy", "tag": &"idle_happy",
-		"motion": &"wiggle", "seconds": 0.6, "priority": REACTION, "gate": GATE_REACTIVE,
+		"motion": &"wiggle", "seconds": 0.6, "priority": ATTENTION, "gate": GATE_REACTIVE,
 		"hold": true, "refresh": 0.6},
 	&"sparkling": {"face": &"blissful", "tag": &"happy",
 		"motion": &"shake_off", "seconds": 0.8, "priority": HEAVY, "gate": GATE_REACTIVE},
@@ -107,7 +107,7 @@ const ROWS := {
 		"hold": true, "refresh": 0.0, "speed": 0.6},
 	# --- C: the cursor and the player's hands ---
 	&"watched": {"face": &"neutral", "tag": &"",
-		"motion": &"gaze", "seconds": 1.0, "priority": ATTENTION, "gate": GATE_GAZE,
+		"motion": &"", "seconds": 1.0, "priority": ATTENTION, "gate": GATE_GAZE,
 		"hold": true, "refresh": 0.0},
 	&"harm_equipped": {"face": &"shocked", "tag": &"",
 		"motion": &"lean_away", "seconds": 0.5, "priority": ATTENTION, "gate": GATE_REACTIVE},
@@ -226,7 +226,40 @@ var _locked := false
 ## suite asserts it stays at zero, and a GDScript lambda captures locals by value.
 var ambient_starts := 0
 
+## The brain's clock. Every deadline is milliseconds off this, never a frame count —
+## `Engine.max_fps` drops to 20 at idle and in Low Power. `_clock_skew` exists for the suites:
+## a test that wants him held for six seconds advances the clock rather than winding a
+## timestamp back past zero, which a process a few seconds old cannot survive.
+var _clock_skew := 0
+
+func _now() -> int:
+	return Time.get_ticks_msec() + _clock_skew
+
 var _timer: Timer
+
+## Hits per source inside `ANNOYED_WINDOW`: source_id -> [count, first_msec, last_msec]. The
+## fifth from one source in three seconds earns `angry` on the settle; a cursor power ticking
+## faster than `COOKING_GAP` is being cooked rather than hit.
+var _hits: Dictionary = {}
+var _annoyed_pending := false
+const ANNOYED_WINDOW_MSEC := 3000
+const ANNOYED_HITS := 5
+const COOKING_GAP_MSEC := 400
+const HITS_SWEEP_AT := 32
+
+var _last_grime := 0.0
+
+## Drag ladder: when he was picked up (0 = not held), and when being held becomes annoying.
+var _drag_since := 0
+const HELD_LONG_MSEC := 6000
+
+## Sleep: unfocused this long and he nods off; back after this long and he greets you.
+var _sleep_at := 0
+const SLEEP_AFTER_MSEC := 90000
+const REUNION_AFTER_MSEC := 60000
+
+## Payouts at or above this tier (FXLayer's log10 ladder) get the smug face — at Chaos only.
+const BIG_PAYOUT_TIER := 4
 
 func _ready() -> void:
 	_timer = Timer.new()
@@ -236,7 +269,173 @@ func _ready() -> void:
 	add_child(_timer)
 	if art:
 		art.beat_animation_finished.connect(_on_beat_animation_finished)
+	if buddy and buddy.drag_area:
+		buddy.drag_area.hover_changed.connect(_on_hover_changed)
+
+	# Every connect in one place, and asserted one at a time in loop_check's "expression"
+	# suite — CLAUDE.md's own scar is four `connect()` calls stranded after a `return`.
 	EventBus.buddy_state_changed.connect(_on_buddy_state_changed)
+	# A — being hit
+	EventBus.damage_dealt.connect(_on_damage_dealt)
+	# B — kindness
+	EventBus.kindness_given.connect(_on_kindness_given)
+	EventBus.kindness_sustained.connect(_on_kindness_sustained)
+	EventBus.grime_changed.connect(_on_grime_changed)
+	# C — the cursor
+	EventBus.cursor_power_changed.connect(_on_cursor_power_changed)
+	# E — economy and progression
+	EventBus.item_purchased.connect(_on_item_purchased)
+	EventBus.mastery_rank_up.connect(_on_mastery_rank_up)
+	EventBus.contract_claimed.connect(_on_contract_claimed)
+	Milestones.milestone_claimed.connect(_on_milestone_claimed)
+	EventBus.prestige_performed.connect(_on_prestige_performed)
+	EventBus.payout.connect(_on_payout)
+	# F — the desktop
+	EventBus.ui_panel_changed.connect(_on_ui_panel_changed)
+
+# --- A: being hit --------------------------------------------------------------
+
+func _on_damage_dealt(info: HitInfo) -> void:
+	var now := _now()
+	var entry: Array = _hits.get(info.source_id, [0, now, 0])
+	if now - int(entry[1]) > ANNOYED_WINDOW_MSEC:
+		entry = [0, now, 0]
+	var gap := now - int(entry[2]) if int(entry[2]) > 0 else ANNOYED_WINDOW_MSEC
+	entry[0] = int(entry[0]) + 1
+	entry[2] = now
+	if _hits.size() >= HITS_SWEEP_AT:
+		_sweep_hits(now)
+	_hits[info.source_id] = entry
+	if int(entry[0]) >= ANNOYED_HITS:
+		_annoyed_pending = true
+		entry[0] = 0
+		entry[1] = now
+
+	# A cursor power ticking at 4 Hz is cooking him, not hitting him: one held face, a shiver,
+	# not a hurt restarted four times a second.
+	var item := ItemDB.get_item(info.source_id)
+	if item and item.category == ItemData.CATEGORY_CURSOR_POWER and gap < COOKING_GAP_MSEC:
+		hold(&"cooking", info.position)
+		return
+	react_to_hit(info)
+
+func _sweep_hits(now: int) -> void:
+	for key in _hits.keys():
+		if now - int(_hits[key][2]) > ANNOYED_WINDOW_MSEC:
+			_hits.erase(key)
+
+# --- B: kindness ----------------------------------------------------------------
+
+func _on_kindness_given(source_id: StringName, _value: float, world_pos: Vector2) -> void:
+	var item := ItemDB.get_item(source_id)
+	if item and item.category == ItemData.CATEGORY_FOOD:
+		react(&"eat", 1.0, world_pos)
+		return
+	if item and item.category == ItemData.CATEGORY_TOY:
+		# Something thrown that he got to: the ball, the popper, the kite string.
+		react(&"catch", 1.0, world_pos)
+		return
+	var combo := Economy.kindness_combo()
+	if combo >= 3:
+		react(&"pet_combo", clampf(0.5 + float(combo) / 12.0, 0.0, 1.0), world_pos)
+	else:
+		react(&"pet", 0.5, world_pos)
+
+## The sponge, the boombox, the hot tub and all twenty leisure items, for the first time.
+func _on_kindness_sustained(_source_id: StringName, _value: float, world_pos: Vector2) -> void:
+	hold(&"cared_for", world_pos)
+
+func _on_grime_changed(value: float) -> void:
+	if is_zero_approx(value) and _last_grime > 0.0:
+		react(&"sparkling")
+	_last_grime = value
+
+# --- C: the cursor and the player's hands -----------------------------------------
+
+## The cursor left the window entirely, which sends no `mouse_exited`. From the buddy's
+## `NOTIFICATION_WM_MOUSE_EXIT`, the way the hover drawers already handle it.
+func notice_hover(hovered: bool) -> void:
+	_on_hover_changed(hovered)
+
+func _on_hover_changed(hovered: bool) -> void:
+	if hovered:
+		attend(ATTEND_CURSOR, _attention_point)
+		hold(&"watched")
+	else:
+		if _attention == ATTEND_CURSOR:
+			attend(ATTEND_NONE)
+		release(&"watched")
+		if art:
+			art.look(0.0)
+
+## Where the cursor is, from the buddy's own `InputEventMouseMotion` — never polled. The gaze
+## is a lean of two pixels toward it, Normal and above, and he never chases (D36).
+func notice_cursor(world_pos: Vector2) -> void:
+	if _attention != ATTEND_CURSOR:
+		return
+	_attention_point = world_pos
+	if art == null or buddy == null:
+		return
+	if not _may_gaze():
+		art.look(0.0)
+		return
+	var dx := world_pos.x - buddy.global_position.x
+	art.look(signf(dx) * 2.0 * _amp() if absf(dx) > 4.0 else 0.0)
+
+func _on_cursor_power_changed(item_id: StringName) -> void:
+	var item := ItemDB.get_item(item_id)
+	if item == null:
+		return
+	react(&"kind_equipped" if item.is_kind() else &"harm_equipped")
+
+## Picked up and put down, from `Buddy._start_drag` / `_end_drag`.
+func notice_drag(held: bool) -> void:
+	if held:
+		_drag_since = _now()
+		react(&"picked_up")
+	else:
+		_drag_since = 0
+		release(&"held_long")
+	_arm()
+
+## Flung about while held, from the buddy's physics tick. Damping keeps it to one wobble.
+func notice_shake() -> void:
+	if _drag_since > 0:
+		react(&"shaken")
+
+## Came down hard after a drop or a fall, from `_integrate_forces`.
+func notice_landing(speed: float) -> void:
+	react(&"landed", clampf(speed / 900.0, 0.0, 1.0))
+
+# --- E: economy and progression ------------------------------------------------------
+
+func _on_item_purchased(_item_id: StringName) -> void:
+	react(&"purchase")
+
+func _on_mastery_rank_up(_item_id: StringName, _rank: int) -> void:
+	react(&"rank_up")
+
+func _on_contract_claimed(_contract_id: StringName, _dollars: int) -> void:
+	react(&"claimed")
+
+func _on_milestone_claimed(_id: StringName, _rungs: int, _dollars: int) -> void:
+	react(&"claimed")
+
+func _on_prestige_performed(_marrow: float) -> void:
+	react(&"reincarnated")
+
+func _on_payout(_currency: StringName, amount: float, _world_pos: Vector2) -> void:
+	# The cheap test first: this fires on every hit and every pet.
+	if Settings.focus_intensity != Settings.Intensity.CHAOS or amount < 1.0:
+		return
+	if int(floor(log(amount) / log(10.0))) >= BIG_PAYOUT_TIER:
+		react(&"big_payout")
+
+# --- F: session and desktop ------------------------------------------------------------
+
+func _on_ui_panel_changed(panel: StringName) -> void:
+	if panel != &"":
+		react(&"card_opened")
 
 # --- asking for a beat -------------------------------------------------------
 
@@ -301,7 +500,7 @@ func beat_priority() -> int:
 func arousal() -> float:
 	if _arousal <= 0.0:
 		return 0.0
-	var elapsed := float(Time.get_ticks_msec() - _arousal_msec) / 1000.0
+	var elapsed := float(_now() - _arousal_msec) / 1000.0
 	return _arousal * pow(0.5, elapsed / AROUSAL_HALF_LIFE)
 
 func attention() -> StringName:
@@ -315,17 +514,29 @@ func attend(kind: StringName, point: Vector2 = Vector2.ZERO) -> void:
 	_attention = kind
 	_attention_point = point
 
-## Told by `Buddy` when the app gains or loses focus.
+## Told by `Buddy` when the app gains or loses focus. Away, arousal drops to nothing, the
+## gaze lets go and a sleep deadline is set; back after more than a minute, he greets you.
 func notice_focus(has_focus: bool) -> void:
+	var now := _now()
 	if has_focus:
+		var away := now - _away_since if _away_since > 0 else 0
 		_away_since = 0
+		_sleep_at = 0
+		release(&"asleep")
+		if away >= REUNION_AFTER_MSEC:
+			react(&"reunion")
 	elif _away_since == 0:
-		_away_since = Time.get_ticks_msec()
+		_away_since = now
+		_arousal = 0.0
+		_sleep_at = now + SLEEP_AFTER_MSEC
+		if art:
+			art.look(0.0)
+	_arm()
 
 func away_seconds() -> float:
 	if _away_since == 0:
 		return 0.0
-	return float(Time.get_ticks_msec() - _away_since) / 1000.0
+	return float(_now() - _away_since) / 1000.0
 
 ## Inside the knockout beat, nothing below `BEAT` plays. Read off his real state when he is
 ## there to ask, so a stray `buddy_state_changed` on the bus — a test emits one without ever
@@ -371,7 +582,7 @@ func _request(row_id: StringName, row: Dictionary, heat: float, at: Vector2,
 	var priority := int(row.get("priority", REACTION))
 	if is_locked() and priority < BEAT:
 		return false
-	var now := Time.get_ticks_msec()
+	var now := _now()
 	if _live():
 		var current := int(_beat.get("priority", -1))
 		if current > priority:
@@ -422,11 +633,11 @@ func _refresh(row: Dictionary) -> void:
 	var refresh := float(row.get("refresh", 0.0))
 	if bool(row.get("hold", false)):
 		if refresh > 0.0:
-			_beat["until_msec"] = Time.get_ticks_msec() + int(refresh * 1000.0)
+			_beat["until_msec"] = _now() + int(refresh * 1000.0)
 	else:
 		# A damped repeat of a one-shot: keep it alive for one more full duration.
 		var seconds := _duration(row, _beat.get("tag", &""))
-		_beat["until_msec"] = Time.get_ticks_msec() + int(seconds * 1000.0)
+		_beat["until_msec"] = _now() + int(seconds * 1000.0)
 	_arm()
 
 func _end_beat() -> void:
@@ -435,6 +646,11 @@ func _end_beat() -> void:
 	_beat = {}
 	if art:
 		art.clear_beat()
+	# The fifth hit from one source earns `angry` on the settle, not on the hit.
+	if _annoyed_pending:
+		_annoyed_pending = false
+		react(&"hit_annoyed")
+		return
 	_arm()
 
 ## The face he settles on partway through a row that has one: the heavy hit's dizzy tail,
@@ -450,7 +666,7 @@ func _live() -> bool:
 	if _beat.is_empty():
 		return false
 	var until := int(_beat.get("until_msec", 0))
-	return until == 0 or Time.get_ticks_msec() < until
+	return until == 0 or _now() < until
 
 ## The tag the row will actually play: its own if drawn, its fallback if not, else nothing.
 func _resolve_tag(row: Dictionary) -> StringName:
@@ -479,7 +695,7 @@ func _duration(row: Dictionary, tag: StringName) -> float:
 func _bump_arousal(priority: int) -> void:
 	var current := arousal()
 	_arousal = clampf(current + float(priority) / float(BEAT) * 0.5, 0.0, 1.0)
-	_arousal_msec = Time.get_ticks_msec()
+	_arousal_msec = _now()
 
 # --- the timer ---------------------------------------------------------------
 
@@ -490,27 +706,42 @@ func _arm() -> void:
 	if next <= 0:
 		_timer.stop()
 		return
-	var wait := float(next - Time.get_ticks_msec()) / 1000.0
+	var wait := float(next - _now()) / 1000.0
 	_timer.start(maxf(wait, 0.01))
 
+## The soonest of: the beat's end, its face change, being held too long, falling asleep.
 func _next_deadline_msec() -> int:
-	if _beat.is_empty():
-		return 0
-	var until := int(_beat.get("until_msec", 0))
-	var tail_at := int(_beat.get("tail_at_msec", 0))
-	if tail_at > 0 and (until == 0 or tail_at < until):
-		return tail_at
-	return until
+	var next := 0
+	if not _beat.is_empty():
+		next = _soonest(next, int(_beat.get("until_msec", 0)))
+		next = _soonest(next, int(_beat.get("tail_at_msec", 0)))
+	if _drag_since > 0 and _beat.get("id", &"") != &"held_long":
+		next = _soonest(next, _drag_since + HELD_LONG_MSEC)
+	if _away_since > 0 and _sleep_at > 0:
+		next = _soonest(next, _sleep_at)
+	return next
+
+static func _soonest(a: int, b: int) -> int:
+	if a <= 0:
+		return b
+	if b <= 0:
+		return a
+	return mini(a, b)
 
 func _on_timer() -> void:
-	if _beat.is_empty():
-		return
-	if not _live():
-		_end_beat()
-		return
-	var tail_at := int(_beat.get("tail_at_msec", 0))
-	if tail_at > 0 and Time.get_ticks_msec() >= tail_at:
-		_enter_tail()
+	var now := _now()
+	if not _beat.is_empty():
+		if not _live():
+			_end_beat()
+			return
+		var tail_at := int(_beat.get("tail_at_msec", 0))
+		if tail_at > 0 and now >= tail_at:
+			_enter_tail()
+	if _drag_since > 0 and now >= _drag_since + HELD_LONG_MSEC:
+		hold(&"held_long")
+	if _away_since > 0 and _sleep_at > 0 and now >= _sleep_at:
+		_sleep_at = 0
+		hold(&"asleep")
 	_arm()
 
 ## A one-shot row whose tag has finished is over, whatever `animation_length` estimated —
@@ -533,6 +764,7 @@ func _on_beat_animation_finished(tag: StringName) -> void:
 
 func _on_buddy_state_changed(state: StringName) -> void:
 	var inside := KNOCKOUT_STATES.has(state)
+	var was_locked := _locked
 	_locked = inside
 	# The beat owns him completely: whatever was playing stops so the collapse reads.
 	if inside and not _beat.is_empty():
@@ -540,3 +772,6 @@ func _on_buddy_state_changed(state: StringName) -> void:
 		if art:
 			art.clear_beat()
 		_arm()
+	elif not inside and was_locked and state == &"idle":
+		# Back on his feet with the meter reset: two shake-offs and a neutral face.
+		react(&"meter_reset")

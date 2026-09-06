@@ -59,7 +59,7 @@ If splitting a file between two units is more trouble than it is worth, fold 0.2
 | 7 | Sounds | ✅ | New voices upgrade/milestone/welcome/spawn; augment buys climb in pitch; orphaned voices wired (turret_fire, npc_roar by mass, card_deal, bounce, splash/impact_soft via `entry_sound`, explode_big by hint). `play()` gained a `pitch` argument. |
 | 8 | Walk is broken; wall damage too easy; multi-hitbox plan | 🟡 | Nine agent notes in `docs/research/movement-workflow-notes.md`; the plan was never synthesised. **Next: write `docs/plan-movement-hitboxes.md` from those notes** (§2.2), then implement. |
 | 9 | Fades, flash, fist icon | ✅ / 🚫 | Fades and white shader flash done. Fist icon needs the generator (§4). |
-| 10 | Highly reactive, expressive buddy | 🟡 | Plan written: `docs/plan-expressive-buddy.md`. Phase 0 and Phase 1 pieces 1–2 (`ExpressionBrain` + the `BuddyArt` accumulator, 45 loop assertions) green. **Next: §2.1 piece 3** (wire tables A, B, E, C, F). |
+| 10 | Highly reactive, expressive buddy | 🟡 | Plan written: `docs/plan-expressive-buddy.md`. Phase 0 and Phase 1 pieces 1–3 green: `ExpressionBrain`, the `BuddyArt` accumulator, and tables A, B, C, E, F wired (the sponge reacts; hits read heat and category; reunion, sleep, hover gaze, drag ladder). **Next: §2.1 piece 4** (threat_changed, phase_changed, tables D, G, H). |
 
 ---
 
@@ -80,7 +80,7 @@ the plan's own estimate. Do it as five sequential pieces, suites after each:
    `beat_active`; the accumulator (recoil_x, hop_y, nod_y, look_x, squash with
    `_foot_fix = (1.0 - _squash_y) * 31.5 * _base_scale.y`) folded into the two existing
    body/face writes; connect `body.animation_finished`; the `set_process(false)` contract holds.
-3. **Steps 10–11** — tables A, B, E (hits with the whole `HitInfo`, kindness with `source_id`,
+3. ✅ **Steps 10–11** — tables A, B, E (hits with the whole `HitInfo`, kindness with `source_id`,
    `kindness_sustained`, the six progression signals, `Economy.kindness_combo()`), then C, F
    (`DraggableArea.hover_changed`, app focus in/out, the reunion beat, the drag ladder).
 4. **Steps 12–13** — `EventBus.threat_changed(kind, world_pos, level)` from throwables (prime

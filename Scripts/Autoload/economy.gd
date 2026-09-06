@@ -242,6 +242,11 @@ func _on_damage_dealt(info: HitInfo) -> void:
 	grant(DOLLARS, ItemDB.balance.dollars_per_hit)
 	EventBus.contract_event.emit(&"deal_damage", int(info.amount))
 
+## How many kind acts in a row are inside the combo window right now. Read-only, for the
+## buddy's expression: a petting streak shows on him, not only on the payout.
+func kindness_combo() -> int:
+	return _combo_count if Time.get_ticks_msec() < _combo_deadline_msec else 0
+
 func _on_kindness_given(source_id: StringName, value: float, world_pos: Vector2) -> void:
 	var now := Time.get_ticks_msec()
 	var b := ItemDB.balance

@@ -60,6 +60,13 @@ var _reaction_until_msec := 0
 ## drag handler both stand down while it runs, or they fight the tween.
 var _in_knockout := false
 
+## Landing detection for the expression brain: his downward speed on the previous physics
+## tick. Falling faster than `LANDING_SPEED` and then not falling is a landing.
+var _prev_vy := 0.0
+const LANDING_SPEED := 250.0
+## Flung about while held faster than this reads as being shaken.
+const SHAKE_SPEED := 900.0
+
 func _ready() -> void:
 	super._ready()
 	add_to_group(GROUP_BUDDY)
@@ -148,9 +155,27 @@ func _process(_delta: float) -> void:
 ## while the reassemble tween writes his position, and snaps him to the cursor the instant
 ## the beat unfreezes him — with `idle` on the bus while he is in fact being dragged.
 func _unhandled_input(event: InputEvent) -> void:
+	# Where the cursor is, from the event and never polled: a synthetic event cannot move the
+	# OS cursor, so anything that polls the cursor position is untestable by construction.
+	var motion := event as InputEventMouseMotion
+	if motion and expression and expression.attention() == ExpressionBrain.ATTEND_CURSOR:
+		expression.notice_cursor(get_canvas_transform().affine_inverse() * motion.position)
 	if _in_knockout:
 		return
 	super._unhandled_input(event)
+
+## App focus and the cursor leaving the window, forwarded to the expression brain. Both are
+## propagated to every node, so this is the natural place: the character notices himself.
+func _notification(what: int) -> void:
+	if expression == null:
+		return
+	match what:
+		NOTIFICATION_APPLICATION_FOCUS_OUT:
+			expression.notice_focus(false)
+		NOTIFICATION_APPLICATION_FOCUS_IN:
+			expression.notice_focus(true)
+		NOTIFICATION_WM_MOUSE_EXIT:
+			expression.notice_hover(false)
 
 ## Picking him up and putting him down are states, not just physics. Before this, `dragged`
 ## was reachable only as a side effect — `_settle_reaction` picked it when a reaction lapsed
@@ -165,15 +190,21 @@ func _start_drag() -> void:
 		# handle, and a pick-up that did not happen must not tick a contract.
 		if dragging:
 			EventBus.contract_event.emit(&"pick_up", 1)
+			if expression:
+				expression.notice_drag(true)
 
 func _end_drag() -> void:
 	var was_dragging := dragging
 	super._end_drag()
+	if was_dragging and expression:
+		expression.notice_drag(false)
 	if was_dragging and not _in_knockout and state == &"dragged":
 		_set_state(&"idle")
 
 func _physics_process(delta: float) -> void:
 	super._physics_process(delta)
+	if dragging and expression and linear_velocity.length_squared() > SHAKE_SPEED * SHAKE_SPEED:
+		expression.notice_shake()
 	if _pending_hits.is_empty():
 		return
 	var hits := _pending_hits.duplicate()
@@ -184,6 +215,12 @@ func _physics_process(delta: float) -> void:
 # --- damage ----------------------------------------------------------------
 
 func _integrate_forces(state_: PhysicsDirectBodyState2D) -> void:
+	# A landing is a fall that stopped. Before the damage early-out: the sub-threshold
+	# contacts it discards are exactly the ones a soft landing is made of.
+	var vy := state_.linear_velocity.y
+	if _prev_vy > LANDING_SPEED and vy < LANDING_SPEED * 0.2 and expression:
+		expression.notice_landing(_prev_vy)
+	_prev_vy = vy
 	if health == null or health.down:
 		return
 	var b := ItemDB.balance
