@@ -46,6 +46,7 @@ func _ready() -> void:
 	_streaks_are_counted()
 	_he_can_learn_to_sleep_longer()
 	_the_wardrobe_dresses_him()
+	_rounds_keep_score()
 	_the_kindness_augments_do_something()
 	_mood_swings_the_payout()
 	_grime_suppresses_bones()
@@ -672,6 +673,34 @@ func _dollars_count_acts_not_power() -> void:
 		is_equal_approx(Economy.run_earnings, run_before))
 	_check("but they are spendable, unlike the Ectoplasm they replaced",
 		Economy.spend(Economy.DOLLARS, 500.0))
+
+## A round is a score: what it took, how long, what it paid, against the best ever.
+func _rounds_keep_score() -> void:
+	_suite("rounds")
+	var best_before := float(Economy.stats.get("best_round_bones", 0.0))
+	Economy.stats["best_round_bones"] = 0.0
+	Economy._round_bones = 0.0
+	Economy._round_started_msec = 0
+	Economy._streak_deadline_msec = 0
+	EventBus.damage_dealt.emit(HitInfo.new(30.0, &"baseball_bat", Vector2(100, 100), 1000.0))
+	_check("the first hit starts the round clock", Economy._round_started_msec > 0)
+	_check("and its Bones count toward the round", Economy._round_bones > 0.0)
+	var round_bones := Economy._round_bones
+	# The handler directly rather than the bus: the bus emit would also start the real
+	# knockout beat on the buddy.
+	Economy._on_buddy_state_changed(&"knockout")
+	var r := Economy.last_round
+	_check("the knockout closes the round with a score", not r.is_empty() and float(r["damage"]) >= 30.0)
+	_check("that counts the bonus in", float(r["bones"]) > round_bones)
+	_check("and is a record the first time", bool(r["record"]))
+	_check("the record is saved", is_equal_approx(float(Economy.to_save()["stats"]["best_round_bones"]), float(r["bones"])))
+	_check("and the next round starts clean", Economy._round_bones == 0.0 and Economy._round_started_msec == 0)
+	EventBus.damage_dealt.emit(HitInfo.new(1.0, &"baseball_bat", Vector2(100, 100), 1000.0))
+	Economy._on_buddy_state_changed(&"knockout")
+	_check("a smaller round is not a record", not bool(Economy.last_round["record"])
+		and float(Economy.last_round["best_before"]) == float(r["bones"]))
+	Economy.stats["best_round_bones"] = maxf(best_before, float(r["bones"]))
+	Economy._streak_deadline_msec = 0
 
 ## The offline cap is meta, sold for Hearts beside Reincarnation, and survives the reset.
 func _he_can_learn_to_sleep_longer() -> void:

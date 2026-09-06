@@ -53,6 +53,17 @@ func _ready() -> void:
 			_hud.show_toast("Contract ready to claim: %s" % contract.display_name, 8.0))
 	EventBus.prestige_performed.connect(func(gained: float) -> void:
 		_hud.show_toast("Reincarnated. +%.2f marrow, and he is somebody new." % gained, 8.0))
+	# The round, as a score: what it took, how long, what it paid, and the best to beat. The
+	# knockout was the harm loop's climax and it ended with a fountain and no number to chase.
+	EventBus.knockout_payout.connect(func(_bonus: float) -> void:
+		var r := Economy.last_round
+		if r.is_empty():
+			return
+		var when := "" if float(r["seconds"]) <= 0.0 else " in %s" % _round_time(float(r["seconds"]))
+		var against := "  ·  new best!" if bool(r["record"]) else "  ·  best %s" % UIStyle.format_amount(float(r["best_before"]))
+		_hud.show_toast("Round %d: %s damage%s for %s Bones%s" % [int(r["number"]),
+			UIStyle.format_amount(float(r["damage"])), when,
+			UIStyle.format_amount(float(r["bones"])), against], 7.0))
 	# Milestones claim themselves (docs/decisions.md D34) — a board of forty unclaimed
 	# collect buttons is homework, so the toast IS the reward moment and there is nowhere
 	# else the player finds out. A rung count is printed when several land at once, which
@@ -100,6 +111,12 @@ func _report_offline(offline: Dictionary) -> void:
 			b.dream_boost_multiplier, int(round(b.dream_boost_minutes))])
 	_hud.show_toast(" ".join(lines), 14.0)
 	AudioManager.play(&"welcome", 0.0, -4.0)
+
+## "48 s" or "2 m 05 s": a round is a short thing and reads as one.
+func _round_time(seconds: float) -> String:
+	if seconds < 60.0:
+		return "%d s" % int(round(seconds))
+	return "%d m %02d s" % [int(seconds) / 60, int(seconds) % 60]
 
 ## One absurd line from `Data/dreams.txt`. Data, not code: adding a dream is adding a line.
 func _dream_line() -> String:

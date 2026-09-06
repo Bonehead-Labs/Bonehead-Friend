@@ -863,6 +863,7 @@ func _the_deeds_board_is_on_the_page() -> void:
 	_check("the record shows his lifetime Bones",
 		_label_containing(UIStyle.format_amount(Economy.lifetime_of(Economy.BONES)), page) != null)
 	_check("and the best streak", _label_containing("BEST STREAK", page) != null)
+	_check("and the best round", _label_containing("BEST ROUND", page) != null)
 	_check("and this session's receipt", _label_containing("THIS SESSION", page) != null
 		or _label_containing("This session", page) != null)
 	panels.call("close")

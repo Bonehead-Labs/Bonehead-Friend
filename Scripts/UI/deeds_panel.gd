@@ -29,6 +29,7 @@ const STATS := [
 	[&"pets", "Kind acts"],
 	[&"knockouts", "Knockouts"],
 	[&"best_streak", "Best streak"],
+	[&"best_round", "Best round"],
 	[&"items_owned", "Toys owned"],
 	[&"reincarnations", "Lives"],
 	[&"marrow", "Marrow"],
@@ -236,6 +237,8 @@ func _stat_value(key: StringName) -> String:
 			return str(Economy.prestige_count)
 		&"marrow":
 			return "%.2f" % Economy.marrow
+		&"best_round":
+			return UIStyle.format_amount(float(Economy.stats.get("best_round_bones", 0.0)))
 		&"best_streak":
 			return "x%d" % int(Economy.stats.get("best_streak", 0))
 		&"session_bones":

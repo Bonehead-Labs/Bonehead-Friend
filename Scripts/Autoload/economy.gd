@@ -98,6 +98,8 @@ func grant(currency: StringName, amount: float, world_pos: Vector2 = Vector2.ZER
 		_lifetime[currency] = lifetime_of(currency) + amount
 		if session.has(String(currency)):
 			session[String(currency)] = float(session[String(currency)]) + amount
+		if currency == BONES:
+			_round_bones += amount
 		run_earnings += amount
 	# Only a payout that happened *somewhere* moves it. Contract claims and arcade wins are
 	# granted from a panel and carry no world position at all, and letting their Vector2.ZERO
@@ -274,6 +276,8 @@ func _on_damage_dealt(info: HitInfo) -> void:
 	if _streak_count > int(session["best_streak"]):
 		session["best_streak"] = _streak_count
 	session["hits"] = int(session["hits"]) + 1
+	if _round_started_msec == 0:
+		_round_started_msec = now
 	round_damage += info.amount
 	stats["damage_dealt"] = float(stats.get("damage_dealt", 0.0)) + info.amount
 	var bones := payout_for(
@@ -327,6 +331,14 @@ func _on_kindness_sustained(source_id: StringName, value: float, world_pos: Vect
 
 ## The knockout bonus is the round's climax payout. Economy owns it rather than the buddy
 ## because Economy is the only thing in the game allowed to mint currency.
+## The round as a score. A knockout is the harm loop's climax and it ended with a fountain and
+## no number to beat; now every round closes with what it took, how long it took and what it
+## paid, against the best round ever. `last_round` is read by the toast; the best is saved in
+## `stats`. The clock starts at the round's first hit, so a quiet desk does not count.
+var _round_started_msec := 0
+var _round_bones := 0.0
+var last_round: Dictionary = {}
+
 func _on_buddy_state_changed(state: StringName) -> void:
 	if state != &"knockout":
 		return
@@ -337,6 +349,21 @@ func _on_buddy_state_changed(state: StringName) -> void:
 	grant(BONES, bonus, _last_payout_pos)
 	stats["knockouts"] = int(stats.get("knockouts", 0)) + 1
 	session["knockouts"] = int(session["knockouts"]) + 1
+	var now := Time.get_ticks_msec()
+	var best := float(stats.get("best_round_bones", 0.0))
+	last_round = {
+		"number": int(stats["knockouts"]),
+		"damage": round_damage,
+		"bones": _round_bones,
+		"bonus": bonus,
+		"seconds": (float(now - _round_started_msec) / 1000.0) if _round_started_msec > 0 else 0.0,
+		"best_before": best,
+		"record": _round_bones > best,
+	}
+	if _round_bones > best:
+		stats["best_round_bones"] = _round_bones
+	_round_bones = 0.0
+	_round_started_msec = 0
 	round_damage = 0.0
 	EventBus.knockout_payout.emit(bonus)
 	EventBus.contract_event.emit(&"knockout", 1)
