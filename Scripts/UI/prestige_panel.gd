@@ -26,6 +26,40 @@ var _gain_row: HBoxContainer
 var _detail: Label
 var _personality_label: Label
 var _button: Button
+var _sleep_label: Label
+var _sleep_button: Button
+
+## The offline cap, bought here. A refusal is a reaction, not a silence (the shop's rule).
+func _on_sleep_pressed() -> void:
+	if not Economy.buy_offline_cap():
+		UIMotion.buzz(_sleep_button)
+		return
+	UIMotion.confirm(_sleep_button)
+	EventBus.ui_spend.emit(Economy.HEARTS, 0.0, UIScale.screen_centre(_sleep_button))
+	_refresh()
+
+func _refresh_sleep() -> void:
+	if _sleep_label == null:
+		return
+	var b := ItemDB.balance
+	var hours := b.offline_cap_seconds(Economy.offline_cap_level) / 3600.0
+	var cost := Economy.offline_cap_cost()
+	if cost < 0.0:
+		_sleep_label.text = ("He keeps earning for up to %d hours while the game is closed, at half "
+			+ "rate. That is as long as he can sleep.") % int(round(hours))
+		_sleep_button.text = "Sleeps %d h" % int(round(hours))
+		UIStyle.set_icon(_sleep_button, UIStyle.glyph(&"check"))
+		_sleep_button.disabled = true
+		UIStyle.tint_button(_sleep_button, UIStyle.TEXT_DIM)
+		return
+	var next_hours := b.offline_cap_seconds(Economy.offline_cap_level + 1) / 3600.0
+	_sleep_label.text = ("He keeps earning for up to %d hours while the game is closed, at half "
+		+ "rate, then stops. Teach him to sleep %d hours.") % [int(round(hours)), int(round(next_hours))]
+	_sleep_button.text = "Sleep longer  %s" % UIStyle.format_amount(cost)
+	UIStyle.set_icon(_sleep_button, UIStyle.currency_glyph(Economy.HEARTS))
+	_sleep_button.disabled = false
+	UIStyle.tint_button(_sleep_button, UIStyle.HEARTS if Economy.balance_of(Economy.HEARTS) >= cost
+		else UIStyle.TEXT_DIM)
 
 func _ready() -> void:
 	EventBus.currency_changed.connect(func(_c: StringName, _b: float) -> void: request_refresh())
@@ -84,6 +118,27 @@ func _build_page() -> void:
 	_personality_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_personality_label.custom_minimum_size = Vector2(300, 0)
 	who.add_child(_personality_label)
+
+	# Between lives: how long he keeps earning while the game is closed. Meta, like Marrow —
+	# it survives the reset — which is why it is sold here and not in the run's upgrade tree.
+	# The docs promised it (2 h, then 8, then 24, for Hearts) and nothing sold it.
+	add_child(UIStyle.eyebrow("Between lives"))
+	var sleep := PanelContainer.new()
+	sleep.theme_type_variation = &"Tile"
+	add_child(sleep)
+	var sleep_column := VBoxContainer.new()
+	sleep_column.add_theme_constant_override("separation", 6)
+	sleep.add_child(sleep_column)
+	_sleep_label = UIStyle.body("", UIStyle.BODY, UIStyle.TEXT)
+	_sleep_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_sleep_label.custom_minimum_size = Vector2(300, 0)
+	sleep_column.add_child(_sleep_label)
+	_sleep_button = UIStyle.button("", UIStyle.LABEL)
+	_sleep_button.theme_type_variation = &"BuyButton"
+	_sleep_button.custom_minimum_size = Vector2(220, 36)
+	_sleep_button.pressed.connect(_on_sleep_pressed)
+	sleep_column.add_child(_sleep_button)
+	UIMotion.hook(_sleep_button, sleep)
 
 ## Closing the card is a decision not to reincarnate. The confirm does not survive it.
 ## Below this, a reset is a mistake dressed as a choice: there is no threshold in the maths
@@ -150,6 +205,7 @@ func _refresh() -> void:
 		_personality_label.text = "%s — %s" % [personality.display_name, personality.description]
 	else:
 		_personality_label.text = Economy.personality
+	_refresh_sleep()
 
 ## The figures, in the face whose digits can be trusted. Rebuilt rather than refreshed
 ## because the row is two chips before a reincarnation is available and three after.

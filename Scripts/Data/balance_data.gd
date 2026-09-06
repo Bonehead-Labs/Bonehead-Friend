@@ -114,8 +114,20 @@ extends Resource
 @export var offline_efficiency: float = 0.5
 ## Base cap, upgradeable with Hearts to 8 then 24. The small sting of a hit cap is what
 ## drives the next session; an uncapped accumulator removes the reason to come back.
+## `offline_cap_hours_ladder` is the cap at each level; past its end, each further level adds
+## `offline_cap_hours_per_level` (nothing sells one today).
 @export var offline_cap_hours: float = 2.0
 @export var offline_cap_hours_per_level: float = 6.0
+@export var offline_cap_hours_ladder: Array[float] = [2.0, 8.0, 24.0]
+## Hearts for each step up the ladder, sold on the Reincarnation page. The first is a
+## mid-run purchase for a kind player (a hot tub is 12k); the second is a late one.
+@export var offline_cap_cost_hearts: Array[float] = [4000.0, 40000.0]
+
+## The Dream Journal's waking buff (docs/game-design.md § Offline earnings): a small, short
+## multiplier on everything when you come back to money he earned while you were gone. Small
+## because it is a greeting, not an income source; 1.0 or 0 minutes turns it off.
+@export var dream_boost_multiplier: float = 1.15
+@export var dream_boost_minutes: float = 5.0
 
 # --- prestige / mastery ----------------------------------------------------
 
@@ -203,4 +215,10 @@ func sample_mood_curve(mood: float) -> float:
 	return mood_curve.sample_baked(clampf((mood + 100.0) / 200.0, 0.0, 1.0))
 
 func offline_cap_seconds(cap_level: int) -> float:
-	return (offline_cap_hours + offline_cap_hours_per_level * float(maxi(0, cap_level))) * 3600.0
+	var level := maxi(0, cap_level)
+	if level < offline_cap_hours_ladder.size():
+		return float(offline_cap_hours_ladder[level]) * 3600.0
+	var top := float(offline_cap_hours_ladder[-1]) if not offline_cap_hours_ladder.is_empty() \
+		else offline_cap_hours
+	var beyond := level - maxi(offline_cap_hours_ladder.size() - 1, 0)
+	return (top + offline_cap_hours_per_level * float(beyond)) * 3600.0

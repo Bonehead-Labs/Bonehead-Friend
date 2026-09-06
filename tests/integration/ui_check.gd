@@ -472,6 +472,12 @@ func _the_rebirth_page_refuses_an_empty_reset() -> void:
 	_check("the rebirth page exists", page != null)
 	if page == null:
 		return
+	# Between lives: the offline cap is sold here, because it survives the reset like Marrow.
+	var sleep_button: Button = null
+	for node in _all_nodes(page):
+		if node is Button and (node as Button).text.begins_with("Sleep"):
+			sleep_button = node
+	_check("it sells a longer sleep for Hearts", sleep_button != null)
 
 	# Marrow is scaled by the *run*, and every suite above this one has been spending money
 	# into it, so the empty case has to be made rather than assumed.

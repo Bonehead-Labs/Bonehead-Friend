@@ -558,6 +558,14 @@ func _test_offline_cap_upgrades() -> void:
 	_check("base cap is 2 hours", is_equal_approx(balance.offline_cap_seconds(0), 7200.0))
 	_check("cap upgrades extend it", balance.offline_cap_seconds(1) > balance.offline_cap_seconds(0))
 	_check("negative levels cannot shrink it", is_equal_approx(balance.offline_cap_seconds(-3), 7200.0))
+	# The ladder the docs promised: 2 h, then 8, then 24, and a level past the ladder still grows.
+	_check("the first step is eight hours", is_equal_approx(balance.offline_cap_seconds(1), 8.0 * 3600.0))
+	_check("the second is a full day", is_equal_approx(balance.offline_cap_seconds(2), 24.0 * 3600.0))
+	_check("and a level past the ladder still extends it",
+		balance.offline_cap_seconds(3) > balance.offline_cap_seconds(2))
+	_check("each step costs more Hearts than the last",
+		balance.offline_cap_cost_hearts.size() == 2
+		and balance.offline_cap_cost_hearts[1] > balance.offline_cap_cost_hearts[0])
 
 # --- save round trip -------------------------------------------------------
 

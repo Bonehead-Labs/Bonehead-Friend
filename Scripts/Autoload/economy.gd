@@ -399,6 +399,8 @@ func apply_offline_earnings(last_played_unix: int) -> Dictionary:
 		if amount > 0.0:
 			grant(currency, amount)
 	earned["seconds"] = elapsed
+	# Whether the cap was the thing that decided the number — the welcome says so once.
+	earned["capped"] = elapsed >= cap and elapsed > 0.0
 	return earned
 
 # --- prestige --------------------------------------------------------------
@@ -408,6 +410,24 @@ func apply_offline_earnings(last_played_unix: int) -> Dictionary:
 func pending_marrow() -> float:
 	var b := ItemDB.balance
 	return EconomyMath.marrow_for_run(run_earnings, b.marrow_divisor, b.marrow_exponent)
+
+## How long he can sleep for, and what the next step costs. The cap is meta — it survives a
+## Reincarnation like Marrow does — so it is not an augment node (those are the run's) and is
+## sold beside Reincarnation instead. Hearts-priced, as docs/game-design.md says, and the price
+## ladder is a balance knob. Returns a negative cost when he already sleeps as long as he can.
+func offline_cap_cost() -> float:
+	var ladder := ItemDB.balance.offline_cap_cost_hearts
+	if offline_cap_level >= ladder.size():
+		return -1.0
+	return float(ladder[offline_cap_level])
+
+func buy_offline_cap() -> bool:
+	var cost := offline_cap_cost()
+	if cost < 0.0 or not spend(HEARTS, cost):
+		return false
+	offline_cap_level += 1
+	EventBus.save_requested.emit()
+	return true
 
 ## Reincarnation. Wipes the run and keeps the meta: Marrow, Dollars, cosmetics, lifetime
 ## totals, the reset count and the offline cap.

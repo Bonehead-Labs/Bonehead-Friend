@@ -67,6 +67,13 @@ func _ready() -> void:
 ## "You earned this while you were away" — shown once, after the UI exists to show it in.
 ## Silent when nothing accrued, which is every session until the first automation capstone:
 ## a popup that says "you earned 0" teaches the player to dismiss popups.
+## The Dream Journal (docs/game-design.md § Offline earnings): what he earned while you were
+## gone, what he dreamt about, and a small waking buff — so the "collect your offline money"
+## screen is the day's first joke rather than a receipt. One toast, one sound, one beat: the
+## reunion is the genre's whole point and this game used to mark it with six silent seconds.
+const DREAMS_PATH := "res://Data/dreams.txt"
+const DREAM_BOOST_ID := &"dream"
+
 func _report_offline(offline: Dictionary) -> void:
 	var bones := float(offline.get(Economy.BONES, 0.0))
 	var hearts := float(offline.get(Economy.HEARTS, 0.0))
@@ -78,8 +85,34 @@ func _report_offline(offline: Dictionary) -> void:
 	if hearts > 0.0:
 		parts.append("%s Hearts" % UIStyle.format_amount(hearts))
 	var hours := float(offline.get("seconds", 0.0)) / 3600.0
-	_hud.show_toast("While you were out (%.1f h): %s" % [hours, ", ".join(parts)])
+	var lines: Array[String] = ["While you were out (%.1f h): %s." % [hours, ", ".join(parts)]]
+	# The sting, said once, where the money is: a hit cap is what drives the next session, and
+	# a cap the player never learns about is a cap that reads as a bug (assessment §4).
+	if bool(offline.get("capped", false)):
+		lines.append("That is as long as he sleeps for now — he can learn to sleep longer, on the Reincarnation page.")
+	var dream := _dream_line()
+	if dream != "":
+		lines.append(dream)
+	var b := ItemDB.balance
+	if b.dream_boost_multiplier > 1.0 and b.dream_boost_minutes > 0.0:
+		Economy.add_temp_multiplier(DREAM_BOOST_ID, b.dream_boost_multiplier, b.dream_boost_minutes * 60.0)
+		lines.append("He woke up refreshed: x%.2f to everything for %d minutes." % [
+			b.dream_boost_multiplier, int(round(b.dream_boost_minutes))])
+	_hud.show_toast(" ".join(lines), 14.0)
 	AudioManager.play(&"welcome", 0.0, -4.0)
+
+## One absurd line from `Data/dreams.txt`. Data, not code: adding a dream is adding a line.
+func _dream_line() -> String:
+	if not FileAccess.file_exists(DREAMS_PATH):
+		return ""
+	var text := FileAccess.get_file_as_string(DREAMS_PATH)
+	var lines: Array[String] = []
+	for line in text.split("\n"):
+		if line.strip_edges() != "":
+			lines.append(line.strip_edges())
+	if lines.is_empty():
+		return ""
+	return lines[randi() % lines.size()]
 
 ## The first three minutes, for someone who has never seen it. Kept deliberately basic
 ## (the owner's brief): both drawers pinned open so the shell is *there*, the bat on the desk

@@ -44,6 +44,7 @@ func _ready() -> void:
 	_being_kind_pays_hearts()
 	_dollars_count_acts_not_power()
 	_streaks_are_counted()
+	_he_can_learn_to_sleep_longer()
 	_the_kindness_augments_do_something()
 	_mood_swings_the_payout()
 	_grime_suppresses_bones()
@@ -670,6 +671,30 @@ func _dollars_count_acts_not_power() -> void:
 		is_equal_approx(Economy.run_earnings, run_before))
 	_check("but they are spendable, unlike the Ectoplasm they replaced",
 		Economy.spend(Economy.DOLLARS, 500.0))
+
+## The offline cap is meta, sold for Hearts beside Reincarnation, and survives the reset.
+func _he_can_learn_to_sleep_longer() -> void:
+	_suite("sleep")
+	var level_before := Economy.offline_cap_level
+	var b := ItemDB.balance
+	Economy.offline_cap_level = 0
+	var hearts_before := Economy.balance_of(Economy.HEARTS)
+	Economy.spend(Economy.HEARTS, hearts_before)
+	_check("with no Hearts he cannot learn", not Economy.buy_offline_cap() and Economy.offline_cap_level == 0)
+	Economy.grant(Economy.HEARTS, float(b.offline_cap_cost_hearts[0]) + float(b.offline_cap_cost_hearts[1]))
+	var first_cost := Economy.offline_cap_cost()
+	_check("the first step has a price", first_cost > 0.0)
+	_check("buying it raises the cap", Economy.buy_offline_cap() and Economy.offline_cap_level == 1)
+	_check("and spent exactly the price", is_equal_approx(
+		Economy.balance_of(Economy.HEARTS), float(b.offline_cap_cost_hearts[0]) + float(b.offline_cap_cost_hearts[1]) - first_cost))
+	_check("the second step costs more", Economy.offline_cap_cost() > first_cost)
+	_check("and buys a full day", Economy.buy_offline_cap()
+		and is_equal_approx(b.offline_cap_seconds(Economy.offline_cap_level), 24.0 * 3600.0))
+	_check("then there is nothing more to learn", Economy.offline_cap_cost() < 0.0 and not Economy.buy_offline_cap())
+	_check("a run's save carries it", int(Economy.to_save()["offline_cap_level"]) == 2)
+	Economy.offline_cap_level = level_before
+	Economy.spend(Economy.HEARTS, Economy.balance_of(Economy.HEARTS))
+	Economy.grant(Economy.HEARTS, hearts_before)
 
 ## The damage streak is presentation: it is counted, drawn and heard, and pays nothing.
 func _streaks_are_counted() -> void:
