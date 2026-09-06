@@ -593,6 +593,22 @@ func _the_hud_points_at_the_next_toy() -> void:
 		and panels.get("_current") == &"shop")
 	var shop := _find(panels, "ShopPanel")
 	_check("on that item", shop != null and shop.get("_selected") == picked)
+
+	# And buying it puts it on the desk (assessment-2026-09 §4): the Aug 31 session showed
+	# players buying and then not finding the Spawn button. Cursor powers equip rather than
+	# land, so the desk count is asserted only for a thing that lands.
+	var spawner := _find(_main, "ItemSpawner")
+	var action := shop.get("_detail_action") as Button if shop else null
+	_check("the item's action is a live button", action != null and spawner != null)
+	if action and spawner:
+		var count_before: int = spawner.call("item_count")
+		await _click(_centre_of(action))
+		await _settle()
+		_check("clicking it buys the item", Progression.is_unlocked(picked))
+		if item.category != ItemData.CATEGORY_CURSOR_POWER:
+			_check("and the purchase lands on the desk (%d -> %d)"
+					% [count_before, int(spawner.call("item_count"))],
+				int(spawner.call("item_count")) > count_before)
 	panels.call("close")
 	await _settle()
 

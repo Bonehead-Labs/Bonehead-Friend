@@ -23,6 +23,10 @@ P='C:\Users\George\Godot Projects\Projects\Bonehead_Friend\interactive-buddy-2'
 **Baseline at the time of writing: unit 206 · loop 388 · ui 204 · pacing 4/4 (first
 Reincarnation 9:16). All green. Nothing committed since `21adb6c` (2026-08-30).**
 
+**As of 2026-09-06 evening: unit 212 · loop 551 · ui 227 · pacing 4/4 (9:16, now ~2 min to run).
+Everything through §2.4's spawn-on-purchase is committed; the tree is clean. What is left needs a
+human (the playtest, the sandbox walk on two monitors), the owner (§4) or the art generator (§3).**
+
 ---
 
 ## 0. Commit what is green
@@ -128,7 +132,7 @@ All in `docs/assessment-2026-09.md` §1, none started:
 - Low: `save_schema.gd:22` dead `playtime_sec`; five copies of `effective_damage_mult()`;
   `world_bounds.gd:35` bare layers; nine direct `button.icon` writes; `trampoline.gd:412` unswept dict.
 
-### 2.4 Playtest ⬜
+### 2.4 Playtest ⬜ (needs a human) — spawn-on-purchase ✅ (2026-09-06)
 
 The M2 five-minute stranger test, now that the next-up row, onboarding and spawn-on-purchase…
 **note: spawn-on-purchase (assessment §4 item 9) is not done** — one line at

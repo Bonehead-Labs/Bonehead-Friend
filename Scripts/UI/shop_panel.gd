@@ -444,6 +444,10 @@ func _on_action_pressed() -> void:
 	UIMotion.confirm(_detail_sprite)
 	EventBus.ui_spend.emit(item.currency_id(), float(item.cost),
 		UIScale.screen_centre(_detail_action))
+	# A new toy lands on the desk the moment it is bought (assessment-2026-09 §4). The Aug 31
+	# session showed players buying and then not finding the Spawn button; the purchase is
+	# the intent, and the spawner still enforces the desk limit.
+	EventBus.spawn_requested.emit(_selected, Vector2.ZERO)
 
 func _on_item_purchased(item_id: StringName) -> void:
 	request_refresh()
