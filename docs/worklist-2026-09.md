@@ -27,7 +27,9 @@ Reincarnation 9:16). All green. Nothing committed since `21adb6c` (2026-08-30).*
 
 ## 0. Commit what is green
 
-⬜ The tree holds about 90 changed or new files, all verified. Commit them in these units, in
+✅ Committed 2026-09-06 as six units, `6d03864` → `c3f96e0` (docs · lambda/fades/drawers · kind side · sounds · HUD/onboarding · expressive Phase 0), suites at the baseline above. The plan that was followed:
+
+The tree held about 90 changed or new files, all verified. Commit them in these units, in
 this order, each with a message in the repo's style (what, why, what it turned up, the suite
 counts). Run the suites once before the first commit; they do not need re-running per unit.
 
