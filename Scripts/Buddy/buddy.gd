@@ -35,6 +35,7 @@ const REACTION_FALLBACK_SECONDS := 0.45
 @export var grime: GrimeComponent
 @export var face: AnimatedSprite2D
 @export var art: BuddyArt
+@export var expression: ExpressionBrain
 
 var initial_position: Vector2
 var state: StringName = &"idle"
@@ -116,6 +117,19 @@ func _ensure_components() -> void:
 		add_child(art)
 	if art.buddy == null:
 		art.buddy = self
+
+	# What he looks like he is feeling (docs/plan-expressive-buddy.md). After the art, so its
+	# `_ready` can connect to the art's signals.
+	if expression == null:
+		expression = ExpressionBrain.new()
+		expression.name = "ExpressionBrain"
+		expression.buddy = self
+		expression.art = art
+		add_child(expression)
+	if expression.buddy == null:
+		expression.buddy = self
+	if expression.art == null:
+		expression.art = art
 
 func _process(_delta: float) -> void:
 	if _in_knockout:

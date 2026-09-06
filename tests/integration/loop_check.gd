@@ -51,6 +51,7 @@ func _ready() -> void:
 	_the_idle_brain_knows_who_is_at_the_desk()
 	_knockout_pays_and_resets()
 	_the_buddy_art_is_wired()
+	_the_expression_brain_arbitrates()
 	_dragging_him_is_a_state()
 	_mastery_accrues_and_pays()
 	_automation_earns_and_toggles()
@@ -1000,6 +1001,180 @@ func _the_buddy_art_is_wired() -> void:
 		buddy.grime.set_value(saved_grime)
 	else:
 		_check("grime and face are present to test", false)
+
+## The small mind behind his face (docs/plan-expressive-buddy.md §6). Beats are presentation
+## overlays arbitrated in one slot; this checks the slot itself — table integrity, priority,
+## damping, the Focus Off contract, the knockout lock, and that nothing a beat moves stays
+## moved. The wiring that asks for the beats is asserted signal by signal as it lands.
+func _the_expression_brain_arbitrates() -> void:
+	_suite("expression")
+	var buddy := _buddy()
+	if buddy == null or buddy.art == null or buddy.expression == null:
+		_check("buddy has an expression brain", false)
+		return
+	var art: BuddyArt = buddy.art
+	var brain: ExpressionBrain = buddy.expression
+	_check("the brain drives the buddy's own art", brain.art == art and brain.buddy == buddy)
+	_check("art.buddy is filled", art.buddy == buddy)
+	_check("the brain has no _process", not brain.is_processing() and not brain.is_physics_processing())
+	if art.body == null or art.body.sprite_frames == null or art.face == null \
+			or art.face.sprite_frames == null:
+		_check("the art is loaded enough to test against", false)
+		return
+	var body := art.body.sprite_frames
+	var faces := art.face.sprite_frames
+
+	# 1. Table integrity. A misspelled face silently no-ops through set_expression's guard and
+	# he wears the last face forever; a tag not drawn yet must name a fallback that is.
+	var bad_rows := 0
+	for id in brain.ROWS:
+		var row: Dictionary = brain.ROWS[id]
+		for key in ["face", "tail_face"]:
+			var face_name: StringName = row.get(key, &"")
+			if face_name != &"" and not faces.has_animation(face_name):
+				printerr("    row '%s': face '%s' is not drawn" % [id, face_name])
+				bad_rows += 1
+		var tag: StringName = row.get("tag", &"")
+		var fallback: StringName = row.get("fallback", &"")
+		if tag != &"" and not body.has_animation(tag) \
+				and fallback != &"" and not body.has_animation(fallback):
+			printerr("    row '%s': neither '%s' nor fallback '%s' is drawn" % [id, tag, fallback])
+			bad_rows += 1
+		if tag != &"" and not body.has_animation(tag) and not row.has("fallback"):
+			printerr("    row '%s': tag '%s' is not drawn and names no fallback" % [id, tag])
+			bad_rows += 1
+		# 2. Every row resolves to a real duration.
+		if brain._duration(row, brain._resolve_tag(row)) <= 0.05:
+			printerr("    row '%s' resolves to no duration" % id)
+			bad_rows += 1
+	_check("every row's faces exist and every undrawn tag has a drawn fallback (%d bad)" % bad_rows,
+		bad_rows == 0)
+	for category in brain.HURT_FACES:
+		_check("hurt face '%s' exists" % brain.HURT_FACES[category],
+			faces.has_animation(brain.HURT_FACES[category]))
+
+	# The run is at Focus Off. D36: he reacts, he does not initiate, and his silhouette does
+	# not move. Pin it explicitly so the assertions do not depend on the suite order.
+	var focus_before := Settings.focus_intensity
+	Settings.focus_intensity = Settings.Intensity.OFF
+	brain.clear()
+	var base_scale := art._base_scale
+	var home := art._body_home
+	var ambient_before := brain.ambient_starts
+	_check("a pet still plays at Off", brain.react(&"pet") and art.face.animation == &"blissful")
+	_check("but with zero amplitude: scale untouched", art.body.scale == base_scale)
+	_check("and position untouched", art.body.position == home)
+	_check("and the art is not processing for it", not art.is_processing())
+	_check("a fidget does not start at Off", not brain.react(&"fidget"))
+	_check("a gaze does not start at Off", not brain.hold(&"watched"))
+	_check("a Normal-gated row does not start at Off", not brain.hold(&"held_long"))
+	_check("no ambient beat started", brain.ambient_starts == ambient_before)
+	brain.clear()
+
+	# Priority. Pain reads over pleasure in both orders; a heavy hit outranks both.
+	Settings.focus_intensity = Settings.Intensity.NORMAL
+	brain.react(&"hit")
+	brain.react(&"pet")
+	_check("hit then pet: still hurt", brain.beat_id() == &"hit" and art.body.animation == &"hurt")
+	brain.clear()
+	brain.react(&"pet")
+	brain.react(&"hit")
+	_check("pet then hit: hurt", brain.beat_id() == &"hit" and art.body.animation == &"hurt")
+	brain.react(&"hit_heavy", 1.0)
+	_check("a heavy hit escalates over an ordinary one", brain.beat_id() == &"hit_heavy")
+	brain.react(&"hit", 0.5)
+	_check("and an ordinary one cannot take it back", brain.beat_id() == &"hit_heavy")
+	brain.clear()
+
+	# Damping. An identical beat inside 0.18 s extends the deadline and does not rewind.
+	brain.react(&"hit", 0.5)
+	var started: int = brain._beat.get("started_msec", 0)
+	var until: int = brain._beat.get("until_msec", 0)
+	art.body.frame = 2
+	brain._beat["until_msec"] = until - 50
+	_check("a damped repeat is accepted", brain.react(&"hit", 0.5))
+	_check("and does not restart the beat", int(brain._beat.get("started_msec", -1)) == started)
+	_check("and does not rewind the animation", art.body.frame == 2)
+	_check("but extends the deadline", int(brain._beat.get("until_msec", 0)) >= until)
+	_check("a hotter repeat restarts", brain.react(&"hit", 1.0) and art.body.frame == 0)
+	brain.clear()
+
+	# Motion is real at Normal and leaves nothing behind. Every row, whatever its gate.
+	var leaked := 0
+	for id in brain.ROWS:
+		var row: Dictionary = brain.ROWS[id]
+		if bool(row.get("hold", false)):
+			brain.hold(id, buddy.global_position + Vector2(40, 0))
+		else:
+			brain.react(id, 1.0, buddy.global_position + Vector2(40, 0))
+		brain.clear()
+		if art.body.scale != base_scale or art.body.position != home \
+				or not is_equal_approx(art.body.speed_scale, 1.0) \
+				or not is_zero_approx(art.look_x()) or art._squash != Vector2.ONE:
+			printerr("    row '%s' left something behind" % id)
+			leaked += 1
+	_check("after every beat clears, nothing is left moved (%d leaked)" % leaked, leaked == 0)
+	_check("and the art has gone quiet", not art.is_processing())
+	_check("and the brain's timer is stopped", brain._timer.is_stopped())
+	_check("the face is back on the offsets-derived spot",
+		art.face.position.distance_to(_face_spot(art)) < 1.0)
+
+	_check("a hit at Normal squashes him", brain.react(&"hit", 1.0, buddy.global_position + Vector2(40, 0))
+		and art.body.scale != base_scale)
+	_check("anchored at his feet: the body moved down as it flattened",
+		art.body.position.y > home.y)
+	_check("and the face rode the body down", art.face.position.y > _face_spot(art).y - 0.01)
+	_check("and the art is processing for it", art.is_processing())
+	brain.clear()
+
+	# A hold refreshes rather than restarts, and releases on request.
+	_check("a hold starts", brain.hold(&"cared_for") and brain.beat_active())
+	var hold_started: int = brain._beat.get("started_msec", 0)
+	var before_refresh: int = int(brain._beat.get("until_msec", 0)) - 100
+	brain._beat["until_msec"] = before_refresh
+	brain.hold(&"cared_for")
+	_check("a hold refreshed is the same hold", int(brain._beat.get("started_msec", -1)) == hold_started)
+	_check("with a later deadline", int(brain._beat.get("until_msec", 0)) > before_refresh)
+	brain.release(&"cared_for")
+	_check("and releases on request", not brain.beat_active())
+
+	# The knockout lock. Driven by writing his state and calling the handlers directly rather
+	# than through the bus — emitting `buddy_state_changed(&"knockout")` on the real bus
+	# would make Economy pay a bonus. The lock reads `buddy.state`, not a remembered flag, so
+	# a bus emit with no idle after it (the knockout suite above does exactly that) cannot
+	# leave him locked for the rest of the session.
+	brain.react(&"pet")
+	buddy.state = &"knockout"
+	art._on_state_changed(&"knockout")
+	_check("a knockout state plays through a live beat", art.body.animation == &"collapse")
+	brain._on_buddy_state_changed(&"knockout")
+	_check("the knockout drops the beat", not brain.beat_active())
+	_check("and nothing below BEAT gets in", not brain.react(&"pet") and not brain.react(&"hit_heavy"))
+	buddy.state = &"idle"
+	brain._on_buddy_state_changed(&"idle")
+	art._on_state_changed(&"idle")
+	_check("idle unlocks it", brain.react(&"pet"))
+	brain.clear()
+
+	# Arousal rises with a beat and decays on its own clock.
+	_check("a beat raises arousal", brain.arousal() > 0.0)
+	brain._arousal_msec -= int(brain.AROUSAL_HALF_LIFE * 4000.0)
+	_check("and it decays", brain.arousal() < 0.1)
+
+	Settings.focus_intensity = focus_before
+	_check("state never changed: beats are not states", buddy.state == &"idle")
+
+## Where the face should be from the offsets alone: home plus the current frame's offset,
+## mirrored for facing — the position with no beat, no gaze and no travel in it.
+func _face_spot(art: BuddyArt) -> Vector2:
+	var frame := art.body.frame
+	if frame >= art._track_positions.size():
+		return art._face_home
+	var entry: Vector2 = art._track_positions[frame]
+	var dx := entry.x * art._base_scale.x
+	if art._facing < 0.0:
+		dx = -dx
+	return Vector2(art._face_home.x + dx, art._face_home.y + entry.y * art._base_scale.y)
 
 ## Picking him up and putting him down. `dragged` used to be reachable only as a side effect
 ## of a reaction lapsing mid-drag, and nothing ever cleared it, so a hit taken while held
