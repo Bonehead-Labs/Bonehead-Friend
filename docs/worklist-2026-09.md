@@ -206,7 +206,7 @@ Same brief, same method: the docs' own unbuilt promises, chosen for stickiness, 
 |---|---|---|---|
 | 6.1 | **The Wardrobe.** `CosmeticData` (slot bone/phones, Dollar price, tint) on the shader's masks; ten finishes seeded by `tools/seed_m38_finishes.tscn`; owned/worn in `Economy`, saved in the schema's existing `cosmetics` shape; a rail on the Arcade page | `cosmetic_data.gd`, `effects_player.gd`, `economy.gd`, `item_db.gd`, `buddy_art.gd`, `arcade_panel.gd` | `cff7b32` |
 | 6.2 | **Jobs badge** (claimable count on the tab) and the **streak's record**: `stats.best_streak`, "x12 best" tag from six, Deeds shows best streak and a never-saved "This session" receipt; cursor outranks toy for his attention | `panel_layer.gd`, `economy.gd`, `fx_layer.gd`, `deeds_panel.gd`, `expression_brain.gd` | `741cd68` |
-| 6.3 | **Round score.** `Economy.last_round` (number, damage, seconds from first hit, Bones incl. bonus, record vs `stats.best_round_bones`); one-line toast; Deeds shows best round | `economy.gd`, `main.gd`, `deeds_panel.gd` | (this commit's successor) |
+| 6.3 | **Round score.** `Economy.last_round` (number, damage, seconds from first hit, Bones incl. bonus, record vs `stats.best_round_bones`); one-line toast; Deeds shows best round | `economy.gd`, `main.gd`, `deeds_panel.gd` | `a0249a1` |
 
 Counts after: **unit 216 · loop 595 · ui 263 · pacing 4/4** (unchanged; nothing here touches a rate).
 
