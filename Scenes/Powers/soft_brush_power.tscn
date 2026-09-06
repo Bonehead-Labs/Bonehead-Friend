@@ -1,0 +1,11 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Bodies/Powers/open_hand_power.gd" id="1_8sdhd"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/soft_brush.png" id="2_brush"]
+
+[node name="SoftBrushPower" type="Node2D" unique_id=1682213326]
+script = ExtResource("1_8sdhd")
+value_scale = 1.6
+item_id = &"soft_brush"
+cursor_texture = ExtResource("2_brush")
+cursor_hotspot = Vector2(16, 16)

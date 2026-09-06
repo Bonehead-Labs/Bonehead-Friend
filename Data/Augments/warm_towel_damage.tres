@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_f4qix"]
+
+[resource]
+script = ExtResource("1_f4qix")
+id = &"warm_towel_damage"
+item_id = &"warm_towel"
+display_name = "Fluffier Weave"
+effect_key = &"damage_mult"
+effect_per_level = 1.15
+cost_base = 118
+cost_growth = 1.12
+currency = 1

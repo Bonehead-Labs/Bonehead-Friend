@@ -161,6 +161,20 @@ const DEVICES := {
 		"Sorts the edge pieces. He still insists on doing the sky."],
 	&"bubble_machine": [&"bubble_compressor", "Compressor",
 		"More bubbles per second than he can possibly chase."],
+
+	# --- the hands-on kind items (assessment-2026-09) ---
+	&"feather_duster": [&"duster_valet", "Valet Arm",
+		"A duster on a slow arm that gives him a once-over every few minutes."],
+	&"soft_brush": [&"brush_groomer", "Groomer",
+		"A brush on a cam. It does one long stroke and resets, forever."],
+	&"warm_towel": [&"towel_turndown", "Turndown Service",
+		"A heated rail that hands him a fresh towel on the hour."],
+	&"tennis_ball": [&"tennis_ball_launcher", "Ball Launcher",
+		"A hopper that lobs one at him whenever he looks ready to fetch."],
+	&"party_popper": [&"popper_cannon", "Confetti Cannon",
+		"A rack of poppers on a timer. Every hour is somebody's birthday."],
+	&"kite": [&"kite_winch", "Kite Winch",
+		"A winch that keeps the kite flying past him on a loop of string."],
 }
 
 var _written := 0

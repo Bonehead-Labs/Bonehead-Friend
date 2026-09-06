@@ -14,6 +14,11 @@ extends CursorPowerBase
 ## hit test on a body that is being flung around reads as an unresponsive hand.
 @export var reach_padding: float = 24.0
 
+## How much of a pet one stroke of this is. The open hand is 1.0; the soft brush is the
+## same power at a bigger value, so a second petting verb is a scene with one number in it
+## rather than a script (docs/decisions.md D8).
+@export var value_scale: float = 1.0
+
 var _next_pet_msec := 0
 
 ## True only between a press this power actually claimed and its release.
@@ -83,7 +88,8 @@ func can_fire_at(at: Vector2) -> bool:
 ## flat payout multiplier: MoodComponent nudges his mood by the same number, so a stronger
 ## touch buys mood as well as Hearts.
 func _pet(at: Vector2) -> void:
-	EventBus.kindness_given.emit(item_id, ItemDB.balance.pet_value * effective_damage_mult(), at)
+	EventBus.kindness_given.emit(item_id,
+		ItemDB.balance.pet_value * value_scale * effective_damage_mult(), at)
 	EventBus.contract_event.emit(&"pet", 1)
 
 ## By group, never by path — the buddy lives in a different scene from this power

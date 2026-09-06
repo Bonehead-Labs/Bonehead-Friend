@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/soft_brush.png" id="1_iv5a0"]
+[ext_resource type="PackedScene" path="res://Scenes/Powers/soft_brush_power.tscn" id="1_qfijn"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="2_iv5a0"]
+
+[resource]
+script = ExtResource("2_iv5a0")
+id = &"soft_brush"
+display_name = "Soft Brush"
+description = "Hold the button on Bonehead and brush. Gentler than a hand, and worth more."
+category = 3
+cost = 500
+currency = 1
+scene = ExtResource("1_qfijn")
+icon = ExtResource("1_iv5a0")
+sort_order = 30
+equips_as_cursor_power = true

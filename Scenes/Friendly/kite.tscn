@@ -1,0 +1,42 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Bodies/friendly_base.gd" id="1_rb7ls"]
+[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="2_jywgl"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_jkllx"]
+size = Vector2(40, 40)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_i41m6"]
+size = Vector2(52, 52)
+
+[node name="Kite" type="RigidBody2D" unique_id=82175505 node_paths=PackedStringArray("drag_area", "handle", "collider")]
+collision_layer = 4
+collision_mask = 7
+mass = 0.4
+contact_monitor = true
+max_contacts_reported = 4
+script = ExtResource("1_rb7ls")
+hearts_per_contact = 40.0
+contact_cooldown = 1.5
+min_contact_speed = 150.0
+drag_area = NodePath("DraggableArea")
+handle = NodePath("Handle")
+collider = NodePath("CollisionShape2D")
+
+[node name="Placeholder" type="Polygon2D" parent="." unique_id=590372063]
+color = Color(0.36, 0.62, 0.9, 1)
+polygon = PackedVector2Array(-10, -20, 10, -20, 20, -10, 20, 10, 10, 20, -10, 20, -20, 10, -20, -10)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=293090122]
+shape = SubResource("RectangleShape2D_jkllx")
+
+[node name="DraggableArea" type="Area2D" parent="." unique_id=2127469753]
+script = ExtResource("2_jywgl")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=1173684031]
+shape = SubResource("RectangleShape2D_i41m6")
+
+[node name="Handle" type="StaticBody2D" parent="." unique_id=866212477]
+visible = false
+collision_layer = 0
+collision_mask = 0

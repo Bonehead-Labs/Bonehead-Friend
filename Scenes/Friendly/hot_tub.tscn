@@ -18,6 +18,7 @@ contact_monitor = true
 max_contacts_reported = 4
 script = ExtResource("1_bhg2i")
 hearts_per_second_touching = 9.0
+entry_sound = &"splash"
 hearts_per_second_placed = 0.8
 item_id = &"hot_tub"
 drag_area = NodePath("DraggableArea")

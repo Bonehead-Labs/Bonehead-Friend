@@ -442,7 +442,33 @@ func _attention(side: Array[StringName], item_id: StringName) -> float:
 	var best := _favourite(side)
 	if item_id == best:
 		return FOCUS_SHARE
-	return (1.0 - FOCUS_SHARE) / float(side.size() - 1)
+	# The rest goes to the newest toys, not the whole cupboard. Spread over every owned item
+	# it thinned to nothing as the roster grew: at 34 kind items each got 0.4 x 0.4 / 33 of
+	# the time, no kind item reached rank 25 for nineteen hours, and every kind item added
+	# pushed the first Reincarnation later — 7:03 at 80 items, 9:45 at 100, 10:02 at 106,
+	# through a ceiling of 10:00. The Aug 31 session is what a person does: a favourite and
+	# the last few things they bought.
+	var recent := _recent(side, best)
+	if not recent.has(item_id):
+		return 0.0
+	return (1.0 - FOCUS_SHARE) / float(recent.size())
+
+## The `SPREAD_COUNT` most recently bought items on this side, favourite excluded. `_owned`
+## is insertion-ordered and `_side()` preserves it, so the newest are at the end.
+const SPREAD_COUNT := 5
+
+func _recent(side: Array[StringName], best: StringName) -> Array:
+	var key := "recent/%s/%d" % [side[0], side.size()]
+	if _mods.has(key):
+		return _mods[key]
+	var out: Array = []
+	var i := side.size() - 1
+	while i >= 0 and out.size() < SPREAD_COUNT:
+		if side[i] != best:
+			out.append(side[i])
+		i -= 1
+	_mods[key] = out
+	return out
 
 func _favourite(side: Array[StringName]) -> StringName:
 	var key := "fav/%s" % side.size() if side.is_empty() else "fav/%s" % side[0]

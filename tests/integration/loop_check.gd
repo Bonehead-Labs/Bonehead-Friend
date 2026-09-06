@@ -1349,6 +1349,17 @@ func spawner_count_of(item_id: StringName) -> int:
 			count += 1
 	return count
 
+## An item's scene, instanced but never added to the tree — enough to ask a question about
+## its switches. The caller frees it.
+func _instance_of(item_id: StringName) -> BaseDraggable:
+	var item := ItemDB.get_item(item_id)
+	if item == null or item.scene == null:
+		return null
+	var body := item.scene.instantiate() as BaseDraggable
+	if body:
+		body.item_id = item_id
+	return body
+
 func _he_goes_and_plays_with_his_toys() -> void:
 	_suite("idle brain — he goes and plays")
 	var buddy := get_tree().get_first_node_in_group(&"buddy") as Buddy
@@ -1365,6 +1376,27 @@ func _he_goes_and_plays_with_his_toys() -> void:
 	_check("the idle brain is installed", brain != null)
 	if brain == null:
 		return
+
+	# The hands-on kind items pay per second of touch exactly as a beanbag does, and the
+	# routine used to be chosen from that switch alone — so without `handheld` he would walk
+	# over and try to sit in a feather duster. The sponge is the other edge: it now pays a
+	# touching trickle too, and read in the wrong order it becomes a chair instead of a scrub.
+	for id in [&"feather_duster", &"warm_towel"]:
+		var body := _instance_of(id)
+		_check("'%s' is not something he goes and uses" % id,
+			body != null and brain._routine_for(body) == IdleBrain.ROUTINE_NONE)
+		if body:
+			body.free()
+	var sponge := _instance_of(&"sponge")
+	_check("the sponge is still a scrub, not a chair",
+		sponge != null and brain._routine_for(sponge) == IdleBrain.ROUTINE_SCRUB)
+	if sponge:
+		sponge.free()
+	var beanbag_body := _instance_of(&"beanbag")
+	_check("and a beanbag is still somewhere he sits",
+		beanbag_body != null and brain._routine_for(beanbag_body) == IdleBrain.ROUTINE_SOAK)
+	if beanbag_body:
+		beanbag_body.free()
 
 	_clear_spawned()
 	buddy.health.reset_meter()

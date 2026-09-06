@@ -104,9 +104,10 @@ bones_multiplier = 1 - grime × balance.grime_max_penalty     # 0.35, so filthy 
 grime += damage × balance.grime_per_damage                   # 0.0008, ~0.3 per round
 ```
 
-The sponge is the only thing that removes it, and it pays Hearts on grime *actually removed*
-— scrubbing a clean skeleton earns nothing, which is the kindness-side twin of the
-resting-contact cooldown on the damage path.
+The sponge and the warm towel remove it, and they pay Hearts on grime *actually removed* —
+the kindness-side twin of the resting-contact cooldown on the damage path. Since the
+September 2026 assessment both also pay a small `hearts_per_second_touching` trickle, because
+a Hearts-first player has no grime and the 40-Heart sponge otherwise paid nothing at all.
 
 This is the dual-currency spine in one multiplier (D2): the cheapest Hearts item in the game
 is what protects the Bones economy, so a player who only ever hits him pays for it. It is

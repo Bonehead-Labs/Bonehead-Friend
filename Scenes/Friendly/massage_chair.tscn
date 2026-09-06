@@ -20,6 +20,7 @@ script = ExtResource("1_mijts")
 hearts_per_contact = 60.0
 contact_cooldown = 4.0
 hearts_per_second_touching = 20.0
+entry_sound = &"impact_soft"
 item_id = &"massage_chair"
 drag_area = NodePath("DraggableArea")
 handle = NodePath("Handle")

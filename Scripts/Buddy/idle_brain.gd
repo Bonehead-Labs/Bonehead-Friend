@@ -459,14 +459,20 @@ func _routine_for(body: BaseDraggable) -> int:
 	# invisible to him — and the twenty new leisure items would have arrived dead.
 	if item == null or not item.is_kind():
 		return ROUTINE_NONE
+	# A duster or a towel pays while it touches him, exactly as a beanbag does — but it is
+	# the player's to hold. Reading the switch alone would send him over to sit in it.
+	if friendly.handheld:
+		return ROUTINE_NONE
 	# He cannot throw himself. The baseball's catch pays only above a closing speed he has no
 	# way to produce on foot, so walking to it would be a wasted trip every time.
 	if friendly.min_contact_speed > 0.0:
 		return ROUTINE_NONE
-	if friendly.hearts_per_second_touching > 0.0:
-		return ROUTINE_SOAK
+	# Scrub before soak: the sponge now pays a touching trickle as well as its grime bonus,
+	# and read in the other order he would sit in it like a beanbag.
 	if friendly.cleans_grime:
 		return ROUTINE_SCRUB
+	if friendly.hearts_per_second_touching > 0.0:
+		return ROUTINE_SOAK
 	if friendly.hearts_per_contact > 0.0:
 		return ROUTINE_NIBBLE
 	if friendly.hearts_per_second_placed > 0.0:

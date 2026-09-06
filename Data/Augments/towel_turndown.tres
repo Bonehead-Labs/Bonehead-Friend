@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_2taiv"]
+
+[resource]
+script = ExtResource("1_2taiv")
+id = &"towel_turndown"
+item_id = &"warm_towel"
+display_name = "Turndown Service"
+description = "A heated rail that hands him a fresh towel on the hour."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 1550
+currency = 1
+is_automation = true
+automation_rate = 1.5
+device_mount = &"pedestal"
+requires_mastery = 25

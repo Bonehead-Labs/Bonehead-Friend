@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="PackedScene" path="res://Scenes/Friendly/kite.tscn" id="1_8wt7w"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="2_5gin0"]
+
+[resource]
+script = ExtResource("2_5gin0")
+id = &"kite"
+display_name = "Kite"
+description = "Fly it past him and let him catch the string. He has never held one."
+category = 4
+cost = 4500
+currency = 1
+scene = ExtResource("1_8wt7w")
+sort_order = 46

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="PackedScene" path="res://Scenes/Friendly/party_popper.tscn" id="1_88ctc"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="2_3w3xx"]
+
+[resource]
+script = ExtResource("2_3w3xx")
+id = &"party_popper"
+display_name = "Party Popper"
+description = "Throw it at him. Confetti, a bang, and the best day of his life."
+category = 4
+cost = 800
+currency = 1
+scene = ExtResource("1_88ctc")
+sort_order = 44

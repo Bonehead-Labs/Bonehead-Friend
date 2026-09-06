@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_1hn06"]
+
+[resource]
+script = ExtResource("1_1hn06")
+id = &"feather_duster_damage"
+item_id = &"feather_duster"
+display_name = "Fuller Plume"
+effect_key = &"damage_mult"
+effect_per_level = 1.15
+cost_base = 54
+cost_growth = 1.12
+currency = 1

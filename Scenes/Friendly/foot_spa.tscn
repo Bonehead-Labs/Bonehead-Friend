@@ -18,6 +18,7 @@ contact_monitor = true
 max_contacts_reported = 4
 script = ExtResource("1_281ff")
 hearts_per_second_touching = 1.4
+entry_sound = &"splash"
 drag_area = NodePath("DraggableArea")
 handle = NodePath("Handle")
 collider = NodePath("CollisionShape2D")

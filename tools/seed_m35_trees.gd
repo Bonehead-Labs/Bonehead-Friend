@@ -95,6 +95,16 @@ const TREES := {
 	&"rubber_duck": ["Louder Squeak", "Bath Time Rates", "Faster Squeeze"],
 	&"jigsaw_puzzle": ["More Pieces", "Completion Bonus", ""],
 	&"bubble_machine": ["Bigger Bubbles", "Soap Rates", ""],
+
+	# --- the hands-on kind items (assessment-2026-09) ---
+	# Held things pay per second of touch and have no rate to speed up: two nodes. Thrown
+	# things land on a cooldown, so their third lever is how soon they can land again.
+	&"feather_duster": ["Fuller Plume", "Housekeeping Rates", ""],
+	&"soft_brush": ["Softer Bristles", "Grooming Rates", "Quicker Strokes"],
+	&"warm_towel": ["Fluffier Weave", "Turndown Rates", ""],
+	&"tennis_ball": ["Fresher Felt", "Fetch Bonus", "Quicker Return"],
+	&"party_popper": ["More Confetti", "Party Rates", "Shorter Fuse"],
+	&"kite": ["Longer Tail", "Fair Weather Rates", "Faster Reel"],
 }
 
 ## The items whose third lever is **weight**. Everything else with a third node gets a rate.

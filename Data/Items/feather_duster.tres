@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="PackedScene" path="res://Scenes/Friendly/feather_duster.tscn" id="1_mqo4i"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="2_4w7f6"]
+
+[resource]
+script = ExtResource("2_4w7f6")
+id = &"feather_duster"
+display_name = "Feather Duster"
+description = "Drag it over him. He does not have skin and it tickles anyway."
+category = 3
+cost = 90
+currency = 1
+scene = ExtResource("1_mqo4i")
+sort_order = 20

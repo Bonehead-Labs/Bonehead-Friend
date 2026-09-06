@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="PackedScene" path="res://Scenes/Friendly/tennis_ball.tscn" id="1_xtvg2"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="2_s21wm"]
+
+[resource]
+script = ExtResource("2_s21wm")
+id = &"tennis_ball"
+display_name = "Tennis Ball"
+description = "Fuzzy, fast, and he will fetch it every single time."
+category = 4
+cost = 300
+currency = 1
+scene = ExtResource("1_xtvg2")
+sort_order = 42

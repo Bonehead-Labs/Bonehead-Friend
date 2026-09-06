@@ -41,6 +41,17 @@ extends BaseDraggable
 ## class when one appears.
 @export var lifetime_seconds: float = 0.0
 
+## The player holds this against him; it is not something he goes and uses himself. The
+## feather duster pays `hearts_per_second_touching` exactly as a beanbag does, and without
+## this flag `IdleBrain` would read that switch, walk him over and try to sit in a duster.
+## The switches say what a thing *pays for*; this says whose hands it belongs in.
+@export var handheld: bool = false
+
+## What it sounds like when he first gets into it: `splash` for anything with water in it,
+## `impact_soft` for a chair. Empty is silent. Played once per entry, not per frame.
+@export var entry_sound: StringName = &""
+var _was_touching := false
+
 ## Sustained kindness is banked and flushed on this interval rather than emitted every
 ## physics frame. Sixty payouts a second would put sixty floating numbers a second through
 ## the FX pool and sixty signals a second on the bus, for a rate the player experiences as
@@ -78,6 +89,10 @@ func _physics_process(delta: float) -> void:
 		_bank(hearts_per_second_placed * value * delta, global_position)
 
 	var buddy := _touching_buddy()
+	var touching := buddy != null
+	if touching and not _was_touching and entry_sound != &"":
+		AudioManager.play(entry_sound, 0.10, -8.0)
+	_was_touching = touching
 	if buddy != null:
 		if hearts_per_second_touching > 0.0:
 			_bank(hearts_per_second_touching * value * delta, buddy.global_position)

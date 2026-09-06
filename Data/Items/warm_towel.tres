@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="PackedScene" path="res://Scenes/Friendly/warm_towel.tscn" id="1_epjop"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="2_hix5u"]
+
+[resource]
+script = ExtResource("2_hix5u")
+id = &"warm_towel"
+display_name = "Warm Towel"
+description = "Straight from the dryer. Wipes him down and warms him through."
+category = 3
+cost = 1500
+currency = 1
+scene = ExtResource("1_epjop")
+sort_order = 40

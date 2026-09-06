@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_hb40t"]
+
+[resource]
+script = ExtResource("1_hb40t")
+id = &"popper_cannon"
+item_id = &"party_popper"
+display_name = "Confetti Cannon"
+description = "A rack of poppers on a timer. Every hour is somebody's birthday."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 1200
+currency = 1
+is_automation = true
+automation_rate = 1.03
+device_mount = &"tripod"
+requires_mastery = 25

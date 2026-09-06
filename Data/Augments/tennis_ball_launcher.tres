@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_f2d3q"]
+
+[resource]
+script = ExtResource("1_f2d3q")
+id = &"tennis_ball_launcher"
+item_id = &"tennis_ball"
+display_name = "Ball Launcher"
+description = "A hopper that lobs one at him whenever he looks ready to fetch."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 950
+currency = 1
+is_automation = true
+automation_rate = 0.7
+device_mount = &"tripod"
+requires_mastery = 25

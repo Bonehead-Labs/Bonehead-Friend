@@ -17,6 +17,7 @@ mass = 0.6
 contact_monitor = true
 max_contacts_reported = 4
 script = ExtResource("1_s0oh7")
+hearts_per_second_touching = 0.4
 cleans_grime = true
 drag_area = NodePath("DraggableArea")
 handle = NodePath("Handle")
