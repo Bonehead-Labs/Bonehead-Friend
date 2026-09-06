@@ -57,7 +57,7 @@ If splitting a file between two units is more trouble than it is worth, fold 0.2
 | 5 | HUD next-up + Bones/s · Hearts/s | ✅ | `hud.gd`: 10 s rolling rate row (self-stopping timer); "Next" row coalesced at 0.4 s, click → `EventBus.ui_show_item` → shop opens on the item. Six ui_check assertions. |
 | 6 | Basic onboarding | ✅ | `main.gd _onboard()`: hints `welcome` / `first_bones`; pins both drawers, spawns the bat beside him, two toasts. Not yet seen by a human. |
 | 7 | Sounds | ✅ | New voices upgrade/milestone/welcome/spawn; augment buys climb in pitch; orphaned voices wired (turret_fire, npc_roar by mass, card_deal, bounce, splash/impact_soft via `entry_sound`, explode_big by hint). `play()` gained a `pitch` argument. |
-| 8 | Walk is broken; wall damage too easy; multi-hitbox plan | 🟡 | Nine agent notes in `docs/research/movement-workflow-notes.md`; the plan was never synthesised. **Next: write `docs/plan-movement-hitboxes.md` from those notes** (§2.2), then implement. |
+| 8 | Walk is broken; wall damage too easy; multi-hitbox plan | 🟡 | Plan written: `docs/plan-movement-hitboxes.md` (minimal proposal + the judges' grafts; hitboxes designed, deferred to the art pass). **Next: implement Commit A (the fall floor and grounded), then Commit B (the brain's walk)** (§2.2). |
 | 9 | Fades, flash, fist icon | ✅ / 🚫 | Fades and white shader flash done. Fist icon needs the generator (§4). |
 | 10 | Highly reactive, expressive buddy | ✅ Phase 1 · ⬜ Phases 2–3 | `docs/plan-expressive-buddy.md` Phases 0–1 built and green: `ExpressionBrain` (one arbitrated beat slot, D36), the `BuddyArt` accumulator, all eight reaction tables wired, four voices, F3 row, 80+ loop and 20 ui assertions. Phase 2 (personality on the surface, plan §5) and Phase 3 (art, needs the generator) remain. |
 
@@ -94,7 +94,7 @@ the plan's own estimate. Do it as five sequential pieces, suites after each:
 Then Phase 2 (personality on the surface, plan §5) and Phase 3 (art, plan §4) — Phase 3 needs
 the generator.
 
-### 2.2 Movement, wall damage, multi-hitbox — write the plan, then do it ⬜
+### 2.2 Movement, wall damage, multi-hitbox — write the plan, then do it 🟡 (plan written 2026-09-06: `docs/plan-movement-hitboxes.md`; implementing Commit A, then B)
 
 The workflow's nine results are in `docs/research/movement-workflow-notes.md`: three readers
 (how force is applied, the damage pipeline with quantities, the body and what a multi-hitbox
