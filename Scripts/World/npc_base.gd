@@ -417,6 +417,8 @@ func _attack() -> void:
 	# The tell has a voice. Heavier animals are lower: pitch by mass, so a gorilla's roar
 	# and a hornet's are the same synthesised breath an octave apart.
 	AudioManager.play(&"npc_roar", 0.12, -8.0, clampf(2.4 / maxf(sqrt(mass), 0.8), 0.6, 1.8))
+	# And a face: the buddy's expression watches the tell.
+	EventBus.threat_changed.emit(&"windup", global_position, 1.0)
 	await tree.create_timer(windup_seconds).timeout
 	if not _swing_still_valid(token):
 		return
@@ -426,6 +428,7 @@ func _attack() -> void:
 		# Only a blow that connected is billed. A contract that counts uses of the gorilla is
 		# counting attacks on him, not swings at the air where he was.
 		EventBus.contract_event.emit(&"use:%s" % item_id, 1)
+	EventBus.threat_changed.emit(&"windup", global_position, 0.0)
 
 	_set_state(STATE_RECOVER)
 	await tree.create_timer(_recover_seconds()).timeout

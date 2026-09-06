@@ -156,6 +156,15 @@ var _squash := Vector2.ONE
 var _foot_fix := 0.0
 var _face_base_scale := Vector2.ONE
 
+## Posture: continuous, below every beat. `_posture_speed` is the body `speed_scale` he
+## rests at (0.7 in the mood trough), `_slouch` a lean in radians, `_stretch` how far he is
+## drawn out along a fall. `posture_bias` names an idle to prefer over plain `idle` — a
+## knockout meter past 80% or grime past half stands him in `idle_sad` without touching mood.
+var _posture_speed := 1.0
+var _slouch := 0.0
+var _stretch := 0.0
+var posture_bias: StringName = &""
+
 ## The live beat, if any. `ExpressionBrain` owns its timing; this owns its look.
 var _beat_live := false
 var _beat_tag: StringName = &""
@@ -246,8 +255,13 @@ func _place_face() -> void:
 	var placed := Vector2(
 		_face_home.x + dx + _look_x + _beat_look_x + _recoil_x,
 		_face_home.y + entry.y * _base_scale.y * _squash.y + _bob + _hop_y + _nod_y + _foot_fix)
+	if not is_zero_approx(_slouch):
+		# The face rides the slouch: rotated about the body's own pivot by the same angle.
+		var pivot := body.position
+		placed = pivot + (placed - pivot).rotated(_slouch)
 	face.position = placed
-	face.scale = _face_base_scale * _squash
+	face.rotation = _slouch
+	face.scale = _face_base_scale * _squash * _stretch_scale()
 
 func _on_body_animation_changed() -> void:
 	var track: StringName = body.animation
@@ -297,8 +311,31 @@ func _apply_body() -> void:
 	face.flip_h = _facing < 0.0
 	_foot_fix = (1.0 - _squash.y) * FOOT_HALF_HEIGHT * _base_scale.y
 	body.position = _body_home + Vector2(_recoil_x, _bob + _hop_y + _foot_fix)
-	body.scale = _base_scale * _squash
+	body.scale = _base_scale * _squash * _stretch_scale()
+	body.rotation = _slouch
 	_place_face()
+
+func _stretch_scale() -> Vector2:
+	if is_zero_approx(_stretch):
+		return Vector2.ONE
+	return Vector2(1.0 - _stretch, 1.0 + _stretch)
+
+# --- posture ----------------------------------------------------------------
+
+## The resting posture under every beat. Speed and slouch are the mood-trough tell (plan
+## §2H); both are zero-cost when zero, and `clear_beat` returns the speed to this rather
+## than to 1.0.
+func set_posture(speed_scale: float, slouch_deg: float) -> void:
+	_posture_speed = maxf(speed_scale, 0.05)
+	_slouch = deg_to_rad(slouch_deg)
+	if body and not _beat_live:
+		body.speed_scale = _posture_speed
+	_apply_body()
+
+## Drawn out along a fall, from the buddy's physics tick via the brain. 0 on the ground.
+func set_stretch(amount: float) -> void:
+	_stretch = clampf(amount, 0.0, 0.5)
+	_apply_body()
 
 # --- beats ------------------------------------------------------------------
 #
@@ -353,7 +390,7 @@ func clear_beat() -> void:
 	_beat_look_x = 0.0
 	_squash = Vector2.ONE
 	if body:
-		body.speed_scale = 1.0
+		body.speed_scale = _posture_speed
 	_apply_body()
 	_reapply_state()
 	if _quiet():
@@ -546,7 +583,12 @@ func _on_mood_changed(value: float) -> void:
 		return
 	for threshold in MOOD_IDLES:
 		if value < float(threshold[0]):
-			_play_body(threshold[1])
+			var idle: StringName = threshold[1]
+			# A posture bias only ever lowers plain `idle`: a happy skeleton with a full
+			# meter is still happy, but a neutral one with a full meter looks like it.
+			if idle == &"idle" and posture_bias != &"" and has_animation(posture_bias):
+				idle = posture_bias
+			_play_body(idle)
 			return
 
 func _state_of_body() -> StringName:

@@ -153,6 +153,7 @@ func _fire(target: Buddy) -> void:
 	# Quiet and wide: the fastest turret fires twenty times a second, and this is the
 	# background of the desk, not the event of the desk.
 	AudioManager.play(&"turret_fire", 0.16, -16.0)
+	EventBus.threat_changed.emit(&"turret", global_position, 1.0)
 	EventBus.contract_event.emit(&"use:%s" % item_id, 1)
 
 ## What Bonehead multiplies the notional impulse by, read the same way a weapon reads it.

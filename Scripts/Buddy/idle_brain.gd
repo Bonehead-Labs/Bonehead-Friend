@@ -572,6 +572,18 @@ func _on_item_despawned(item: Node2D) -> void:
 func _on_focus_mode_changed(_intensity: int) -> void:
 	set_physics_process(_phase != PHASE_WATCHING and not _focus_off())
 
+## The brain's phase moved, with the routine and toy in force from here. The expression brain
+## reads this — the whole Shimeji layer was invisible because he played `idle` throughout.
+signal phase_changed(phase: StringName, routine: int, target_id: StringName)
+## A routine ended and why: `done` (the dwell ran out), `stalled` (gave up getting there),
+## `toy_gone` (it despawned under him), `disturbed` (the player arrived).
+signal routine_ended(reason: StringName)
+
+## How long since the player last did anything to him. The expression brain's "welcome
+## back" and yawn both read it rather than keeping a second clock.
+func seconds_since_disturbance() -> float:
+	return float(Time.get_ticks_msec() - _last_disturbance_msec) / 1000.0
+
 func _stand_down() -> void:
 	_flush()
 	# Deliberately no cooldown: he was interrupted, not bored, and a toy he never got to play
@@ -579,15 +591,20 @@ func _stand_down() -> void:
 	_target = null
 	_target_id = &""
 	_routine = ROUTINE_NONE
+	routine_ended.emit(&"disturbed")
 	_enter(PHASE_WATCHING)
 
 func _finish(cool: bool) -> void:
 	_flush()
+	var reason: StringName = &"toy_gone"
+	if cool:
+		reason = &"stalled" if _phase == PHASE_TRAVELLING else &"done"
 	if cool and is_instance_valid(_target):
 		_cool(_target, TOY_COOLDOWN)
 	_target = null
 	_target_id = &""
 	_routine = ROUTINE_NONE
+	routine_ended.emit(reason)
 	_enter(PHASE_WANDERING)
 
 func _enter(phase: StringName) -> void:
@@ -599,6 +616,7 @@ func _enter(phase: StringName) -> void:
 	_climb_timer = 0.0
 	_jig_timer = 0.0
 	set_physics_process(phase != PHASE_WATCHING and not _focus_off())
+	phase_changed.emit(phase, _routine, _target_id)
 
 func _cool(toy: Node2D, seconds: float) -> void:
 	var now := Time.get_ticks_msec()

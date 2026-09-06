@@ -899,6 +899,10 @@ func _the_buddy_art_is_wired() -> void:
 		return
 	var art: BuddyArt = buddy.art
 
+	# Earlier suites petted and hit him and never ran a frame, so his reaction state never
+	# settled. He has to be idle for the ambient half of this to have anything to say.
+	buddy._reaction_until_msec = 1
+	buddy._settle_reaction()
 	_check("the body sprite frames loaded", art.body != null and art.body.sprite_frames != null)
 	_check("the face sprite frames loaded", art.face != null and art.face.sprite_frames != null)
 	if art.body == null or art.body.sprite_frames == null:
@@ -1115,7 +1119,13 @@ func _the_expression_brain_arbitrates() -> void:
 			leaked += 1
 	_check("after every beat clears, nothing is left moved (%d leaked)" % leaked, leaked == 0)
 	_check("and the art has gone quiet", not art.is_processing())
-	_check("and the brain's timer is stopped", brain._timer.is_stopped())
+	# At Normal the timer is armed for the next blink — seconds away, not a poll. Rescheduled
+	# first: the blink booked at boot may already be due by the time this suite runs.
+	brain._schedule_blink()
+	brain._schedule_fidget()
+	brain._arm()
+	_check("and the brain's timer is waiting seconds for the next blink, not polling (stopped %s left %.2f next %d allowed %s state %s)" % [brain._timer.is_stopped(), brain._timer.time_left, brain._next_deadline_msec() - brain._now(), brain._ambient_allowed(), buddy.state],
+		not brain._timer.is_stopped() and brain._timer.time_left >= 1.0)
 	_check("the face is back on the offsets-derived spot",
 		art.face.position.distance_to(_face_spot(art)) < 1.0)
 
@@ -1336,13 +1346,147 @@ func _the_expression_brain_arbitrates() -> void:
 	_check("back on his feet he shakes it off", brain.beat_id() == &"meter_reset")
 	brain.clear()
 
-	# D36's second rule: a reaction still plays at Off.
+	# D — the world and threats: one signal, three emitters, and only when it is near him.
+	for pair in [
+			[EventBus.threat_changed, brain._on_threat_changed],
+			[EventBus.item_spawned, brain._on_item_spawned],
+			[EventBus.automation_toggled, brain._on_automation_toggled],
+			[EventBus.mood_changed, brain._on_mood_changed],
+			[EventBus.focus_mode_changed, brain._on_focus_mode_changed]]:
+		var sig: Signal = pair[0]
+		_check("%s is connected" % sig.get_name(), sig.is_connected(pair[1]))
+	_check("the knockout meter is connected", buddy.health != null
+		and buddy.health.damaged.is_connected(brain._on_health_damaged)
+		and buddy.health.meter_reset.is_connected(brain._on_meter_reset))
+	var near := buddy.global_position + Vector2(120, 0)
+	var far := buddy.global_position + Vector2(brain.THREAT_RANGE + 200.0, 0)
+	brain._on_threat_changed(&"fuse", far, 1.0)
+	_check("a fuse lit across the desk is not his problem", not brain.beat_active())
+	brain._on_threat_changed(&"fuse", near, 1.0)
+	_check("a fuse lit beside him is", brain.beat_id() == &"fuse_lit"
+		and brain.attention() == ExpressionBrain.ATTEND_THREAT)
+	brain._on_threat_changed(&"fuse", near, 0.0)
+	_check("and the bang is a flinch", brain.beat_id() == &"blast"
+		and brain.attention() == ExpressionBrain.ATTEND_NONE)
+	brain.clear()
+	brain._on_threat_changed(&"windup", near, 1.0)
+	_check("an animal winding up has his attention", brain.beat_id() == &"threatened")
+	brain._on_threat_changed(&"windup", near, 0.0)
+	_check("until it has swung", not brain.beat_active())
+	brain._on_threat_changed(&"turret", near, 1.0)
+	var turret_until: int = brain._beat.get("until_msec", 0)
+	_check("a turret shot is a threat that lapses on its own", brain.beat_id() == &"threatened"
+		and turret_until > 0)
+	brain.clear()
+	var toy := Node2D.new()
+	toy.global_position = near
+	brain._on_item_spawned(toy)
+	_check("a toy landing beside him turns his head", brain.beat_id() == &"item_landed")
+	toy.free()
+	brain.clear()
+	brain._on_automation_toggled(&"bat_swinger", true)
+	_check("a device switching on gets a look", brain.beat_id() == &"device_appeared")
+	brain.clear()
+	brain._on_automation_toggled(&"bat_swinger", false)
+	_check("switching it off does not", not brain.beat_active())
+
+	# G — the idle brain's phases, driven through the handlers the real brain is wired to.
+	# Installed lazily here, as the toys suite below does; main.gd installs it in the game.
+	if get_tree().get_first_node_in_group(&"idle_brain") == null:
+		IdleBrain.install(self)
+	brain._connect_idle_brain()
+	_check("the idle brain is found and connected", is_instance_valid(brain._idle_brain)
+		and brain._idle_brain.phase_changed.is_connected(brain._on_phase_changed)
+		and brain._idle_brain.routine_ended.is_connected(brain._on_routine_ended))
+	brain._on_phase_changed(IdleBrain.PHASE_PLAYING, IdleBrain.ROUTINE_SOAK, &"hot_tub")
+	_check("arriving at a toy pleases him first", brain.beat_id() == &"arrived"
+		and brain._pending_hold == &"soaking")
+	brain.clear()
+	_check("then he settles into the routine", brain.beat_id() == &"soaking"
+		and art.face.animation == &"blissful" and is_equal_approx(art.body.speed_scale, 0.6))
+	brain._on_phase_changed(IdleBrain.PHASE_WANDERING, IdleBrain.ROUTINE_NONE, &"")
+	_check("and leaving it lets go", not brain.beat_active()
+		and is_equal_approx(art.body.speed_scale, 1.0))
+	brain._on_routine_ended(&"stalled")
+	_check("giving up on a climb is annoying", brain.beat_id() == &"gave_up")
+	brain.clear()
+	brain._on_routine_ended(&"toy_gone")
+	_check("a toy vanishing under him is a surprise", brain.beat_id() == &"toy_gone")
+	brain.clear()
+	brain._on_routine_ended(&"done")
+	_check("a dwell running out is nothing", not brain.beat_active())
+
+	# H — posture and ambient. The mood trough is the most valuable row in the plan: at mood
+	# 0 he used to *look* fine while earning 0.6x.
+	brain._on_mood_changed(0.0)
+	_check("in the mood trough he slows", is_equal_approx(art.body.speed_scale, brain.TROUGH_SPEED))
+	_check("and slouches", not is_zero_approx(art.body.rotation))
+	_check("and the face rides the slouch", is_equal_approx(art.face.rotation, art.body.rotation))
+	brain._on_mood_changed(50.0)
+	_check("out of it he stands up", is_equal_approx(art.body.speed_scale, 1.0)
+		and is_zero_approx(art.body.rotation))
+	var damage_before: float = buddy.health.damage
+	buddy.health.damage = buddy.health.max_damage * 0.9
+	brain._on_health_damaged(0.0, buddy.health.damage)
+	_check("a meter past 80% biases his idle sad", art.posture_bias == &"idle_sad")
+	buddy.health.damage = damage_before
+	brain._on_meter_reset()
+	_check("and the reset lifts it", art.posture_bias == &"")
+	brain._last_grime = 0.0
+	brain._on_grime_changed(0.6)
+	_check("grime past half biases it too", art.posture_bias == &"idle_sad")
+	brain._on_grime_changed(0.0)
+	_check("and coming clean lifts it (and sparkles)", art.posture_bias == &"" and brain.beat_id() == &"sparkling")
+	brain.clear()
+
+	var ambient_at_normal := brain.ambient_starts
+	brain._clock_skew += brain.BLINK_MAX_MSEC + int(brain.FIDGET_PERIOD * 1000.0) + 100
+	brain._on_timer()
+	_check("left alone at Normal, he blinks or fidgets", brain.ambient_starts == ambient_at_normal + 1)
+	brain.clear()
+	brain.notice_drag(true)
+	brain.clear()
+	brain._clock_skew += brain.BLINK_MAX_MSEC + int(brain.FIDGET_PERIOD * 1000.0) + 100
+	var ambient_held := brain.ambient_starts
+	brain._on_timer()
+	_check("but never while held", brain.ambient_starts == ambient_held)
+	brain.notice_drag(false)
+	brain.clear()
+	buddy.state = &"knockout"
+	brain._on_buddy_state_changed(&"knockout")
+	brain._on_timer()
+	_check("and never in the knockout", brain.ambient_starts == ambient_held)
+	buddy.state = &"idle"
+	brain._on_buddy_state_changed(&"idle")
+	brain.clear()
+	if is_instance_valid(brain._idle_brain):
+		var quiet_before: int = brain._idle_brain._last_disturbance_msec
+		brain._idle_brain._last_disturbance_msec = -int(brain.QUIET_SECONDS * 1000.0) - 1000
+		brain._yawned = false
+		brain._on_timer()
+		_check("bored for twenty-five seconds, he yawns", brain.beat_id() == &"yawn")
+		brain.clear()
+		brain._on_timer()
+		_check("once per quiet spell", brain.beat_id() != &"yawn")
+		brain.clear()
+		brain._idle_brain._last_disturbance_msec = quiet_before
+	brain._clock_skew = 0
+	brain._schedule_blink()
+	brain._schedule_fidget()
+
+	# D36's second rule: a reaction still plays at Off — and nothing initiates.
 	Settings.focus_intensity = Settings.Intensity.OFF
 	art.set_expression(&"neutral")
 	brain._on_damage_dealt(HitInfo.new(full * 0.5, &"baseball_bat", here, 100.0))
 	_check("a hit at Off still changes his face", art.face.animation == &"shocked")
 	_check("and still does not move him", art.body.scale == base_scale and art.body.position == home)
 	brain.clear()
+	brain._on_mood_changed(0.0)
+	_check("at Off the trough posture stays off", is_equal_approx(art.body.speed_scale, 1.0)
+		and is_zero_approx(art.body.rotation))
+	brain._on_mood_changed(50.0)
+	brain._arm()
+	_check("and the brain's timer stops: nothing to wake for", brain._timer.is_stopped())
 
 	Settings.focus_intensity = focus_before
 	_check("state never changed: beats are not states", buddy.state == &"idle")

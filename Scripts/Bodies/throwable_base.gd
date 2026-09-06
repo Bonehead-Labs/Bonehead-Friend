@@ -36,6 +36,8 @@ func prime_explosion() -> void:
 	is_primed = true
 	if explosion_area:
 		explosion_area.monitoring = true
+	# The fuse is lit: he can see it too.
+	EventBus.threat_changed.emit(&"fuse", global_position, 1.0)
 	if sprite:
 		# Simple readable tell that it is live; the fuse animation lands with the art pass.
 		var tween := create_tween().set_loops()
@@ -53,6 +55,8 @@ func explode() -> void:
 	# from Bonehead's attribution step, which sees only the blasts that reached him.
 	if item_id != &"":
 		EventBus.contract_event.emit(&"use:%s" % item_id, 1)
+	# Before the blast, so a flinch at the bang is not overwritten by the hit a frame later.
+	EventBus.threat_changed.emit(&"fuse", global_position, 0.0)
 	if explosion_area:
 		for hit in ExplosionUtil.apply_blast(explosion_area, global_position, max_force):
 			var body: Node = hit["body"]

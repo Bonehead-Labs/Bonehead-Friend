@@ -131,7 +131,7 @@ const ROWS := {
 		"motion": &"duck", "seconds": 0.5, "priority": ATTENTION, "gate": GATE_REACTIVE},
 	&"threatened": {"face": &"shocked", "tag": &"flinch", "fallback": &"",
 		"motion": &"face_toward", "seconds": 1.0, "priority": ATTENTION, "gate": GATE_NORMAL,
-		"hold": true, "refresh": 0.0},
+		"hold": true, "refresh": 1.0},
 	&"item_landed": {"face": &"neutral", "tag": &"",
 		"motion": &"face_toward", "seconds": 1.2, "priority": ATTENTION, "gate": GATE_NORMAL},
 	&"device_appeared": {"face": &"", "tag": &"",
@@ -292,6 +292,214 @@ func _ready() -> void:
 	EventBus.payout.connect(_on_payout)
 	# F — the desktop
 	EventBus.ui_panel_changed.connect(_on_ui_panel_changed)
+	# D — the world and threats
+	EventBus.threat_changed.connect(_on_threat_changed)
+	EventBus.item_spawned.connect(_on_item_spawned)
+	EventBus.automation_toggled.connect(_on_automation_toggled)
+	# G — the idle brain, installed by main.gd after the buddy, so found a frame later.
+	_connect_idle_brain.call_deferred()
+	# H — posture
+	EventBus.mood_changed.connect(_on_mood_changed)
+	EventBus.focus_mode_changed.connect(_on_focus_mode_changed)
+	if buddy and buddy.health:
+		buddy.health.damaged.connect(_on_health_damaged)
+		buddy.health.meter_reset.connect(_on_meter_reset)
+	_on_mood_changed(Economy.mood)
+	_schedule_blink()
+	_schedule_fidget()
+	_arm()
+
+# --- D: the world and threats -------------------------------------------------------
+
+## Only threats near him count: a mine armed on the far side of an ultrawide is not his.
+const THREAT_RANGE := 420.0
+
+func _on_threat_changed(kind: StringName, world_pos: Vector2, level: float) -> void:
+	if buddy == null or buddy.global_position.distance_to(world_pos) > THREAT_RANGE:
+		return
+	match kind:
+		&"fuse":
+			if level > 0.0:
+				attend(ATTEND_THREAT, world_pos)
+				hold(&"fuse_lit", world_pos)
+			else:
+				release(&"fuse_lit")
+				if _attention == ATTEND_THREAT:
+					attend(ATTEND_NONE)
+				react(&"blast", 1.0, world_pos)
+		&"windup":
+			if level > 0.0:
+				hold(&"threatened", world_pos)
+			else:
+				release(&"threatened")
+		&"turret":
+			# Fires on a schedule; the row's own refresh lets it lapse a second after the last shot.
+			hold(&"threatened", world_pos)
+
+func _on_item_spawned(item: Node2D) -> void:
+	if item and buddy and item.global_position.distance_to(buddy.global_position) <= THREAT_RANGE:
+		react(&"item_landed", 1.0, item.global_position)
+
+func _on_automation_toggled(_node_id: StringName, enabled: bool) -> void:
+	if enabled:
+		react(&"device_appeared")
+
+# --- G: the idle brain at work -------------------------------------------------------
+
+var _idle_brain: IdleBrain
+## The routine hold in force, so a phase change can release exactly it.
+var _routine_hold: StringName = &""
+## A hold to start once the current one-shot ends: `arrived` then the routine, `welcome_back`
+## then `watched`. Equal priorities would otherwise let the hold cut the greeting short.
+var _pending_hold: StringName = &""
+## The player has been away from him this long before a return is worth a greeting or he
+## is bored enough to yawn.
+const QUIET_SECONDS := 25.0
+var _yawned := false
+
+const ROUTINE_HOLDS := {
+	IdleBrain.ROUTINE_BOUNCE: &"bouncing",
+	IdleBrain.ROUTINE_PLAY: &"dancing",
+	IdleBrain.ROUTINE_SOAK: &"soaking",
+	IdleBrain.ROUTINE_SCRUB: &"scrubbing",
+	IdleBrain.ROUTINE_NIBBLE: &"nibbling",
+}
+
+func _connect_idle_brain() -> void:
+	if is_instance_valid(_idle_brain) or not is_inside_tree():
+		return
+	_idle_brain = get_tree().get_first_node_in_group(IdleBrain.GROUP_IDLE_BRAIN) as IdleBrain
+	if _idle_brain == null:
+		return
+	_idle_brain.phase_changed.connect(_on_phase_changed)
+	_idle_brain.routine_ended.connect(_on_routine_ended)
+
+func _on_phase_changed(phase: StringName, routine: int, _target_id: StringName) -> void:
+	if phase == IdleBrain.PHASE_PLAYING:
+		var row: StringName = ROUTINE_HOLDS.get(routine, &"")
+		if row == &"":
+			return
+		attend(ATTEND_TOY, _attention_point)
+		# Pleased to be there first, then settle into it.
+		if react(&"arrived"):
+			_pending_hold = row
+		else:
+			hold(row)
+		_routine_hold = row
+		return
+	if _routine_hold != &"":
+		release(_routine_hold)
+		_routine_hold = &""
+	_pending_hold = &""
+	if _attention == ATTEND_TOY:
+		attend(ATTEND_NONE)
+
+func _on_routine_ended(reason: StringName) -> void:
+	match reason:
+		&"stalled":
+			react(&"gave_up")
+		&"toy_gone":
+			react(&"toy_gone")
+
+func _quiet_seconds() -> float:
+	return _idle_brain.seconds_since_disturbance() if is_instance_valid(_idle_brain) else 0.0
+
+# --- H: ambient and posture ----------------------------------------------------------
+
+var _blink_at := 0
+var _fidget_at := 0
+const BLINK_MIN_MSEC := 4000
+const BLINK_MAX_MSEC := 9000
+## Default fidget period; personality overrides it in Phase 2. Halved in the mood trough and
+## shortened by arousal.
+const FIDGET_PERIOD := 12.0
+## The mood-trough posture: within this of zero he slows, slouches and fidgets twice as often,
+## because at mood 0 he otherwise *looks* fine while earning 0.6x (D15).
+const TROUGH_MOOD := 15.0
+const TROUGH_SPEED := 0.7
+const TROUGH_SLOUCH_DEG := 2.0
+var _in_trough := false
+## Two things that bias his idle toward `idle_sad` without touching mood: a knockout meter
+## past 80% and grime past half.
+const METER_SAD_FRACTION := 0.8
+const GRIME_SAD_STAGE := 0.5
+var _meter_sad := false
+var _grime_sad := false
+## Airborne stretch, cached so the physics tick writes the art only when it changes.
+var _stretch := 0.0
+
+func _schedule_blink() -> void:
+	_blink_at = _now() + randi_range(BLINK_MIN_MSEC, BLINK_MAX_MSEC)
+
+func _schedule_fidget() -> void:
+	var period := FIDGET_PERIOD * (0.5 if _in_trough else 1.0) / (1.0 + arousal())
+	_fidget_at = _now() + int(period * 1000.0)
+
+## Whether an ambient beat may start at all: he initiates, he is idle, not held, not away,
+## and not inside the knockout.
+func _ambient_allowed() -> bool:
+	if not _initiates() or _drag_since > 0 or _away_since > 0 or is_locked():
+		return false
+	return buddy == null or buddy.state == &"idle"
+
+func _tick_ambient(now: int) -> void:
+	if not _ambient_allowed():
+		return
+	# Idle long enough to be bored: one yawn per quiet spell.
+	var quiet := _quiet_seconds()
+	if quiet < QUIET_SECONDS:
+		_yawned = false
+	elif not _yawned:
+		_yawned = true
+		if react(&"yawn"):
+			return
+	if now >= _fidget_at:
+		_schedule_fidget()
+		react(&"fidget")
+	elif now >= _blink_at:
+		_schedule_blink()
+		react(&"blink")
+
+func _on_mood_changed(value: float) -> void:
+	_in_trough = absf(value) < TROUGH_MOOD
+	_apply_posture()
+
+func _on_focus_mode_changed(_level: int) -> void:
+	_apply_posture()
+	_arm()
+
+func _on_health_damaged(_amount: float, _total: float) -> void:
+	var sad := buddy != null and buddy.health != null \
+		and buddy.health.fill_fraction() > METER_SAD_FRACTION
+	if sad != _meter_sad:
+		_meter_sad = sad
+		_apply_posture()
+
+func _on_meter_reset() -> void:
+	if _meter_sad:
+		_meter_sad = false
+		_apply_posture()
+
+## Posture is continuous and ambient, so it is gated like one: at Off he stands as drawn.
+func _apply_posture() -> void:
+	if art == null:
+		return
+	var on := _initiates()
+	art.set_posture(TROUGH_SPEED if on and _in_trough else 1.0,
+		TROUGH_SLOUCH_DEG if on and _in_trough else 0.0)
+	art.posture_bias = &"idle_sad" if on and (_meter_sad or _grime_sad) else &""
+
+## Off the buddy's physics tick: stretched along his fall while airborne, nothing on the
+## ground. Written to the art only when the value moves, so a resting body costs nothing.
+func notice_airborne(airborne: bool, velocity: Vector2) -> void:
+	var k := 0.0
+	if airborne:
+		k = clampf((velocity.length() - 300.0) / 1200.0, 0.0, 1.0) * 0.12 * _amp()
+	if absf(k - _stretch) < 0.005:
+		return
+	_stretch = k
+	if art:
+		art.set_stretch(k)
 
 # --- A: being hit --------------------------------------------------------------
 
@@ -349,6 +557,10 @@ func _on_grime_changed(value: float) -> void:
 	if is_zero_approx(value) and _last_grime > 0.0:
 		react(&"sparkling")
 	_last_grime = value
+	var sad := value >= GRIME_SAD_STAGE
+	if sad != _grime_sad:
+		_grime_sad = sad
+		_apply_posture()
 
 # --- C: the cursor and the player's hands -----------------------------------------
 
@@ -360,8 +572,14 @@ func notice_hover(hovered: bool) -> void:
 func _on_hover_changed(hovered: bool) -> void:
 	if hovered:
 		attend(ATTEND_CURSOR, _attention_point)
-		hold(&"watched")
+		# Back after a quiet spell: pleased first, then the watching.
+		if _quiet_seconds() >= QUIET_SECONDS and react(&"welcome_back"):
+			_pending_hold = &"watched"
+		else:
+			hold(&"watched")
 	else:
+		if _pending_hold == &"watched":
+			_pending_hold = &""
 		if _attention == ATTEND_CURSOR:
 			attend(ATTEND_NONE)
 		release(&"watched")
@@ -651,6 +869,12 @@ func _end_beat() -> void:
 		_annoyed_pending = false
 		react(&"hit_annoyed")
 		return
+	# A hold that was waiting its turn behind a one-shot.
+	if _pending_hold != &"":
+		var row := _pending_hold
+		_pending_hold = &""
+		hold(row)
+		return
 	_arm()
 
 ## The face he settles on partway through a row that has one: the heavy hit's dizzy tail,
@@ -719,6 +943,10 @@ func _next_deadline_msec() -> int:
 		next = _soonest(next, _drag_since + HELD_LONG_MSEC)
 	if _away_since > 0 and _sleep_at > 0:
 		next = _soonest(next, _sleep_at)
+	# Ambient only while he initiates: at Off the timer has nothing to wake for and stops.
+	if _ambient_allowed():
+		next = _soonest(next, _blink_at)
+		next = _soonest(next, _fidget_at)
 	return next
 
 static func _soonest(a: int, b: int) -> int:
@@ -742,6 +970,9 @@ func _on_timer() -> void:
 	if _away_since > 0 and _sleep_at > 0 and now >= _sleep_at:
 		_sleep_at = 0
 		hold(&"asleep")
+	if _idle_brain == null:
+		_connect_idle_brain()
+	_tick_ambient(now)
 	_arm()
 
 ## A one-shot row whose tag has finished is over, whatever `animation_length` estimated —

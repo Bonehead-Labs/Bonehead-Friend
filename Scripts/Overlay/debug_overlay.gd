@@ -57,9 +57,23 @@ func _build_text() -> String:
 		"low power    %s" % ("ON" if Settings.low_power_mode else "off"),
 		"overlay      %s" % ("ON" if Settings.overlay_enabled else "off"),
 		"interactive  %d nodes" % interactive,
+		"buddy        %s" % _buddy_line(),
 		"",
 		HOTKEY_HELP,
 	])
+
+## What he is feeling, for whoever is tuning it: state, the live beat and its priority,
+## arousal, what he is attending to, how long the player has been away.
+func _buddy_line() -> String:
+	var buddy := get_tree().get_first_node_in_group(Buddy.GROUP_BUDDY) as Buddy
+	if buddy == null or buddy.expression == null:
+		return "-"
+	var brain := buddy.expression
+	var beat := "-"
+	if brain.beat_active():
+		beat = "%s/%d" % [brain.beat_id(), brain.beat_priority()]
+	return "%s  beat %s  arousal %.2f  attends %s  away %.0fs" % [
+		buddy.state, beat, brain.arousal(), brain.attention(), brain.away_seconds()]
 
 func _unhandled_key_input(event: InputEvent) -> void:
 	if not (event is InputEventKey) or not event.pressed or event.is_echo():
