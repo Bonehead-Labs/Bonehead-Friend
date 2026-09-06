@@ -45,6 +45,28 @@ var _toast_tween: Tween
 var _drawer: HoverDrawer
 var _column: VBoxContainer
 
+## Income, as a rolling average: the number an idle player checks on every glance and the
+## one that makes an upgrade feel like it did something. Nothing else in the game showed a
+## rate outside one line in the tree (assessment-2026-09).
+const RATE_WINDOW := 10.0
+var _rate_row: HBoxContainer
+var _rate_labels := {}          ## currency -> Label
+var _income := {}               ## currency -> Array of [seconds, amount]
+var _rate_timer: Timer
+
+## The next thing to buy, always on screen. The genre's single biggest hook and the shell
+## had it only inside an open shop page, behind a drawer that hides by default.
+const NEXT_SETTLE := 0.4
+var _next_row: HBoxContainer
+var _next_face: TextureRect
+var _next_name: Label
+var _next_price: Label
+var _next_bar: ProgressBar
+var _next_fill: StyleBoxFlat
+var _next_item: StringName = &""
+var _next_affordable := false
+var _next_timer: Timer
+
 var _health: HealthComponent
 var _spawner: ItemSpawner
 ## The knockout meter only reacts when it jumps, not when it creeps — a bar that punches
@@ -58,6 +80,10 @@ func _ready() -> void:
 	EventBus.buddy_state_changed.connect(_on_buddy_state_changed)
 	EventBus.mood_changed.connect(_on_mood_changed)
 	EventBus.grime_changed.connect(_on_grime_changed)
+	EventBus.payout.connect(_on_payout)
+	EventBus.currency_changed.connect(func(_c: StringName, _b: float) -> void: _mark_next_dirty())
+	EventBus.item_purchased.connect(func(_id: StringName) -> void: _mark_next_dirty())
+	EventBus.prestige_performed.connect(func(_m: float) -> void: _mark_next_dirty())
 	EventBus.ui_scale_changed.connect(func(_f: int) -> void: _fit())
 	get_viewport().size_changed.connect(_fit)
 	# `size_changed` is not enough on its own. Changing the play area resizes the OS window,
@@ -71,6 +97,7 @@ func _ready() -> void:
 	# placeholder text until something happened to him.
 	_on_mood_changed(Economy.mood)
 	_on_grime_changed(Economy.grime)
+	_mark_next_dirty()
 
 func _process(_delta: float) -> void:
 	if _health == null or _meter == null:
@@ -118,6 +145,12 @@ func _fit() -> void:
 	if _drawer:
 		_drawer.set_home(Vector2(MARGIN, MARGIN))
 
+## Onboarding pins the card open so a first-time player can see there is a game here. Goes
+## through the drawer's own setter, so it is remembered exactly as a click on the pin is.
+func pin_drawer(value: bool) -> void:
+	if _drawer:
+		_drawer.pinned = value
+
 
 func _build() -> void:
 	# A plain Control, not a MarginContainer: a container lays every child out in the same
@@ -155,9 +188,15 @@ func _build() -> void:
 	_purse.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	stack.add_child(_purse)
 
+	# --- how fast it is coming in ---
+	stack.add_child(_build_rate_row())
+
 	# --- how he is doing ---
 	stack.add_child(_meter_row(&"knockout"))
 	stack.add_child(_meter_row(&"mood"))
+
+	# --- what to want next ---
+	stack.add_child(_build_next_row())
 
 	# --- only when true of something ---
 	_footer = HBoxContainer.new()
@@ -246,6 +285,186 @@ func _meter_row(which: StringName) -> Control:
 		_mood_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		row.add_child(_mood_label)
 	return row
+
+# --- income ----------------------------------------------------------------
+
+## One line, two figures, only while something is coming in. Bones and Hearts each get a
+## glyph and a "/s"; Dollars are deliberately absent — they are never multiplied and arrive
+## on a schedule of attention, so a rate for them is a number nobody can act on.
+func _build_rate_row() -> Control:
+	_rate_row = HBoxContainer.new()
+	_rate_row.add_theme_constant_override("separation", 10)
+	_rate_row.visible = false
+	for currency in [Economy.BONES, Economy.HEARTS]:
+		var cell := HBoxContainer.new()
+		cell.add_theme_constant_override("separation", 3)
+		cell.add_child(UIStyle.icon(_glyph_id(currency), UIStyle.GLYPH,
+			UIStyle.currency_colour(currency)))
+		var value := UIStyle.label("", UIStyle.MICRO, UIStyle.currency_colour(currency))
+		cell.add_child(value)
+		_rate_labels[currency] = value
+		_income[currency] = []
+		_rate_row.add_child(cell)
+	_rate_timer = Timer.new()
+	_rate_timer.name = "RateTimer"
+	_rate_timer.wait_time = 1.0
+	_rate_timer.timeout.connect(_refresh_rate)
+	add_child(_rate_timer)
+	return _rate_row
+
+func _glyph_id(currency: StringName) -> StringName:
+	return &"bone" if currency == Economy.BONES else &"heart"
+
+func _on_payout(currency: StringName, amount: float, _world_pos: Vector2) -> void:
+	if not _income.has(currency) or amount <= 0.0:
+		return
+	(_income[currency] as Array).append([Time.get_ticks_msec() / 1000.0, amount])
+	if _rate_timer and _rate_timer.is_stopped():
+		_rate_timer.start()
+		_refresh_rate()
+
+## Runs once a second while there is income in the window and stops itself when the window
+## has drained — a HUD that ticks every second all night is a HUD that costs something.
+func _refresh_rate() -> void:
+	var now := Time.get_ticks_msec() / 1000.0
+	var any := false
+	for currency in _income:
+		var samples: Array = _income[currency]
+		while not samples.is_empty() and now - float(samples[0][0]) > RATE_WINDOW:
+			samples.pop_front()
+		var total := 0.0
+		for sample in samples:
+			total += float(sample[1])
+		var rate := total / RATE_WINDOW
+		var label := _rate_labels[currency] as Label
+		label.text = "%s/s" % UIStyle.format_amount(rate) if rate > 0.0 else ""
+		(label.get_parent() as Control).visible = rate > 0.0
+		any = any or rate > 0.0
+	_rate_row.visible = any
+	if not any and _rate_timer:
+		_rate_timer.stop()
+
+# --- next up ---------------------------------------------------------------
+
+## The cheapest thing the player can reach for, with how close they are. It is a link: a
+## click opens Toys on that item. It never buys — a purchase is a decision made on a page
+## that shows what the thing is, not a reflex on the HUD.
+func _build_next_row() -> Control:
+	_next_row = HBoxContainer.new()
+	_next_row.name = "NextUp"
+	_next_row.add_theme_constant_override("separation", 6)
+	_next_row.mouse_filter = Control.MOUSE_FILTER_STOP
+	_next_row.tooltip_text = "Open in Toys"
+	_next_row.visible = false
+	_next_row.gui_input.connect(_on_next_input)
+	_next_row.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+
+	_next_face = UIStyle.sprite(null, UIStyle.ICON_CANVAS)
+	_next_face.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_next_row.add_child(_next_face)
+
+	var text := VBoxContainer.new()
+	text.add_theme_constant_override("separation", 2)
+	text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	text.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_next_row.add_child(text)
+
+	var line := HBoxContainer.new()
+	line.add_theme_constant_override("separation", 6)
+	line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	text.add_child(line)
+	var eyebrow := UIStyle.eyebrow("Next")
+	eyebrow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	line.add_child(eyebrow)
+	_next_name = UIStyle.label("", UIStyle.MICRO, UIStyle.TEXT)
+	_next_name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_next_name.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	_next_name.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	line.add_child(_next_name)
+	_next_price = UIStyle.label("", UIStyle.MICRO, UIStyle.TEXT_DIM)
+	_next_price.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_next_price.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	line.add_child(_next_price)
+
+	_next_bar = ProgressBar.new()
+	_next_bar.max_value = 1.0
+	_next_bar.step = 0.001
+	_next_bar.show_percentage = false
+	_next_bar.custom_minimum_size = Vector2(0, 6)
+	_next_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_next_fill = UIStyle.meter_fill(UIStyle.TEXT_DIM)
+	_next_bar.add_theme_stylebox_override("fill", _next_fill)
+	text.add_child(_next_bar)
+
+	_next_timer = Timer.new()
+	_next_timer.name = "NextTimer"
+	_next_timer.one_shot = true
+	_next_timer.wait_time = NEXT_SETTLE
+	_next_timer.timeout.connect(_refresh_next)
+	add_child(_next_timer)
+	return _next_row
+
+## Coalesced: `currency_changed` fires on every hit and every pet, and walking the roster
+## fourteen times a second to answer a question whose answer changes once a minute is the
+## kind of cost that adds up over a working day.
+func _mark_next_dirty() -> void:
+	if _next_timer and _next_timer.is_stopped():
+		_next_timer.start()
+
+## Affordable and cheapest first; otherwise whatever the purse is closest to. Items only —
+## an augment level is always for sale, so "next" would never point anywhere else.
+func _pick_next() -> ItemData:
+	var best: ItemData = null
+	var best_score := -1.0
+	for item in ItemDB.all_items():
+		if item.cost <= 0 or not Progression.can_purchase(item.id):
+			continue
+		var cost := float(item.cost)
+		var ratio := Economy.balance_of(item.currency_id()) / cost
+		# Affordable items score above every unaffordable one, and among the affordable
+		# the cheapest wins — that is the thing a player reaches for next, not the biggest.
+		var score := (2.0 + 1.0 / cost) if ratio >= 1.0 else minf(ratio, 0.999)
+		if score > best_score:
+			best_score = score
+			best = item
+	return best
+
+func _refresh_next() -> void:
+	var item := _pick_next()
+	if item == null:
+		_next_row.visible = false
+		_next_item = &""
+		return
+	var cost := float(item.cost)
+	var have := Economy.balance_of(item.currency_id())
+	var affordable := have >= cost
+	var colour := UIStyle.currency_colour(item.currency_id())
+	if item.id != _next_item:
+		_next_item = item.id
+		_next_affordable = false
+		UIStyle.set_sprite(_next_face, UIStyle.item_face(item, UIStyle.ICON_CANVAS))
+		_next_name.text = item.display_name
+		_next_price.text = UIStyle.format_amount(cost)
+		_next_price.add_theme_color_override("font_color", colour)
+		_next_fill.bg_color = colour
+	_next_bar.value = clampf(have / cost, 0.0, 1.0)
+	_next_row.visible = true
+	if affordable and not _next_affordable:
+		# The flip is the moment. Once, when it becomes true, never on every tick after.
+		UIMotion.punch(_next_row, 1.08)
+		UIMotion.flash(_box, Color(1.15, 1.25, 1.1), 0.4)
+		_next_price.add_theme_color_override("font_color", UIStyle.AFFORDABLE)
+		_next_fill.bg_color = UIStyle.AFFORDABLE
+	elif not affordable and _next_affordable:
+		_next_price.add_theme_color_override("font_color", colour)
+		_next_fill.bg_color = colour
+	_next_affordable = affordable
+
+func _on_next_input(event: InputEvent) -> void:
+	var click := event as InputEventMouseButton
+	if click and click.pressed and click.button_index == MOUSE_BUTTON_LEFT and _next_item != &"":
+		_next_row.accept_event()
+		EventBus.ui_show_item.emit(_next_item)
 
 # --- the desk --------------------------------------------------------------
 

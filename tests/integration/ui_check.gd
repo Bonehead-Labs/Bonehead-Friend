@@ -79,6 +79,7 @@ func _ready() -> void:
 	await _every_page_is_readable()
 	await _the_purse_can_count_high()
 	await _the_payouts_are_visible()
+	await _the_hud_points_at_the_next_toy()
 	await _the_shell_hides_until_hovered()
 	await _nothing_overflows_its_box()
 	await _closed_pages_do_no_work()
@@ -553,6 +554,47 @@ func _the_tabs_are_one_width() -> void:
 	panels.call("close")
 	await _settle()
 
+## The HUD names the next thing to buy and links to it. The genre's biggest hook was inside
+## an open shop page behind a drawer that hides by default (assessment-2026-09); this is the
+## row that fixes it, and the three things it has to do: pick something, notice when it
+## becomes affordable, and open Toys on it when clicked.
+func _the_hud_points_at_the_next_toy() -> void:
+	_suite("next up")
+	var hud := _find(_main, "HUD")
+	var panels := _find(_main, "PanelLayer")
+	var row := _find(_main, "NextUp") as Control
+	_check("the HUD has a next-up row", hud != null and row != null)
+	if hud == null or row == null or panels == null:
+		return
+	panels.call("close")
+	var drawer := _find(_main, "HudDrawer")
+	if drawer:
+		drawer.set("pinned", true)
+	# Coalesced behind a short timer, so a grant is not enough on its own — wait it out.
+	Economy.grant(Economy.BONES, 1.0)
+	await get_tree().create_timer(0.6).timeout
+	await _settle()
+	var picked: StringName = hud.get("_next_item")
+	_check("it names something to buy", row.visible and picked != &"")
+	if picked == &"":
+		return
+	var item := ItemDB.get_item(picked)
+	_check("something the player can actually buy next", Progression.can_purchase(picked))
+
+	# Pay for it and watch the row notice.
+	Economy.grant(item.currency_id(), float(item.cost))
+	await get_tree().create_timer(0.6).timeout
+	await _settle()
+	_check("and it notices when that becomes affordable", bool(hud.get("_next_affordable")))
+
+	await _click(_centre_of(row))
+	_check("clicking it opens Toys", bool(panels.call("is_open"))
+		and panels.get("_current") == &"shop")
+	var shop := _find(panels, "ShopPanel")
+	_check("on that item", shop != null and shop.get("_selected") == picked)
+	panels.call("close")
+	await _settle()
+
 ## Hiding until hover is the shell's default behaviour, not a setting — and hovering the mark
 ## turns it into a pin the player can click to keep the panel out. Both halves, both ways.
 ##
@@ -811,8 +853,13 @@ func _every_page_is_readable() -> void:
 func _pages_page(panels: Node, page_id: StringName) -> Control:
 	var wanted := {
 		&"shop": "ShopPanel", &"tree": "AugmentPanel", &"contracts": "ContractPanel",
-		&"prestige": "PrestigePanel", &"settings": "SettingsPanel",
+		&"prestige": "PrestigePanel", &"settings": "SettingsPanel", &"arcade": "ArcadePanel",
 	}
+	# Was a bare `wanted[page_id]`, which threw on the Arcade page — every run since M3.6
+	# printed a SCRIPT ERROR here that nobody read because the assertion count stayed green.
+	if not wanted.has(page_id):
+		push_error("ui_check: no panel class mapped for page '%s'" % page_id)
+		return null
 	return _find(panels, wanted[page_id]) as Control
 
 ## The fill of the nearest styled box at or above this control — which is what its text is

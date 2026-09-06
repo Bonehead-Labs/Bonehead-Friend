@@ -40,6 +40,7 @@ func _ready() -> void:
 		spawner.refresh_augments())
 
 	_report_offline(offline)
+	_onboard()
 
 	# The things that happen *to* the player rather than because of them. Progression is
 	# invisible otherwise: mastery ticks up inside a panel nobody has open.
@@ -78,6 +79,38 @@ func _report_offline(offline: Dictionary) -> void:
 		parts.append("%s Hearts" % UIStyle.format_amount(hearts))
 	var hours := float(offline.get("seconds", 0.0)) / 3600.0
 	_hud.show_toast("While you were out (%.1f h): %s" % [hours, ", ".join(parts)])
+	AudioManager.play(&"welcome", 0.0, -4.0)
+
+## The first three minutes, for someone who has never seen it. Kept deliberately basic
+## (the owner's brief): both drawers pinned open so the shell is *there*, the bat on the desk
+## beside him so there is something to pick up, and two toasts — one now, one on the first
+## Bones. No tutorial system, no modal, no arrows. Remembered in `Settings.hints_seen`, so
+## it survives the Reincarnation that wipes the save and never plays twice on one machine.
+const HINT_WELCOME := &"welcome"
+const HINT_FIRST_BONES := &"first_bones"
+
+func _onboard() -> void:
+	if Settings.hint_seen(HINT_WELCOME):
+		return
+	Settings.mark_hint_seen(HINT_WELCOME)
+	_hud.pin_drawer(true)
+	_panels.pin_drawer(true)
+	if buddy:
+		# Beside him, a little above the floor, on the side away from the HUD.
+		EventBus.spawn_requested.emit(&"baseball_bat", buddy.global_position + Vector2(90, -30))
+	_hud.show_toast("This is Bonehead. Pick up the bat and hit him — he pays in Bones. "
+		+ "Hold the button on him to pet him instead; that pays in Hearts.", 14.0)
+	# The second beat waits for the first payout, whichever kind it is: that is the moment
+	# the player has money and no idea where it goes.
+	EventBus.payout.connect(_on_first_payout)
+
+func _on_first_payout(_currency: StringName, _amount: float, _pos: Vector2) -> void:
+	if Settings.hint_seen(HINT_FIRST_BONES):
+		return
+	Settings.mark_hint_seen(HINT_FIRST_BONES)
+	EventBus.payout.disconnect(_on_first_payout)
+	_hud.show_toast("Toys, top right, is where that goes. The row under his meters shows "
+		+ "the next thing you can afford — click it.", 12.0)
 
 func _build_ui() -> void:
 	# Named, not left as `@CanvasLayer@24`. These are built in code rather than authored in

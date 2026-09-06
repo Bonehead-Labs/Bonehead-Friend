@@ -48,6 +48,7 @@ func _ready() -> void:
 	layer = 20
 	_build()
 	EventBus.ui_spend.connect(_on_spend)
+	EventBus.ui_show_item.connect(_on_show_item)
 	EventBus.ui_scale_changed.connect(func(_f: int) -> void: _fit())
 	get_viewport().size_changed.connect(_fit)
 	# `size_changed` is not enough on its own. Changing the play area resizes the OS window,
@@ -256,6 +257,21 @@ func show_panel(panel: StringName) -> void:
 		UIMotion.unroll(_card)
 	UIMotion.page_in(_pages[panel])
 	EventBus.ui_panel_changed.emit(panel)
+
+## Onboarding pins the strip open so a first-time player can see the tabs exist.
+func pin_drawer(value: bool) -> void:
+	if _drawer:
+		_drawer.pinned = value
+
+## The HUD's "next up" row lands here: open Toys on that item's drawer with it selected.
+func _on_show_item(item_id: StringName) -> void:
+	var item := ItemDB.get_item(item_id)
+	var shop := _pages.get(&"shop") as ShopPanel
+	if item == null or shop == null:
+		return
+	show_panel(&"shop")
+	shop.show_category(item.category)
+	shop.select(item_id)
 
 func close() -> void:
 	if _current == &"" and not (_card and _card.visible):
