@@ -534,3 +534,7 @@ func from_save(root: Dictionary) -> void:
 		mood.set_value(float(block.get("mood", 0.0)))
 	if grime:
 		grime.set_value(float(block.get("grime", 0.0)))
+
+## He leaves a white trail when flung — bone, not gold.
+func trail_colour() -> Color:
+	return Color.WHITE

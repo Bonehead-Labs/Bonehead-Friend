@@ -901,6 +901,35 @@ by group via `WorldFX.of(self)` and treated as optional. `ui_check`'s `juice` su
 pools are named, every listener is wired, nothing draws at Focus Off, and every ring, line and
 jolt puts itself away. `ui_shots` catches the effects mid-flight in three frames (`16-juice`).
 
+## D40 — The rhythm is on the card and the desk is alive (2026-09-06)
+
+**Decision.** The HUD carries a streak row: the damage streak and the kindness combo as a
+figure each, in the currency's colour heating toward orange, over a bar that drains toward the
+moment the streak lapses — ticking twenty times a second only while one is alive. A streak of
+ten puts embers on him; a blissful mood puts a slow gold sparkle on him; both are continuous
+emitters parented to his body. Every body leaves a trail when it moves fast — gold for a
+weapon, rose for a kind item, white for him — a world-space `Line2D` fed from the collision
+shape's far corner and tapered from the tail, built on first use. The kind items have ambient
+life by id: steam off anything hot, bubbles off anything wet, a twinkle on anything that glows,
+notes off anything that plays. A heavy hit gets a ring at the contact. A deed claimed throws its
+coin at the purse like a contract does.
+
+**Why.** The streak and the combo are the whole feeling of momentum and they lived only as a
+tag beside a payout number, in the world, for a second; "keep it going" needs a clock the
+player can see. The kind side had numbers and no life — a hot tub was a picture of a hot tub.
+A bat swung through the air with nothing behind it.
+
+**Budget.** The streak timer and the trail are the two per-frame costs this pass added, and
+both are bounded: the timer runs only while a streak is alive and stops itself; the trail is
+one `length_squared` on a body that already ran a physics step, and allocates a node only the
+first time that body moves fast. Ambient emitters are GPU, four to nine chips each, and every
+one of them — embers, sparkle, trail, steam — is off at Focus Off and stays off.
+
+*Consequence:* a new kind item joins `FriendlyBase.AMBIENT` by id — no scene rebuild. A body
+that wants a different trail colour overrides `trail_colour()`. `ui_check`'s `juice` suite
+asserts the row appears at three hits and lapses, embers and bliss obey Focus Mode, a trail is
+world-space and hidden at rest, and a hot tub steams and stops.
+
 ## Recommendations not yet decided
 
 Carried in the spec, owner's call before they matter:

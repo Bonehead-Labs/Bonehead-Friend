@@ -147,3 +147,80 @@ func _end_drag() -> void:
 func _physics_process(_delta: float) -> void:
 	if dragging and handle:
 		handle.global_position = handle.global_position.lerp(get_global_mouse_position(), follow_lerp)
+	_trail_step()
+
+# --- the trail --------------------------------------------------------------
+#
+# A line behind anything moving fast: the swing of a bat in the hand, a grenade in flight,
+# him flung across the desk (docs/decisions.md D39). A `Line2D` in world space, fed the tip's
+# position on every physics frame the body is moving fast enough, tapered from the tail; when
+# it slows, the oldest points fall off two a frame so the trail catches up with the body and
+# is gone. Built on first use, so a body that never moves fast never pays for one, and freed
+# with the body. Off at Focus Off like every other moving thing.
+
+const TRAIL_SPEED := 550.0
+const TRAIL_POINTS := 10
+const TRAIL_WIDTH := 7.0
+
+var _trail: Line2D
+## Where the line is drawn from, in body-local pixels: the corner of the collision shape
+## farthest from the grip, which on a bat is the end of the barrel. The centre otherwise.
+var _trail_tip := Vector2.ZERO
+
+## Gold for a weapon; the kind items and the buddy say otherwise.
+func trail_colour() -> Color:
+	return Color("ffc247")
+
+func _trail_step() -> void:
+	var fast := Settings.focus_intensity != Settings.Intensity.OFF \
+		and linear_velocity.length_squared() > TRAIL_SPEED * TRAIL_SPEED
+	if fast:
+		if _trail == null:
+			_build_trail()
+		_trail.add_point(to_global(_trail_tip))
+		while _trail.get_point_count() > TRAIL_POINTS:
+			_trail.remove_point(0)
+		_trail.visible = true
+	elif _trail != null and _trail.get_point_count() > 0:
+		for i in 2:
+			if _trail.get_point_count() > 0:
+				_trail.remove_point(0)
+		if _trail.get_point_count() < 2:
+			_trail.clear_points()
+			_trail.visible = false
+
+func _build_trail() -> void:
+	_trail = Line2D.new()
+	_trail.name = "Trail"
+	# World space: the points are global, so the line must not inherit the body's spin.
+	_trail.top_level = true
+	_trail.show_behind_parent = true
+	_trail.antialiased = false
+	_trail.joint_mode = Line2D.LINE_JOINT_BEVEL
+	_trail.default_color = trail_colour()
+	_trail.width = TRAIL_WIDTH
+	# Thin at the tail, full at the head — the whole reason it reads as motion.
+	var taper := Curve.new()
+	taper.add_point(Vector2(0.0, 0.1))
+	taper.add_point(Vector2(1.0, 1.0))
+	_trail.width_curve = taper
+	_trail.visible = false
+	add_child(_trail)
+	_trail_tip = _find_tip()
+
+func _find_tip() -> Vector2:
+	if collider == null or collider.shape == null or not collider.shape.has_method("get_rect"):
+		return Vector2.ZERO
+	var rect: Rect2 = collider.shape.get_rect()
+	if rect.size.length() <= 0.0:
+		return Vector2.ZERO
+	var best := Vector2.ZERO
+	var far := -1.0
+	for corner in [rect.position, rect.end, Vector2(rect.position.x, rect.end.y),
+			Vector2(rect.end.x, rect.position.y)]:
+		var local: Vector2 = collider.transform * corner
+		var distance := local.distance_to(grip_offset)
+		if distance > far:
+			far = distance
+			best = local
+	return best

@@ -151,6 +151,12 @@ func _ready() -> void:
 	EventBus.grime_changed.connect(_on_grime_changed)
 	EventBus.mastery_rank_up.connect(_on_mastery_rank_up)
 	EventBus.prestige_performed.connect(_on_prestige_performed)
+	EventBus.focus_mode_changed.connect(func(_level: int) -> void: _gate_ambient())
+	_ember_timer = Timer.new()
+	_ember_timer.name = "EmberTimer"
+	_ember_timer.wait_time = 0.1
+	_ember_timer.timeout.connect(_tick_embers)
+	add_child(_ember_timer)
 
 ## A 4px square, plotted rather than imported — the same chip `FXLayer` and `UIMotion` throw.
 func _chip_texture() -> Texture2D:
@@ -183,6 +189,12 @@ func _on_damage_dealt(info: HitInfo) -> void:
 	var streak := clampf(float(Economy.damage_streak()) / STREAK_HOT_AT, 0.0, 1.0)
 	burst(info.position, &"bone", UIStyle.BONES.lerp(HEAT, streak),
 		int(lerpf(CHIPS_MIN, CHIPS_MAX, heat_of_hit)), lerpf(110.0, 340.0, heat_of_hit))
+	# A heavy hit gets a ring at the contact too — the chips say where, the ring says how hard.
+	if heat_of_hit >= 0.6:
+		ring(info.position, 36.0 + 44.0 * heat_of_hit, UIStyle.BONES.lerp(HEAT, streak), 0.25, 2.0)
+	if Economy.damage_streak() >= STREAK_EMBERS_FROM and _ember_timer and _ember_timer.is_stopped():
+		_ember_timer.start()
+		_tick_embers()
 
 func _on_kindness_given(_source_id: StringName, _value: float, world_pos: Vector2) -> void:
 	burst(world_pos, &"heart", UIStyle.HEARTS, HEART_CHIPS, 90.0)
@@ -246,6 +258,7 @@ func _on_item_despawned(node: Node2D) -> void:
 ## Hearts drift off him when he crosses into delighted; a dark cloud when he crosses into
 ## miserable. The bar in the HUD already moves — this is the same fact where he is.
 func _on_mood_changed(value: float) -> void:
+	_set_ambient(&"bliss", value >= MOOD_BLISS)
 	var band := _band_of(value)
 	if band == _mood_band:
 		return
@@ -410,9 +423,9 @@ func _emit(at: Vector2, texture: Texture2D, colour: Color, count: int, speed: fl
 ## One recipe, built once. Keyed on everything that goes into it, rounded, so the dozen or
 ## so distinct bursts in the game share a dozen materials for the life of the process.
 func _material(speed: float, gravity_y: float, scale_min: float, scale_max: float,
-		spins: bool) -> ParticleProcessMaterial:
-	var key := "%d|%d|%d|%d|%s" % [int(round(speed)), int(round(gravity_y)),
-		int(round(scale_min * 10.0)), int(round(scale_max * 10.0)), spins]
+		spins: bool, box: Vector2 = Vector2.ZERO) -> ParticleProcessMaterial:
+	var key := "%d|%d|%d|%d|%s|%d|%d" % [int(round(speed)), int(round(gravity_y)),
+		int(round(scale_min * 10.0)), int(round(scale_max * 10.0)), spins, int(box.x), int(box.y)]
 	if _materials.has(key):
 		return _materials[key]
 	var mat := ParticleProcessMaterial.new()
@@ -423,6 +436,10 @@ func _material(speed: float, gravity_y: float, scale_min: float, scale_max: floa
 	mat.gravity = Vector3(0, gravity_y, 0)
 	mat.scale_min = scale_min
 	mat.scale_max = scale_max
+	# A box to emit from, for the emitters that ride on him; a point for a burst.
+	if box != Vector2.ZERO:
+		mat.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
+		mat.emission_box_extents = Vector3(box.x, box.y, 1.0)
 	mat.damping_min = 20.0
 	mat.damping_max = 60.0
 	if spins:
@@ -493,3 +510,70 @@ class Ring extends Node2D:
 
 	func _draw() -> void:
 		draw_arc(Vector2.ZERO, radius, 0.0, TAU, maxi(16, int(radius / 3.0)), colour, width, false)
+
+# --- what rides on him ---------------------------------------------------------
+#
+# Two continuous emitters parented to his body, so they go where he goes for free: embers
+# while a long streak is alive — he is on fire, and the player keeps him there — and a slow
+# gold sparkle while he is blissful, the one reward for kindness that shows on him rather than
+# on a bar. Built on first use, a handful of chips each, and off at Focus Off.
+
+const STREAK_EMBERS_FROM := 10
+const MOOD_BLISS := 80.0
+
+var _ambient: Dictionary = {}   ## kind -> GPUParticles2D
+var _ember_timer: Timer
+
+func _tick_embers() -> void:
+	var on := Economy.damage_streak() >= STREAK_EMBERS_FROM
+	_set_ambient(&"embers", on)
+	if not on and _ember_timer:
+		_ember_timer.stop()
+
+func is_ambient_on(kind: StringName) -> bool:
+	var emitter := _ambient.get(kind) as GPUParticles2D
+	return emitter != null and is_instance_valid(emitter) and emitter.emitting
+
+func _set_ambient(kind: StringName, on: bool) -> void:
+	on = on and _on()
+	var emitter := _ambient.get(kind) as GPUParticles2D
+	if emitter != null and not is_instance_valid(emitter):
+		_ambient.erase(kind)
+		emitter = null
+	if emitter == null:
+		if not on:
+			return
+		var buddy := get_tree().get_first_node_in_group(Buddy.GROUP_BUDDY) as Node2D
+		if buddy == null:
+			return
+		emitter = GPUParticles2D.new()
+		emitter.name = String(kind).capitalize()
+		emitter.one_shot = false
+		emitter.local_coords = false
+		emitter.z_index = 30
+		emitter.position = Vector2(0, -8)
+		match kind:
+			&"embers":
+				emitter.texture = _chip
+				emitter.modulate = HEAT
+				emitter.amount = 8
+				emitter.lifetime = 0.8
+				emitter.process_material = _material(60.0, -140.0, 1.2, 2.0, false, Vector2(14, 20))
+			_:
+				emitter.texture = UIStyle.glyph(&"star")
+				emitter.modulate = GOLD
+				emitter.amount = 4
+				emitter.lifetime = 1.0
+				emitter.process_material = _material(20.0, -30.0, 0.5, 0.9, true, Vector2(18, 26))
+		buddy.add_child(emitter)
+		_ambient[kind] = emitter
+	emitter.emitting = on
+
+## Focus Off silences both; Focus back on re-reads the facts they follow.
+func _gate_ambient() -> void:
+	if not _on():
+		for kind in _ambient:
+			_set_ambient(kind, false)
+		return
+	_set_ambient(&"embers", Economy.damage_streak() >= STREAK_EMBERS_FROM)
+	_set_ambient(&"bliss", Economy.mood >= MOOD_BLISS)

@@ -228,6 +228,8 @@ func _celebrate(id: StringName) -> void:
 	var controls: Dictionary = _rows[id]
 	UIMotion.confirm(controls["row"] as Control)
 	UIMotion.sparkle(controls["bar"] as Control, UIStyle.DOLLARS, 16, 180.0)
+	# And the coin itself, thrown at the purse the way a contract claim throws one.
+	EventBus.ui_spend.emit(Economy.DOLLARS, 0.0, UIScale.screen_centre(controls["bar"] as Control))
 
 func _stat_value(key: StringName) -> String:
 	match key:

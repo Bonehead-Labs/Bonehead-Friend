@@ -76,6 +76,8 @@ func _ready() -> void:
 	# plenty: we only ever ask whether one specific body is in the list.
 	contact_monitor = true
 	max_contacts_reported = maxi(max_contacts_reported, 4)
+	_build_ambient()
+	EventBus.focus_mode_changed.connect(func(_level: int) -> void: _gate_ambient())
 
 func _physics_process(delta: float) -> void:
 	super._physics_process(delta)
@@ -180,3 +182,131 @@ func _despawn() -> void:
 ## and the trash bin and the spawner both free items without going through _despawn().
 func _exit_tree() -> void:
 	_flush()
+
+## A kind item leaves a rose trail, not a gold one.
+func trail_colour() -> Color:
+	return Color("ff5f9e")
+
+# --- ambient life -------------------------------------------------------------
+#
+# Steam off anything hot, bubbles off anything wet, a twinkle on anything that glows, notes
+# off anything that plays (docs/decisions.md D39). A few GPU chips a second on a continuous
+# emitter parented to the item, so it goes where the item goes and costs the CPU nothing per
+# frame. Keyed by item id here rather than by a field on the scene, so a new item joins the
+# table without a scene rebuild. Off at Focus Off like every other moving thing.
+
+const AMBIENT := {
+	&"hot_tub": &"steam", &"foot_spa": &"steam", &"cup_of_tea": &"steam",
+	&"noodle_bowl": &"steam", &"pizza": &"steam", &"chocolate_fountain": &"steam",
+	&"bubble_machine": &"bubbles", &"fish_tank": &"bubbles", &"paddling_pool": &"bubbles",
+	&"fairy_lights": &"twinkle", &"lava_lamp": &"twinkle", &"birthday_cake": &"twinkle",
+	&"wind_chimes": &"twinkle", &"boombox": &"notes", &"record_player": &"notes",
+}
+const STEAM := Color("e8e4d6")
+const BUBBLE := Color("bfe6ff")
+const TWINKLE := Color("ffc247")
+const NOTE := Color("2fb5b0")
+
+static var _ambient_materials: Dictionary = {}
+static var _ambient_chip: Texture2D
+var _ambient: GPUParticles2D
+
+func ambient_kind() -> StringName:
+	return AMBIENT.get(item_id, &"")
+
+func _build_ambient() -> void:
+	var kind := ambient_kind()
+	if kind == &"" or _ambient != null:
+		return
+	var extent := _sprite_extent()
+	_ambient = GPUParticles2D.new()
+	_ambient.name = "Ambient"
+	_ambient.one_shot = false
+	_ambient.local_coords = false
+	_ambient.z_index = 1
+	match kind:
+		&"steam":
+			_ambient.texture = _chip()
+			_ambient.modulate = STEAM
+			_ambient.amount = 9
+			_ambient.lifetime = 1.6
+			_ambient.position = Vector2(0, -extent.y)
+			_ambient.process_material = _ambient_material(kind, 30.0, -25.0, 1.4, 2.4,
+				Vector2(extent.x * 0.35, 2.0), false)
+		&"bubbles":
+			_ambient.texture = _chip()
+			_ambient.modulate = BUBBLE
+			_ambient.amount = 6
+			_ambient.lifetime = 1.4
+			_ambient.position = Vector2(0, -extent.y * 0.6)
+			_ambient.process_material = _ambient_material(kind, 50.0, -60.0, 0.8, 1.4,
+				Vector2(extent.x * 0.3, 4.0), false)
+		&"twinkle":
+			_ambient.texture = UIStyle.glyph(&"star")
+			_ambient.modulate = TWINKLE
+			_ambient.amount = 5
+			_ambient.lifetime = 0.8
+			_ambient.position = Vector2.ZERO
+			_ambient.process_material = _ambient_material(kind, 0.0, 0.0, 0.4, 0.7,
+				Vector2(extent.x * 0.45, extent.y * 0.45), true)
+		&"notes":
+			_ambient.texture = _chip()
+			_ambient.modulate = NOTE
+			_ambient.amount = 4
+			_ambient.lifetime = 1.2
+			_ambient.position = Vector2(0, -extent.y)
+			_ambient.process_material = _ambient_material(kind, 45.0, -40.0, 1.2, 1.8,
+				Vector2(extent.x * 0.3, 2.0), false)
+	add_child(_ambient)
+	_gate_ambient()
+
+func _gate_ambient() -> void:
+	if _ambient:
+		_ambient.emitting = Settings.focus_intensity != Settings.Intensity.OFF
+
+## Half the drawn size of the sprite, so an emitter can sit on the item's top edge and a
+## twinkle can fill its face. A 32px square if there is no texture to measure.
+func _sprite_extent() -> Vector2:
+	var s := sprite as Sprite2D
+	if s and s.texture:
+		return s.texture.get_size() * s.scale.abs() * 0.5
+	return Vector2(16, 16)
+
+static func _chip() -> Texture2D:
+	if _ambient_chip == null:
+		var image := Image.create_empty(4, 4, false, Image.FORMAT_RGBA8)
+		image.fill(Color.WHITE)
+		_ambient_chip = ImageTexture.create_from_image(image)
+	return _ambient_chip
+
+## One recipe per kind and size, shared by every item of that kind for the life of the process.
+static func _ambient_material(kind: StringName, speed: float, gravity_y: float, scale_min: float,
+		scale_max: float, box: Vector2, pulse: bool) -> ParticleProcessMaterial:
+	var key := "%s|%d|%d" % [kind, int(box.x), int(box.y)]
+	if _ambient_materials.has(key):
+		return _ambient_materials[key]
+	var mat := ParticleProcessMaterial.new()
+	mat.direction = Vector3(0, -1, 0)
+	mat.spread = 20.0
+	mat.initial_velocity_min = speed * 0.6
+	mat.initial_velocity_max = speed
+	mat.gravity = Vector3(0, gravity_y, 0)
+	mat.scale_min = scale_min
+	mat.scale_max = scale_max
+	mat.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
+	mat.emission_box_extents = Vector3(maxf(box.x, 1.0), maxf(box.y, 1.0), 1.0)
+	var curve := CurveTexture.new()
+	var shape := Curve.new()
+	if pulse:
+		# A twinkle appears, peaks and is gone.
+		shape.add_point(Vector2(0.0, 0.0))
+		shape.add_point(Vector2(0.5, 1.0))
+		shape.add_point(Vector2(1.0, 0.0))
+	else:
+		shape.add_point(Vector2(0.0, 1.0))
+		shape.add_point(Vector2(0.6, 0.9))
+		shape.add_point(Vector2(1.0, 0.0))
+	curve.curve = shape
+	mat.scale_curve = curve
+	_ambient_materials[key] = mat
+	return mat

@@ -275,3 +275,22 @@ per-frame process on a body — worth it, but it is the one per-frame cost this 
 without measuring on an exported build); a vortex swirl (same); NPC arrival beats beyond the spawn
 puff (the art pass owns their animation); screen flash on a knockout (a white flash over a
 transparent window tints the player's whole desktop).
+
+## 10. The rhythm on the card, life on the desk (2026-09-06, late) ✅
+
+Owner's brief: "AGAIN MORE ADDICTION MORE BEAUTIFUL". Recorded as **D40**.
+
+| # | What | Where |
+|---|---|---|
+| 10.1 | **Streak row on the HUD.** `x12 STREAK` and `x2.4 COMBO` cells with a bar draining to the lapse; colour heats bone→orange over twenty hits; punch per step, gold flash at a new best; a 20 Hz timer alive only while a streak is | `hud.gd` (`_build_streak_row`, `_tick_streak`), `economy.gd` (`streak_seconds_left`, `combo_seconds_left`) |
+| 10.2 | **On him.** Embers from a streak of ten (`EmberTimer` at 10 Hz while alive), a gold star sparkle while blissful (mood ≥ 80); both parented to his body, both off at Focus Off | `world_fx.gd` (`_set_ambient`, `_gate_ambient`) |
+| 10.3 | **Trails.** Every `BaseDraggable` leaves a tapered world-space `Line2D` above 550 px/s from the collision shape's corner farthest from the grip; gold / rose (`FriendlyBase`) / white (`Buddy`) via `trail_colour()`; built on first use | `base_draggable.gd`, `friendly_base.gd`, `buddy.gd` |
+| 10.4 | **Ambient life.** `FriendlyBase.AMBIENT` by id: steam (hot tub, foot spa, tea, noodles, pizza, fountain), bubbles (bubble machine, fish tank, paddling pool), twinkle (fairy lights, lava lamp, cake, chimes), notes (boombox, record player); one GPU emitter per item, materials cached per kind | `friendly_base.gd` |
+| 10.5 | **Small ones.** Ring at the contact on a hit ≥ 60% of the hit-stop scale; a deed claimed throws its coin at the purse | `world_fx.gd`, `deeds_panel.gd` |
+| 10.6 | **Proof.** `juice` suite grows by 13 (row hidden → x3 → lapses; embers/bliss on and off with Focus; trail world-space, hidden, white; hot tub steams and stops); `16-juice` shots stage a 12-streak and a hot tub | `ui_check.gd`, `ui_shots.gd` |
+
+Counts after: **unit 216 · loop 595 · ui 408 · pacing untouched**.
+
+Not done and why: a swing *sound* pitched to speed (the synth has no whoosh voice yet); afterimage
+ghosts of the puppet when flung (the trail covers it at a tenth of the cost); a streak-lost
+sting (the genre punishes enough — the bar draining is the whole warning).

@@ -87,6 +87,7 @@ func _ready() -> void:
 	EventBus.mood_changed.connect(_on_mood_changed)
 	EventBus.grime_changed.connect(_on_grime_changed)
 	EventBus.payout.connect(_on_payout)
+	EventBus.payout.connect(_on_streak_payout)
 	EventBus.currency_changed.connect(func(_c: StringName, _b: float) -> void: _mark_next_dirty())
 	EventBus.item_purchased.connect(func(_id: StringName) -> void: _mark_next_dirty())
 	EventBus.prestige_performed.connect(func(_m: float) -> void:
@@ -207,6 +208,8 @@ func _build() -> void:
 
 	# --- how fast it is coming in ---
 	stack.add_child(_build_rate_row())
+	# --- the rhythm, while it lasts ---
+	stack.add_child(_build_streak_row())
 
 	# --- how he is doing ---
 	stack.add_child(_meter_row(&"knockout"))
@@ -679,3 +682,123 @@ func _set_meter_hot(hot: bool) -> void:
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	_hot_tween.tween_property(_meter, "modulate", Color.WHITE, 0.42) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+# --- the streak and the combo ------------------------------------------------
+#
+# The damage streak and the kindness combo were a tag beside a payout number: visible for a
+# second, in the world, wherever the last hit happened. This is the same fact on the card,
+# with the one thing a tag cannot carry — a bar draining toward the moment the streak
+# lapses. "Keep it going" is the genre's cheapest hook, and it needs a clock the player can
+# see. The row ticks twenty times a second only while a streak or a combo is alive, and
+# stops itself the moment neither is; it costs nothing while he sits there.
+
+## The tag's own thresholds: a streak is worth calling one from the third hit.
+const STREAK_FROM := 3
+const COMBO_FROM := 1
+## Bone-brown at a tap, orange by this many hits in a row — the same ramp the hit chips run.
+const STREAK_HOT_AT := 20.0
+const STREAK_HEAT := Color("ff8c1a")
+
+var _streak_row: HBoxContainer
+var _streak_cells: Dictionary = {}     ## currency -> {"cell", "value", "bar", "fill"}
+var _streak_timer: Timer
+var _streak_shown := 0
+var _combo_shown := 0
+
+func _build_streak_row() -> Control:
+	_streak_row = HBoxContainer.new()
+	_streak_row.name = "StreakRow"
+	_streak_row.add_theme_constant_override("separation", 10)
+	_streak_row.visible = false
+	for currency in [Economy.BONES, Economy.HEARTS]:
+		var colour := UIStyle.currency_colour(currency)
+		var cell := HBoxContainer.new()
+		cell.name = "StreakCell_%s" % currency
+		cell.add_theme_constant_override("separation", 5)
+		cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		cell.visible = false
+		var value := UIStyle.label("x3", UIStyle.TITLE, colour)
+		value.theme_type_variation = &"Numeral"
+		value.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		cell.add_child(value)
+		var side := VBoxContainer.new()
+		side.add_theme_constant_override("separation", 2)
+		side.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		side.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		cell.add_child(side)
+		side.add_child(UIStyle.eyebrow("Streak" if currency == Economy.BONES else "Combo"))
+		var bar := ProgressBar.new()
+		bar.show_percentage = false
+		bar.min_value = 0.0
+		bar.max_value = 1.0
+		bar.custom_minimum_size = Vector2(0, 6)
+		bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var fill := UIStyle.meter_fill(colour)
+		bar.add_theme_stylebox_override("fill", fill)
+		side.add_child(bar)
+		_streak_row.add_child(cell)
+		_streak_cells[currency] = {"cell": cell, "value": value, "bar": bar, "fill": fill}
+	_streak_timer = Timer.new()
+	_streak_timer.name = "StreakTimer"
+	_streak_timer.wait_time = 0.05
+	_streak_timer.timeout.connect(_tick_streak)
+	add_child(_streak_timer)
+	return _streak_row
+
+## A payout that came from the player's own hands — automation is not a rhythm.
+func _on_streak_payout(currency: StringName, _amount: float, _world_pos: Vector2, source_id: StringName) -> void:
+	if source_id == &"automation" or source_id == &"" or _streak_timer == null:
+		return
+	if currency == Economy.BONES:
+		var streak := Economy.damage_streak()
+		if streak >= STREAK_FROM and streak != _streak_shown:
+			var controls: Dictionary = _streak_cells[Economy.BONES]
+			var record := streak >= 6 and streak >= int(Economy.stats.get("best_streak", 0))
+			(controls["value"] as Label).text = "x%d" % streak
+			var heat := clampf(float(streak) / STREAK_HOT_AT, 0.0, 1.0)
+			var colour := UIStyle.BONES.lerp(STREAK_HEAT, heat)
+			(controls["value"] as Label).add_theme_color_override("font_color", colour)
+			(controls["fill"] as StyleBoxFlat).bg_color = colour
+			(controls["cell"] as Control).visible = true
+			UIMotion.punch(controls["value"], 1.2 + 0.2 * heat)
+			if record:
+				UIMotion.flash(controls["cell"], Color(1.6, 1.4, 0.9), 0.4)
+			_streak_shown = streak
+	elif currency == Economy.HEARTS and Economy.paying_kind_act:
+		var combo := Economy.kindness_combo()
+		if combo >= COMBO_FROM and combo != _combo_shown:
+			var controls: Dictionary = _streak_cells[Economy.HEARTS]
+			var b := ItemDB.balance
+			var mult := EconomyMath.kindness_combo(combo, b.kindness_combo_step, b.kindness_combo_max)
+			(controls["value"] as Label).text = "x%.1f" % mult
+			(controls["cell"] as Control).visible = true
+			UIMotion.punch(controls["value"], 1.15)
+			_combo_shown = combo
+	else:
+		return
+	if _streak_timer.is_stopped():
+		_streak_timer.start()
+	_tick_streak()
+
+## Drains the bars, and puts the row away when both have run out.
+func _tick_streak() -> void:
+	var any := false
+	var streak_left := Economy.streak_seconds_left()
+	var bones: Dictionary = _streak_cells[Economy.BONES]
+	if _streak_shown >= STREAK_FROM and streak_left > 0.0:
+		(bones["bar"] as ProgressBar).value = clampf(streak_left / Economy.STREAK_WINDOW, 0.0, 1.0)
+		any = true
+	else:
+		(bones["cell"] as Control).visible = false
+		_streak_shown = 0
+	var combo_left := Economy.combo_seconds_left()
+	var hearts: Dictionary = _streak_cells[Economy.HEARTS]
+	if _combo_shown >= COMBO_FROM and combo_left > 0.0:
+		(hearts["bar"] as ProgressBar).value = clampf(combo_left / ItemDB.balance.kindness_combo_window, 0.0, 1.0)
+		any = true
+	else:
+		(hearts["cell"] as Control).visible = false
+		_combo_shown = 0
+	_streak_row.visible = any
+	if not any and _streak_timer:
+		_streak_timer.stop()

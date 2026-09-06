@@ -1736,6 +1736,7 @@ func _the_world_has_juice() -> void:
 	await get_tree().process_frame
 	_check("and goes out when it is not", not bool(hud.get("_meter_hot"))
 		and meter != null and meter.modulate == Color.WHITE)
+	await _the_desk_has_a_rhythm(fx, hud)
 	Settings.focus_intensity = Settings.Intensity.OFF
 	await get_tree().create_timer(0.3).timeout
 	await _settle()
@@ -1766,3 +1767,70 @@ func _emitter_with(root: Node, texture: Texture2D) -> GPUParticles2D:
 		if emitter and emitter.emitting and emitter.texture == texture:
 			return emitter
 	return null
+
+## The second juice pass: the streak and combo row on the card with its draining bar, embers
+## on him at a long streak, a trail behind anything fast, and ambient life on the kind items.
+## Runs inside the juice suite with Focus Mode still on.
+func _the_desk_has_a_rhythm(fx: Node2D, hud: Node) -> void:
+	var row := _find(hud, "StreakRow") as Control
+	_check("the HUD has a streak row", row != null)
+	if row == null:
+		return
+	Economy._streak_deadline_msec = 0
+	await get_tree().create_timer(0.2).timeout
+	await _settle()
+	_check("it is hidden with no streak", not row.visible)
+	var centre := Vector2(VIEW_SIZE) * 0.5
+	for i in 3:
+		EventBus.damage_dealt.emit(HitInfo.new(20.0, &"baseball_bat", centre, 1000.0))
+	await _settle()
+	_check("three hits in a row put it on the card", row.visible)
+	var value := _label_containing("x3", row)
+	_check("reading x3", value != null)
+	var bar := _find(row, "ProgressBar") as ProgressBar
+	_check("with a bar draining toward the lapse", bar != null and bar.value > 0.5 and bar.value <= 1.0,
+		str(bar.value) if bar else "no bar")
+	await get_tree().create_timer(Economy.STREAK_WINDOW + 0.3).timeout
+	await _settle()
+	_check("and it goes away when the streak lapses", not row.visible)
+
+	# Embers and bliss ride on him; both are children of his body and both obey Focus Mode.
+	var buddy := _find(_main, "Buddy") as Node2D
+	fx.call("_set_ambient", &"embers", true)
+	_check("a long streak sets him on fire", bool(fx.call("is_ambient_on", &"embers"))
+		and buddy != null and buddy.has_node("Embers"))
+	fx.call("_set_ambient", &"bliss", true)
+	_check("bliss puts a sparkle on him", bool(fx.call("is_ambient_on", &"bliss")))
+	Settings.focus_intensity = Settings.Intensity.OFF
+	fx.call("_gate_ambient")
+	_check("Focus Off puts both out", not bool(fx.call("is_ambient_on", &"embers"))
+		and not bool(fx.call("is_ambient_on", &"bliss")))
+	Settings.focus_intensity = Settings.Intensity.NORMAL
+	fx.call("_set_ambient", &"embers", false)
+	fx.call("_set_ambient", &"bliss", false)
+
+	# The trail: built on first use, in world space, hidden until he moves fast.
+	if buddy:
+		buddy.call("_build_trail")
+		var trail := buddy.get_node_or_null("Trail") as Line2D
+		_check("he can leave a trail", trail != null and trail.top_level and not trail.visible)
+		_check("in bone white", trail != null and trail.default_color == Color.WHITE)
+
+	# Ambient life: a hot tub steams, and stops steaming at Focus Off.
+	var spawner := _find(_main, "ItemSpawner")
+	var world := spawner.get("world") as Node2D if spawner else null
+	var scene := load("res://Scenes/Friendly/hot_tub.tscn") as PackedScene
+	if world and scene:
+		var tub := scene.instantiate() as Node2D
+		tub.set("item_id", &"hot_tub")
+		world.add_child(tub)
+		tub.global_position = centre + Vector2(200, 0)
+		await _settle()
+		var steam := tub.get_node_or_null("Ambient") as GPUParticles2D
+		_check("a hot tub steams", steam != null and steam.emitting)
+		Settings.focus_intensity = Settings.Intensity.OFF
+		tub.call("_gate_ambient")
+		_check("and stops at Focus Off", steam != null and not steam.emitting)
+		Settings.focus_intensity = Settings.Intensity.NORMAL
+		tub.queue_free()
+		await _settle()

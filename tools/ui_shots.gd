@@ -94,12 +94,23 @@ func _ready() -> void:
 	world_fx.call("tracer", centre + Vector2(-380, 120), centre + Vector2(60, 60))
 	EventBus.buddy_landed.emit(centre + Vector2(60, 120), 1000.0)
 	EventBus.mastery_rank_up.emit(&"mace", 4)
+	# A streak on the card and embers on him, and a hot tub steaming beside him.
+	Economy._streak_deadline_msec = 0
+	for i in 12:
+		EventBus.damage_dealt.emit(HitInfo.new(30.0, &"baseball_bat", centre + Vector2(60, 40), 1000.0))
+	var tub := (load("res://Scenes/Friendly/hot_tub.tscn") as PackedScene).instantiate() as Node2D
+	tub.set("item_id", &"hot_tub")
+	(_find(_main, "ItemSpawner").get("world") as Node2D).add_child(tub)
+	tub.global_position = centre + Vector2(-140, 220)
 	for step in [["16-juice", 2], ["16b-juice", 6], ["16c-juice", 12]]:
 		for i in int(step[1]):
 			await get_tree().process_frame
 		await RenderingServer.frame_post_draw
 		_grab().save_png("%s/%s.png" % [OUT, step[0]])
 		print("  %s" % step[0])
+	# Binned before the tool moves on: a tub left steaming pays kindness into a HUD that has
+	# been torn down by the time the tool quits.
+	tub.queue_free()
 	await _idle(40)
 	OverlayManager.set_backdrop(had_backdrop)
 

@@ -258,6 +258,10 @@ var _streak_deadline_msec := 0
 func damage_streak() -> int:
 	return _streak_count if Time.get_ticks_msec() < _streak_deadline_msec else 0
 
+## Seconds until the streak lapses, for the HUD's draining bar. Zero when there is none.
+func streak_seconds_left() -> float:
+	return maxf(0.0, float(_streak_deadline_msec - Time.get_ticks_msec()) / 1000.0)
+
 ## Set for the duration of a kind act's own payout emit (see `_on_kindness_given`).
 var paying_kind_act := false
 
@@ -299,6 +303,9 @@ func _on_damage_dealt(info: HitInfo) -> void:
 ## buddy's expression: a petting streak shows on him, not only on the payout.
 func kindness_combo() -> int:
 	return _combo_count if Time.get_ticks_msec() < _combo_deadline_msec else 0
+
+func combo_seconds_left() -> float:
+	return maxf(0.0, float(_combo_deadline_msec - Time.get_ticks_msec()) / 1000.0)
 
 func _on_kindness_given(source_id: StringName, value: float, world_pos: Vector2) -> void:
 	var now := Time.get_ticks_msec()
