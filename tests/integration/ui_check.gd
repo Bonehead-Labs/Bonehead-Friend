@@ -79,6 +79,7 @@ func _ready() -> void:
 	await _every_page_is_readable()
 	await _the_deeds_board_is_on_the_page()
 	await _the_hud_calls_for_rebirth()
+	await _the_wardrobe_is_on_the_arcade_page()
 	await _the_purse_can_count_high()
 	await _the_payouts_are_visible()
 	await _the_hud_points_at_the_next_toy()
@@ -860,6 +861,51 @@ func _the_deeds_board_is_on_the_page() -> void:
 		masked == hidden_unearned)
 	_check("the record shows his lifetime Bones",
 		_label_containing(UIStyle.format_amount(Economy.lifetime_of(Economy.BONES)), page) != null)
+	panels.call("close")
+	await _settle()
+
+## The wardrobe is the one thing in the Arcade that is not a gamble, and the Dollars sink the
+## design owed the currency: a row per finish, and the button buys, wears or says worn.
+func _the_wardrobe_is_on_the_arcade_page() -> void:
+	_suite("wardrobe")
+	var panels := _find(_main, "PanelLayer")
+	if panels == null:
+		return
+	panels.call("show_panel", &"arcade")
+	await _settle()
+	var list := _find(_main, "Wardrobe")
+	_check("the arcade has a wardrobe", list != null)
+	if list == null:
+		return
+	_check("with a row per cosmetic (%d)" % ItemDB.all_cosmetics().size(),
+		list.get_child_count() == ItemDB.all_cosmetics().size())
+	var worn := 0
+	var priced := 0
+	for node in _all_nodes(list):
+		if node is Button:
+			var text := (node as Button).text
+			if text == "Worn":
+				worn += 1
+			elif text != "Wear":
+				priced += 1
+	_check("the free finish is worn by default", worn >= 1)
+	_check("and the rest are priced", priced >= 5)
+	# Buy the cheapest priced finish with exactly its price and it is worn at once.
+	var cheapest: CosmeticData = null
+	for cosmetic in ItemDB.all_cosmetics():
+		if not cosmetic.is_free() and not Economy.owns_cosmetic(cosmetic.id) \
+				and (cheapest == null or cosmetic.price_dollars < cheapest.price_dollars):
+			cheapest = cosmetic
+	if cheapest:
+		Economy.grant(Economy.DOLLARS, float(cheapest.price_dollars))
+		var page := _find(_main, "ArcadePanel")
+		page.call("request_refresh")
+		await _settle()
+		var button: Button = (page.get("_wardrobe_rows") as Dictionary)[cheapest.id]["button"]
+		await _scroll_into_view(button)
+		await _click(_centre_of(button))
+		await _settle()
+		_check("clicking its price buys it and he wears it", Economy.is_wearing(cheapest.id))
 	panels.call("close")
 	await _settle()
 

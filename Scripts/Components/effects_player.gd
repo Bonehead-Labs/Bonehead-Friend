@@ -29,6 +29,11 @@ shader_type canvas_item;
 uniform float flash : hint_range(0.0, 1.0) = 0.0;
 uniform float grime : hint_range(0.0, 1.0) = 0.0;
 uniform vec4 grime_color : source_color = vec4(0.55, 0.50, 0.42, 1.0);
+// The wardrobe (CosmeticData): a finish is a tint on the bone pixels, a set of headphones a
+// tint on the teal. White is "as drawn". Same masks as grime, so a hat pass later can add a
+// layer without touching this.
+uniform vec4 bone_tint : source_color = vec4(1.0);
+uniform vec4 phone_tint : source_color = vec4(1.0);
 void fragment() {
 	vec4 tex = texture(TEXTURE, UV);
 	vec3 lit = tex.rgb * COLOR.rgb;
@@ -38,7 +43,11 @@ void fragment() {
 	// excluded by this, one on saturation and the other on brightness, with no per-tag
 	// exception list to keep in sync as the roster grows.
 	float bone_mask = step(0.5, luma) * step(sat, 0.15);
-	vec3 grimed = mix(lit, grime_color.rgb, grime * bone_mask);
+	// The headphones: saturated, and red well under both green and blue — the teal family.
+	float phone_mask = step(0.25, sat) * step(lit.r, min(lit.g, lit.b) * 0.8);
+	vec3 dressed = mix(lit, clamp(lit * bone_tint.rgb, 0.0, 1.0), bone_mask);
+	dressed = mix(dressed, clamp(dressed * phone_tint.rgb, 0.0, 1.0), phone_mask);
+	vec3 grimed = mix(dressed, grime_color.rgb, grime * bone_mask);
 	COLOR = vec4(mix(grimed, vec3(1.0), flash * step(0.02, tex.a)), tex.a * COLOR.a);
 }
 """

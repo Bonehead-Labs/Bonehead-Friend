@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="CosmeticData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/cosmetic_data.gd" id="1_rxcus"]
+
+[resource]
+script = ExtResource("1_rxcus")
+id = &"gold_cans"
+display_name = "Gold Cans"
+description = "Gold-plated headphones, for a skeleton who has made it."
+slot = &"phones"
+price_dollars = 2500
+tint = Color(1.45, 1.15, 0.55, 1)
+sort_order = 130

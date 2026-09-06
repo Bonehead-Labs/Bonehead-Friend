@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="CosmeticData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/cosmetic_data.gd" id="1_bf47l"]
+
+[resource]
+script = ExtResource("1_bf47l")
+id = &"lavender"
+display_name = "Lavender"
+description = "Dusk-coloured. He looks like he has opinions about tea."
+price_dollars = 1500
+tint = Color(0.88, 0.8, 1, 1)
+sort_order = 40

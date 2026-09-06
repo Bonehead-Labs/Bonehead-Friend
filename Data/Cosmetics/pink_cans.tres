@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="CosmeticData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/cosmetic_data.gd" id="1_rkloe"]
+
+[resource]
+script = ExtResource("1_rkloe")
+id = &"pink_cans"
+display_name = "Pink Cans"
+description = "Bubblegum pink headphones. Entirely his choice."
+slot = &"phones"
+price_dollars = 1000
+tint = Color(1.4, 0.75, 1.1, 1)
+sort_order = 120

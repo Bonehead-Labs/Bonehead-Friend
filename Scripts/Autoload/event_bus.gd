@@ -61,6 +61,9 @@ signal threat_changed(kind: StringName, world_pos: Vector2, level: float)
 signal ui_panel_changed(panel: StringName)  ## &"" = all closed
 ## Open the shop on one item: the HUD's "next up" row is a link, not a purchase.
 signal ui_show_item(item_id: StringName)
+## He put something on: a wardrobe slot changed (`bone` or `phones`) to a cosmetic id, or
+## `&""` for as drawn. The art re-tints; nothing in the economy listens.
+signal cosmetic_changed(slot: StringName, cosmetic_id: StringName)
 ## Open a page of the card by id. `&"prestige"` opens the Arcade scrolled to Reincarnation —
 ## the HUD's "Reincarnate for +N" row is a link to the biggest decision in the game.
 signal ui_show_panel(panel: StringName)

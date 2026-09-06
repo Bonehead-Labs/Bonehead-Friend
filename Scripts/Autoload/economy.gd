@@ -411,6 +411,56 @@ func pending_marrow() -> float:
 	var b := ItemDB.balance
 	return EconomyMath.marrow_for_run(run_earnings, b.marrow_divisor, b.marrow_exponent)
 
+# --- the wardrobe ------------------------------------------------------------
+
+## Cosmetics: owned ids and what he is wearing per slot. Meta, like Marrow — a Reincarnation
+## does not undress him (docs/game-design.md § Cosmetics). Free cosmetics are owned by
+## everyone without being listed; nothing here reads a colour, so a cosmetic cannot touch a
+## payout (D31).
+var _cosmetics_owned: Dictionary = {}     ## id -> true
+var _cosmetics_worn: Dictionary = {}      ## slot -> id
+
+func owns_cosmetic(id: StringName) -> bool:
+	if _cosmetics_owned.has(id):
+		return true
+	var cosmetic := ItemDB.get_cosmetic(id)
+	return cosmetic != null and cosmetic.is_free()
+
+func buy_cosmetic(id: StringName) -> bool:
+	var cosmetic := ItemDB.get_cosmetic(id)
+	if cosmetic == null or owns_cosmetic(id):
+		return false
+	if not spend(DOLLARS, float(cosmetic.price_dollars)):
+		return false
+	_cosmetics_owned[id] = true
+	EventBus.save_requested.emit()
+	return true
+
+## Wear something he owns. Returns false for a cosmetic he does not own or that does not exist.
+func wear_cosmetic(id: StringName) -> bool:
+	var cosmetic := ItemDB.get_cosmetic(id)
+	if cosmetic == null or not owns_cosmetic(id):
+		return false
+	if _cosmetics_worn.get(cosmetic.slot, &"") == id:
+		return true
+	_cosmetics_worn[cosmetic.slot] = id
+	EventBus.cosmetic_changed.emit(cosmetic.slot, id)
+	EventBus.save_requested.emit()
+	return true
+
+func worn_cosmetic(slot: StringName) -> StringName:
+	return _cosmetics_worn.get(slot, &"")
+
+## An empty slot is drawn as drawn, so the free cosmetic of that slot is what he is wearing.
+func is_wearing(id: StringName) -> bool:
+	var cosmetic := ItemDB.get_cosmetic(id)
+	if cosmetic == null:
+		return false
+	var worn := worn_cosmetic(cosmetic.slot)
+	if worn == &"":
+		return cosmetic.is_free()
+	return worn == id
+
 ## How long he can sleep for, and what the next step costs. The cap is meta — it survives a
 ## Reincarnation like Marrow does — so it is not an augment node (those are the run's) and is
 ## sold beside Reincarnation instead. Hearts-priced, as docs/game-design.md says, and the price
@@ -482,6 +532,9 @@ func to_save() -> Dictionary:
 			"run_earnings": run_earnings},
 		"offline_cap_level": offline_cap_level,
 		"stats": stats.duplicate(),
+		# The schema's own shape: owned ids, and the worn ids as a flat list (one per slot).
+		"cosmetics": {"owned": _cosmetics_owned.keys().map(func(k: StringName) -> String: return String(k)),
+			"equipped": _cosmetics_worn.values().map(func(v: StringName) -> String: return String(v))},
 	}
 
 func from_save(root: Dictionary) -> void:
@@ -503,6 +556,19 @@ func from_save(root: Dictionary) -> void:
 	offline_cap_level = int(root.get("offline_cap_level", 0))
 	stats = (root.get("stats", {}) as Dictionary).duplicate()
 	round_damage = 0.0
+
+	var cosmetics: Dictionary = root.get("cosmetics", {})
+	_cosmetics_owned.clear()
+	for id in cosmetics.get("owned", []):
+		_cosmetics_owned[StringName(String(id))] = true
+	_cosmetics_worn.clear()
+	for id in cosmetics.get("equipped", []):
+		var cosmetic := ItemDB.get_cosmetic(StringName(String(id)))
+		# A cosmetic that no longer exists is simply not worn; he is drawn as drawn.
+		if cosmetic:
+			_cosmetics_worn[cosmetic.slot] = cosmetic.id
+	for slot in [CosmeticData.SLOT_BONE, CosmeticData.SLOT_PHONES]:
+		EventBus.cosmetic_changed.emit(slot, worn_cosmetic(slot))
 
 	# All three, or a returning player sees a chip reading 0 until their next payout — the
 	# HUD seeds its labels from this signal and nothing else.

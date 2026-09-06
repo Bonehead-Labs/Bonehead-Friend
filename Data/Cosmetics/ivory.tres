@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="CosmeticData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/cosmetic_data.gd" id="1_4tta2"]
+
+[resource]
+script = ExtResource("1_4tta2")
+id = &"ivory"
+display_name = "Ivory"
+description = "As he came. Free, and always yours."

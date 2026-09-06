@@ -39,6 +39,7 @@ func _ready() -> void:
 	_load_contracts()
 	_load_milestones()
 	_load_personalities()
+	_load_cosmetics()
 
 # --- lookup ----------------------------------------------------------------
 
@@ -117,7 +118,7 @@ func starter_items() -> Array[ItemData]:
 ## Content directories that are allowed to be absent. Contracts and personalities were both
 ## added in M3; a checkout from before then, or a build that ships without them, should lose
 ## the contract board rather than fail to boot.
-const OPTIONAL_DIRS := [CONTRACTS_DIR, PERSONALITIES_DIR, MILESTONES_DIR]
+const OPTIONAL_DIRS := [CONTRACTS_DIR, PERSONALITIES_DIR, MILESTONES_DIR, COSMETICS_DIR]
 
 func _load_balance() -> void:
 	var res := ResourceLoader.load(BALANCE_PATH) if ResourceLoader.exists(BALANCE_PATH) else null
@@ -199,6 +200,36 @@ func _load_contracts() -> void:
 	_contracts_sorted.sort_custom(func(a: ContractData, b: ContractData) -> bool:
 		if a.period != b.period:
 			return a.period < b.period
+		if a.sort_order != b.sort_order:
+			return a.sort_order < b.sort_order
+		return String(a.id) < String(b.id))
+
+const COSMETICS_DIR := "res://Data/Cosmetics"
+var _cosmetics: Dictionary = {}          ## StringName -> CosmeticData
+var _cosmetics_sorted: Array[CosmeticData] = []
+
+func get_cosmetic(id: StringName) -> CosmeticData:
+	return _cosmetics.get(id)
+
+func all_cosmetics() -> Array[CosmeticData]:
+	return _cosmetics_sorted
+
+func _load_cosmetics() -> void:
+	for res in _load_directory(COSMETICS_DIR):
+		var cosmetic := res as CosmeticData
+		if cosmetic == null:
+			push_error("ItemDB: %s is not a CosmeticData" % res.resource_path)
+			continue
+		var err := cosmetic.validation_error()
+		if not err.is_empty():
+			push_error("ItemDB: %s — %s" % [cosmetic.resource_path, err])
+			continue
+		if _cosmetics.has(cosmetic.id):
+			push_error("ItemDB: duplicate cosmetic id '%s'" % cosmetic.id)
+			continue
+		_cosmetics[cosmetic.id] = cosmetic
+	_cosmetics_sorted.assign(_cosmetics.values())
+	_cosmetics_sorted.sort_custom(func(a: CosmeticData, b: CosmeticData) -> bool:
 		if a.sort_order != b.sort_order:
 			return a.sort_order < b.sort_order
 		return String(a.id) < String(b.id))

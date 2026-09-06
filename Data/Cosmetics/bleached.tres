@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="CosmeticData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/cosmetic_data.gd" id="1_lr5a5"]
+
+[resource]
+script = ExtResource("1_lr5a5")
+id = &"bleached"
+display_name = "Bleached"
+description = "Left in the sun. A whiter white than a skeleton has any right to."
+price_dollars = 600
+tint = Color(1.1, 1.1, 1.12, 1)
+sort_order = 10

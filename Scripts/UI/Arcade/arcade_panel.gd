@@ -81,6 +81,8 @@ func _build_page() -> void:
 	for path in MACHINES:
 		_add_machine(path)
 
+	_build_wardrobe()
+
 	add_child(UIStyle.eyebrow("The back room"))
 	# PrestigePanel instanced whole rather than reimplemented. It is a `PanelPage`, so nested
 	# here it keeps every property that made it work as a tab: its bus handlers still defer
@@ -106,6 +108,124 @@ func _build_page() -> void:
 ## The Reincarnation page nested here, for the HUD's link to scroll to.
 func prestige_panel() -> PrestigePanel:
 	return _prestige
+
+# --- the wardrobe --------------------------------------------------------------
+
+## Finishes and headphones for Dollars (docs/game-design.md § Cosmetics). The one thing in
+## this room that is not a gamble: you see the colour, you pay the price, you wear it. Rows are
+## built once from `ItemDB.all_cosmetics()` and refreshed by value.
+var _wardrobe_rows: Dictionary = {}   ## cosmetic id -> {button, row}
+
+func _build_wardrobe() -> void:
+	var rail := ItemDB.all_cosmetics()
+	if rail.is_empty():
+		return
+	add_child(UIStyle.eyebrow("The wardrobe"))
+	var blurb := UIStyle.body("How he looks, for Dollars. A finish never changes what he earns.")
+	blurb.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	blurb.custom_minimum_size = Vector2(320, 0)
+	add_child(blurb)
+	var list := VBoxContainer.new()
+	list.name = "Wardrobe"
+	list.add_theme_constant_override("separation", 5)
+	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	add_child(list)
+	for cosmetic in rail:
+		list.add_child(_make_wardrobe_row(cosmetic))
+
+func _make_wardrobe_row(cosmetic: CosmeticData) -> Control:
+	var row_panel := PanelContainer.new()
+	row_panel.theme_type_variation = &"Tile"
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	row_panel.add_child(row)
+
+	# The swatch: the tint over ivory for a bone finish, over teal for headphones. Exactly the
+	# box size, like every picture in the shell (D27), drawn rather than imported.
+	var swatch := PanelContainer.new()
+	swatch.custom_minimum_size = Vector2(UIStyle.ICON_CANVAS, UIStyle.ICON_CANVAS)
+	var fill := StyleBoxFlat.new()
+	var base := Color(0.93, 0.90, 0.82) if cosmetic.slot == CosmeticData.SLOT_BONE else Color(0.16, 0.62, 0.62)
+	fill.bg_color = Color(clampf(base.r * cosmetic.tint.r, 0.0, 1.0),
+		clampf(base.g * cosmetic.tint.g, 0.0, 1.0), clampf(base.b * cosmetic.tint.b, 0.0, 1.0))
+	fill.set_corner_radius_all(4)
+	fill.border_width_bottom = 2
+	fill.border_width_top = 2
+	fill.border_width_left = 2
+	fill.border_width_right = 2
+	fill.border_color = UIStyle.EDGE
+	swatch.add_theme_stylebox_override("panel", fill)
+	row.add_child(swatch)
+
+	var text := VBoxContainer.new()
+	text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	text.add_theme_constant_override("separation", 0)
+	row.add_child(text)
+	var title := UIStyle.label(cosmetic.display_name, UIStyle.NAME)
+	title.theme_type_variation = &"NameLabel"
+	text.add_child(title)
+	var subtitle := UIStyle.label(cosmetic.description.to_upper(), UIStyle.MICRO, UIStyle.TEXT_DIM)
+	subtitle.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	subtitle.custom_minimum_size = Vector2(200, 0)
+	text.add_child(subtitle)
+
+	var button := UIStyle.button("", UIStyle.LABEL)
+	button.theme_type_variation = &"BuyButton"
+	button.custom_minimum_size = Vector2(110, 34)
+	button.pressed.connect(func() -> void: _on_wardrobe_pressed(cosmetic.id, row_panel, button))
+	row.add_child(button)
+	UIMotion.hook(button, row_panel)
+
+	_wardrobe_rows[cosmetic.id] = {"button": button, "row": row_panel}
+	return row_panel
+
+## One button, three meanings, like the shop's: buy it, wear it, or it is worn. A refusal is a
+## reaction, not a silence.
+func _on_wardrobe_pressed(id: StringName, row_panel: Control, button: Button) -> void:
+	if Economy.is_wearing(id):
+		return
+	if Economy.owns_cosmetic(id):
+		if Economy.wear_cosmetic(id):
+			UIMotion.confirm(row_panel)
+			_refresh_wardrobe()
+		return
+	if not Economy.buy_cosmetic(id):
+		UIMotion.buzz(button)
+		return
+	UIMotion.confirm(row_panel)
+	EventBus.ui_spend.emit(Economy.DOLLARS, float(ItemDB.get_cosmetic(id).price_dollars),
+		UIScale.screen_centre(button))
+	# Bought is worn: nobody buys a colour to keep it in the drawer.
+	Economy.wear_cosmetic(id)
+	_refresh_wardrobe()
+
+func _refresh_wardrobe() -> void:
+	for id in _wardrobe_rows:
+		var cosmetic := ItemDB.get_cosmetic(id)
+		if cosmetic == null:
+			continue
+		var controls: Dictionary = _wardrobe_rows[id]
+		var button := controls["button"] as Button
+		var row_panel := controls["row"] as PanelContainer
+		if Economy.is_wearing(id):
+			button.text = "Worn"
+			UIStyle.set_icon(button, UIStyle.glyph(&"check"))
+			button.disabled = true
+			UIStyle.tint_button(button, UIStyle.TEXT_DIM)
+			row_panel.theme_type_variation = &"TileHot"
+		elif Economy.owns_cosmetic(id):
+			button.text = "Wear"
+			UIStyle.set_icon(button, UIStyle.glyph(&"hand"))
+			button.disabled = false
+			UIStyle.tint_button(button, UIStyle.TEXT)
+			row_panel.theme_type_variation = &"Tile"
+		else:
+			button.text = UIStyle.format_amount(float(cosmetic.price_dollars))
+			UIStyle.set_icon(button, UIStyle.glyph(&"dollar"))
+			button.disabled = false
+			var affordable := Economy.balance_of(Economy.DOLLARS) >= float(cosmetic.price_dollars)
+			UIStyle.tint_button(button, UIStyle.DOLLARS if affordable else UIStyle.TEXT_DIM)
+			row_panel.theme_type_variation = &"Tile"
 
 ## Keeps the nested page's flag honest with the tree, so "is this page on screen" has one
 ## answer whichever way it is asked.
@@ -354,6 +474,7 @@ func _say(machine: Dictionary, line: String) -> void:
 # --- repainting ------------------------------------------------------------
 
 func _refresh() -> void:
+	_refresh_wardrobe()
 	var purse := Economy.balance_of(Economy.DOLLARS)
 	for machine in _machines:
 		var game := machine["game"] as ArcadeGame

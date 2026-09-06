@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="CosmeticData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/cosmetic_data.gd" id="1_snx4m"]
+
+[resource]
+script = ExtResource("1_snx4m")
+id = &"studio_cans"
+display_name = "Studio Whites"
+description = "Crisp white headphones. He hears things you do not."
+slot = &"phones"
+price_dollars = 800
+tint = Color(1.35, 1.35, 1.35, 1)
+sort_order = 110

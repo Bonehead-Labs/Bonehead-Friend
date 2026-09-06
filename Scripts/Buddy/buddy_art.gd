@@ -204,6 +204,10 @@ func _ready() -> void:
 
 	EventBus.buddy_state_changed.connect(_on_state_changed)
 	EventBus.mood_changed.connect(_on_mood_changed)
+	# What he is wearing: the tints ride the shader EffectsPlayer installs, on the same masks
+	# grime uses, so a finish and a filthy skeleton compose without knowing about each other.
+	EventBus.cosmetic_changed.connect(func(_slot: StringName, _id: StringName) -> void: apply_wardrobe())
+	apply_wardrobe()
 
 	# The honest baseline: nothing is moving yet, so there is nothing for `_process` to do.
 	# `travel()` is the only thing that turns it back on.
@@ -545,6 +549,24 @@ func animation_length(animation: StringName) -> float:
 func has_animation(animation: StringName) -> bool:
 	return body != null and body.sprite_frames != null \
 		and body.sprite_frames.has_animation(animation)
+
+## Dresses him in what `Economy` says he is wearing: a bone tint on both sprites, a headphone
+## tint on the body. White for a slot with nothing in it, which draws him as drawn.
+func apply_wardrobe() -> void:
+	var bone := Color.WHITE
+	var phones := Color.WHITE
+	var worn_bone := ItemDB.get_cosmetic(Economy.worn_cosmetic(CosmeticData.SLOT_BONE))
+	if worn_bone:
+		bone = worn_bone.tint
+	var worn_phones := ItemDB.get_cosmetic(Economy.worn_cosmetic(CosmeticData.SLOT_PHONES))
+	if worn_phones:
+		phones = worn_phones.tint
+	for target in [body, face]:
+		if target == null:
+			continue
+		var material := EffectsPlayer.material_for(target)
+		material.set_shader_parameter(&"bone_tint", bone)
+		material.set_shader_parameter(&"phone_tint", phones)
 
 ## Face -> face, from the personality's tell (`PersonalityData.face_swaps`). Applied to every
 ## expression he pulls, mood faces included: the Goth's `sad` is his contented face. Set by

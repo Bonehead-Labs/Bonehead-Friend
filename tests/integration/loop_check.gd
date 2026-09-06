@@ -45,6 +45,7 @@ func _ready() -> void:
 	_dollars_count_acts_not_power()
 	_streaks_are_counted()
 	_he_can_learn_to_sleep_longer()
+	_the_wardrobe_dresses_him()
 	_the_kindness_augments_do_something()
 	_mood_swings_the_payout()
 	_grime_suppresses_bones()
@@ -695,6 +696,45 @@ func _he_can_learn_to_sleep_longer() -> void:
 	Economy.offline_cap_level = level_before
 	Economy.spend(Economy.HEARTS, Economy.balance_of(Economy.HEARTS))
 	Economy.grant(Economy.HEARTS, hearts_before)
+
+## The wardrobe: Dollars buy a finish, he wears it, the shader shows it, the save keeps it.
+func _the_wardrobe_dresses_him() -> void:
+	_suite("wardrobe")
+	var rail := ItemDB.all_cosmetics()
+	_check("the wardrobe has a rail", rail.size() >= 6)
+	var free: CosmeticData = null
+	var cheapest: CosmeticData = null
+	for cosmetic in rail:
+		if cosmetic.is_free() and cosmetic.slot == CosmeticData.SLOT_BONE:
+			free = cosmetic
+		elif not cosmetic.is_free() and cosmetic.slot == CosmeticData.SLOT_BONE \
+				and (cheapest == null or cosmetic.price_dollars < cheapest.price_dollars):
+			cheapest = cosmetic
+	_check("there is a free default and a priced finish", free != null and cheapest != null)
+	if free == null or cheapest == null:
+		return
+	_check("everyone owns the free one", Economy.owns_cosmetic(free.id))
+	_check("nobody owns the priced one yet", not Economy.owns_cosmetic(cheapest.id))
+	var dollars_before := Economy.balance_of(Economy.DOLLARS)
+	Economy.spend(Economy.DOLLARS, dollars_before)
+	_check("with no Dollars it cannot be bought", not Economy.buy_cosmetic(cheapest.id))
+	_check("and cannot be worn unowned", not Economy.wear_cosmetic(cheapest.id))
+	Economy.grant(Economy.DOLLARS, float(cheapest.price_dollars))
+	_check("with the price it can", Economy.buy_cosmetic(cheapest.id) and Economy.owns_cosmetic(cheapest.id))
+	_check("and the price was spent", is_equal_approx(Economy.balance_of(Economy.DOLLARS), 0.0))
+	_check("buying it once is enough", not Economy.buy_cosmetic(cheapest.id))
+	_check("he can wear it", Economy.wear_cosmetic(cheapest.id) and Economy.is_wearing(cheapest.id))
+	var buddy := _buddy()
+	if buddy and buddy.art and buddy.art.body:
+		var material := buddy.art.body.material as ShaderMaterial
+		var tint: Color = material.get_shader_parameter(&"bone_tint") if material else Color.BLACK
+		_check("and the shader shows it", material != null and tint.is_equal_approx(cheapest.tint))
+	var saved: Dictionary = Economy.to_save()["cosmetics"]
+	_check("the save lists it as owned and worn", (saved["owned"] as Array).has(String(cheapest.id))
+		and (saved["equipped"] as Array).has(String(cheapest.id)))
+	_check("wearing the free one takes it off", Economy.wear_cosmetic(free.id)
+		and not Economy.is_wearing(cheapest.id) and Economy.is_wearing(free.id))
+	Economy.grant(Economy.DOLLARS, dollars_before)
 
 ## The damage streak is presentation: it is counted, drawn and heard, and pays nothing.
 func _streaks_are_counted() -> void:
