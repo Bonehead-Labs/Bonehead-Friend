@@ -14,3 +14,4 @@ display_name = "Pendulum"
 description = "Only pays while he is moving between moods. Two peaks either side of neutral rather than at the extremes, so the optimal play is a fast oscillation that never quite arrives anywhere."
 mood_curve = SubResource("Curve_mit6x")
 sort_order = 100
+fidget_period = 3.0

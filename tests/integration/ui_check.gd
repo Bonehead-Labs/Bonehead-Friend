@@ -891,6 +891,11 @@ func _the_hud_calls_for_rebirth() -> void:
 		and panels.get("_current") == &"arcade")
 	_check("with Reincarnation on screen", prestige != null and prestige.is_visible_in_tree())
 	_check("and resets nothing by itself", Economy.prestige_count == count_before)
+	# And the mood row names who he is this life — it used to be a fact only the Reincarnate
+	# page knew.
+	var who := ItemDB.get_personality(StringName(Economy.personality))
+	_check("the mood row names his personality",
+		who != null and _label_containing(who.display_name, hud) != null)
 	panels.call("close")
 	await _settle()
 

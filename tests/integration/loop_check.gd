@@ -1543,6 +1543,51 @@ func _the_expression_brain_arbitrates() -> void:
 	brain._arm()
 	_check("and the brain's timer stops: nothing to wake for", brain._timer.is_stopped())
 
+	# Personality on the surface (plan §5, §6.17). Every tell names a real face, and the
+	# three sharpest tells do what they say: the Masochist grins when hit, the Stone barely
+	# moves, the Goth's sad face is his contented one.
+	var bad_tells := 0
+	for personality in ItemDB.all_personalities():
+		for face_name in [personality.hurt_face, personality.celebration_face]:
+			if face_name != &"" and not faces.has_animation(face_name):
+				printerr("    personality '%s' names face '%s'" % [personality.id, face_name])
+				bad_tells += 1
+		for swapped in personality.face_swaps.values():
+			if not faces.has_animation(swapped):
+				printerr("    personality '%s' swaps to '%s'" % [personality.id, swapped])
+				bad_tells += 1
+		if personality.validation_error() != "":
+			bad_tells += 1
+	_check("every personality's tell names real faces (%d bad)" % bad_tells, bad_tells == 0)
+	var personality_before := Economy.personality
+	Settings.focus_intensity = Settings.Intensity.NORMAL
+	if ItemDB.get_personality(&"masochist") and ItemDB.get_personality(&"stone") \
+			and ItemDB.get_personality(&"goth"):
+		Economy.personality = "masochist"
+		brain._load_personality()
+		brain.react(&"hit", 0.5, here)
+		_check("the Masochist grins when hit", art.face.animation == &"blissful")
+		brain.clear()
+		Economy.personality = "stone"
+		brain._load_personality()
+		_check("the Stone barely moves (amp %.2f)" % brain._amp(), is_equal_approx(brain._amp(), 0.4))
+		brain.react(&"hit", 0.5, here)
+		_check("and keeps a straight face", art.face.animation == &"neutral")
+		brain.clear()
+		Economy.personality = "goth"
+		brain._load_personality()
+		art.set_expression(&"sad")
+		_check("the Goth's sad face is his contented one", art.face.animation == &"neutral")
+		art.set_expression(&"blissful")
+		_check("and his bliss reads as embarrassment", art.face.animation == &"shocked")
+		brain.clear()
+	else:
+		_check("the personalities with tells are present", false)
+	Economy.personality = personality_before
+	brain._load_personality()
+	_check("the tell follows the personality back", art.face_swaps.is_empty()
+		or ItemDB.get_personality(StringName(personality_before)).face_swaps == art.face_swaps)
+
 	Settings.focus_intensity = focus_before
 	_check("state never changed: beats are not states", buddy.state == &"idle")
 

@@ -83,7 +83,10 @@ func _ready() -> void:
 	EventBus.payout.connect(_on_payout)
 	EventBus.currency_changed.connect(func(_c: StringName, _b: float) -> void: _mark_next_dirty())
 	EventBus.item_purchased.connect(func(_id: StringName) -> void: _mark_next_dirty())
-	EventBus.prestige_performed.connect(func(_m: float) -> void: _mark_next_dirty())
+	EventBus.prestige_performed.connect(func(_m: float) -> void:
+		_mark_next_dirty()
+		# A new life is a new personality, and the mood row names him.
+		_on_mood_changed(Economy.mood))
 	EventBus.ui_scale_changed.connect(func(_f: int) -> void: _fit())
 	get_viewport().size_changed.connect(_fit)
 	# `size_changed` is not enough on its own. Changing the play area resizes the OS window,
@@ -611,8 +614,12 @@ func _on_mood_changed(value: float) -> void:
 		_mood_fill.bg_color = colour
 	var word: String = MOOD_WORDS[clampi(int(round(normalised * (MOOD_WORDS.size() - 1))), 0, MOOD_WORDS.size() - 1)]
 	# The multiplier comes from the active personality's curve, not the balance default —
-	# a Diva and a Masochist read the same mood completely differently.
-	_mood_label.text = "%s x%.2f" % [word, Economy.mood_multiplier()]
+	# a Diva and a Masochist read the same mood completely differently — so the personality
+	# is named on the same line. It used to be visible only on the Reincarnate page, while
+	# the design sells it as half the reason to Reincarnate (assessment-2026-09 §4).
+	var who := ItemDB.get_personality(StringName(Economy.personality))
+	var name_part := "%s · " % who.display_name if who else ""
+	_mood_label.text = "%s%s x%.2f" % [name_part, word, Economy.mood_multiplier()]
 	# Re-theming a Control is not free, and this runs on every hit, every pet and roughly
 	# four times a second while mood decays back to neutral. The colour only actually moves
 	# a handful of times across that whole slide.

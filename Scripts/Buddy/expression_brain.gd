@@ -304,6 +304,9 @@ func _ready() -> void:
 	if buddy and buddy.health:
 		buddy.health.damaged.connect(_on_health_damaged)
 		buddy.health.meter_reset.connect(_on_meter_reset)
+	# Who he is this life, and again after every Reincarnation.
+	EventBus.prestige_performed.connect(_on_prestige_reroll)
+	_load_personality()
 	_on_mood_changed(Economy.mood)
 	_schedule_blink()
 	_schedule_fidget()
@@ -317,6 +320,10 @@ const THREAT_RANGE := 420.0
 func _on_threat_changed(kind: StringName, world_pos: Vector2, level: float) -> void:
 	if buddy == null or buddy.global_position.distance_to(world_pos) > THREAT_RANGE:
 		return
+	# The Nervous one reacts to the wind-up, not the blow: a real flinch at the tell, where
+	# everyone else only watches it.
+	if level > 0.0 and flinches_early():
+		react(&"hit_light", 0.4, world_pos)
 	match kind:
 		&"fuse":
 			if level > 0.0:
@@ -432,7 +439,12 @@ func _schedule_blink() -> void:
 	_blink_at = _now() + randi_range(BLINK_MIN_MSEC, BLINK_MAX_MSEC)
 
 func _schedule_fidget() -> void:
-	var period := FIDGET_PERIOD * (0.5 if _in_trough else 1.0) / (1.0 + arousal())
+	var base := fidget_period()
+	if base <= 0.0:
+		# A personality that never fidgets. Far enough that the timer never wakes for it.
+		_fidget_at = _now() + 3600 * 1000
+		return
+	var period := base * (0.5 if _in_trough else 1.0) / (1.0 + arousal())
 	_fidget_at = _now() + int(period * 1000.0)
 
 ## Whether an ambient beat may start at all: he initiates, he is idle, not held, not away,
@@ -767,9 +779,51 @@ func is_locked() -> bool:
 # --- Focus Mode (D36) --------------------------------------------------------
 
 ## Procedural amplitude. 0.0 / 0.4 / 1.0 / 1.6 — reused from `Settings` rather than a third
-## ladder. Zero at Off is what makes "he reacts; he does not initiate" arithmetic.
+## ladder — times the personality's own amplitude, which multiplies motion and never a payout
+## (D19). Zero at Off is what makes "he reacts; he does not initiate" arithmetic.
 func _amp() -> float:
-	return Settings.intensity_scale()
+	var own := _personality.reaction_amplitude if _personality else 1.0
+	return Settings.intensity_scale() * own
+
+# --- personality on the surface --------------------------------------------------------
+
+## Who he is this life (docs/plan-expressive-buddy.md §5). Read off `Economy.personality`
+## here and again on every Reincarnation; the tell is four fields on the resource and touches
+## no number.
+var _personality: PersonalityData
+
+func _load_personality() -> void:
+	_personality = ItemDB.get_personality(StringName(Economy.personality))
+	if art:
+		art.face_swaps = _personality.face_swaps if _personality else {}
+	_schedule_fidget()
+
+func _on_prestige_reroll(_marrow: float) -> void:
+	_load_personality()
+
+## The rows that mean "he was hit" and the rows that mean "something good happened", whose
+## *generic* face the personality may replace — `shocked` for a hit, `happy` for a celebration.
+## A row that already says something specific keeps it: a cursor power's `angry`, the beam's
+## `crying`, a rank up's `smug` are more specific statements than the tell.
+const HIT_ROWS: Array[StringName] = [&"hit_light", &"hit", &"hit_heavy"]
+const CELEBRATION_ROWS: Array[StringName] = [&"purchase", &"rank_up", &"claimed", &"sparkling"]
+const GENERIC_HURT := &"shocked"
+const GENERIC_JOY := &"happy"
+
+func _personality_face(row_id: StringName, face: StringName, overridden: bool) -> StringName:
+	if _personality == null or overridden:
+		return face
+	if HIT_ROWS.has(row_id) and face == GENERIC_HURT and _personality.hurt_face != &"":
+		return _personality.hurt_face
+	if CELEBRATION_ROWS.has(row_id) and face == GENERIC_JOY and _personality.celebration_face != &"":
+		return _personality.celebration_face
+	return face
+
+func fidget_period() -> float:
+	return _personality.fidget_period if _personality else FIDGET_PERIOD
+
+func flinches_early() -> bool:
+	return _personality != null and _personality.flinches_early
 
 ## Whether he may start anything the player did not just cause.
 func _initiates() -> bool:
@@ -819,6 +873,7 @@ func _request(row_id: StringName, row: Dictionary, heat: float, at: Vector2,
 		return false
 
 	var face: StringName = face_override if face_override != &"" else row.get("face", &"")
+	face = _personality_face(row_id, face, face_override != &"")
 	var tag := _resolve_tag(row)
 	var seconds := _duration(row, tag)
 	var hold := bool(row.get("hold", false))

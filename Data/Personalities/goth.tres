@@ -14,3 +14,7 @@ display_name = "Goth"
 description = "Happiest when slightly miserable. The peak sits off-centre, which breaks every habit the other four teach."
 mood_curve = SubResource("Curve_nc3al")
 sort_order = 40
+face_swaps = {
+&"blissful": &"shocked",
+&"sad": &"neutral"
+}

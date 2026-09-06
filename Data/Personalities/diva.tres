@@ -14,3 +14,5 @@ display_name = "Diva"
 description = "Demands to be adored. Bliss pays far better than misery — the run where you mostly put the bat down."
 mood_curve = SubResource("Curve_yeked")
 sort_order = 20
+hurt_face = &"angry"
+reaction_amplitude = 1.4

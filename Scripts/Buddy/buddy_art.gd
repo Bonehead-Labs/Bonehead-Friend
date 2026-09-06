@@ -546,9 +546,15 @@ func has_animation(animation: StringName) -> bool:
 	return body != null and body.sprite_frames != null \
 		and body.sprite_frames.has_animation(animation)
 
+## Face -> face, from the personality's tell (`PersonalityData.face_swaps`). Applied to every
+## expression he pulls, mood faces included: the Goth's `sad` is his contented face. Set by
+## `ExpressionBrain`; empty is the honest baseline.
+var face_swaps: Dictionary = {}
+
 func set_expression(expression: StringName) -> void:
 	if face == null or face.sprite_frames == null:
 		return
+	expression = face_swaps.get(expression, expression)
 	if not face.sprite_frames.has_animation(expression):
 		return
 	face.animation = expression

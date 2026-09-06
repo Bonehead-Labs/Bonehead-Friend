@@ -14,3 +14,5 @@ display_name = "Nervous"
 description = "Flinches at everything. Pays hugely for the first blow of a swing and tails off, so the profitable rhythm is short bursts with pauses in them rather than a sustained beating."
 mood_curve = SubResource("Curve_uv1um")
 sort_order = 50
+reaction_amplitude = 1.3
+flinches_early = true

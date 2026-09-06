@@ -14,3 +14,4 @@ display_name = "Masochist"
 description = "Enjoys it, worryingly. Misery pays far better than bliss, so there is little reason to cheer him up beyond keeping him clean."
 mood_curve = SubResource("Curve_8arav")
 sort_order = 10
+hurt_face = &"blissful"

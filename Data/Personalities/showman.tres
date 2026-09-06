@@ -14,3 +14,6 @@ display_name = "Showman"
 description = "Plays to a room that is not there. A tall, narrow peak at bliss: the highest ceiling of any personality and the hardest to hold, because mood decays the whole time."
 mood_curve = SubResource("Curve_60ej1")
 sort_order = 80
+celebration_face = &"smug"
+reaction_amplitude = 1.6
+fidget_period = 6.0

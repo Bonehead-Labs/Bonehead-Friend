@@ -14,3 +14,4 @@ display_name = "Gremlin"
 description = "Thrives on chaos and hates being settled. Both extremes pay, and the trough is the deepest in the set — the purest version of the seesaw, and the least forgiving of a player who parks him."
 mood_curve = SubResource("Curve_gfwkx")
 sort_order = 60
+fidget_period = 4.0

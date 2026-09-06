@@ -14,3 +14,5 @@ display_name = "Zen"
 description = "Unbothered either way. A shallow curve that never pays 2x and never drops to 0.6 — the personality for a run you want to mostly idle."
 mood_curve = SubResource("Curve_bfv8r")
 sort_order = 30
+reaction_amplitude = 0.5
+fidget_period = 20.0

@@ -14,3 +14,6 @@ display_name = "Stone"
 description = "Feels very little. Almost flat and slightly below the others everywhere — the run where mood stops being a lever at all and the answer is simply to buy more automation."
 mood_curve = SubResource("Curve_0j3e4")
 sort_order = 90
+hurt_face = &"neutral"
+reaction_amplitude = 0.4
+fidget_period = 30.0
