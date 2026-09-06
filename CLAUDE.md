@@ -374,13 +374,15 @@ survive the generator. Regenerate previews with `python3 art/tools/preview.py` a
 `art/preview/`. Read the gotchas in `docs/art-pipeline.md` before generating more — three of
 them cost real time to find.
 
-There is otherwise **no art and no `Theme`** — this is the bulk of what is left in M3.
-`Scripts/UI/ui_style.gd` is the single placeholder styling file the art pass replaces (the UI
-spec it has to satisfy is `docs/art-direction.md` § UI: opaque chunky panels, 9-slice at 2x, a
-real pixel font chosen for CJK). All sounds are synthesised at boot in `AudioManager` rather
-than loaded (docs/decisions.md D12). Thirteen items now have real sprites and icons and the
-explosion is a generated animation; what is left is the `Theme`, the rest of the VFX set,
-the grime overlay (still a tint on the puppet), crosshairs, and a visible automation device.
+**The shell and the roster are drawn.** The Bonecard `Theme` (`Scripts/UI/ui_theme.gd`)
+is finished to `docs/art-direction.md` § UI; all 100 M3.7 items have sprites and icons;
+the explosion is a generated animation. All sounds are still synthesised at boot in
+`AudioManager` (docs/decisions.md D12). What is *not* drawn, as of the September 2026
+assessment (`docs/assessment-2026-09.md`): the walk cycle and the five animation families,
+the fist icon (still the prototype render), sprites for five of the six hands-on kind
+items added in M3.8 (on placeholder silhouettes; the soft brush has a plotted icon),
+muzzle/beam/bolt art for cursor powers and turrets, the grime overlay (still a tint on
+the puppet), and squash/stretch on the buddy.
 
 **Item scale is enforced by a table**, not by eye: `docs/art-direction.md` anchors every item
 on Bonehead's 63 px body and `art/tools/item_postprocess.py` resizes each sprite to its entry.

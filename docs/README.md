@@ -19,6 +19,9 @@ Production spec for **Bonehead Friend**, a Windows desktop-overlay idle game.
 | [ideas-backlog.md](ideas-backlog.md) | Uncommitted idea pool: mechanics, ~100 item ideas, cosmetics, achievements, rejected ideas |
 | [roadmap.md](roadmap.md) | Milestones M0–M5 with exit gates and per-milestone art needs |
 | [uplift-m3.5.md](uplift-m3.5.md) | The M3.5 content & systems uplift: loop-depth findings, content budget, sub-milestones and gates |
+| [assessment-2026-09.md](assessment-2026-09.md) | Holistic assessment after M3.7: code, balance, visuals, genre feel, ranked with a five-step sequence |
+| [worklist-2026-09.md](worklist-2026-09.md) | **The working list.** Every M3.8 task with status, order, exact next steps, commit plan and owner decisions — start here in a new session |
+| [plan-expressive-buddy.md](plan-expressive-buddy.md) | The reactive, expressive buddy: reaction tables, the expression brain, animation set, phasing (Phase 0 done) |
 | [test-matrix.md](test-matrix.md) | Manual overlay test matrix + automated test strategy |
 | [decisions.md](decisions.md) | ADR-lite: what was decided, when, and why |
 | [research/](research/) | Source research: prototype survey, market/design digest, pipeline findings |
