@@ -103,6 +103,10 @@ func _build_page() -> void:
 	visibility_changed.connect(_mirror_prestige_visibility)
 	_mirror_prestige_visibility()
 
+## The Reincarnation page nested here, for the HUD's link to scroll to.
+func prestige_panel() -> PrestigePanel:
+	return _prestige
+
 ## Keeps the nested page's flag honest with the tree, so "is this page on screen" has one
 ## answer whichever way it is asked.
 func _mirror_prestige_visibility() -> void:

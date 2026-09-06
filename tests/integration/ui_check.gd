@@ -77,6 +77,8 @@ func _ready() -> void:
 	await _the_rebirth_page_refuses_an_empty_reset()
 	await _the_tabs_are_one_width()
 	await _every_page_is_readable()
+	await _the_deeds_board_is_on_the_page()
+	await _the_hud_calls_for_rebirth()
 	await _the_purse_can_count_high()
 	await _the_payouts_are_visible()
 	await _the_hud_points_at_the_next_toy()
@@ -129,7 +131,7 @@ func _the_strip_opens_the_panels() -> void:
 	if panels == null:
 		return
 	for entry in [["Toys", &"shop"], ["Upgrades", &"tree"], ["Jobs", &"contracts"],
-			["Arcade", &"arcade"], ["Settings", &"settings"]]:
+			["Deeds", &"deeds"], ["Arcade", &"arcade"], ["Settings", &"settings"]]:
 		var tab := _button_labelled(entry[0], panels)
 		_check("the strip has a '%s' tab" % entry[0], tab != null)
 		if tab == null:
@@ -165,7 +167,7 @@ func _the_card_is_one_size() -> void:
 	if card == null:
 		return
 	var sizes: Array[Vector2] = []
-	for page in [&"shop", &"tree", &"contracts", &"arcade", &"settings"]:
+	for page in [&"shop", &"tree", &"contracts", &"deeds", &"arcade", &"settings"]:
 		panels.call("show_panel", page)
 		await _settle()
 		sizes.append(card.size)
@@ -379,7 +381,7 @@ func _escape_menu_opens_and_closes() -> void:
 func _every_visible_button_is_reachable() -> void:
 	_suite("every visible button")
 	var panels := _find(_main, "PanelLayer")
-	for page in [&"shop", &"tree", &"contracts", &"arcade", &"settings"]:
+	for page in [&"shop", &"tree", &"contracts", &"deeds", &"arcade", &"settings"]:
 		panels.call("show_panel", page)
 		await _settle()
 		var blocked := 0
@@ -535,7 +537,7 @@ func _the_tabs_are_one_width() -> void:
 	var report := "shut %s" % str(shut)
 
 	var drift: Array[String] = []
-	for page_id in [&"shop", &"tree", &"contracts", &"arcade", &"settings"]:
+	for page_id in [&"shop", &"tree", &"contracts", &"deeds", &"arcade", &"settings"]:
 		panels.call("show_panel", page_id)
 		await _settle()
 		var open_widths: Array[float] = []
@@ -822,6 +824,76 @@ func _the_payouts_are_visible() -> void:
 	_check("Bones and Hearts are distinguishable at every tier%s"
 		% ("" if same.is_empty() else ": " + ", ".join(same)), same.is_empty())
 
+## Sixty-two milestones paid out with a toast and were never seen again. The Deeds page is
+## where they live: one row per milestone, the secret ones masked until earned, and the
+## record the player quotes to a friend.
+func _the_deeds_board_is_on_the_page() -> void:
+	_suite("deeds")
+	var panels := _find(_main, "PanelLayer")
+	if panels == null:
+		return
+	panels.call("show_panel", &"deeds")
+	await _settle()
+	var page := _find(_main, "DeedsPanel")
+	_check("the deeds page exists", page != null)
+	if page == null:
+		return
+	var list := _find(page, "DeedsList")
+	var board := ItemDB.all_milestones()
+	_check("it lists every milestone on the board (%d)" % board.size(),
+		list != null and list.get_child_count() == board.size())
+	var hidden_unearned := 0
+	for milestone in board:
+		if milestone.hidden and Milestones.rungs_claimed(milestone.id) == 0:
+			hidden_unearned += 1
+	var masked := 0
+	for label in _all_nodes(page):
+		if label is Label and (label as Label).text == "A secret deed":
+			masked += 1
+	_check("every unearned secret deed is masked (%d of %d)" % [masked, hidden_unearned],
+		masked == hidden_unearned)
+	_check("the record shows his lifetime Bones",
+		_label_containing(UIStyle.format_amount(Economy.lifetime_of(Economy.BONES)), page) != null)
+	panels.call("close")
+	await _settle()
+
+## Prestige lived at the bottom of the Arcade tab, where a player who never opens the Arcade
+## never learns the game has one. Once a run is worth a Marrow the HUD says so, and the row is
+## a link to the page that spells out the trade — never a reset in itself.
+func _the_hud_calls_for_rebirth() -> void:
+	_suite("rebirth call")
+	var hud := _find(_main, "HUD")
+	var panels := _find(_main, "PanelLayer")
+	var row := _find(_main, "RebirthCall") as Control
+	_check("the HUD has a rebirth row", hud != null and row != null)
+	if hud == null or row == null or panels == null:
+		return
+	panels.call("close")
+	var drawer := _find(_main, "HudDrawer")
+	if drawer:
+		drawer.set("pinned", true)
+	var count_before: int = Economy.prestige_count
+	Economy.run_earnings = 0.0
+	Economy.grant(Economy.BONES, 1.0)
+	await get_tree().create_timer(0.6).timeout
+	await _settle()
+	_check("with nothing to gain it stays hidden", not row.visible)
+	Economy.grant(Economy.BONES, ItemDB.balance.marrow_divisor * 4.0)
+	await get_tree().create_timer(0.6).timeout
+	await _settle()
+	_check("once a run is worth a Marrow, it appears", row.visible)
+	_check("and says what the reset would pay",
+		_label_containing("Reincarnate for +", row) != null)
+	await _click(_centre_of(row))
+	await _settle()
+	var prestige := _find(_main, "PrestigePanel") as Control
+	_check("clicking it opens the Arcade", bool(panels.call("is_open"))
+		and panels.get("_current") == &"arcade")
+	_check("with Reincarnation on screen", prestige != null and prestige.is_visible_in_tree())
+	_check("and resets nothing by itself", Economy.prestige_count == count_before)
+	panels.call("close")
+	await _settle()
+
 ## A visible floating label whose text starts with `prefix` — the streak and combo tags.
 func _visible_tag(fx: Node, prefix: String) -> bool:
 	for node in _all_nodes(fx):
@@ -855,7 +927,7 @@ func _every_page_is_readable() -> void:
 	if panels == null:
 		return
 	const FLOOR := 4.5
-	for page_id in [&"shop", &"tree", &"contracts", &"arcade", &"settings"]:
+	for page_id in [&"shop", &"tree", &"contracts", &"deeds", &"arcade", &"settings"]:
 		panels.call("show_panel", page_id)
 		await _settle()
 		var page := _pages_page(panels, page_id)
@@ -893,6 +965,7 @@ func _pages_page(panels: Node, page_id: StringName) -> Control:
 	var wanted := {
 		&"shop": "ShopPanel", &"tree": "AugmentPanel", &"contracts": "ContractPanel",
 		&"prestige": "PrestigePanel", &"settings": "SettingsPanel", &"arcade": "ArcadePanel",
+		&"deeds": "DeedsPanel",
 	}
 	# Was a bare `wanted[page_id]`, which threw on the Arcade page — every run since M3.6
 	# printed a SCRIPT ERROR here that nobody read because the assertion count stayed green.
@@ -932,7 +1005,7 @@ func _nothing_overflows_its_box() -> void:
 		return
 	var offenders: Array[String] = []
 	var checked := 0
-	for page_id in [&"shop", &"tree", &"contracts", &"arcade", &"settings"]:
+	for page_id in [&"shop", &"tree", &"contracts", &"deeds", &"arcade", &"settings"]:
 		panels.call("show_panel", page_id)
 		await _settle()
 		for node in _all_nodes(_main):

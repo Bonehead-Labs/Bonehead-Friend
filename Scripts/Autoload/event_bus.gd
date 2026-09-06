@@ -61,6 +61,9 @@ signal threat_changed(kind: StringName, world_pos: Vector2, level: float)
 signal ui_panel_changed(panel: StringName)  ## &"" = all closed
 ## Open the shop on one item: the HUD's "next up" row is a link, not a purchase.
 signal ui_show_item(item_id: StringName)
+## Open a page of the card by id. `&"prestige"` opens the Arcade scrolled to Reincarnation —
+## the HUD's "Reincarnate for +N" row is a link to the biggest decision in the game.
+signal ui_show_panel(panel: StringName)
 ## A purchase that actually went through, and the screen point the player pressed to make
 ## it happen — so the HUD can throw a coin from the tile into the purse. Presentation
 ## only: nothing in the simulation may listen to this, and nothing may infer a purchase

@@ -204,6 +204,7 @@ func _build() -> void:
 
 	# --- what to want next ---
 	stack.add_child(_build_next_row())
+	stack.add_child(_build_rebirth_row())
 
 	# --- only when true of something ---
 	_footer = HBoxContainer.new()
@@ -437,6 +438,7 @@ func _pick_next() -> ItemData:
 	return best
 
 func _refresh_next() -> void:
+	_refresh_rebirth()
 	var item := _pick_next()
 	if item == null:
 		_next_row.visible = false
@@ -472,6 +474,61 @@ func _on_next_input(event: InputEvent) -> void:
 	if click and click.pressed and click.button_index == MOUSE_BUTTON_LEFT and _next_item != &"":
 		_next_row.accept_event()
 		EventBus.ui_show_item.emit(_next_item)
+
+# --- the long game ---------------------------------------------------------
+
+## "Reincarnate for +N." Prestige is the biggest decision in the game and it lived at the
+## bottom of the Arcade tab, where a player who never opens the Arcade never learns the game
+## has one (assessment-2026-09 §4). Once a run is worth a whole Marrow the HUD says so, and
+## the row is a link to the page that spells out the trade — it never resets anything itself.
+const REBIRTH_SHOW_FROM := 1.0
+var _rebirth_row: HBoxContainer
+var _rebirth_label: Label
+var _rebirth_shown := 0.0
+
+func _build_rebirth_row() -> Control:
+	_rebirth_row = HBoxContainer.new()
+	_rebirth_row.name = "RebirthCall"
+	_rebirth_row.add_theme_constant_override("separation", 6)
+	_rebirth_row.mouse_filter = Control.MOUSE_FILTER_STOP
+	_rebirth_row.tooltip_text = "Open Reincarnation"
+	_rebirth_row.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	_rebirth_row.visible = false
+	_rebirth_row.gui_input.connect(_on_rebirth_input)
+	var glyph := UIStyle.icon(&"star", UIStyle.GLYPH, UIStyle.DOLLARS)
+	glyph.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_rebirth_row.add_child(glyph)
+	_rebirth_label = UIStyle.label("", UIStyle.MICRO, UIStyle.DOLLARS)
+	_rebirth_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_rebirth_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_rebirth_row.add_child(_rebirth_label)
+	return _rebirth_row
+
+## Rides the same coalesced timer as the next-up row: `pending_marrow` moves with every payout
+## and changes meaningfully once a minute.
+func _refresh_rebirth() -> void:
+	if _rebirth_row == null:
+		return
+	var pending := Economy.pending_marrow()
+	if pending < REBIRTH_SHOW_FROM:
+		_rebirth_row.visible = false
+		_rebirth_shown = 0.0
+		return
+	_rebirth_label.text = "Reincarnate for +%s Marrow" % ("%.1f" % pending if pending < 100.0
+		else UIStyle.format_amount(pending))
+	var first_time := not _rebirth_row.visible
+	_rebirth_row.visible = true
+	# One punch when it first becomes worth it, and again at each whole Marrow after: the
+	# moments the number means something, never every tick.
+	if first_time or floorf(pending) > floorf(_rebirth_shown):
+		UIMotion.punch(_rebirth_row, 1.06)
+	_rebirth_shown = pending
+
+func _on_rebirth_input(event: InputEvent) -> void:
+	var click := event as InputEventMouseButton
+	if click and click.pressed and click.button_index == MOUSE_BUTTON_LEFT:
+		_rebirth_row.accept_event()
+		EventBus.ui_show_panel.emit(&"prestige")
 
 # --- the desk --------------------------------------------------------------
 

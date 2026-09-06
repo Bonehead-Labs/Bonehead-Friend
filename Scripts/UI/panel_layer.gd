@@ -49,6 +49,7 @@ func _ready() -> void:
 	_build()
 	EventBus.ui_spend.connect(_on_spend)
 	EventBus.ui_show_item.connect(_on_show_item)
+	EventBus.ui_show_panel.connect(_on_show_panel)
 	EventBus.ui_scale_changed.connect(func(_f: int) -> void: _fit())
 	get_viewport().size_changed.connect(_fit)
 	# `size_changed` is not enough on its own. Changing the play area resizes the OS window,
@@ -109,6 +110,9 @@ func _build() -> void:
 	_add_page(&"shop", "Toys", &"crate", ShopPanel.new())
 	_add_page(&"tree", "Upgrades", &"star", AugmentPanel.new())
 	_add_page(&"contracts", "Jobs", &"scroll", ContractPanel.new())
+	# The record: every milestone with its next rung, and the numbers a player quotes. Sixty
+	# milestones paid out with a toast and then had nowhere to be seen.
+	_add_page(&"deeds", "Deeds", &"check", DeedsPanel.new())
 	# The Arcade, where Rebirth was (docs/decisions.md D32). The old tab wore the ghost on the
 	# reasoning that a dollar sign would promise the page sells something; this page does not
 	# sell, it *takes*, and a room of machines that eat coins is what the mark now means.
@@ -262,6 +266,18 @@ func show_panel(panel: StringName) -> void:
 func pin_drawer(value: bool) -> void:
 	if _drawer:
 		_drawer.pinned = value
+
+## A page by id, from the HUD. Reincarnation lives at the bottom of the Arcade (D32), so the
+## link opens that page and scrolls the card to it once the layout has landed.
+func _on_show_panel(panel: StringName) -> void:
+	if panel == &"prestige":
+		show_panel(&"arcade")
+		var arcade := _pages.get(&"arcade") as ArcadePanel
+		if arcade and arcade.prestige_panel():
+			_host.ensure_control_visible.call_deferred(arcade.prestige_panel())
+		return
+	if _pages.has(panel):
+		show_panel(panel)
 
 ## The HUD's "next up" row lands here: open Toys on that item's drawer with it selected.
 func _on_show_item(item_id: StringName) -> void:
