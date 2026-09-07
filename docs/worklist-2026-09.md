@@ -359,3 +359,11 @@ as **D44**.
 `eat`, `catch`, `sleep`), proper two-part turret art, and a generated replacement for the five
 plotted items. To unblock: set `RD_API_KEY` (docs/art-pipeline.md) or expose the Codex plugin in
 the session, then follow `art/prompts/items.md` — the seeds and prompts for the batch are there.
+
+> **Corrected 2026-09-07 (D45).** "Neither Codex nor Retro Diffusion is exposed to this
+> session" was false. The Codex CLI on this machine has a native `imagegen` tool and
+> `codex exec` drives it headlessly; `art/tools/codex_imagegen.sh` wraps it. The five plotted
+> items and the fist icon have been regenerated, and eight near-black items from the
+> assessment given the dual-tone treatment. Still genuinely blocked on Retro Diffusion: the
+> walk cycle and the animation families, because Codex returns no spritesheet and has no
+> walking preset. The two-part turret art is undone by choice, not by blocking — see D45.

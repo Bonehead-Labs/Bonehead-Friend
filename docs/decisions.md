@@ -1040,9 +1040,74 @@ turret rather than a cut through the existing one. When it is back — Retro Dif
 `RD_API_KEY`, or the Codex plugin — the plotted five are the first things to replace; nothing
 references their pixels.
 
+> **Superseded in part by D45 (2026-09-07).** The premise of this entry is wrong: a generator
+> *was* reachable from the session. Codex's native `imagegen` tool has since replaced the
+> plotted five and the fist icon. What genuinely still needs Retro Diffusion is the animation
+> work — Codex has no seed, no spritesheet return and none of the walking presets. The
+> two-part turret art remains undone by choice rather than by blocking; D45 says why.
+
 *Consequence:* `seed_friendly` picks a sprite up automatically when the PNG exists;
 `seed_m36_turrets` hangs a Barrel when the split halves exist. Both tools are re-run, never
 hand-edited, when art changes.
+
+## D45 — The generator was reachable all along: Codex `imagegen` as the second art pipeline (2026-09-07)
+
+**Decision.** D44 recorded that no image generator was exposed to an agent session and shipped
+what could be plotted by hand instead. **That was wrong**, and it cost a session and left five
+placeholder items in the shop. The Codex CLI installed on this machine carries a native
+`imagegen` tool; `codex exec` drives it non-interactively, in its own fresh session, without
+disturbing a Codex window the owner has open. The owner's own `~/.codex/generated_images`
+already held eleven sessions' worth of output, which is the evidence that settled it.
+
+The pipeline is now two-track. Retro Diffusion stays the primary route and is still the only
+one that can do the animation work. Codex is the route that is *reachable from an agent
+session*, and it covers still sprites:
+
+    art/tools/codex_imagegen.sh <out.png> "<prompt>"     # one generation into art/raw/
+    art/tools/keyout.py <raw> <out> --size 48            # the step remove_bg used to do
+    art/tools/item_postprocess.py <keyed> <id> <height>  # unchanged
+
+**What Codex cannot do**, and why the walk cycle is still blocked: there is no seed, so a
+generation is not reproducible the way `art/prompts/items.md` requires — the prompt is the
+whole record, which is why every prompt in that file is now written out in full rather than
+summarised. There is no `remove_bg`, no `return_spritesheet`, and none of the
+`rd_advanced_animation__*` presets. Getting a walk cycle out of it would mean prompting eight
+frames and reconciling them by hand, which is a different and worse job than the one the
+preset does.
+
+**Two things in `keyout.py` are load-bearing.** The background is *sampled from the corners*
+rather than assumed to be `#ff00ff` — the generator returns `#e30281`, `#f404cd`, `#c8287a`
+and friends, and a hard-coded key would have kept every background in the batch. And alpha is
+premultiplied before the reduction to 48px and unpremultiplied after, or the magenta sitting
+in the transparent pixels averages back into the subject's rim as a pink fringe. That box
+filter is the other half: `item_postprocess.py` resizes with NEAREST, which is right coming
+from a 48px raw and returns noise coming from a 1254px one.
+
+**Shipped under this decision**, all on `art/codex-imagegen-pass`:
+
+| What | Where |
+|---|---|
+| The five hands-on kind items, generated, replacing D44's plots | `Assets/sprites/items/`, `art/prompts/items.md` |
+| A fist icon that reads as a fist rather than a stack of bricks | `Assets/sprites/icons/fist.png` |
+| Eight near-black items given the dual-tone treatment the spec asked for | assessment §3; mine, bowling ball, frying pan, gravity vortex, swarm launcher, tyre iron, laser lattice, implosion charge |
+| Generator litter removed from three shipped buddy frames | `art/tools/clean_buddy_frames.py`, `art/src/_patch_frames.lua` |
+
+**Why the dual-tone pass mattered most.** The game draws over whatever the player has behind
+it. An item rendered in one dark material has no edge against a dark wallpaper and no internal
+edge against itself, so it disappears twice over — and every one of those was bought from a
+shop row the player could barely see. Each now carries a second bright material with real
+area, on whichever part carries the silhouette, so it survives the downscale to a 28px row.
+
+**Not done, deliberately: the two-part turret sprites** (handoff §B.4). Generating a base and a
+barrel means re-deriving `barrel_pivot` and `muzzle` per turret, and only the pellet turret has
+assertions in `ui_check`. The other three can be judged only by eye in a running game. Getting
+them wrong makes shots leave from the wrong place, which trades a working feature for a nicer
+picture. The existing halves are cut from one sprite and are therefore aligned by construction;
+that is worth keeping until someone can watch a turret fire.
+
+*Consequence:* `make_hands_on_items.py` now refuses to overwrite the generated sprites without
+`--force` — it plotted the placeholders, and a habitual re-run would silently undo the pass.
+D44's "no generator reachable" claim is superseded; do not plan around it.
 
 ## Recommendations not yet decided
 

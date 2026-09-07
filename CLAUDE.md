@@ -341,6 +341,38 @@ style and seed in `art/prompts/` so assets are reproducible; keep `.aseprite` so
 `art/src/`; never write "pixel art" in a generation prompt; never blind-retry a failed
 generation (it can double-charge — recover the result by request id instead).
 
+**There is a second generator and it is reachable from this session** (docs/decisions.md D45).
+The Codex CLI installed on this machine has a native `imagegen` tool. Do not repeat D44's
+mistake of recording that no generator is available:
+
+```bash
+art/tools/codex_imagegen.sh art/raw/<id>_cx.png "<prompt>"   # one image, fresh Codex session
+python3 art/tools/keyout.py art/raw/<id>_cx.png art/raw/<id>_keyed.png --size 48
+python3 art/tools/item_postprocess.py art/raw/<id>_keyed.png <id> <height>
+```
+
+It runs `gpt-5.6-luna` at low effort, about 32k tokens an image, and does **not** disturb an
+interactive Codex the owner has open. It is not a Retro Diffusion replacement: **no seed** (so
+the prompt is the only record — write it out in full in `art/prompts/`), no `remove_bg` (that
+is what `keyout.py` is), no `return_spritesheet` and none of the `rd_advanced_animation__*`
+presets. **The walk cycle and the animation families still need Retro Diffusion.**
+
+Prompt tail that works with this generator, and every clause earns its place: `simple bold
+shapes, thick dark outline, flat solid colours, centred with generous margin, on a plain solid
+magenta background, no text, no shadow, no gradient`. Without `flat solid colours` it renders
+soft shading that survives neither the palette snap nor an 11-pixel reduction; without
+`no shadow` the cast shadow keys out as part of the subject.
+
+Three things that cost time to find:
+- **`keyout.py --keep-all` is a judgement, not a flag to ignore.** Its despeckle keeps only the
+  largest connected mass, which is right for a party popper whose confetti is genuinely
+  detached and wrong for a kite, whose tail is a separate blob and half the object. It prints
+  what it dropped; read that number.
+- **An accent has to be a third of the subject to exist at icon size.** A one-pixel stripe
+  averages away in the reduction. This is the same lesson `items.md` records for the minigun.
+- **`ImageChops.difference(a, b).getbbox()` on RGBA reads only alpha**, so a colour-only edit
+  comes back as "no change". Compare pixel data when verifying an art change.
+
 ## Current state
 
 **M3's engineering is closed. What remains of the milestone is the art pass and the two
@@ -395,9 +427,11 @@ his breaths, the roar and the knockout clatter are still synthesised at boot in 
 (D12) on purpose. **The recorded levels have not been heard by a person yet.** Turrets mirror and
 aim at him and fire from an authored muzzle (D43). What is *not* drawn, as of the September 2026
 assessment (`docs/assessment-2026-09.md`): the walk cycle and the five animation families,
-and squash/stretch on the buddy. The five hands-on kind items, the fist icon and the soft
-brush are **plotted** in code (`art/tools/make_hands_on_items.py`, D44) — real sprites in the
-palette, but the first things to regenerate when a generator is back; four gun turrets are
+and squash/stretch on the buddy. The five hands-on kind items and the fist icon are **generated**
+(D45, Codex `imagegen`) and no longer plotted; `make_hands_on_items.py` now refuses to overwrite
+them without `--force`. The soft brush is still plotted and is fine as it is. Eight items that
+vanished on a dark desktop carry a bright second material as of D45, and the generator litter is
+gone from `idle_sad` frames 2 and 6 and `happy` frame 8. Four gun turrets are
 split into base and barrel sprites cut from the existing art (`split_turret_barrels.py`);
 grime is a per-texel speckle in the shared shader; muzzle flash, beam and bolt are drawn by
 `WorldFX`, not art.
