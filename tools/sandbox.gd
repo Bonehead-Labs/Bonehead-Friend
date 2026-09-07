@@ -48,6 +48,23 @@ const DEVICES_RUNNING := 8
 const PRESTIGES := 3
 const MARROW := 2.5
 
+## `-- --show` lays out the art a session changed, in the order it was changed, so it can be
+## looked at in the world rather than in a contact sheet. Added for D45: a sprite that reads
+## on a dark strip in a PNG viewer can still be wrong at world scale next to him, and the
+## dual-tone pass in particular is a claim about legibility that only the running game can
+## settle. Keep this list current with whatever the last art pass touched — it is a
+## showcase, not a manifest, and a stale one is worse than none.
+const SHOWCASE: Array[StringName] = [
+	# D45, the five hands-on kind items, generated rather than plotted.
+	&"tennis_ball", &"feather_duster", &"party_popper", &"warm_towel", &"kite",
+	# D45, the eight that vanished on a dark desktop until they were given a second colour.
+	&"mine", &"bowling_ball", &"frying_pan", &"gravity_vortex",
+	&"swarm_launcher", &"tyre_iron", &"laser_lattice", &"implosion_charge",
+]
+
+## Grime to stage under `--show`, so the patches are visible without beating him first.
+const SHOWCASE_GRIME := 0.65
+
 var _main: Node
 
 func _ready() -> void:
@@ -71,8 +88,12 @@ func _ready() -> void:
 		print("")
 		print("Bonehead Friend — sandbox (continued; nothing re-staged)")
 		print("")
+		if OS.get_cmdline_user_args().has("--show"):
+			_showcase()
 		return
 	_stage()
+	if OS.get_cmdline_user_args().has("--show"):
+		_showcase()
 
 func _clear_slot() -> void:
 	for path in [SaveManager.save_path(), SaveManager.backup_path(), SaveManager.tmp_path()]:
@@ -195,6 +216,56 @@ func _put_toys_out() -> Array[String]:
 		out.append(String(id))
 		x += 220.0
 	return out
+
+## Lay the session's changed art out in the world, in two waves.
+##
+## Two waves rather than one because thirteen rigid bodies dropped on the same frame at the
+## same height arrive as a pile: they wedge into each other before anything settles and half
+## the batch ends up underneath the other half, which is the opposite of a showcase. A second
+## apart, the first row has come to rest before the second lands on the gaps.
+##
+## Grime is staged too, at `SHOWCASE_GRIME`, because grime is the one piece of his art that
+## cannot be looked at on demand — the only other way to see it is to beat him for a while
+## first, and by then you are looking at a knockout rather than at the dirt.
+func _showcase() -> void:
+	var view: Vector2 = get_tree().root.get_visible_rect().size
+	var ids: Array[StringName] = []
+	for id in SHOWCASE:
+		if ItemDB.get_item(id) != null:
+			ids.append(id)
+	if ids.is_empty():
+		print("  showcase      nothing to show — none of the listed ids are in ItemDB")
+		return
+
+	var rows := 2
+	var per_row := int(ceil(float(ids.size()) / float(rows)))
+	var placed := 0
+	for row in rows:
+		var slice := ids.slice(row * per_row, mini((row + 1) * per_row, ids.size()))
+		if slice.is_empty():
+			continue
+		# Across the middle of the play area, never against the edges: the trash bin lives in
+		# a corner and an item spawned on top of it is thrown away before it is seen.
+		var span := view.x * 0.72
+		var left := view.x * 0.14
+		var step := span / float(maxi(slice.size() - 1, 1))
+		for i in slice.size():
+			var x := left + step * float(i) if slice.size() > 1 else view.x * 0.5
+			EventBus.spawn_requested.emit(slice[i], Vector2(x, view.y * 0.18))
+			placed += 1
+		await get_tree().create_timer(1.0).timeout
+
+	var buddy := get_tree().get_first_node_in_group(Buddy.GROUP_BUDDY) as Buddy
+	if buddy and buddy.grime:
+		buddy.grime.set_value(SHOWCASE_GRIME)
+
+	print("")
+	print("  showcase      %d items dropped in %d waves, grime staged at %.2f" % [
+		placed, rows, SHOWCASE_GRIME])
+	print("                %s" % ", ".join(ids.map(func(i: StringName) -> String:
+		return String(i))))
+	print("                Scrub him with the sponge to watch the grime come back off.")
+	print("")
 
 ## Every augment in the game: each owned item's tree, plus the global tree, which belongs to
 ## no item and would otherwise be missed.

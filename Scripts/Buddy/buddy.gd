@@ -124,8 +124,9 @@ func _ensure_components() -> void:
 		# Above the body, below nothing else — the face is part of him, not an effect.
 		face.z_index = sprite.z_index + 1
 		add_child(face)
-	if grime.face == null:
-		grime.face = face
+	# The face is deliberately not handed to GrimeComponent (D46): dirt over his expression
+	# hid the thing that asks the player to clean it off. BuddyArt still installs the shared
+	# material on Face for the wardrobe tints.
 
 	if art == null:
 		art = BuddyArt.new()

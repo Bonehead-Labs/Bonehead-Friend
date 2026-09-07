@@ -1125,20 +1125,31 @@ func _the_buddy_art_is_wired() -> void:
 	art._track_visible = saved_visible
 	art._on_body_animation_changed()
 
-	# Grime used to be `puppet.modulate` on the body sprite alone, leaving a spotless white
-	# face on a filthy skeleton (docs/plan-expressive-buddy.md 3.6). It is now a `grime`
-	# uniform on the shared shader material EffectsPlayer installs, applied to both sprites.
+	# Grime is a `grime` uniform on the shared shader material EffectsPlayer installs, never
+	# `modulate` — a modulate tint browned the teal headphones with everything else.
+	#
+	# Two things are asserted that D46 got wrong before it: the face must NOT be dirtied
+	# (grime over his expression hid the very thing that asks the player to clean it off),
+	# and `grime_cell` must carry the frame size. That second one is the whole reason the
+	# dirt used to crawl: the importer packs all 74 body frames into one atlas, so anything
+	# positioned in raw `UV` is pinned to the atlas while the body walks across it. At zero,
+	# the patches would swim again and nothing else in the suite would notice.
 	if buddy.grime and buddy.face:
 		var saved_grime := buddy.grime.value
 		buddy.grime.set_value(0.6)
-		var face_material := buddy.face.material as ShaderMaterial
-		_check("grime reaches the face material",
-			face_material != null
-			and is_equal_approx(float(face_material.get_shader_parameter(&"grime")), 0.6))
 		var puppet_material := art.body.material as ShaderMaterial
-		_check("and the puppet material, together",
+		_check("grime reaches the puppet material",
 			puppet_material != null
 			and is_equal_approx(float(puppet_material.get_shader_parameter(&"grime")), 0.6))
+		_check("and carries the frame size, so the patches do not crawl between frames",
+			puppet_material != null
+			and float(puppet_material.get_shader_parameter(&"grime_cell")) >= 1.0)
+		var face_material := buddy.face.material as ShaderMaterial
+		var face_grime := 0.0
+		if face_material and face_material.get_shader_parameter(&"grime") != null:
+			face_grime = float(face_material.get_shader_parameter(&"grime"))
+		_check("and the face is left clean, so his expression still reads",
+			is_zero_approx(face_grime))
 		buddy.grime.set_value(saved_grime)
 	else:
 		_check("grime and face are present to test", false)

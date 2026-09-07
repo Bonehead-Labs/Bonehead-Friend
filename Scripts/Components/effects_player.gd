@@ -19,11 +19,23 @@ const FLASH_SECONDS := 0.1
 ## pop is the genre's one-frame "you hit it". The outline stays black-ish because the mix
 ## is on colour, not alpha.
 ##
-## `grime` shares this material rather than getting one of its own: it is a slow bone-to-
-## dust lerp, masked to bright, low-saturation pixels so the near-black outline and the
-## teal headphones — the one prop `docs/art-direction.md` says never to compromise — are
-## never touched. `flash` is applied on top of the grimed colour, so a filthy buddy still
-## flashes and returns to *grimy* rather than to clean.
+## `grime` shares this material rather than getting one of its own: it is **three fixed
+## patches of dirt** on his bones that gain opacity as he gets filthier (D46), masked to
+## bright, low-saturation pixels so the near-black outline and the teal headphones — the one
+## prop `docs/art-direction.md` says never to compromise — are never touched. `flash` is
+## applied on top of the grimed colour, so a filthy buddy still flashes and returns to
+## *grimy* rather than to clean.
+##
+## **Why the patches need `grime_cell`.** D44's grime was a hash over
+## `floor(UV / TEXTURE_PIXEL_SIZE)`, which is the *atlas* texel — and the Aseprite Wizard
+## packs all 74 body frames into one 768x768 atlas. So the speckle pattern was pinned to the
+## atlas while the body walked across it, and the dirt crawled over him every time the frame
+## changed. Anything positional in this shader has to be in **frame-local** coordinates, and
+## `grime_cell` is the frame's size in texels: the atlas is a grid of `grime_cell`-sized
+## cells, so `mod(texel, grime_cell)` is the position within the frame regardless of which
+## cell the frame occupies. `GrimeComponent` reads it off the SpriteFrames. Left at 0 — every
+## item in the game, which owns a plain texture — the whole texture is the frame and `UV` is
+## already frame-local.
 const FLASH_SHADER := """
 shader_type canvas_item;
 uniform float flash : hint_range(0.0, 1.0) = 0.0;
@@ -34,6 +46,33 @@ uniform vec4 grime_color : source_color = vec4(0.55, 0.50, 0.42, 1.0);
 // layer without touching this.
 uniform vec4 bone_tint : source_color = vec4(1.0);
 uniform vec4 phone_tint : source_color = vec4(1.0);
+// The frame's size in texels when the texture is an atlas of frames; 0 means the texture is
+// the frame. See the note above `FLASH_SHADER` — without this the dirt crawls.
+uniform float grime_cell = 0.0;
+
+// One dirt patch: an ellipse in frame-local UV, falling off linearly to its rim.
+float grime_patch(vec2 uv, vec2 centre, vec2 radius, float weight) {
+	vec2 d = (uv - centre) / radius;
+	float dist = length(d);
+	return dist < 1.0 ? weight * (1.0 - dist) : 0.0;
+}
+
+// Three patches, placed clear of the face box (x 0.40..0.60, y 0.30..0.62 once his head
+// bob is allowed for) so his expression is never sat on. Taken as a max rather than a sum:
+// two overlapping ellipses adding up produce a bright seam where they cross, which reads as
+// a third shape rather than as two patches of dirt. Quantised into flat steps because this
+// is pixel art — a continuous falloff is an airbrush, and an airbrushed smudge on a
+// hand-outlined skeleton reads as a rendering fault rather than as dirt.
+float grime_shape(vec2 uv) {
+	float best = grime_patch(uv, vec2(0.345, 0.470), vec2(0.070, 0.058), 1.00);
+	best = max(best, grime_patch(uv, vec2(0.655, 0.625), vec2(0.062, 0.055), 0.90));
+	best = max(best, grime_patch(uv, vec2(0.430, 0.735), vec2(0.082, 0.048), 0.80));
+	if (best <= 0.0) {
+		return 0.0;
+	}
+	return min(1.0, (floor(best * 3.0) + 1.0) / 3.0);
+}
+
 void fragment() {
 	vec4 tex = texture(TEXTURE, UV);
 	vec3 lit = tex.rgb * COLOR.rgb;
@@ -47,14 +86,14 @@ void fragment() {
 	float phone_mask = step(0.25, sat) * step(lit.r, min(lit.g, lit.b) * 0.8);
 	vec3 dressed = mix(lit, clamp(lit * bone_tint.rgb, 0.0, 1.0), bone_mask);
 	dressed = mix(dressed, clamp(dressed * phone_tint.rgb, 0.0, 1.0), phone_mask);
-	// Grime is not a tint (D44): a hash per art pixel puts soot speckles on the bone that
-	// thicken as the value climbs — dusty, then filthy — and the wash underneath deepens with
-	// it. The hash is on texel coordinates, so the speckles are pixel art and do not swim.
+	// Grime is three patches of dirt that darken as he gets filthier (D46), in frame-local
+	// UV so they stay on the same bones from frame to frame.
 	vec2 texel = floor(UV / TEXTURE_PIXEL_SIZE);
-	float hash = fract(sin(dot(texel, vec2(12.9898, 78.233))) * 43758.5453);
-	float speck = step(1.0 - grime * 0.85, hash) * step(0.05, grime);
-	vec3 grimed = mix(dressed, grime_color.rgb, grime * 0.55 * bone_mask);
-	grimed = mix(grimed, grime_color.rgb * 0.55, speck * bone_mask);
+	vec2 cell_uv = grime_cell > 0.5
+		? (mod(texel, grime_cell) + 0.5) / grime_cell
+		: UV;
+	float dirt = grime_shape(cell_uv) * grime * bone_mask;
+	vec3 grimed = mix(dressed, grime_color.rgb, dirt);
 	COLOR = vec4(mix(grimed, vec3(1.0), flash * step(0.02, tex.a)), tex.a * COLOR.a);
 }
 """
