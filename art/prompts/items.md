@@ -394,3 +394,44 @@ than the plume does.
 palette with no yellow-green, so it snaps to the gold `#f2d06b` and reads as a yellow ball.
 That is the right call and not a defect — but it is only visible after the snap, never in
 the raw.
+
+## The dual-tone pass — eight items that vanished on a dark desktop (2026-09-07)
+
+`docs/assessment-2026-09.md` §3 lists ten near-black items that "collapse to silhouettes on a
+dark desktop" and five that read wrong at 32 px. Eight of them are regenerated here. This is
+not a style preference: the game draws over whatever the player has behind it, and an item
+rendered in one dark material has no edge against a dark wallpaper and no internal edge
+against itself. It is invisible twice over.
+
+The fix the spec already described, applied as a prompt rule: **every one of these gets a
+second, bright material carrying real area.** Not a highlight — a surface. Cream white, teal,
+or gold, all three straight out of `art/src/palette.png`, so the snap has somewhere to put
+them. Where the accent went is chosen to survive the downscale: on the part that carries the
+silhouette (the mine's spikes), or across the largest flat face (the pan's interior).
+
+| Item | height | before | after | the accent |
+|---|---|---|---|---|
+| mine | 20 | 22x20 | 17x20 | cream spikes, gold band |
+| bowling_ball | 20 | 20x20 | 20x20 | teal stripe, cream finger holes |
+| frying_pan | 30 | 64x30 | 58x30 | cream cooking surface, brown handle |
+| gravity_vortex | 34 | 34x34 | 33x34 | teal glow on every arm's leading edge |
+| swarm_launcher | 52 | 46x52 | 49x52 | teal tube mouths, gold rims |
+| tyre_iron | 48 | 30x48 | 26x48 | cream polish down the shaft, gold socket |
+| laser_lattice | 56 | 57x56 | 54x54 | teal corner nodes and crossing beams |
+| implosion_charge | 30 | 36x30 | 27x30 | crossing teal seams, gold detonator cap |
+
+`gravity_vortex` and `laser_lattice` are keyed with `--keep-all`: a vortex's arms and a
+lattice's beams are legitimately separate masses, and the despeckle pass would have thrown
+half of each away.
+
+The two remaining near-black items were left alone. `monitor` and `sticky_bomb` already carry
+a teal screen and a teal-and-brown band respectively, and both read on the dark strip.
+
+The prompts follow the batch above exactly — subject, dark base material, the bright accent in
+capitals, viewing angle, then the shared tail. The capitals are not decoration; dropping them
+on the first towel attempt is what produced a stripe that averaged away.
+
+**The frying pan is still 58 px wide**, against the assessment's complaint that it was 64 —
+wider at 2x than the buddy is tall. Asking for a short handle bought six pixels. The real fix
+is assessment finding 9, the scale table constraining width as well as height, and that is a
+table change rather than an art change.
