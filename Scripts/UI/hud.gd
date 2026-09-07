@@ -466,8 +466,14 @@ func _build_next_row() -> Control:
 ## Coalesced: `currency_changed` fires on every hit and every pet, and walking the roster
 ## fourteen times a second to answer a question whose answer changes once a minute is the
 ## kind of cost that adds up over a working day.
+##
+## `is_inside_tree()` as well as `is_stopped()`, because this fires during teardown: a kind
+## item banks its sustained kindness in `_exit_tree`, which grants currency, which lands
+## here — after the HUD's own timer has left the tree. One "Unable to start the timer"
+## error on every quit, harmless and untrue, and the sort of line that teaches people to
+## ignore the error log.
 func _mark_next_dirty() -> void:
-	if _next_timer and _next_timer.is_stopped():
+	if _next_timer and _next_timer.is_inside_tree() and _next_timer.is_stopped():
 		_next_timer.start()
 
 ## Affordable and cheapest first; otherwise whatever the purse is closest to. Items only —
