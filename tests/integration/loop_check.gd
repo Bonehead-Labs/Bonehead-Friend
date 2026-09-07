@@ -1144,6 +1144,27 @@ func _the_buddy_art_is_wired() -> void:
 		_check("and carries the frame size, so the patches do not crawl between frames",
 			puppet_material != null
 			and float(puppet_material.get_shader_parameter(&"grime_cell")) >= 1.0)
+		# Frame-local is not enough on its own. He is *redrawn* higher or lower inside a
+		# fixed 96px cell as he breathes, so a patch pinned to the cell still slid off his
+		# bones through an idle even after it stopped crawling between atlas cells — which is
+		# how this shipped once. `BuddyArt` pushes the same per-frame offset it already uses
+		# to keep his face on his skull, and without it the number below never changes.
+		var kept_positions := art._track_positions
+		var kept_visible := art._track_visible
+		art._track_positions = PackedVector2Array([Vector2(0.0, -2.0), Vector2(0.0, -11.0)])
+		art._track_visible = PackedByteArray([1, 1])
+		var offsets: Array[Vector2] = []
+		for f in 2:
+			art.body.frame = f
+			art._place_face()
+			offsets.append(puppet_material.get_shader_parameter(&"grime_offset"))
+		_check("and the patches follow his drawing inside the frame, not just the cell",
+			offsets.size() == 2 and offsets[0] != offsets[1]
+			and offsets[1].is_equal_approx(Vector2(0.0, -11.0)))
+		art._track_positions = kept_positions
+		art._track_visible = kept_visible
+		art._on_body_animation_changed()
+
 		var face_material := buddy.face.material as ShaderMaterial
 		var face_grime := 0.0
 		if face_material and face_material.get_shader_parameter(&"grime") != null:

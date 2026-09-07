@@ -262,6 +262,17 @@ func _showcase() -> void:
 	if buddy and buddy.grime:
 		buddy.grime.set_value(SHOWCASE_GRIME)
 
+	# The one-off tips are cleared so they fire again. This is the single place this tool
+	# writes to Settings, it is the point of the flag, and it is **announced below** rather
+	# than done quietly — the rule this file otherwise keeps is that a tool must not silently
+	# rewrite machine preferences, and a review tool that cannot show you a tip that only
+	# ever appears once is not much of a review tool. The cost is that a tip you had already
+	# dismissed comes back in the real game, which is the mildest thing in `settings.cfg`.
+	var reset_hints: Array[StringName] = [HUD.HINT_CURSOR_POWER, HUD.HINT_REMOVAL]
+	for key in reset_hints:
+		Settings.hints_seen.erase(String(key))
+	Settings.save_settings()
+
 	# Armed on purpose (D47), because the whole point of that change is what being armed no
 	# longer costs you — and an empty hand demonstrates none of it.
 	var armed := ""
@@ -274,6 +285,9 @@ func _showcase() -> void:
 		placed, rows, SHOWCASE_GRIME])
 	print("                %s" % ", ".join(ids.map(func(i: StringName) -> String:
 		return String(i))))
+	print("  hints reset   %s — this tool's one write to Settings, so a one-off tip can be"
+		% ", ".join(reset_hints.map(func(k: StringName) -> String: return String(k))))
+	print("                seen more than once. A tip you had dismissed will come back.")
 	if armed != "":
 		print("  armed         %s — the chip on the HUD is the way to put it down" % armed)
 		print("                Click a toy: you pick it up, armed or not.")

@@ -49,6 +49,11 @@ uniform vec4 phone_tint : source_color = vec4(1.0);
 // The frame's size in texels when the texture is an atlas of frames; 0 means the texture is
 // the frame. See the note above `FLASH_SHADER` — without this the dirt crawls.
 uniform float grime_cell = 0.0;
+// Where this frame's drawing sits inside its cell, in texels. The body is *redrawn* higher
+// or lower within a fixed 96px frame as he breathes, so a patch pinned to the cell slides
+// off his bones even though it no longer crawls between frames. `BuddyArt` pushes the same
+// per-frame offset it already uses to keep his face on his skull.
+uniform vec2 grime_offset = vec2(0.0);
 
 // One dirt patch: an ellipse in frame-local UV, falling off linearly to its rim.
 float grime_patch(vec2 uv, vec2 centre, vec2 radius, float weight) {
@@ -90,7 +95,7 @@ void fragment() {
 	// UV so they stay on the same bones from frame to frame.
 	vec2 texel = floor(UV / TEXTURE_PIXEL_SIZE);
 	vec2 cell_uv = grime_cell > 0.5
-		? (mod(texel, grime_cell) + 0.5) / grime_cell
+		? (mod(texel, grime_cell) + 0.5 - grime_offset) / grime_cell
 		: UV;
 	float dirt = grime_shape(cell_uv) * grime * bone_mask;
 	vec3 grimed = mix(dressed, grime_color.rgb, dirt);

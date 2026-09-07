@@ -232,12 +232,36 @@ func _quiet() -> bool:
 ## Re-places the face from the cached per-frame track. Called on `frame_changed` /
 ## `animation_changed` while he is otherwise still, and from `_advance_travel` while he is
 ## walking, since the bob it applies changes every frame and the face rides it with the body.
+## Keeps his dirt on his bones (D46).
+##
+## The grime patches are positioned in frame-local UV, which stopped them crawling between
+## atlas cells — but his body is *redrawn* higher or lower inside a fixed 96px frame as he
+## breathes, so a patch pinned to the cell still slid off him during an idle. Being carried
+## around the desk was always fine, because that moves the whole node and the texture with it;
+## it is the animation's own motion, inside the frame, that the shader cannot see.
+##
+## The offsets table already measures exactly that, per frame, and is already read here to
+## keep his face on his skull. Same number, same lookup, one more consumer.
+##
+## Only the vertical component is meaningful today: every x in `buddy_face_offsets.json` is
+## zero, and `flip_h` mirrors the texture, so a non-zero x would need its sign worked out
+## against the flip before it could be trusted. It is passed through as measured.
+func _place_grime(entry: Vector2) -> void:
+	if body == null:
+		return
+	var material := EffectsPlayer.material_for(body)
+	material.set_shader_parameter(&"grime_offset", entry)
+
 func _place_face() -> void:
 	if body == null or face == null:
 		return
 	var frame := body.frame
 	if frame >= _track_visible.size():
 		return
+	# Before the visibility gate below: on a frame with no readable head the face hides, and
+	# his dirt very much does not.
+	if frame < _track_positions.size():
+		_place_grime(_track_positions[frame])
 	if _track_visible[frame] == 0:
 		# No readable head on this frame — he has folded into the pile. Hiding beats pinning
 		# the face somewhere arbitrary on a heap of bones.
