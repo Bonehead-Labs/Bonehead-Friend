@@ -35,6 +35,10 @@ func _ready() -> void:
 	var as_overlay := args.has("--overlay")
 	_suffix = "_s%d%s" % [screen, "_overlay" if as_overlay else ""]
 
+	# Its own preferences file before any of them are changed (D51): this tool pins Focus
+	# Mode, the monitor and the window mode to make a capture reproducible, and a hint firing
+	# mid-run would persist all of it into the developer's real settings.
+	Settings.config_path = "user://settings_audit.cfg"
 	Settings.focus_intensity = Settings.Intensity.NORMAL
 	Settings.monitor_id = screen
 	SaveManager.slot_name = AUDIT_SLOT

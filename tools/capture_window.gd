@@ -94,9 +94,16 @@ func _all(root: Node) -> Array[Node]:
 ## a part-levelled tree, a bought mace, several thousand Bones — sitting in the player's
 ## real save. Both capture tools go through here now, exactly as `ui_check` does.
 const CAPTURE_SLOT := "capture_slot"
+## And its own preferences file, for exactly the same reason one step up (D51). These tools
+## pin UI scale, Focus Mode and the play area to make a capture reproducible, and every one
+## of those writes through `save_settings()`. Restoring at the end covers a run that reaches
+## its end; it does nothing for a timeout, a crash, or a Ctrl-C — and one of those left Focus
+## Mode Off in the owner's real settings, which read as the payout numbers being broken.
+const CAPTURE_SETTINGS := "user://settings_capture.cfg"
 
 func _use_capture_slot() -> void:
 	SaveManager.slot_name = CAPTURE_SLOT
+	Settings.config_path = CAPTURE_SETTINGS
 	_clear_slot()
 
 func _clear_slot() -> void:

@@ -295,7 +295,14 @@ GDScript quirks already paid for once each:
   smaller than the card's own minimum in both axes, so the card clamps *up* past the window and
   takes the tab strip that would have fixed it off-screen with it. `UIScale.factor_for()` steps a
   pinned factor down until the shell fits; `window_check` asserts six rungs x three scales.
-- **A test that reads `Settings` must pin what it reads and restore what it writes.** `ui_check`
+- **A test must point `Settings.config_path` at its own file, on its first line** (D51).
+  Restoring at the end is not enough on its own: a timeout, a parse error, or a Ctrl-C skips
+  it, and one killed run left Focus Mode Off in the owner's real settings — which silences the
+  FX layer, so it presented as "the payout numbers have stopped working". The door is wider
+  than the tools that obviously write: a one-off hint marks itself seen and calls
+  `save_settings()`, so any run that puts an item on the desk writes the file.
+  `_use_capture_slot()` does the redirect for the five capture tools at once.
+- **A test that reads `Settings` must also pin what it reads and restore what it writes.** `ui_check`
   clicks a real Focus Mode button, whose handler calls `save_settings()` and serialises *every*
   field — so a run used to leave the developer's own Menu size wherever the test put it, and every
   screenshot taken afterwards was silently at the wrong scale. Capture on the first line of

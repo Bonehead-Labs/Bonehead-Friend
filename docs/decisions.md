@@ -1286,6 +1286,34 @@ autoload that references a global class name before the class cache is warm fail
 and takes the game with it — the same rule the window enums already follow. Old settings
 files hold an int here, which reads back as a float unchanged.
 
+## D51 — A test writes its preferences somewhere disposable (2026-09-07)
+
+**Decision.** `Settings.config_path` is a variable, not a constant. Every suite and capture
+tool points it at its own file on the first line it runs, before it changes anything. The
+in-memory capture-and-restore stays; the redirect is what makes it safe.
+
+**Why.** Capture-and-restore only covers a run that reaches its last line. `ui_check` forces
+Focus Mode Off, clicks real controls whose handlers call `save_settings()`, and puts the
+developer's values back at the end — so a timeout, a parse error introduced mid-edit, or a
+Ctrl-C leaves the file holding whatever the suite was using.
+
+That is not hypothetical. It happened during this session: a killed run left `focus_intensity`
+at Off in the owner's own `settings.cfg`, and because Focus Off deliberately silences the FX
+layer, the next launch looked like **the payout numbers had stopped working**. The report was
+"the text pop ups are no longer appearing", and the code was fine. A suite that can silently
+reconfigure the game it is testing will eventually be believed over the game.
+
+**The door was wider than it looked.** `loop_check` and `audit_shots` never call
+`save_settings()` and still write the file, because a one-off hint marks itself seen and
+saves — and both put items on the desk, which fires one. That is also how `hints_seen` got
+polluted before anyone noticed.
+
+*Consequence:* `tools/capture_window.gd` does the redirect in `_use_capture_slot()`, one level
+up from the five tools that share it, next to the save-slot isolation it already did for
+exactly the same reason. `ui_check` asserts on its first suite that the redirect is still in
+place — circular-looking, but the failure it catches is somebody deleting that line, and the
+cost of missing it is measured in an afternoon spent debugging the wrong thing.
+
 ## Recommendations not yet decided
 
 Carried in the spec, owner's call before they matter:

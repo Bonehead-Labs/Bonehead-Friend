@@ -29,6 +29,12 @@ var _main: Node
 var _restore := {}
 
 func _ready() -> void:
+	# Before anything else in the suite, including the capture below (D51). Redirecting the
+	# file is what actually makes this safe: the restore on the last line only runs if the
+	# run reaches its last line, and a timeout, a parse error in an edit or a Ctrl-C all skip
+	# it. One killed run left Focus Mode Off in the owner's real settings, and the next launch
+	# looked like the payout numbers had stopped working.
+	Settings.config_path = "user://settings_ui_check.cfg"
 	_restore = {
 		"focus": Settings.focus_intensity,
 		"scale": Settings.ui_scale,
@@ -74,6 +80,7 @@ func _ready() -> void:
 	# is the one that unpins, and it pins both halves again when it is done.
 	await _pin_shell(true)
 
+	_the_suite_writes_nowhere_real()
 	_nothing_blocks_the_window()
 	await _the_strip_opens_the_panels()
 	await _the_card_is_one_size()
@@ -1143,6 +1150,19 @@ func _the_power_leaves_your_hands_free() -> void:
 	_check("and takes itself off screen", not chip.visible)
 	_check("holstering an empty hand reports nothing to do",
 		not bool(spawner.call("holster_power")))
+
+## The suite must not be able to reconfigure the game it is testing (D51).
+##
+## This asserts the redirect on the first line of `_ready()` is still there. It looks
+## circular and is not: the failure it catches is somebody deleting that line, or moving it
+## below the first thing that writes, and the cost of missing it is measured in someone
+## relaunching the game to find their Focus Mode off and the payout numbers apparently gone.
+## Cheap insurance against a bug that presents as a different bug entirely.
+func _the_suite_writes_nowhere_real() -> void:
+	_suite("isolation")
+	_check("the suite writes preferences to its own file, not the player's",
+		Settings.config_path != Settings.CONFIG_PATH, Settings.config_path)
+	_check("and its own save slot", SaveManager.slot_name == TEST_SLOT)
 
 func _visible_numbers(fx: Node) -> int:
 	var count := 0

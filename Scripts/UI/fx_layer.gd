@@ -330,6 +330,12 @@ func _clear_of_hud(centre: Vector2, half: Vector2) -> Vector2:
 	return Vector2(centre.x, keep.end.y + HUD_MARGIN + half.y)
 
 func _hud_keep_out() -> Rect2:
+	# Numbers can be asked for during teardown — a kind item banks its sustained kindness in
+	# `_exit_tree`, which pays out — and by then this layer may have left the tree, where
+	# `get_tree()` is null and the group lookup below is a hard error. Nothing to dodge at
+	# that point anyway.
+	if not is_inside_tree():
+		return Rect2()
 	var now := Time.get_ticks_msec()
 	if now - _hud_rect_msec < HUD_RECT_TTL_MSEC:
 		return _hud_rect

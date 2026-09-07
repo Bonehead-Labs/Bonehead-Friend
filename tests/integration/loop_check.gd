@@ -22,6 +22,11 @@ var _failed := 0
 var _observed: Array[HitInfo] = []
 
 func _ready() -> void:
+	# Its own preferences file, first (D51). This suite never calls `save_settings()` itself,
+	# which is not the same as never writing the file: a one-off hint marks itself seen and
+	# saves, and this run puts items on the desk. That is how `hints_seen` got polluted, and
+	# the same door lets a run that dies mid-way leave Focus Mode Off behind it.
+	Settings.config_path = "user://settings_loop_check.cfg"
 	# Focus Mode OFF silences AudioManager and FXLayer for the run. This check is about
 	# the economy, and the headless dummy audio driver hands its stream playbacks back
 	# after the engine's leak check has already run — which reports them as leaks and

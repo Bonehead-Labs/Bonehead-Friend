@@ -12,6 +12,18 @@ extends Node
 
 const CONFIG_PATH := "user://settings.cfg"
 
+## Where preferences are actually read and written. A variable, not the constant above, so a
+## test can point it somewhere disposable **before it changes anything** (D51).
+##
+## Capture-and-restore was the previous answer and it is not enough: `ui_check` forces Focus
+## Mode Off, clicks real controls whose handlers call `save_settings()`, and only puts the
+## developer's values back on its last line. Kill the run — a timeout, a parse error in an
+## edit, Ctrl-C — and the file keeps whatever the suite was using. That is not hypothetical:
+## it left Focus Mode Off in the owner's own settings, and the next launch looked like the
+## payout numbers had stopped working. A suite that can silently reconfigure the game it is
+## testing will eventually be believed over the game.
+var config_path := CONFIG_PATH
+
 ## Focus Mode: how loud the game is allowed to be while you work.
 enum Intensity { OFF, SUBTLE, NORMAL, CHAOS }
 
@@ -92,7 +104,7 @@ func _ready() -> void:
 
 func load_settings() -> void:
 	var cfg := ConfigFile.new()
-	if cfg.load(CONFIG_PATH) != OK:
+	if cfg.load(config_path) != OK:
 		# No file yet (or unreadable): keep defaults and write them on the first save.
 		return
 
@@ -166,9 +178,9 @@ func save_settings() -> void:
 	cfg.set_value("meta", "first_run", first_run)
 	cfg.set_value("meta", "hints_seen", hints_seen)
 
-	var err := cfg.save(CONFIG_PATH)
+	var err := cfg.save(config_path)
 	if err != OK:
-		push_error("Settings: failed to write %s (error %d)" % [CONFIG_PATH, err])
+		push_error("Settings: failed to write %s (error %d)" % [config_path, err])
 
 ## 0 is auto; anything else is a pinned factor, in quarter steps (D50).
 ##

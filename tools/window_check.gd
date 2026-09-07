@@ -19,6 +19,9 @@ var _failed := 0
 var _restore := {}
 
 func _ready() -> void:
+	# `_use_capture_slot()` also redirects `Settings.config_path` (D51), before this tool
+	# rewrites window mode, play-area size, corner and UI scale. The restore at the end only
+	# runs if the run reaches the end; the redirect is what makes a killed run harmless.
 	_use_capture_slot()
 	_restore = {
 		"mode": Settings.window_mode,
