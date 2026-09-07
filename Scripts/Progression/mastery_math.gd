@@ -76,16 +76,39 @@ static func item_rank_multiplier(rank: int, bonus_rank: int, bonus: float) -> fl
 
 # --- how upgraded a thing looks -----------------------------------------------
 
-## The juice tier of an item (docs/decisions.md D41): how loud its effects are, 0..3. A
-## presentation value, never a number in the economy — it reads the rank and the augment
-## levels the player has already earned and turns them into a look, so a rank-25 bat is
-## visibly a different object from a fresh one. Either ladder reaches a tier on its own:
-## rank 3 / 10 / 25 are the ranks the economy already treats as beats (the Tier 2 branch at
-## 10, automation at 25), and 1 / 6 / 15 augment levels are a first buy, a committed build
-## and a finished one.
-const JUICE_RANKS: Array[int] = [3, 10, 25]
-const JUICE_LEVELS: Array[int] = [1, 6, 15]
-const JUICE_TIERS := 3
+## The juice tier of an item (docs/decisions.md D41, rescaled by D53): how loud its effects
+## are, 0..5. A presentation value, never a number in the economy — it reads the rank and the
+## augment levels the player has already earned and turns them into a look, so a rank-50 bat
+## is visibly a different object from a fresh one. Either ladder reaches a tier on its own.
+##
+## **The ladder spans the whole of mastery, and it did not used to.** It stopped at rank 25
+## while `MAX_RANK` is 100, so the top look arrived after **10.9% of the XP needed to cap an
+## item** — measured at 10 minutes 22 seconds of hands-on play against 49 minutes to the cap.
+## The remaining 89% of the grind changed nothing. Worse at the bottom: at the end of a first
+## run, 91 of the 91 items the modelled player had touched were past rank 3. A tier that
+## nothing fails is not a tier.
+##
+## The rungs are the ranks the economy **already** treats as beats — the Tier 2 branch at 10,
+## the automation capstone at 25, the personal payout bonus at 50 — plus the cap. Reusing them
+## means the look changes on a moment the player is already being told about, and adds no new
+## numbers to learn. Rank 3 stays as the first-swing acknowledgement.
+##
+## Effort between rungs is near-uniform because the XP curve is `100 * r^1.6`, so doubling a
+## rank always costs 3.03x: the steps are x4.3, x3.0, x3.0, and the measured hands-on gaps are
+## 3:54, 6:28, 13:34, 25:11 — each roughly double the last, which is the genre's cadence.
+const JUICE_RANKS: Array[int] = [3, 10, 25, 50, MAX_RANK]
+
+## The other ladder, rescaled to its own ceiling for the same reason. A typical item has a
+## **median of 60 buyable augment levels** across its tree, so the old top of 15 sat at 25% of
+## maximum — exactly the same quarter-way stop that rank 25 was. 55 of 60 is a finished build.
+const JUICE_LEVELS: Array[int] = [1, 10, 20, 35, 55]
+const JUICE_TIERS := 5
+
+## Named rungs, because six places across the effects code tested `tier >= 2` and `tier >= 3`
+## meaning "well upgraded" and "the top" — and those numbers stopped meaning that the moment
+## the ladder grew. A gate should say which idea it wants, not which index used to hold it.
+const JUICE_MID := 3
+const JUICE_TOP := JUICE_TIERS
 
 static func juice_tier(rank: int, augment_levels: int) -> int:
 	var tier := 0

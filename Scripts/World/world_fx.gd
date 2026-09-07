@@ -209,10 +209,10 @@ func _on_damage_dealt(info: HitInfo) -> void:
 		int(lerpf(CHIPS_MIN, CHIPS_MAX, heat_of_hit) * (1.0 + 0.35 * tier)),
 		lerpf(110.0, 340.0, heat_of_hit) * (1.0 + 0.1 * tier))
 	# A heavy hit gets a ring at the contact too — the chips say where, the ring says how hard.
-	if heat_of_hit >= 0.6 or tier >= 2:
+	if heat_of_hit >= 0.6 or tier >= MasteryMath.JUICE_MID:
 		ring(info.position, 30.0 + 44.0 * heat_of_hit + 8.0 * tier, colour, 0.25, 2.0)
-	if tier >= 3:
-		_emit(info.position, _chip, HARM_TIERS[3], 6, 260.0, 0.35, Vector2(0, 500), 0.8, 1.6)
+	if tier >= MasteryMath.JUICE_TOP:
+		_emit(info.position, _chip, harm_colour(MasteryMath.JUICE_TOP), 6, 260.0, 0.35, Vector2(0, 500), 0.8, 1.6)
 	if Economy.damage_streak() >= STREAK_EMBERS_FROM and _ember_timer and _ember_timer.is_stopped():
 		_ember_timer.start()
 		_tick_embers()
@@ -345,7 +345,7 @@ func shot(at: Vector2, spread: bool = false, tier: int = 0) -> void:
 	var colour := SPARK.lerp(harm_colour(tier), 0.5) if tier > 0 else SPARK
 	_emit(at, _chip, colour, (5 if spread else 3) + 2 * tier, 220.0 + 30.0 * tier, 0.3,
 		Vector2(0, 600), 0.8, 1.6)
-	if spread or tier >= 2:
+	if spread or tier >= MasteryMath.JUICE_MID:
 		ring(at, 40.0 + 6.0 * tier, colour, 0.18, 2.0)
 
 ## A tick of the sunbeam: heat rising off the spot.

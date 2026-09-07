@@ -824,7 +824,25 @@ func _test_juice_tier_ladders() -> void:
 	_check("rank 3 is tier 1", Mastery.juice_tier(3, 0) == 1)
 	_check("rank 9 with five levels is still tier 1", Mastery.juice_tier(9, 5) == 1)
 	_check("rank 10 is tier 2", Mastery.juice_tier(10, 0) == 2)
-	_check("six levels is tier 2", Mastery.juice_tier(0, 6) == 2)
+	_check("ten levels is tier 2", Mastery.juice_tier(0, 10) == 2)
 	_check("rank 25 is tier 3", Mastery.juice_tier(25, 0) == 3)
-	_check("fifteen levels is tier 3", Mastery.juice_tier(0, 15) == 3)
-	_check("the cap is still tier 3", Mastery.juice_tier(Mastery.MAX_RANK, 999) == 3)
+	_check("twenty levels is tier 3", Mastery.juice_tier(0, 20) == 3)
+	# The half that D53 fixed. The ladder used to stop at rank 25 — 10.9% of the XP needed to
+	# cap an item, and about ten minutes of play — so the remaining 89% of the grind changed
+	# nothing at all. These two assertions are the whole point: there is something left to
+	# earn after the automation capstone, and the top look is on the cap itself.
+	_check("rank 50 is tier 4, so the payout bonus is visible too", Mastery.juice_tier(50, 0) == 4)
+	_check("and the cap is the top tier", Mastery.juice_tier(Mastery.MAX_RANK, 0) == Mastery.JUICE_TIERS)
+	_check("a finished augment tree reaches the top on its own",
+		Mastery.juice_tier(0, 55) == Mastery.JUICE_TIERS)
+	_check("nothing exceeds the top, however far past the ladder it goes",
+		Mastery.juice_tier(9999, 9999) == Mastery.JUICE_TIERS)
+	# Both ramps are indexed by tier and read with a clamp, but they must still be long
+	# enough — an array a rung short is an out-of-range on every item spawn in the game.
+	_check("the glow ramp covers every tier",
+		BaseDraggable.GLOW_STRENGTH.size() >= Mastery.JUICE_TIERS + 1)
+	_check("and so does the aura ramp",
+		BaseDraggable.AURA_AMOUNT.size() >= Mastery.JUICE_TIERS + 1)
+	_check("the two ladders have one entry per tier",
+		Mastery.JUICE_RANKS.size() == Mastery.JUICE_TIERS
+		and Mastery.JUICE_LEVELS.size() == Mastery.JUICE_TIERS)

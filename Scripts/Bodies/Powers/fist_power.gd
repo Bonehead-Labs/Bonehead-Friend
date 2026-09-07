@@ -73,4 +73,4 @@ func fire(at: Vector2) -> void:
 	var fx := WorldFX.of(self)
 	if fx:
 		var tier := Progression.juice_tier(item_id)
-		fx.shot(body.global_position, tier >= 2, tier)
+		fx.shot(body.global_position, tier >= MasteryMath.JUICE_MID, tier)

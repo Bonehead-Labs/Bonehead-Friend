@@ -176,7 +176,7 @@ func _fire(target: Buddy) -> void:
 		# Muzzle flash: a few sparks off the nozzle on every shot, a puff of smoke as well from
 		# the second tier.
 		fx.shot(from, false, mini(tier, 1))
-		if tier >= 2:
+		if tier >= MasteryMath.JUICE_MID:
 			fx.puff(from, 2, WorldFX.SPARK, 60.0, 0.3)
 	# Quiet and wide: the fastest turret fires twenty times a second, and this is the
 	# background of the desk, not the event of the desk.

@@ -235,9 +235,21 @@ func _find_tip() -> Vector2:
 # rank or a Focus change lands (`ItemSpawner.refresh_augments`). Nothing here is a number in
 # the economy; it is only what the number looks like.
 
-const TRAIL_TIER_WIDTH := 2.5
-const GLOW_STRENGTH: Array[float] = [0.0, 0.55, 0.8, 1.0]
-const AURA_AMOUNT: Array[int] = [0, 0, 4, 9]
+## Per tier. Reduced from 2.5 when the ladder went from 3 rungs to 5 (D53): the widest trail
+## is the same 15px it always was, rather than growing by two thirds because there are more
+## steps to climb.
+const TRAIL_TIER_WIDTH := 1.5
+## Indexed by juice tier, so both must have `MasteryMath.JUICE_TIERS + 1` entries — index 0
+## is a plain, unupgraded item. Read with a clamp rather than raw: an array a tier shorter
+## than the ladder is an out-of-range on the item-spawn path, which is every item in the game,
+## and it would land the moment someone adds a rung without scrolling down here.
+##
+## The ramp is deliberately slow at the bottom and steep at the top (D53). The first two tiers
+## arrive in the first four minutes of play and must read as "this is yours now", not as a
+## light show; the aura is held back until tier 3, which is rank 50, so the thing that makes a
+## weapon look finished is genuinely rare.
+const GLOW_STRENGTH: Array[float] = [0.0, 0.35, 0.5, 0.68, 0.85, 1.0]
+const AURA_AMOUNT: Array[int] = [0, 0, 0, 4, 7, 9]
 
 var juice_tier := 0
 var _aura: GPUParticles2D
@@ -253,9 +265,12 @@ func apply_juice() -> void:
 	if _trail:
 		_trail.default_color = colour
 		_trail.width = TRAIL_WIDTH + TRAIL_TIER_WIDTH * juice_tier
+	# Clamped, not raw. These arrays are sized to the ladder and the ladder has moved once
+	# already; an off-by-one here is an out-of-range on every item spawn in the game.
+	var step := clampi(juice_tier, 0, GLOW_STRENGTH.size() - 1)
 	if sprite is CanvasItem:
-		ItemGlow.apply(sprite, colour, GLOW_STRENGTH[juice_tier], moving)
-	var amount: int = AURA_AMOUNT[juice_tier]
+		ItemGlow.apply(sprite, colour, GLOW_STRENGTH[step], moving)
+	var amount: int = AURA_AMOUNT[clampi(juice_tier, 0, AURA_AMOUNT.size() - 1)]
 	if amount > 0:
 		if _aura == null or not is_instance_valid(_aura):
 			var fx := WorldFX.of(self)

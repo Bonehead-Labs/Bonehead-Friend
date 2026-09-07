@@ -2068,7 +2068,8 @@ func _the_upgrades_are_worn(centre: Vector2) -> void:
 	_check("an untouched item is tier 0", Progression.juice_tier(&"scythe") == 0)
 	Progression.add_mastery_xp(&"baseball_bat", 1.0e9)
 	await _settle()
-	_check("a rank-capped bat is tier 3", Progression.juice_tier(&"baseball_bat") == 3,
+	_check("a rank-capped bat is the top tier",
+		Progression.juice_tier(&"baseball_bat") == MasteryMath.JUICE_TIERS,
 		str(Progression.juice_tier(&"baseball_bat")))
 	var spawner := _find(_main, "ItemSpawner")
 	EventBus.spawn_requested.emit(&"baseball_bat", centre + Vector2(-200, -60))
@@ -2080,7 +2081,8 @@ func _the_upgrades_are_worn(centre: Vector2) -> void:
 	_check("the bat spawns", bat != null)
 	if bat == null:
 		return
-	_check("and wears its tier", int(bat.get("juice_tier")) == 3)
+	_check("and wears its tier", int(bat.get("juice_tier")) == MasteryMath.JUICE_TIERS,
+		str(bat.get("juice_tier")))
 	_check("as a glow on its sprite", ItemGlow.strength_of(bat.get("sprite")) > 0.9)
 	var aura := bat.get_node_or_null("Aura") as GPUParticles2D
 	_check("and an aura of chips", aura != null and aura.emitting)

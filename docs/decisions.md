@@ -1366,6 +1366,49 @@ immediately reported eighteen escapes, every one of them the auto-hide drawer pa
 left edge by design — so the sweep now pins both drawers first, since the question is about
 the shell while it is on screen.
 
+## D53 — The juice ladder spans the whole of mastery (2026-09-07)
+
+**Decision.** Five juice tiers instead of three, at ranks **3 / 10 / 25 / 50 / 100** and
+augment levels **1 / 10 / 20 / 35 / 55**. Rescales D41.
+
+**Why.** The owner: "the augmentation to the appearance of items being levels 1 to 3 is stupid
+because the mastery extends well beyond that". Measured against the pacing simulator, they
+were understating it:
+
+| | |
+|---|---|
+| Hands-on play to rank 3, the first tier | 41 seconds |
+| Hands-on play to rank 25, the **top** tier | 10 min 22 s |
+| Hands-on play to rank 100, the cap | 49 min 07 s |
+| Share of the XP-to-cap spent at the old top tier | 10.9% |
+| Items past rank 3 at the end of a first run | 91 of 91 |
+
+So the last look arrived after a tenth of the grind and the remaining 89% changed nothing,
+while the first tier was a milestone that literally nothing failed.
+
+**There is a maximum, and the brief assumed there was not.** `MasteryMath.MAX_RANK` is 100 and
+is clamped inside `rank_for_xp`. The 200 in `mastery_pool_thresholds` is the *shared pool* —
+ranks summed across the whole roster, measured at 1,525 by hour 72 — not a rank any item can
+hold. The top rung is therefore the cap itself.
+
+**The rungs are the economy's own beats**, not new numbers: the Tier 2 branch at 10, the
+automation capstone at 25, the personal payout bonus at 50, and the cap. The look changes on a
+moment the player is already being told about. Effort between them is near-uniform because the
+curve is `100 * r^1.6`, so doubling a rank always costs 3.03x — the steps are x4.3, x3.0, x3.0
+and the measured gaps are 3:54, 6:28, 13:34, 25:11, each roughly double the last.
+
+**The augment ladder had the identical defect.** A typical item has a *median of 60 buyable
+levels*, so the old top of 15 stopped at 25% of maximum — the same quarter-way stop as rank 25.
+
+*Consequence, and the trap this nearly shipped with:* `GLOW_STRENGTH` and `AURA_AMOUNT` are
+indexed by tier and were four entries read **unclamped**, so a fifth tier is an out-of-range on
+the item-spawn path — every item in the game. Both now cover the ladder and are read through a
+clamp. Six effect gates spelled `tier >= 2` and `tier >= 3` meaning "well upgraded" and "the
+top", and silently changed meaning when the ladder grew; they read `MasteryMath.JUICE_MID` and
+`JUICE_TOP` now. `TRAIL_TIER_WIDTH` drops from 2.5 to 1.5 so the widest trail is the 15px it
+always was rather than growing by two thirds because there are more steps to climb. No save
+migration: the tier is presentation only and is never persisted.
+
 ## Recommendations not yet decided
 
 Carried in the spec, owner's call before they matter:
