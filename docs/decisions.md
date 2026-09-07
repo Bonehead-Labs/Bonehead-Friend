@@ -1254,6 +1254,38 @@ window setting rather than by flipping the flag at the call site: that function 
 place that knows about the borderless outer-size quirk, and a second writer of window flags
 is how the two-pixel vibration bug got in.
 
+## D50 — Menu size in quarter steps, with the cost stated (2026-09-07)
+
+**Decision.** `Settings.ui_scale` becomes a float. Auto, or any quarter step between 1x and
+3x. This relaxes **D23**, which said whole numbers only, and the reasoning behind D23 has not
+changed — only who gets to weigh it.
+
+**Why relax it.** D23 is right that 1.5x on a pixel face is a blurry pixel face: the shell is
+drawn as pixel art, a fractional factor resamples it, and some texels come out a pixel wider
+than their neighbours. But the ladder it left behind was too coarse to be a preference. On a
+1440p monitor, 1x, 2x and 3x are "too small", "about right" and "enormous" — and where "about
+right" falls depends on how far away somebody is sitting, which the game cannot measure. A
+setting with three rungs, one of which is unusable, is not really a setting.
+
+**What keeps the default sharp.** Auto only ever chooses a whole number, so nothing the game
+picks on the player's behalf costs them a crisp shell. The in-between rungs exist to be asked
+for, and the settings note says plainly that the whole numbers are the sharp ones rather than
+hiding the trade.
+
+**A quiet improvement that came with it.** `factor_for` steps a pinned factor down until the
+shell fits — the guard from D23 that stops a 2x pin on the smallest play area putting the tab
+strip off-screen. It used to give up a whole number at a time, which meant the only way down
+from 2x was 1x. It now gives up a quarter at a time, so a window that cannot quite take 2x
+gets 1.75x rather than half the size it asked for.
+
+*Consequence:* the four scale buttons become a `−` / `+` / `Auto` stepper, matching the
+volume and play-area rows. Stepping from Auto starts at the factor actually on screen, or
+pressing `+` on an auto-2x shell would drop it to 1.25x and read as the button working
+backwards. `Settings` clamps with literals rather than `UIScale.MIN/MAX/STEP`, because an
+autoload that references a global class name before the class cache is warm fails to parse
+and takes the game with it — the same rule the window enums already follow. Old settings
+files hold an int here, which reads back as a float unchanged.
+
 ## Recommendations not yet decided
 
 Carried in the spec, owner's call before they matter:

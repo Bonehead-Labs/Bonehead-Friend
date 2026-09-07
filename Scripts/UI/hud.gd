@@ -110,7 +110,7 @@ func _ready() -> void:
 		_mark_next_dirty()
 		# A new life is a new personality, and the mood row names him.
 		_on_mood_changed(Economy.mood))
-	EventBus.ui_scale_changed.connect(func(_f: int) -> void: _fit())
+	EventBus.ui_scale_changed.connect(func(_f: float) -> void: _fit())
 	get_viewport().size_changed.connect(_fit)
 	# `size_changed` is not enough on its own. Changing the play area resizes the OS window,
 	# and the viewport has not caught up at the moment the setting is applied — so the shell

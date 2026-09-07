@@ -82,14 +82,13 @@ func _build_page() -> void:
 			Settings.set_focus_intensity(level))
 
 	_section("UI SIZE")
-	_column.add_child(_note("How big the menus are drawn. Whole numbers only — a pixel "
-		+ "face at one and a half times its size is a blurry pixel face."))
+	_column.add_child(_note("How big the menus are drawn, in quarter steps. Whole numbers "
+		+ "are the sharp ones: the shell is pixel art, so 1.75x resamples it slightly."))
 	var scale_row := _row()
 	_rows[&"ui_scale"] = _stat(scale_row, "Menu size", "—")
-	for entry in [["Auto", 0], ["1x", 1], ["2x", 2], ["3x", 3]]:
-		var value: int = entry[1]
-		_choice(scale_row, entry[0], StringName("uiscale_%d" % value), func() -> void:
-			Settings.set_ui_scale(value))
+	_stepper(scale_row, "−", func() -> void: _nudge_ui_scale(-UIScale.STEP))
+	_stepper(scale_row, "+", func() -> void: _nudge_ui_scale(UIScale.STEP))
+	_stepper(scale_row, "Auto", func() -> void: Settings.set_ui_scale(0.0))
 
 	_section("BACKDROP")
 	# Two rows: flat colours, then scenes. Desktop is the transparent default. Every choice
@@ -118,6 +117,17 @@ func _volume_row(caption: String, key: StringName) -> void:
 	_stepper(row, "−", func() -> void: _nudge_volume(key, -VOLUME_STEP))
 	_stepper(row, "+", func() -> void: _nudge_volume(key, VOLUME_STEP))
 
+## Step the pinned scale, starting from whatever is actually on screen (D50).
+##
+## From "Auto" the first press has to land somewhere sensible, and the sensible place is the
+## factor the shell is already using — otherwise pressing + on an auto-2x shell drops it to
+## 1.25x, which reads as the button working backwards.
+func _nudge_ui_scale(delta: float) -> void:
+	var current := Settings.ui_scale
+	if current <= 0.0:
+		current = UIScale.factor_for(get_viewport().get_visible_rect().size)
+	Settings.set_ui_scale(current + delta)
+
 func _nudge_volume(key: StringName, delta: float) -> void:
 	Settings.set(key, clampf(float(Settings.get(key)) + delta, 0.0, 1.0))
 	Settings.save_settings()
@@ -135,8 +145,6 @@ func _refresh() -> void:
 		_set_choice(StringName("corner_%d" % (i + 1)), Settings.play_area_corner == i + 1)
 	for level in FOCUS_NAMES.size():
 		_set_choice(StringName("focus_%d" % level), int(Settings.focus_intensity) == level)
-	for value in 4:
-		_set_choice(StringName("uiscale_%d" % value), Settings.ui_scale == value)
 	for entry in Backdrop.CHOICES:
 		_set_choice(StringName("backdrop_%s" % entry["id"]), Settings.backdrop == entry["id"])
 
@@ -147,7 +155,11 @@ func _refresh() -> void:
 	# The factor in force, not the one requested: a pinned 2x on the smallest play area is
 	# honoured as 1x because the card would not fit, and the panel has to say so rather than
 	# claim a setting the shell is not using.
-	_set_stat(&"ui_scale", "%dx" % UIScale.factor_for(get_viewport().get_visible_rect().size))
+	# Trailing zeros trimmed, so a whole number reads "2x" rather than "2.00x" — and says
+	# whether the shell is following the window or a pin the player set.
+	var in_force := UIScale.factor_for(get_viewport().get_visible_rect().size)
+	var shown := ("%.2f" % in_force).rstrip("0").rstrip(".")
+	_set_stat(&"ui_scale", "%sx%s" % [shown, "" if Settings.ui_scale > 0.0 else "  auto"])
 	_set_stat(&"volume_master", "%d%%" % roundi(Settings.volume_master * 100.0))
 	_set_stat(&"volume_sfx", "%d%%" % roundi(Settings.volume_sfx * 100.0))
 

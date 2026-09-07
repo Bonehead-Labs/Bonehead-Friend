@@ -60,8 +60,10 @@ var fps_low_power: int = 20
 var hibernate_when_occluded: bool = true
 
 # --- presentation ---
-## 0 = auto (from the window height), 1-3 = pinned. Whole numbers only; see UIScale.
-var ui_scale: int = 0
+## 0 = auto (from the window height), otherwise a pinned factor between 1 and 3 in quarter
+## steps. It was whole numbers only until D50; see `UIScale` for what that costs and why it
+## is now the player's call rather than the build's.
+var ui_scale: float = 0.0
 var focus_intensity: Intensity = Intensity.NORMAL
 var streamer_mode: bool = false
 var streamer_bg_color: Color = Color(0, 1, 0)  ## Chroma key green
@@ -114,7 +116,9 @@ func load_settings() -> void:
 	hibernate_when_occluded = cfg.get_value("performance", "hibernate_when_occluded", hibernate_when_occluded)
 
 	focus_intensity = cfg.get_value("presentation", "focus_intensity", focus_intensity)
-	ui_scale = int(cfg.get_value("presentation", "ui_scale", ui_scale))
+	# Loaded as a float: builds before D50 wrote an int here, and an int reads back as a
+	# float unchanged, so 2 becomes 2.0 and nobody notices.
+	ui_scale = float(cfg.get_value("presentation", "ui_scale", ui_scale))
 	backdrop = StringName(String(cfg.get_value("presentation", "backdrop", String(backdrop))))
 	streamer_mode = cfg.get_value("presentation", "streamer_mode", streamer_mode)
 	streamer_bg_color = cfg.get_value("presentation", "streamer_bg_color", streamer_bg_color)
@@ -166,9 +170,15 @@ func save_settings() -> void:
 	if err != OK:
 		push_error("Settings: failed to write %s (error %d)" % [CONFIG_PATH, err])
 
-func set_ui_scale(value: int) -> void:
-	value = clampi(value, 0, 3)
-	if ui_scale == value:
+## 0 is auto; anything else is a pinned factor, in quarter steps (D50).
+##
+## The bounds are literals rather than `UIScale.MIN/MAX/STEP`, for the reason at the top of
+## this file: an autoload that references a global class name before the class cache is
+## warm fails to parse, and takes the whole game with it. `UIScale` holds the same three
+## numbers and is the place to change them; this clamp is a guard, not the definition.
+func set_ui_scale(value: float) -> void:
+	value = 0.0 if value <= 0.0 else clampf(snappedf(value, 0.25), 1.0, 3.0)
+	if is_equal_approx(ui_scale, value):
 		return
 	ui_scale = value
 	save_settings()

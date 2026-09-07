@@ -33,7 +33,7 @@ func _build() -> void:
 	# The blocker is a CenterContainer sized to the viewport, so it is the one Control in
 	# the shell that must NOT be divided by the UI scale — it centres against the real
 	# window. The card inside it is scaled by the layer like everything else.
-	EventBus.ui_scale_changed.connect(func(_f: int) -> void: _fit())
+	EventBus.ui_scale_changed.connect(func(_f: float) -> void: _fit())
 	get_viewport().size_changed.connect(_fit)
 	_fit()
 

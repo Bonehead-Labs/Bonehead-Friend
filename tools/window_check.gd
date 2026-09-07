@@ -156,9 +156,25 @@ func _the_shell_fits_the_window() -> void:
 	Settings.ui_scale = 3
 	_check("a 3x pin is refused on the smallest play area",
 		UIScale.factor_for(Vector2(WindowLayout.SIZE_LADDER[0])) < 3)
+	# Quarter steps (D50). Two things to hold: a fractional pin is honoured on a window big
+	# enough for it, and a fractional pin that does *not* fit gives up a quarter at a time
+	# rather than falling all the way to the next whole number — which was the old behaviour
+	# and would make the finer ladder pointless exactly where it is needed most.
+	Settings.ui_scale = 1.75
+	var pinned_fine := UIScale.factor_for(Vector2(2560, 1440))
+	_check("a fractional pin is honoured when the shell fits (%.2fx)" % pinned_fine,
+		is_equal_approx(pinned_fine, 1.75))
+	Settings.ui_scale = 3.0
+	var stepped := UIScale.factor_for(Vector2(WindowLayout.SIZE_LADDER[0]))
+	_check("and one that does not fit gives up quarters, not whole numbers (%.2fx)" % stepped,
+		not is_equal_approx(stepped, roundf(stepped)) or stepped <= UIScale.MIN)
+
 	Settings.ui_scale = 0
 	_check("and auto still reaches 2x on a 1440p overlay",
-		UIScale.factor_for(Vector2(2560, 1440)) == 2)
+		is_equal_approx(UIScale.factor_for(Vector2(2560, 1440)), 2.0))
+	_check("auto never picks a fractional factor, so nothing the game chooses is soft",
+		is_equal_approx(UIScale.factor_for(Vector2(2560, 1440)),
+			roundf(UIScale.factor_for(Vector2(2560, 1440)))))
 
 func _find_node(root: Node, type_name: String) -> Node:
 	if root.get_class() == type_name or root.name == type_name \

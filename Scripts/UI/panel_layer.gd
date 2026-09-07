@@ -56,7 +56,7 @@ func _ready() -> void:
 	EventBus.prestige_performed.connect(func(_m: float) -> void: _update_badges())
 	# Deferred: the board is rolled by Progression on its own schedule, possibly after this.
 	_update_badges.call_deferred()
-	EventBus.ui_scale_changed.connect(func(_f: int) -> void: _fit())
+	EventBus.ui_scale_changed.connect(func(_f: float) -> void: _fit())
 	get_viewport().size_changed.connect(_fit)
 	# `size_changed` is not enough on its own. Changing the play area resizes the OS window,
 	# and the viewport has not caught up at the moment the setting is applied — so the shell
