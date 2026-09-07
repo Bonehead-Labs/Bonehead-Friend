@@ -28,6 +28,11 @@ func _ready() -> void:
 		"size": Settings.play_area_size,
 		"corner": Settings.play_area_corner,
 		"scale": Settings.ui_scale,
+		# D52 moves the window for real and D49 added a flag. State left in the singleton
+		# mid-run is read by every suite after this one, and by the game on the next launch.
+		"rect": Settings.play_area_rect,
+		"monitor": Settings.monitor_id,
+		"on_top": Settings.always_on_top,
 	}
 	var main: Node = load("res://main.tscn").instantiate()
 	add_child(main)
@@ -41,6 +46,7 @@ func _ready() -> void:
 	await _the_corners_move_the_window()
 	await _the_size_steps()
 	await _the_shell_fits_the_window()
+	await _the_window_moves()
 
 	print("")
 	print("==============================")
@@ -123,10 +129,21 @@ func _the_shell_fits_the_window() -> void:
 	await _idle(SETTLE)
 
 	var panels := _find_node(get_tree().root, "PanelLayer")
-	var hud := _find_node(get_tree().root, "Hud")
+	var hud := _find_node(get_tree().root, "HUD")  # "Hud" never matched: the node is named "HUD" and _find_node is case-sensitive
 	if panels == null:
 		_check("the panel layer exists", false)
 		return
+
+	# Pinned open for the sweep. "Does the shell fit the window" is a question about the shell
+	# while it is on screen; auto-hide (D29) parks the HUD column at x=-278 by design, and an
+	# unpinned run reports eighteen escapes that are the feature working. This only started
+	# mattering when the HUD lookup above was fixed — it had been silently null for the whole
+	# life of this suite, so the HUD was never measured at all.
+	for drawer_name in ["HudDrawer", "TabsDrawer"]:
+		var drawer := _find_node(get_tree().root, drawer_name)
+		if drawer:
+			drawer.set("pinned", true)
+	await _idle(SETTLE)
 
 	var escapes: Array[String] = []
 	for rung in WindowLayout.SIZE_LADDER:
@@ -179,6 +196,98 @@ func _the_shell_fits_the_window() -> void:
 		is_equal_approx(UIScale.factor_for(Vector2(2560, 1440)),
 			roundf(UIScale.factor_for(Vector2(2560, 1440)))))
 
+## Dragging the window by its grip, and staying where it was put (D52).
+##
+## Drivable at all only because `begin/update/end_window_drag` take the cursor position as an
+## argument instead of reading `DisplayServer.mouse_get_position()` themselves — no synthetic
+## event can move a real cursor, so a gesture that reads the OS directly is untestable by
+## construction. What is NOT covered here is the grip Control receiving the press; that is
+## `ui_check`'s job, and crossing a real monitor seam stays in `docs/test-matrix.md`.
+##
+## Runs last. It deliberately leaves the window somewhere unusual, and every suite above
+## reads the window it is given.
+func _the_window_moves() -> void:
+	_suite("moving the window")
+	OverlayManager.set_window_mode(WindowLayout.Mode.PLAY_AREA)
+	OverlayManager.snap_to_corner(WindowLayout.Corner.TOP_LEFT)
+	await _idle(SETTLE)
+	var start := DisplayServer.window_get_position()
+
+	# Under the slop threshold: a click that wobbles is a click, not a drag.
+	OverlayManager.begin_window_drag(Vector2i(600, 400))
+	OverlayManager.update_window_drag(Vector2i(602, 401))
+	await _idle(2)
+	_check("a wobble under the slop threshold does not move the window",
+		DisplayServer.window_get_position() == start)
+
+	OverlayManager.update_window_drag(Vector2i(800, 500))
+	await _idle(SETTLE)
+	var moved := DisplayServer.window_get_position()
+	_check("a 200x100 drag moves the window by 200x100 (%s -> %s)" % [start, moved],
+		moved == start + Vector2i(200, 100))
+
+	OverlayManager.end_window_drag()
+	await _idle(SETTLE)
+	_check("releasing clears the corner anchor, so nothing snaps it back",
+		Settings.play_area_corner == WindowLayout.Corner.FREE)
+	_check("and remembers where it was put",
+		Settings.play_area_rect.position == DisplayServer.window_get_position())
+
+	# The half that D49 got wrong: the move survived the release and was undone by the next
+	# apply, because `target_rect` re-clamped every free position to one monitor.
+	var settled := DisplayServer.window_get_position()
+	OverlayManager.apply_window_configuration()
+	await _idle(SETTLE)
+	_check("and an apply leaves it there rather than re-homing it (%s)" % settled,
+		DisplayServer.window_get_position() == settled)
+
+	# Resizing used to throw the dragged position away and re-home it to a corner.
+	OverlayManager.step_play_area_size(1)
+	await _idle(SETTLE)
+	_check("stepping the size keeps the position it was dragged to",
+		DisplayServer.window_get_position() == settled)
+	OverlayManager.step_play_area_size(-1)
+	await _idle(SETTLE)
+
+	# One assertion that says something on every machine, single-monitor CI included.
+	var screens := DisplayServer.get_screen_count()
+	if screens > 1:
+		var other := (Settings.monitor_id + 1) % screens
+		var target := DisplayServer.screen_get_usable_rect(other)
+		var here := DisplayServer.window_get_position()
+		OverlayManager.begin_window_drag(Vector2i(0, 0))
+		OverlayManager.update_window_drag(target.position + Vector2i(80, 80) - here)
+		OverlayManager.end_window_drag()
+		await _idle(SETTLE)
+		_check("with %d screens, a drag onto another one stays there" % screens,
+			WindowLayout.screen_for_rect(Rect2i(DisplayServer.window_get_position(),
+				DisplayServer.window_get_size()), _screen_rects()) == other)
+	else:
+		# The rule that holds either way: dragged past every edge, it is pulled back.
+		OverlayManager.begin_window_drag(Vector2i(0, 0))
+		OverlayManager.update_window_drag(Vector2i(20000, 20000))
+		OverlayManager.end_window_drag()
+		await _idle(SETTLE)
+		_check("with 1 screen, a drag off the edge is pulled back onto it",
+			WindowLayout.screen_for_rect(Rect2i(DisplayServer.window_get_position(),
+				DisplayServer.window_get_size()), _screen_rects()) >= 0)
+
+	# The flag D49 made a setting, checked against the real window rather than Settings.
+	OverlayManager.set_always_on_top(false)
+	await _idle(SETTLE)
+	_check("always-on-top can be turned off for real",
+		not DisplayServer.window_get_flag(DisplayServer.WINDOW_FLAG_ALWAYS_ON_TOP))
+	OverlayManager.set_always_on_top(true)
+	await _idle(SETTLE)
+	_check("and back on",
+		DisplayServer.window_get_flag(DisplayServer.WINDOW_FLAG_ALWAYS_ON_TOP))
+
+func _screen_rects() -> Array[Rect2i]:
+	var out: Array[Rect2i] = []
+	for i in DisplayServer.get_screen_count():
+		out.append(DisplayServer.screen_get_usable_rect(i))
+	return out
+
 func _find_node(root: Node, type_name: String) -> Node:
 	if root.get_class() == type_name or root.name == type_name \
 			or (root.get_script() and root.get_script().get_global_name() == type_name):
@@ -194,6 +303,9 @@ func _restore_settings() -> void:
 	Settings.play_area_corner = _restore["corner"]
 	Settings.ui_scale = _restore["scale"]
 	Settings.window_mode = _restore["mode"]
+	Settings.play_area_rect = _restore["rect"]
+	Settings.monitor_id = _restore["monitor"]
+	Settings.always_on_top = _restore["on_top"]
 	Settings.save_settings()
 
 func _suite(title: String) -> void:

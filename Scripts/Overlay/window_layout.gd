@@ -58,14 +58,23 @@ static func target_rect(
 		play_size: Vector2i,
 		corner: int,
 		free_position: Vector2i,
-		margin: int = DEFAULT_MARGIN) -> Rect2i:
+		margin: int = DEFAULT_MARGIN,
+		screens: Array[Rect2i] = []) -> Rect2i:
 
 	if mode == Mode.FULLSCREEN_OVERLAY:
 		return usable
 
 	var size := clamp_play_size(play_size, usable)
-	var pos := free_position if corner == Corner.FREE else corner_position(corner, size, usable, margin)
-	return Rect2i(clamp_position(pos, size, usable), size)
+	if corner == Corner.FREE:
+		# A free window is wherever it was dragged, and that may be a different monitor than
+		# the one `usable` describes (D52). Re-clamping it here to a single screen is what
+		# made dragging across a seam impossible even after the drag itself allowed it: the
+		# next apply — a size step, a Focus Mode toggle, the next boot — put it straight back.
+		if not screens.is_empty():
+			return Rect2i(clamp_to_desktop(free_position, size, screens), size)
+		return Rect2i(clamp_position(free_position, size, usable), size)
+	# Corners stay per-monitor. Snapping is the whole point of them.
+	return Rect2i(clamp_position(corner_position(corner, size, usable, margin), size, usable), size)
 
 ## Never larger than the screen, never uselessly small.
 static func clamp_play_size(size: Vector2i, usable: Rect2i) -> Vector2i:
@@ -92,6 +101,79 @@ static func corner_position(corner: int, size: Vector2i, usable: Rect2i, margin:
 	# which this used to return, is where the taskbar clock and every notification are not,
 	# but it is also where most people keep the thing they are actually doing.
 	return Vector2i(right, bottom)
+
+# --- the whole desktop, not one monitor (D52) ---------------------------------
+
+## How much of the window must stay on some screen. Sized to keep the **grip** reachable,
+## not merely to keep some pixels visible: the grip is a 52x14 UI control inset 2px at the
+## top centre, and the shell scales up to 3x (D50), so 90 vertical screen pixels is the
+## shallowest sliver that still contains it. Horizontal is generous because the grip is
+## centred — half the window can be off the side and it is still grabbable.
+const MIN_VISIBLE := Vector2i(120, 90)
+
+## Which screen a rect mostly sits on, or -1 if it touches none. Pure: the caller collects
+## the rects from `DisplayServer` so this stays testable under `-s`, where autoloads and the
+## DisplayServer are both absent.
+##
+## Largest overlap wins rather than "contains the origin". A window straddling the seam
+## between two monitors has an origin on one and its body on the other, and the origin test
+## sends it home to the wrong one every time.
+static func screen_for_rect(rect: Rect2i, screens: Array[Rect2i]) -> int:
+	var best := -1
+	var best_area := 0
+	for i in screens.size():
+		var overlap := screens[i].intersection(rect)
+		var area := overlap.size.x * overlap.size.y
+		if area > best_area:
+			best_area = area
+			best = i
+	return best
+
+## Keep the window somewhere reachable across the WHOLE desktop, rather than inside one
+## monitor's usable rect.
+##
+## This is the difference between "you may put it anywhere" and "you may put it anywhere on
+## the screen it started on", which is what the owner ran into: `clamp_position` against a
+## single usable rect made a second monitor unreachable by dragging.
+##
+## Nothing is snapped. A window overlapping any screen by at least `MIN_VISIBLE` is left
+## exactly where it was put, including straddling a seam and including hanging off an edge.
+## Only a window that has escaped every screen is pulled back, and then to the nearest one.
+static func clamp_to_desktop(pos: Vector2i, size: Vector2i, screens: Array[Rect2i]) -> Vector2i:
+	if screens.is_empty():
+		return pos
+	var want := Vector2i(mini(MIN_VISIBLE.x, size.x), mini(MIN_VISIBLE.y, size.y))
+	var rect := Rect2i(pos, size)
+	for screen in screens:
+		var overlap := screen.intersection(rect)
+		if overlap.size.x >= want.x and overlap.size.y >= want.y:
+			return pos
+	# Off every screen. Pull it back onto whichever one its centre is nearest, so a window
+	# dragged into the gap between two mismatched monitors returns to the one it came from
+	# rather than to the primary.
+	var centre := Vector2(pos) + Vector2(size) * 0.5
+	var home := screens[0]
+	var best := INF
+	for screen in screens:
+		var d := (Vector2(screen.position) + Vector2(screen.size) * 0.5).distance_to(centre)
+		if d < best:
+			best = d
+			home = screen
+	return clamp_position(pos, size, home)
+
+## True when a saved rect is no longer usable on ANY screen. The single-monitor form is kept
+## for the corner path, which is still per-monitor by design.
+static func needs_revalidation_across(saved: Rect2i, screens: Array[Rect2i]) -> bool:
+	if saved.size.x <= 0 or saved.size.y <= 0:
+		return true
+	if screens.is_empty():
+		return false
+	var want := Vector2i(mini(MIN_VISIBLE.x, saved.size.x), mini(MIN_VISIBLE.y, saved.size.y))
+	for screen in screens:
+		var overlap := screen.intersection(saved)
+		if overlap.size.x >= want.x and overlap.size.y >= want.y:
+			return false
+	return true
 
 ## Keeps the window on screen. Guards the case where the window is larger than the
 ## monitor, where naive clamping would push it off the top-left instead.

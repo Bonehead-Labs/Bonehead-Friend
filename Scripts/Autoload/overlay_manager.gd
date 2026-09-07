@@ -79,68 +79,91 @@ var _window_dragging := false
 var _drag_mouse_start := Vector2i.ZERO
 var _drag_window_start := Vector2i.ZERO
 
-## Drag the background to move the window.
+## Moving the window is a **grip**, not the background (D52).
 ##
-## The window is borderless, so it has no title bar and no OS grab handle: until now the
-## only positions it could occupy were the four corners the game offered, and a desktop toy
-## that cannot be put where its owner wants it is in the way rather than in the corner.
+## D49 armed this from `_unhandled_input`, on the reasoning that a press nothing else wanted
+## is by definition the background. That is true and it was still wrong: the owner went to
+## click something in the play area, missed the thing, and moved the window instead. An
+## overlay is mostly empty space, so "anywhere nothing claimed" is almost everywhere, and a
+## gesture that large cannot be a deliberate one. `WindowGrip` owns it now and calls in here.
 ##
-## `_unhandled_input`, so this is by definition a press nothing else wanted — not the buddy,
-## not a toy, not a panel, not an armed cursor power. That one choice is what keeps this from
-## fighting every other gesture in the game, and it is also why the rule is easy to say:
-## drag the *background*.
-##
-## Screen coordinates from `DisplayServer`, not viewport coordinates, because the window
-## moves out from under the cursor as it is dragged and the motion event's own position is
-## then relative to a frame that is itself moving. It is the one place in this project that
-## legitimately reads the OS cursor — and the reason this gesture cannot be driven by
-## synthetic events, so it belongs to `docs/test-matrix.md` rather than to a suite.
-func _unhandled_input(event: InputEvent) -> void:
-	if not _can_move_window():
+## Screen coordinates from the caller, not read here, because the window moves out from under
+## the cursor as it is dragged — a motion event's own position is relative to a frame that is
+## itself moving. Passing them in is also what lets a suite drive this without a real cursor.
+func begin_window_drag(from: Vector2i) -> void:
+	if not window_is_movable():
 		return
-	var click := event as InputEventMouseButton
-	if click and click.button_index == MOUSE_BUTTON_LEFT:
-		if click.pressed:
-			_window_drag_armed = true
-			_window_dragging = false
-			_drag_mouse_start = DisplayServer.mouse_get_position()
-			_drag_window_start = DisplayServer.window_get_position()
-		else:
-			if _window_dragging:
-				_commit_window_move()
-			_window_drag_armed = false
-			_window_dragging = false
+	_window_drag_armed = true
+	_window_dragging = false
+	_drag_mouse_start = from
+	_drag_window_start = DisplayServer.window_get_position()
+
+func update_window_drag(to: Vector2i) -> void:
+	if not _window_drag_armed:
 		return
-	if not _window_drag_armed or event is not InputEventMouseMotion:
-		return
-	var travelled := Vector2(DisplayServer.mouse_get_position() - _drag_mouse_start)
+	var travelled := Vector2(to - _drag_mouse_start)
 	if not _window_dragging and travelled.length() < WINDOW_DRAG_SLOP:
 		return
 	_window_dragging = true
-	DisplayServer.window_set_position(
-		_drag_window_start + Vector2i(travelled.round()))
+	if not _can_write_window():
+		return
+	DisplayServer.window_set_position(_drag_window_start + Vector2i(travelled.round()))
 
-## Whether a background drag should move the window at all.
+func end_window_drag() -> void:
+	var moved := _window_dragging
+	_window_drag_armed = false
+	_window_dragging = false
+	if moved:
+		commit_window_move()
+
+func window_drag_armed() -> bool:
+	return _window_drag_armed
+
+## Whether the game offers to move its window at all. A pure `Settings` question, so it is
+## the same answer headless — the grip's visibility must not depend on there being a
+## DisplayServer, or it is untestable and invisible in `ui_check`.
 ##
-## Not in fullscreen overlay: the window already covers the usable screen, so "moving" it
-## only takes the game off the edge of the monitor.
-func _can_move_window() -> bool:
-	if not _applied or not Settings.overlay_enabled:
+## True in fullscreen overlay too. The window fills one screen there, so dragging it is how
+## you say "put him on my other monitor" — which is exactly what the owner asked for, and
+## which the mode most players boot into would otherwise refuse.
+func window_is_movable() -> bool:
+	return Settings.overlay_enabled
+
+## Whether a DisplayServer write is meaningful. Separate from the above on purpose: arming
+## and slop are pure bookkeeping and work anywhere, and only the actual move needs a window.
+func _can_write_window() -> bool:
+	if DisplayServer.get_name() == "headless":
 		return false
-	if DisplayServer.get_name() == "headless" or get_window().is_embedded():
-		return false
-	return Settings.window_mode != WindowLayout.Mode.FULLSCREEN_OVERLAY
+	return not get_window().is_embedded()
 
 ## Remember where it was put, once, on release rather than on every motion event.
 ##
 ## Dragging clears the corner anchor: putting the window somewhere by hand is a statement
-## about where it should be, and leaving the anchor set would snap it back on the next
-## apply. The four corners stay in Settings as a one-click tidy-up.
-func _commit_window_move() -> void:
-	var usable := DisplayServer.screen_get_usable_rect(_validated_monitor())
+## about where it should be, and leaving the anchor set would snap it back on the next apply.
+## The four corners stay in Settings as a one-click tidy-up.
+##
+## Clamped to the **whole desktop**, not to one monitor (D52). The old form clamped against
+## `_validated_monitor()` — which is `Settings.monitor_id`, the *saved* monitor rather than
+## the one the window is on — so a window dragged onto a second screen was hauled back before
+## the player had let go of it. `monitor_id` follows the window instead, or the next boot
+## revalidates against the wrong screen and undoes the move anyway.
+func commit_window_move() -> void:
+	var screens := _screen_rects()
 	var size := DisplayServer.window_get_size()
-	var placed := WindowLayout.clamp_position(DisplayServer.window_get_position(), size, usable)
-	DisplayServer.window_set_position(placed)
+	var placed := WindowLayout.clamp_to_desktop(
+		DisplayServer.window_get_position(), size, screens)
+	if _can_write_window():
+		DisplayServer.window_set_position(placed)
+
+	var landed := WindowLayout.screen_for_rect(Rect2i(placed, size), screens)
+	if landed >= 0:
+		Settings.monitor_id = landed
+	# Fullscreen overlay does not stay where it is dropped — it fills whichever screen it was
+	# dropped on. Dragging it is the player saying which monitor, not where on that monitor.
+	if Settings.window_mode == WindowLayout.Mode.FULLSCREEN_OVERLAY:
+		Settings.save_settings()
+		apply_window_configuration()
+		return
 
 	Settings.play_area_corner = WindowLayout.Corner.FREE
 	Settings.play_area_rect = Rect2i(placed, size)
@@ -150,6 +173,14 @@ func _commit_window_move() -> void:
 	_known_size = size
 	_force_passthrough_rebuild()
 	window_rect_changed.emit(current_rect)
+
+## Every screen's usable rect, as plain data for `WindowLayout`. Empty headless, where
+## `get_screen_count()` is 0 — which the pure helpers read as "no opinion" and pass through.
+func _screen_rects() -> Array[Rect2i]:
+	var out: Array[Rect2i] = []
+	for i in DisplayServer.get_screen_count():
+		out.append(DisplayServer.screen_get_usable_rect(i))
+	return out
 
 # --- window configuration --------------------------------------------------
 
@@ -175,11 +206,25 @@ func apply_window_configuration() -> void:
 		_clear_passthrough()
 		return
 
+	var screens := _screen_rects()
+	# A free window chooses its own monitor (D52). It is wherever the player dragged it, and
+	# `monitor_id` is only a record of where that was — letting the record win is what hauled
+	# a dragged window back across the seam on the next apply, and on the next boot.
+	var free := Settings.play_area_corner == WindowLayout.Corner.FREE \
+		and Settings.play_area_rect.size.x > 0 and Settings.play_area_rect.size.y > 0
+	if free:
+		var landed := WindowLayout.screen_for_rect(Settings.play_area_rect, screens)
+		if landed >= 0:
+			Settings.monitor_id = landed
 	var screen := _validated_monitor()
 	var usable := DisplayServer.screen_get_usable_rect(screen)
 
-	# A saved rect from a monitor that has since changed is worse than no saved rect.
-	if WindowLayout.needs_revalidation(Settings.play_area_rect, usable):
+	# A saved rect from a monitor that has since changed is worse than no saved rect — but a
+	# free window is judged against every screen, not just the one it is nominally on, or
+	# straddling a seam reads as stale and snaps it home.
+	var stale := WindowLayout.needs_revalidation_across(Settings.play_area_rect, screens) \
+		if free else WindowLayout.needs_revalidation(Settings.play_area_rect, usable)
+	if stale:
 		Settings.play_area_rect = Rect2i(
 			WindowLayout.corner_position(Settings.play_area_corner, Settings.play_area_size, usable),
 			WindowLayout.clamp_play_size(Settings.play_area_size, usable))
@@ -189,7 +234,9 @@ func apply_window_configuration() -> void:
 		usable,
 		Settings.play_area_size,
 		Settings.play_area_corner,
-		Settings.play_area_rect.position)
+		Settings.play_area_rect.position,
+		WindowLayout.DEFAULT_MARGIN,
+		screens)
 
 	# Borderless and always-on-top are set in project.godot so the window is CREATED that
 	# way. Flipping them at runtime makes Windows leave the outer size a couple of pixels
@@ -271,8 +318,15 @@ func set_window_mode(mode: WindowLayout.Mode) -> void:
 
 func set_play_area_size(size: Vector2i) -> void:
 	Settings.play_area_size = size
-	# The saved rect belongs to the old size; drop it so the corner snap recomputes.
-	Settings.play_area_rect = Rect2i()
+	# A free window keeps where it was put and only changes size (D52). Dropping the rect
+	# here made it stale, revalidation re-homed it to a corner, and the window a player had
+	# carefully dragged onto their second monitor teleported the first time they pressed +.
+	# A corner-snapped window has no position worth keeping — the corner recomputes it.
+	if Settings.play_area_corner == WindowLayout.Corner.FREE \
+			and Settings.play_area_rect.size.x > 0:
+		Settings.play_area_rect = Rect2i(Settings.play_area_rect.position, size)
+	else:
+		Settings.play_area_rect = Rect2i()
 	Settings.save_settings()
 	apply_window_configuration()
 

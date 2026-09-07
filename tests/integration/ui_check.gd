@@ -81,6 +81,7 @@ func _ready() -> void:
 	await _pin_shell(true)
 
 	_the_suite_writes_nowhere_real()
+	_the_window_has_one_grab_point()
 	_nothing_blocks_the_window()
 	await _the_strip_opens_the_panels()
 	await _the_card_is_one_size()
@@ -1163,6 +1164,52 @@ func _the_power_leaves_your_hands_free() -> void:
 	_check("and takes itself off screen", not chip.visible)
 	_check("holstering an empty hand reports nothing to do",
 		not bool(spawner.call("holster_power")))
+
+## There is exactly one place the window can be picked up, and it is not the background (D52).
+##
+## D49 armed the move from `OverlayManager._unhandled_input` — any press nothing else claimed.
+## On an overlay that is nearly the whole window, and the owner reported it immediately: they
+## went to click something in the play area, missed, and moved the window. This asserts the
+## replacement exists, is reachable, and that the old gesture is gone.
+func _the_window_has_one_grab_point() -> void:
+	_suite("window grip")
+	var grip := _find(_main, "WindowGripHandle") as Control
+	_check("the window has a grip", grip != null)
+	if grip == null:
+		return
+	_check("it is visible", grip.visible)
+	_check("and it takes clicks itself rather than letting them fall through",
+		grip.mouse_filter == Control.MOUSE_FILTER_STOP,
+		"filter %d" % grip.mouse_filter)
+
+	# Top centre: the one edge of the shell nothing else occupies. The HUD column is
+	# top-left and the tab strip top-right, so either corner would have meant reserving a
+	# strip in both and re-homing two auto-hide drawers.
+	var root := grip.get_parent() as Control
+	_check("it sits at the top of the window", grip.position.y < 8.0,
+		"y %.0f" % grip.position.y)
+	_check("and centred, clear of the HUD and the tabs",
+		absf((grip.position.x + grip.size.x * 0.5) - root.size.x * 0.5) <= 1.0,
+		"grip centre %.0f of %.0f" % [grip.position.x + grip.size.x * 0.5, root.size.x])
+
+	# The gesture, driven through the grip's own handler — which is where it has to live,
+	# because a STOP Control consumes the press at the GUI stage and `_unhandled_input` is
+	# guaranteed never to see it.
+	var press := InputEventMouseButton.new()
+	press.button_index = MOUSE_BUTTON_LEFT
+	press.pressed = true
+	grip.gui_input.emit(press)
+	_check("pressing it arms a window drag", OverlayManager.window_drag_armed())
+	var release := InputEventMouseButton.new()
+	release.button_index = MOUSE_BUTTON_LEFT
+	release.pressed = false
+	grip.gui_input.emit(release)
+	_check("and releasing disarms it", not OverlayManager.window_drag_armed())
+
+	# The old gesture must be gone, not merely supplemented. A grip that works while the
+	# background still drags is the original complaint plus one more mark on the desktop.
+	_check("the background no longer moves the window",
+		not OverlayManager.has_method("_unhandled_input"))
 
 ## The suite must not be able to reconfigure the game it is testing (D51).
 ##

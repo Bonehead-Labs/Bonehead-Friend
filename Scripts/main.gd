@@ -15,6 +15,7 @@ var _hud: HUD
 var _panels: PanelLayer
 var _esc: EscMenu
 var _fx: FXLayer
+var _grip: WindowGrip
 
 func _ready() -> void:
 	# Load before building UI: the shop reads what the player owns, and Progression grants
@@ -200,6 +201,13 @@ func _build_ui() -> void:
 	if buddy and buddy.health:
 		_hud.bind_health(buddy.health)
 	_hud.bind_spawner(spawner)
+
+	# The only place the window can be picked up (D52). Inside main.tscn rather than parented
+	# to the OverlayManager autoload the way DebugOverlay is: `ui_check` walks the main
+	# scene, and a shell control living outside it is invisible to every sweep in the suite.
+	_grip = WindowGrip.new()
+	_grip.name = "WindowGrip"
+	add_child(_grip)
 
 	_esc = EscMenu.new()
 	_esc.name = "EscMenu"

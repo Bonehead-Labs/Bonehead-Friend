@@ -1314,6 +1314,58 @@ exactly the same reason. `ui_check` asserts on its first suite that the redirect
 place — circular-looking, but the failure it catches is somebody deleting that line, and the
 cost of missing it is measured in an afternoon spent debugging the wrong thing.
 
+## D52 — One grip moves the window, anywhere on the desktop (2026-09-07)
+
+**Decision.** A 52x14 grip at the top centre of the window is the only place it can be picked
+up, and a dragged window is left wherever it is put — including on another monitor, including
+straddling a seam. Supersedes both load-bearing halves of **D49**.
+
+**Why the background was wrong.** D49 armed the move from `_unhandled_input`, reasoning that
+a press nothing else claimed is by definition the background. That is true and it was still
+wrong: an overlay is mostly empty space, so "anywhere nothing claimed" is very nearly
+everywhere. The owner went to click something in the play area, missed the thing, and moved
+the window. A gesture that large cannot be a deliberate one.
+
+Top centre because it is where a title bar lives on every other window on the desktop, and
+because it is the one edge of the shell nothing else occupies — the HUD column is top-left and
+the tab strip top-right. Either corner would have meant reserving a strip in both and
+re-homing two auto-hide drawers.
+
+**Why the snap was wrong, and why fixing the drag alone would not have helped.** The clamp
+lived in three places, and the obvious one was the least important. `_commit_window_move`
+clamped against `_validated_monitor()` — which is `Settings.monitor_id`, the *saved* monitor,
+not the one the window is on. But even fixing that changes nothing visible, because
+`WindowLayout.target_rect` re-clamped every FREE position to a single usable rect on **every
+apply**, and `needs_revalidation` judged the saved rect against that same one screen. A size
+step, a Focus Mode toggle or the next boot would each have hauled the window back. There was a
+fourth: `set_play_area_size` cleared the saved rect outright, so pressing `+` teleported a
+window the player had carefully dragged.
+
+So the geometry moved into `WindowLayout` as pure, DisplayServer-free helpers —
+`screen_for_rect`, `clamp_to_desktop`, `needs_revalidation_across` — and `monitor_id` now
+follows the window rather than overruling it. Nothing is snapped: a window overlapping any
+screen by `MIN_VISIBLE` is left exactly where it was put, and only one that has escaped every
+screen is pulled back, to the nearest.
+
+`MIN_VISIBLE` is sized to keep **the grip** reachable rather than to keep some pixels visible:
+the grip is 14 UI px inset 2 at a shell scale of up to 3x (D50), so 90 vertical pixels is the
+shallowest sliver that still contains it.
+
+*Consequence:* the cursor position is an **argument** to `begin/update/end_window_drag`, not
+read inside them. That is what makes the gesture testable at all — no synthetic event can move
+a real cursor, so a gesture that reads `DisplayServer.mouse_get_position()` itself is
+untestable by construction. `window_check` now drags the window for real, including onto a
+second monitor when the machine has one, and the unit suite covers the pure geometry against
+synthetic screen lists that include a monitor to the *left* of primary, whose usable rect has
+a negative origin — the layout that is wrong on a common setup and right on the developer's.
+
+*Found on the way:* `window_check` looked the HUD up as `"Hud"`, but the node is named `"HUD"`
+and the lookup is case-sensitive. It had been silently null for the life of that suite, so the
+"no part of the shell leaves the window" sweep had never measured the HUD at all. Fixing it
+immediately reported eighteen escapes, every one of them the auto-hide drawer parked off the
+left edge by design — so the sweep now pins both drawers first, since the question is about
+the shell while it is on screen.
+
 ## Recommendations not yet decided
 
 Carried in the spec, owner's call before they matter:

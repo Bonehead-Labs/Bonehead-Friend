@@ -123,6 +123,9 @@ func _initialize() -> void:
 	_test_oversized_window_stays_on_screen()
 	_test_revalidation_detects_stale_rect()
 
+	_suite("window layout across screens")
+	_test_the_desktop_is_more_than_one_monitor()
+
 
 	print("")
 	print("==========================")
@@ -627,6 +630,67 @@ func _test_oversized_window_stays_on_screen() -> void:
 	var usable := Rect2i(0, 0, 800, 600)
 	var pos: Vector2i = WindowLayout.clamp_position(Vector2i(500, 500), Vector2i(1200, 900), usable)
 	_check("oversized window pinned to origin", pos == Vector2i(0, 0))
+
+## The whole desktop, not one monitor (D52).
+##
+## Written against synthetic screen lists rather than the machine's real ones, so it says the
+## same thing on a single-monitor CI box as on the developer's two — and so it can include the
+## layout that actually breaks naive code: **a monitor to the LEFT of the primary**, whose
+## usable rect has a negative x. Anything that assumes the desktop starts at (0,0) is correct
+## on the developer's setup and wrong on a very common one.
+func _test_the_desktop_is_more_than_one_monitor() -> void:
+	var side_by_side: Array[Rect2i] = [
+		Rect2i(0, 0, 1920, 1040),
+		Rect2i(1920, -200, 2560, 1400),   # taller, mounted higher, to the right
+	]
+	var to_the_left: Array[Rect2i] = [
+		Rect2i(-1920, 0, 1920, 1080),
+		Rect2i(0, 0, 2560, 1400),
+	]
+	var size := Vector2i(1180, 760)
+
+	_check("a window on the second monitor is left where it is",
+		WindowLayout.clamp_to_desktop(Vector2i(2200, 100), size, side_by_side)
+			== Vector2i(2200, 100))
+	_check("a window straddling the seam is left alone rather than snapped to one side",
+		WindowLayout.clamp_to_desktop(Vector2i(1500, 100), size, side_by_side)
+			== Vector2i(1500, 100))
+	_check("and a monitor left of primary works the same, negative coordinates and all",
+		WindowLayout.clamp_to_desktop(Vector2i(-1800, 40), size, to_the_left)
+			== Vector2i(-1800, 40))
+
+	# Only a window that has escaped every screen is touched.
+	var lost := WindowLayout.clamp_to_desktop(Vector2i(9000, 9000), size, side_by_side)
+	_check("a window off every screen is pulled back onto one",
+		WindowLayout.screen_for_rect(Rect2i(lost, size), side_by_side) >= 0)
+	_check("with no screens to consult it is left exactly as asked",
+		WindowLayout.clamp_to_desktop(Vector2i(-5000, -5000), size, [] as Array[Rect2i])
+			== Vector2i(-5000, -5000))
+
+	_check("the screen a window is on is the one it overlaps most, not the one holding its corner",
+		WindowLayout.screen_for_rect(Rect2i(1700, 100, 1180, 760), side_by_side) == 1)
+	_check("and nothing owns a window that touches no screen",
+		WindowLayout.screen_for_rect(Rect2i(9000, 9000, 100, 100), side_by_side) == -1)
+
+	_check("a rect on the second monitor is not stale",
+		not WindowLayout.needs_revalidation_across(Rect2i(2200, 100, 1180, 760), side_by_side))
+	_check("a rect off every monitor is stale",
+		WindowLayout.needs_revalidation_across(Rect2i(9000, 9000, 1180, 760), side_by_side))
+	_check("an empty rect is stale whatever the screens say",
+		WindowLayout.needs_revalidation_across(Rect2i(), side_by_side))
+
+	# And the reason all of the above exists: target_rect must not re-home a free window.
+	var free := WindowLayout.target_rect(WindowLayout.Mode.PLAY_AREA, side_by_side[0], size,
+		WindowLayout.Corner.FREE, Vector2i(2200, 100), WindowLayout.DEFAULT_MARGIN,
+		side_by_side)
+	_check("a free window keeps the monitor it was dragged to across an apply",
+		free.position == Vector2i(2200, 100))
+	# Corners are still per-monitor. Snapping is what they are for.
+	var snapped := WindowLayout.target_rect(WindowLayout.Mode.PLAY_AREA, side_by_side[0], size,
+		WindowLayout.Corner.TOP_LEFT, Vector2i(2200, 100), WindowLayout.DEFAULT_MARGIN,
+		side_by_side)
+	_check("but a corner still snaps to its own monitor",
+		side_by_side[0].encloses(snapped))
 
 func _test_revalidation_detects_stale_rect() -> void:
 	var usable := Rect2i(0, 0, 1920, 1040)

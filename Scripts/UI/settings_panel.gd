@@ -52,15 +52,15 @@ func _build_page() -> void:
 	_stepper(size_row, "−", func() -> void: OverlayManager.step_play_area_size(-1))
 	_stepper(size_row, "+", func() -> void: OverlayManager.step_play_area_size(1))
 
-	# The four corners are a tidy-up, not the only places it can go (D49). Dragging the
-	# background moves the window and clears whichever of these was set, which is why none of
-	# them is lit by default any more.
+	# The four corners are a tidy-up, not the only places it can go (D49/D52). Dragging the
+	# grip moves the window and clears whichever of these was set, which is why none of them
+	# is lit by default any more.
 	var corner_row := _row()
 	for i in CORNER_NAMES.size():
 		var corner := i + 1  # 0 is FREE; the buttons offer the four snapped corners.
 		_choice(corner_row, CORNER_NAMES[i], StringName("corner_%d" % corner), func() -> void:
 			OverlayManager.snap_to_corner(corner))
-	_column.add_child(_note("Drag the background to put the window anywhere. The corners snap it back."))
+	_column.add_child(_note("Drag the grip at the top of the window to move it — any screen, no snapping. The corners snap it back."))
 
 	var top_row := _row()
 	_rows[&"always_on_top"] = _stat(top_row, "Always on top", "—")
