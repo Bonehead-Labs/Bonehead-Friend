@@ -84,7 +84,14 @@ static func corner_position(corner: int, size: Vector2i, usable: Rect2i, margin:
 		Corner.TOP_RIGHT: return Vector2i(right, top)
 		Corner.BOTTOM_LEFT: return Vector2i(left, bottom)
 		Corner.BOTTOM_RIGHT: return Vector2i(right, bottom)
-	return Vector2i(left, top)
+	# FREE, and anything unrecognised: bottom-right. This is only ever reached to invent a
+	# *first* home — for a fresh install, or when a saved rect no longer fits the monitor —
+	# because a free window otherwise uses the position it was dragged to. Bottom-right
+	# because that is where the game used to force it (D49), and out of the way is the right
+	# first guess for something that lives on someone's desktop while they work. Top-left,
+	# which this used to return, is where the taskbar clock and every notification are not,
+	# but it is also where most people keep the thing they are actually doing.
+	return Vector2i(right, bottom)
 
 ## Keeps the window on screen. Guards the case where the window is larger than the
 ## monitor, where naive clamping would push it off the top-left instead.

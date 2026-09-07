@@ -67,6 +67,90 @@ func _input(event: InputEvent) -> void:
 		if not _interacting:
 			set_interacting(true)
 
+# --- moving the window (D49) -----------------------------------------------
+
+## How far the cursor must travel before a press becomes a window drag, in screen pixels.
+## Without this every click on the backdrop nudges the window by a pixel or two, and a game
+## about clicking things becomes a game about accidentally moving the window.
+const WINDOW_DRAG_SLOP := 4.0
+
+var _window_drag_armed := false
+var _window_dragging := false
+var _drag_mouse_start := Vector2i.ZERO
+var _drag_window_start := Vector2i.ZERO
+
+## Drag the background to move the window.
+##
+## The window is borderless, so it has no title bar and no OS grab handle: until now the
+## only positions it could occupy were the four corners the game offered, and a desktop toy
+## that cannot be put where its owner wants it is in the way rather than in the corner.
+##
+## `_unhandled_input`, so this is by definition a press nothing else wanted — not the buddy,
+## not a toy, not a panel, not an armed cursor power. That one choice is what keeps this from
+## fighting every other gesture in the game, and it is also why the rule is easy to say:
+## drag the *background*.
+##
+## Screen coordinates from `DisplayServer`, not viewport coordinates, because the window
+## moves out from under the cursor as it is dragged and the motion event's own position is
+## then relative to a frame that is itself moving. It is the one place in this project that
+## legitimately reads the OS cursor — and the reason this gesture cannot be driven by
+## synthetic events, so it belongs to `docs/test-matrix.md` rather than to a suite.
+func _unhandled_input(event: InputEvent) -> void:
+	if not _can_move_window():
+		return
+	var click := event as InputEventMouseButton
+	if click and click.button_index == MOUSE_BUTTON_LEFT:
+		if click.pressed:
+			_window_drag_armed = true
+			_window_dragging = false
+			_drag_mouse_start = DisplayServer.mouse_get_position()
+			_drag_window_start = DisplayServer.window_get_position()
+		else:
+			if _window_dragging:
+				_commit_window_move()
+			_window_drag_armed = false
+			_window_dragging = false
+		return
+	if not _window_drag_armed or event is not InputEventMouseMotion:
+		return
+	var travelled := Vector2(DisplayServer.mouse_get_position() - _drag_mouse_start)
+	if not _window_dragging and travelled.length() < WINDOW_DRAG_SLOP:
+		return
+	_window_dragging = true
+	DisplayServer.window_set_position(
+		_drag_window_start + Vector2i(travelled.round()))
+
+## Whether a background drag should move the window at all.
+##
+## Not in fullscreen overlay: the window already covers the usable screen, so "moving" it
+## only takes the game off the edge of the monitor.
+func _can_move_window() -> bool:
+	if not _applied or not Settings.overlay_enabled:
+		return false
+	if DisplayServer.get_name() == "headless" or get_window().is_embedded():
+		return false
+	return Settings.window_mode != WindowLayout.Mode.FULLSCREEN_OVERLAY
+
+## Remember where it was put, once, on release rather than on every motion event.
+##
+## Dragging clears the corner anchor: putting the window somewhere by hand is a statement
+## about where it should be, and leaving the anchor set would snap it back on the next
+## apply. The four corners stay in Settings as a one-click tidy-up.
+func _commit_window_move() -> void:
+	var usable := DisplayServer.screen_get_usable_rect(_validated_monitor())
+	var size := DisplayServer.window_get_size()
+	var placed := WindowLayout.clamp_position(DisplayServer.window_get_position(), size, usable)
+	DisplayServer.window_set_position(placed)
+
+	Settings.play_area_corner = WindowLayout.Corner.FREE
+	Settings.play_area_rect = Rect2i(placed, size)
+	Settings.save_settings()
+
+	current_rect = Rect2i(placed, size)
+	_known_size = size
+	_force_passthrough_rebuild()
+	window_rect_changed.emit(current_rect)
+
 # --- window configuration --------------------------------------------------
 
 ## Bumped on every apply so an in-flight `_reconcile_client_size` from the previous one
@@ -114,8 +198,14 @@ func apply_window_configuration() -> void:
 	# Only set them here if something has cleared them.
 	if not DisplayServer.window_get_flag(DisplayServer.WINDOW_FLAG_BORDERLESS):
 		DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_BORDERLESS, true)
-	if not DisplayServer.window_get_flag(DisplayServer.WINDOW_FLAG_ALWAYS_ON_TOP):
-		DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_ALWAYS_ON_TOP, true)
+	# Always-on-top is a setting now, not a fact of the build (D49). Still the default —
+	# sitting on top of the work is what a desktop buddy is for — but sharing a screen or
+	# recording are reasonable things to want, and the alternative was quitting the game.
+	# Written only when it differs, for the same reason as borderless above.
+	if DisplayServer.window_get_flag(DisplayServer.WINDOW_FLAG_ALWAYS_ON_TOP) \
+			!= Settings.always_on_top:
+		DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_ALWAYS_ON_TOP,
+			Settings.always_on_top)
 	# Deliberately NOT WINDOW_FLAG_NO_FOCUS: the game's own panels need keyboard focus.
 
 	# Restore to a plain windowed state first.
@@ -196,6 +286,18 @@ func step_play_area_size(direction: int) -> void:
 func snap_to_corner(corner: WindowLayout.Corner) -> void:
 	Settings.play_area_corner = corner
 	Settings.window_mode = WindowLayout.Mode.PLAY_AREA
+	Settings.save_settings()
+	apply_window_configuration()
+
+## Float above everything, or sit in the stack like any other window (D49).
+##
+## Applied through the same path as every other window setting rather than by flipping the
+## flag here: `apply_window_configuration` is the one place that knows about the borderless
+## outer-size quirk, and a second writer of window flags is how the 2px vibration bug got in.
+func set_always_on_top(value: bool) -> void:
+	if Settings.always_on_top == value:
+		return
+	Settings.always_on_top = value
 	Settings.save_settings()
 	apply_window_configuration()
 

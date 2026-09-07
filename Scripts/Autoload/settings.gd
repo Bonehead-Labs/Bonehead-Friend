@@ -21,7 +21,19 @@ var overlay_enabled: bool = true
 ## See WindowLayout.Mode.
 var window_mode: int = 0
 ## 0 = free, 1..4 = top-left, top-right, bottom-left, bottom-right. See WindowLayout.Corner.
-var play_area_corner: int = 4
+##
+## **Free by default** (D49). It used to snap to the bottom-right and there was no way to
+## move it: the window is borderless, so it has no title bar to drag and no OS grab handle,
+## and the only positions reachable were the four the game offered. A desktop toy that
+## cannot be put where its owner wants it is in the way rather than in the corner. Dragging
+## the background now moves it, and doing so sets this back to free; the four corners remain
+## as a one-click tidy-up.
+var play_area_corner: int = 0
+## Whether the window floats above everything. Still the default, because sitting on top of
+## the work is what a desktop buddy is *for* — but it is now a setting rather than a fact
+## of the build (D49). Sharing a screen, recording, or simply wanting him behind the editor
+## for ten minutes are all reasonable, and the alternative was quitting the game.
+var always_on_top: bool = true
 ## 480x360 was the M1 spike's placeholder and is too small to play in: a 4x-scaled item
 ## sprite is two thirds of its height. Sized so the buddy and a couple of toys have room
 ## without the window dominating the desktop. The player changes it in the settings panel;
@@ -87,6 +99,7 @@ func load_settings() -> void:
 	play_area_corner = cfg.get_value("overlay", "play_area_corner", play_area_corner)
 	play_area_size = cfg.get_value("overlay", "play_area_size", play_area_size)
 	play_area_rect = cfg.get_value("overlay", "play_area_rect", play_area_rect)
+	always_on_top = cfg.get_value("overlay", "always_on_top", always_on_top)
 
 	monitor_id = cfg.get_value("display", "monitor_id", monitor_id)
 	cover_taskbar = cfg.get_value("display", "cover_taskbar", cover_taskbar)
@@ -121,6 +134,7 @@ func save_settings() -> void:
 	cfg.set_value("overlay", "play_area_corner", play_area_corner)
 	cfg.set_value("overlay", "play_area_size", play_area_size)
 	cfg.set_value("overlay", "play_area_rect", play_area_rect)
+	cfg.set_value("overlay", "always_on_top", always_on_top)
 
 	cfg.set_value("display", "monitor_id", monitor_id)
 	cfg.set_value("display", "cover_taskbar", cover_taskbar)

@@ -1213,6 +1213,47 @@ four a second rather than done per number: `hover_drawer.gd` records that drawer
 numbers can spawn many times a second. `ui_check` asserts against the HUD's own reported rect
 rather than a constant, because a hard-coded rect passes at 1x and lies at 3x.
 
+## D49 — The window moves, and floating on top is a setting (2026-09-07)
+
+**Decision.** Drag the background to move the window. The play-area anchor defaults to *free*
+rather than bottom-right, and the four corners become a one-click tidy-up instead of the only
+places the game can sit. Always-on-top becomes a setting, still defaulting to on.
+
+**Why.** The window is borderless, so it has no title bar and no OS grab handle — the four
+corners the settings page offered were literally the only positions it could occupy. A
+desktop toy that cannot be put where its owner wants it is in the way rather than in the
+corner. Always-on-top was a fact of the build for the same kind of reason and not a
+considered one: sharing a screen, recording, or wanting him behind the editor for ten
+minutes are all reasonable, and the alternative was quitting the game.
+
+**Three details that are load-bearing.**
+
+*The gesture is `_unhandled_input`*, so a window drag is by definition a press nothing else
+wanted — not the buddy, not a toy, not a panel, not an armed cursor power. That one choice is
+what stops it fighting every other gesture in the game, and it is why the rule is short
+enough to say: drag the *background*.
+
+*It reads the OS cursor*, through `DisplayServer.mouse_get_position()`, which this project
+otherwise forbids (`ui_check` cannot move a real cursor, so anything built on it cannot be
+tested). Here it is correct and unavoidable: the window moves out from under the cursor as it
+is dragged, so a motion event's own position is relative to a frame that is itself moving.
+The consequence is that this gesture belongs to `docs/test-matrix.md` rather than to a suite,
+which is already true of every other overlay behaviour.
+
+*`Corner.FREE` now falls back to the bottom-right* rather than the top-left. That fallback is
+only ever reached to invent a *first* home — a fresh install, or a saved rect that no longer
+fits its monitor — because a free window otherwise uses the position it was dragged to.
+Bottom-right because out of the way is the right first guess for something that lives on a
+desktop while its owner works, and because the top-left is where most people keep the thing
+they are actually doing.
+
+*Consequence:* dragging clears the corner anchor, since putting the window somewhere by hand
+is a statement about where it should be and leaving the anchor set would snap it back on the
+next apply. Always-on-top is applied through `apply_window_configuration` like every other
+window setting rather than by flipping the flag at the call site: that function is the one
+place that knows about the borderless outer-size quirk, and a second writer of window flags
+is how the two-pixel vibration bug got in.
+
 ## Recommendations not yet decided
 
 Carried in the spec, owner's call before they matter:

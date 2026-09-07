@@ -602,6 +602,14 @@ func _test_play_area_snaps_to_corners() -> void:
 	_check("top-left snaps with margin", tl.position == Vector2i(m, m))
 	_check("bottom-right snaps with margin", br.position == Vector2i(1920 - 480 - m, 1040 - 360 - m))
 	_check("corner snap keeps size", br.size == size)
+	# A free window has no anchor, so this is only reached to invent a *first* home: a fresh
+	# install, or a saved rect that no longer fits its monitor. It must not be the top-left,
+	# which is where most people keep the thing they are actually working on — and which is
+	# what this returned before the window became draggable (D49).
+	var free_home: Vector2i = WindowLayout.corner_position(
+		WindowLayout.Corner.FREE, size, usable, m)
+	_check("a free window's first home is out of the way, not under the work",
+		free_home == Vector2i(1920 - 480 - m, 1040 - 360 - m))
 
 func _test_play_area_clamped_to_screen() -> void:
 	# A monitor offset matters: secondary screens do not start at 0,0.

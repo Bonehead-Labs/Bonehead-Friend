@@ -52,11 +52,20 @@ func _build_page() -> void:
 	_stepper(size_row, "−", func() -> void: OverlayManager.step_play_area_size(-1))
 	_stepper(size_row, "+", func() -> void: OverlayManager.step_play_area_size(1))
 
+	# The four corners are a tidy-up, not the only places it can go (D49). Dragging the
+	# background moves the window and clears whichever of these was set, which is why none of
+	# them is lit by default any more.
 	var corner_row := _row()
 	for i in CORNER_NAMES.size():
 		var corner := i + 1  # 0 is FREE; the buttons offer the four snapped corners.
 		_choice(corner_row, CORNER_NAMES[i], StringName("corner_%d" % corner), func() -> void:
 			OverlayManager.snap_to_corner(corner))
+	_column.add_child(_note("Drag the background to put the window anywhere. The corners snap it back."))
+
+	var top_row := _row()
+	_rows[&"always_on_top"] = _stat(top_row, "Always on top", "—")
+	_stepper(top_row, "Toggle", func() -> void: OverlayManager.set_always_on_top(
+		not Settings.always_on_top))
 
 	# Only worth the space on a machine that has somewhere to move to.
 	if DisplayServer.get_screen_count() > 1:
@@ -134,6 +143,7 @@ func _refresh() -> void:
 	_set_stat(&"size", "%d x %d" % [Settings.play_area_size.x, Settings.play_area_size.y])
 	_set_stat(&"monitor", "%d of %d" % [Settings.monitor_id, DisplayServer.get_screen_count()])
 	_set_stat(&"low_power", "on" if Settings.low_power_mode else "off")
+	_set_stat(&"always_on_top", "on" if Settings.always_on_top else "off")
 	# The factor in force, not the one requested: a pinned 2x on the smallest play area is
 	# honoured as 1x because the card would not fit, and the panel has to say so rather than
 	# claim a setting the shell is not using.
