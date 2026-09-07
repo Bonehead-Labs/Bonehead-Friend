@@ -65,6 +65,9 @@ const SHOWCASE: Array[StringName] = [
 ## Grime to stage under `--show`, so the patches are visible without beating him first.
 const SHOWCASE_GRIME := 0.65
 
+## The power `--show` equips, so the D47 rules can be tried without going to find one.
+const SHOWCASE_POWER := &"pistol"
+
 var _main: Node
 
 func _ready() -> void:
@@ -259,13 +262,41 @@ func _showcase() -> void:
 	if buddy and buddy.grime:
 		buddy.grime.set_value(SHOWCASE_GRIME)
 
+	# Armed on purpose (D47), because the whole point of that change is what being armed no
+	# longer costs you — and an empty hand demonstrates none of it.
+	var armed := ""
+	if ItemDB.get_item(SHOWCASE_POWER) != null:
+		EventBus.spawn_requested.emit(SHOWCASE_POWER, Vector2.ZERO)
+		armed = String(SHOWCASE_POWER)
+
 	print("")
 	print("  showcase      %d items dropped in %d waves, grime staged at %.2f" % [
 		placed, rows, SHOWCASE_GRIME])
 	print("                %s" % ", ".join(ids.map(func(i: StringName) -> String:
 		return String(i))))
+	if armed != "":
+		print("  armed         %s — the chip on the HUD is the way to put it down" % armed)
+		print("                Click a toy: you pick it up, armed or not.")
+		print("                Click him:   you shoot him.")
+		print("                Shift+click: your plain hands, on anything, including him.")
+		print("                Esc:         holsters first, opens the menu second.")
 	print("                Scrub him with the sponge to watch the grime come back off.")
 	print("")
+
+	# One payout aimed straight at the HUD, so the thing D48 fixed can be seen without
+	# waiting for a hit to happen to land in that corner.
+	await get_tree().create_timer(1.5).timeout
+	var hud := get_tree().get_first_node_in_group(HUD.GROUP_HUD)
+	if hud and hud.has_method("shell_rect"):
+		var keep: Rect2 = hud.call("shell_rect")
+		if keep.size.x > 0.0:
+			EventBus.payout.emit(Economy.BONES, 125000.0, keep.get_center(), &"baseball_bat")
+			print("  hud dodge     a payout was just fired at the middle of the HUD (D48);")
+			print("                it should have drawn beside the box, not under it.")
+			print("                Needs Focus Mode on — this tool does not touch Settings,")
+			print("                because a tool that quietly rewrites them is the bug that")
+			print("                made every screenshot come out at 2x for a week.")
+			print("")
 
 ## Every augment in the game: each owned item's tree, plus the global tree, which belongs to
 ## no item and would otherwise be missed.
