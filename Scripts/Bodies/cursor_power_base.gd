@@ -50,20 +50,38 @@ func set_active(value: bool, restore_cursor: bool = true) -> void:
 			Input.set_custom_mouse_cursor(null)
 		_on_deactivated()
 
-## An equipped power consumes left clicks, so dragging is unavailable while one is on —
-## the same behaviour the prototype had. Whether a click on a grabbable object should
-## grab instead of fire is a real design question; it is left for the M2 playtest rather
-## than guessed at here.
+## **A power aims at him and at the desk. Your hands still work on your toys.** (D47)
 ##
-## A power that declines the click via can_fire_at() does NOT consume it, so the world
-## still sees it. The open hand uses that to stay a cursor power without making the buddy
-## undraggable everywhere except on top of himself.
+## Until now an equipped power consumed every left click, so nothing could be picked up,
+## moved or thrown while one was on, and the only way to touch a toy again was to open the
+## panel and click the power off. The old comment here called that "a real design question"
+## and left it for a playtest; the owner reached it first, from the other side: equipping
+## and unequipping is annoying, and you cannot use anything else while armed.
+##
+## The rule that replaces it is one sentence long, which is the point:
+##
+## * Over a **spawned item** — a bat, a grenade, a teddy bear — the power declines. The
+##   click falls through and you grab the thing, because that is what clicking a thing on a
+##   desk means. Powers are for him, not for the props.
+## * Over **him**, or over empty space, the power fires. He is what a weapon is pointed at,
+##   and he is not a spawned item, so no special case is needed to say so.
+## * **Shift suspends the power** for that click, so he can still be dragged, thrown and
+##   played with without holstering. Shift already means "ignore the special behaviour and
+##   do the plain thing" in this codebase — `BaseDraggable.click_would_bin` gives it exactly
+##   that job on the right button — so it costs the player one idea, not two.
+##
+## A power that declines the click does NOT consume it, so the world still sees it. The open
+## hand uses the same door to decline clicks that miss him.
 func _unhandled_input(event: InputEvent) -> void:
 	if not active:
 		return
 	if not (event is InputEventMouseButton) or event.button_index != MOUSE_BUTTON_LEFT:
 		return
 	if not event.pressed or event.is_echo():
+		return
+	if event.shift_pressed:
+		return
+	if _pointing_at_a_toy():
 		return
 	var at := get_global_mouse_position()
 	if not can_fire_at(at):
@@ -72,6 +90,20 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	fire(at)
 	get_viewport().set_input_as_handled()
+
+## Whether the cursor is over something the player put on the desk.
+##
+## Asked of the hover flags the areas already maintain from motion events rather than of the
+## physics world: `get_mouse_position()` reads the OS cursor, which no synthetic event can
+## move, so a version built on it could not be driven by `ui_check` — and this rule is worth
+## a test. Spawned items only, which is what keeps him firing at the buddy: he is a
+## `BaseDraggable` too, and is deliberately not in the spawned group.
+func _pointing_at_a_toy() -> bool:
+	for node in get_tree().get_nodes_in_group(BaseDraggable.GROUP_SPAWNED):
+		var body := node as BaseDraggable
+		if body and body.drag_area and body.drag_area.is_hovered:
+			return true
+	return false
 
 func _cooldown_ready() -> bool:
 	var now := Time.get_ticks_msec()

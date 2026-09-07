@@ -1109,6 +1109,87 @@ that is worth keeping until someone can watch a turret fire.
 `--force` — it plotted the placeholders, and a habitual re-run would silently undo the pass.
 D44's "no generator reachable" claim is superseded; do not plan around it.
 
+## D46 — Grime is three patches of dirt, and never on his face (2026-09-07)
+
+**Decision.** Grime is three fixed patches on his bones whose opacity rises with the value,
+placed clear of his face, and the face sprite is no longer dirtied at all. It replaces D44's
+per-texel soot speckle.
+
+**Why it moved, which was the actual complaint.** D44 hashed `floor(UV / TEXTURE_PIXEL_SIZE)`
+— the *atlas* texel. The Aseprite Wizard packs all 74 body frames into one 768x768 atlas, so
+the speckle pattern was pinned to the atlas while the body walked across it a cell at a time.
+Every frame change slid him onto different specks and the dirt crawled over him. That was
+never a tuning problem: **anything positional in that shader has to be in frame-local
+coordinates.** The shader now takes `grime_cell`, the frame's size in texels, and
+`mod(texel, grime_cell)` is the position within the frame regardless of which cell the frame
+occupies. `GrimeComponent` reads it off the SpriteFrames rather than hard-coding 96; left at
+zero, which is every item in the game, the whole texture is the frame.
+
+**Why the face is exempt now.** It was dirtied from M3 on the reasoning that a spotless face
+on a filthy skeleton looks wrong. In practice the dirt obscured the one thing the expression
+system exists to show — and his expression is how he asks to be cleaned, so the grime was
+hiding the prompt to remove the grime.
+
+**Two details that are not arbitrary.** The patches combine with `max`, not a sum: two
+overlapping ellipses adding up produce a bright seam where they cross, which reads as a third
+shape rather than two patches. And the falloff is quantised into three flat steps, because a
+continuous gradient across a 96px frame is an airbrush, and an airbrushed smudge on a
+hand-outlined skeleton reads as a rendering fault.
+
+*Consequence:* placement was judged by simulating the shader in Python over four frames at
+four grime levels — the mask, the frame-local UV and the quantisation are all cheap to
+reproduce, and the loop is seconds rather than a launch. `loop_check` asserts the face stays
+clean and that `grime_cell` is non-zero; at zero the patches crawl again and nothing else in
+the suite would notice.
+
+## D47 — A power aims at him; your hands still work on your toys (2026-09-07)
+
+**Decision.** An equipped cursor power no longer swallows every left click. Three rules:
+
+- Over a **spawned item**, the power declines and the click falls through, so you pick the
+  thing up. Powers are for him, not for the props.
+- Over **him** or over empty space, the power fires. He is not a spawned item, so nothing
+  needs a special case to say he is the target.
+- **Shift suspends the power** for that click, so he can still be dragged and thrown without
+  holstering. Shift already means "ignore the special behaviour, do the plain thing" on the
+  right button (`BaseDraggable.click_would_bin`), so this costs the player one idea.
+
+Plus two ways out that are not a trip into the panel: **Escape** holsters before it opens the
+pause menu — backing out of the innermost thing first — and the HUD grows an **armed chip**
+naming what you are holding, which holsters in one click.
+
+**Why.** The old code consumed every left click and its own comment called the question "a
+real design question… left for the M2 playtest". The owner reached it first from the other
+side: equipping and unequipping is annoying, and you cannot use anything else while armed.
+Being armed silently changes what a left click does, which made it the one piece of hidden
+state in the game a player could act on by accident.
+
+*Consequence:* the Escape precedence lives in `EscMenu`, not in a second handler on the
+spawner — two nodes racing for one key across a CanvasLayer and the world is decided by tree
+order, which is not a thing to hang a control scheme on. `ItemSpawner.holster_power()` is the
+one call behind both exits. The chip carries a 32px icon in a 32px box because the art size
+contract (D27) forbids stepping it down into the 22px row the other footer buttons use.
+
+## D48 — The big payout numbers step around the HUD (2026-09-07)
+
+**Decision.** A floating number whose rise would cross the HUD's box is moved sideways past
+it, and only downward when the play area is too narrow to step aside in.
+
+**Why not the other two options.** Shrinking the HUD trades a permanent loss of readable state
+for a transient collision. Drawing the numbers on top hides the purse and the meter at exactly
+the moment the player is being paid, which is when those two are worth watching. Moving the
+number keeps both, and it only fires on the small fraction of payouts that land in one corner.
+
+Sideways rather than down because these rise as they live: pushing a number down puts it back
+under the HUD a moment later.
+
+*Consequence:* `HUD` joins a group and `FXLayer` reads `shell_rect()` through it — screen
+pixels, not canvas pixels, since the shell is on a scaled CanvasLayer. The read is capped at
+four a second rather than done per number: `hover_drawer.gd` records that drawers polling
+`screen_rect()` every frame for eight hours was the largest idle cost in the shell, and
+numbers can spawn many times a second. `ui_check` asserts against the HUD's own reported rect
+rather than a constant, because a hard-coded rect passes at 1x and lies at 3x.
+
 ## Recommendations not yet decided
 
 Carried in the spec, owner's call before they matter:

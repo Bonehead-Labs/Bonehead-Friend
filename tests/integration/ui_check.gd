@@ -86,6 +86,8 @@ func _ready() -> void:
 	await _the_jobs_tab_wears_a_badge()
 	await _the_purse_can_count_high()
 	await _the_payouts_are_visible()
+	await _the_big_numbers_dodge_the_hud()
+	await _the_power_leaves_your_hands_free()
 	await _the_world_has_juice()
 	await _the_sounds_are_recorded()
 	await _the_hud_points_at_the_next_toy()
@@ -998,6 +1000,109 @@ func _visible_tag(fx: Node, prefix: String) -> bool:
 		if label and label.visible and label.text.begins_with(prefix):
 			return true
 	return false
+
+## A payout that lands under the HUD steps aside instead of hiding behind it (D48).
+##
+## The HUD is anchored to a corner someone's buddy is regularly standing in, and the top
+## payout tier is 48px of text with an 11px outline — so the biggest, rarest, most
+## deliberately-earned number in the game was the one most likely to be unreadable. Asserted
+## against the HUD's own `shell_rect()` rather than a constant, because the box's size moves
+## with the menu scale and a hard-coded rect would pass at 1x and lie at 3x.
+func _the_big_numbers_dodge_the_hud() -> void:
+	_suite("hud dodge")
+	var fx := _find(_main, "FXLayer")
+	var hud := get_tree().get_first_node_in_group(HUD.GROUP_HUD)
+	if fx == null or hud == null or not hud.has_method("shell_rect"):
+		_check("the FX layer and the HUD are both present to test", false)
+		return
+
+	var keep: Rect2 = hud.call("shell_rect")
+	_check("the HUD reports a rect to keep clear of", keep.size.x > 0.0 and keep.size.y > 0.0,
+		"rect %s" % keep)
+	if keep.size.x <= 0.0:
+		return
+
+	var saved := Settings.focus_intensity
+	Settings.focus_intensity = Settings.Intensity.NORMAL
+	for label in fx.get_children():
+		if label is Label:
+			(label as Label).visible = false
+
+	# Straight into the middle of the HUD, at the knockout tier — the worst case.
+	fx.call("spawn_number", "KNOCKOUT  +999", keep.get_center(), FXLayer.BONES_RAMP[0], 1.6,
+		FXLayer.TIER_SIZE.size() - 1)
+	await _settle()
+
+	var checked := 0
+	var clear := true
+	for child in fx.get_children():
+		var label := child as Label
+		if label == null or not label.visible:
+			continue
+		checked += 1
+		if keep.intersects(Rect2(label.position, label.size * label.scale)):
+			clear = false
+	_check("a number aimed at the HUD is drawn somewhere else", checked > 0 and clear,
+		"%d number(s) placed, keep-out %s" % [checked, keep])
+
+	Settings.focus_intensity = saved
+
+## Being armed no longer takes your hands away, and putting the power down is one click (D47).
+##
+## Three separate complaints, one suite: nothing on screen said you were holding a power,
+## unequipping meant a trip back into the panel, and while armed you could not pick anything
+## up — so a pistol and a teddy bear could not be used in the same minute.
+func _the_power_leaves_your_hands_free() -> void:
+	_suite("cursor powers")
+	var spawner := get_tree().get_first_node_in_group(&"item_spawner")
+	var hud := get_tree().get_first_node_in_group(HUD.GROUP_HUD)
+	if spawner == null or hud == null:
+		_check("the spawner and the HUD are present to test", false)
+		return
+
+	var chip := _find(hud, "ArmedChip") as Button
+	_check("the HUD has a chip for what you are holding", chip != null)
+	if chip == null:
+		return
+	_check("and it is hidden while your hands are empty", not chip.visible)
+
+	Progression.purchase_item(&"pistol")
+	EventBus.spawn_requested.emit(&"pistol", Vector2.ZERO)
+	await _settle()
+	_check("equipping a power arms the spawner",
+		StringName(spawner.call("active_power")) == &"pistol")
+	_check("and the chip says so", chip.visible and chip.text.contains("Pistol"))
+
+	# The rule that gives the hands back: a click over something the player put on the desk
+	# is a grab, not a shot. Asked of the power itself, because a synthetic click cannot move
+	# the OS cursor and the hover flags are what the real gesture reads.
+	var power := spawner.call("get_power", &"pistol") as CursorPowerBase
+	_check("the power instance exists once equipped", power != null)
+	if power:
+		_check("with nothing under the cursor, the power takes the click",
+			not bool(power.call("_pointing_at_a_toy")))
+		EventBus.spawn_requested.emit(&"baseball_bat", Vector2(VIEW_SIZE) * 0.5)
+		await _settle()
+		var toy: Node = null
+		for node in get_tree().get_nodes_in_group(BaseDraggable.GROUP_SPAWNED):
+			toy = node
+			break
+		_check("a toy is on the desk to test against", toy != null)
+		if toy and toy.get("drag_area"):
+			var area = toy.get("drag_area")
+			area.is_hovered = true
+			_check("but over one of your toys it declines, so you can pick it up",
+				bool(power.call("_pointing_at_a_toy")))
+			area.is_hovered = false
+
+	# One click on the chip puts it away — the whole point of the chip existing.
+	chip.pressed.emit()
+	await _settle()
+	_check("the chip holsters it in one click",
+		StringName(spawner.call("active_power")) == &"")
+	_check("and takes itself off screen", not chip.visible)
+	_check("holstering an empty hand reports nothing to do",
+		not bool(spawner.call("holster_power")))
 
 func _visible_numbers(fx: Node) -> int:
 	var count := 0

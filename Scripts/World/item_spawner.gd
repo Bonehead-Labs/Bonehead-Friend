@@ -84,6 +84,19 @@ func item_limit() -> int:
 func active_power() -> StringName:
 	return _active_power
 
+## Put the equipped power away. Returns whether there was one to put away, so a caller can
+## use that to decide whether it has consumed the gesture (D47).
+##
+## Equipping is a trip into the panel and so was unequipping, which is most of why powers
+## were annoying to live with. This is the one call behind both of the ways out: Escape, and
+## the armed chip on the HUD.
+func holster_power() -> bool:
+	if _active_power == &"":
+		return false
+	_active_power = &""
+	EventBus.cursor_power_changed.emit(&"")
+	return true
+
 ## The live instance of a cursor power, or null if it has never been equipped. Powers are
 ## instanced lazily and kept, so this is also how anything else reaches one without a path.
 func get_power(item_id: StringName) -> CursorPowerBase:

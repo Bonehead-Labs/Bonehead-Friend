@@ -29,6 +29,8 @@ var _mood_label: Label
 var _mood_fill: StyleBoxFlat
 var _mood_label_colour := Color.TRANSPARENT
 var _footer: HBoxContainer
+## The equipped cursor power, and the button that puts it away (D47).
+var _armed_button: Button
 var _item_count: Label
 var _clear_button: Button
 
@@ -79,13 +81,19 @@ const METER_HOT_FROM := 0.85
 var _meter_hot := false
 var _hot_tween: Tween
 
+## Found by group, never by path (docs/decisions.md D9). `FXLayer` needs this one to keep the
+## big payout numbers off the corner the HUD occupies (D48).
+const GROUP_HUD := &"hud"
+
 func _ready() -> void:
 	layer = 10
+	add_to_group(GROUP_HUD)
 	_build()
 	_install_drawer()
 	EventBus.buddy_state_changed.connect(_on_buddy_state_changed)
 	EventBus.mood_changed.connect(_on_mood_changed)
 	EventBus.grime_changed.connect(_on_grime_changed)
+	EventBus.cursor_power_changed.connect(_on_cursor_power_changed)
 	EventBus.payout.connect(_on_payout)
 	EventBus.payout.connect(_on_streak_payout)
 	EventBus.currency_changed.connect(func(_c: StringName, _b: float) -> void: _mark_next_dirty())
@@ -218,6 +226,25 @@ func _build() -> void:
 	# --- what to want next ---
 	stack.add_child(_build_next_row())
 	stack.add_child(_build_rebirth_row())
+
+	# What is in your hand, and the way to put it down (D47). Only on screen while something
+	# is equipped, so it costs a permanently-installed player nothing.
+	#
+	# This row exists because equipping a cursor power was a trip into the panel and so was
+	# unequipping it, and nothing on screen said you were still holding one. Being armed
+	# changes what a left click does, which makes it the one piece of hidden state in the
+	# game that the player can act on by accident.
+	_armed_button = UIStyle.button("", UIStyle.MICRO)
+	_armed_button.name = "ArmedChip"
+	_armed_button.theme_type_variation = &"GhostButton"
+	# Tall enough for a shop icon at its own size. The art size contract (D27) forbids
+	# stepping a 32px icon down into the 22px row the other footer buttons use, and the row
+	# is only on screen while something is equipped, so the height costs nothing at rest.
+	_armed_button.custom_minimum_size = Vector2(0, UIStyle.ICON_CANVAS)
+	_armed_button.tooltip_text = "Put it away (Esc). Hold Shift to use your hands without unequipping."
+	_armed_button.visible = false
+	_armed_button.pressed.connect(_on_armed_pressed)
+	stack.add_child(_armed_button)
 
 	# --- only when true of something ---
 	_footer = HBoxContainer.new()
@@ -662,6 +689,24 @@ func _on_grime_changed(value: float) -> void:
 ## See PanelLayer.shell_rect — screen pixels, not canvas pixels.
 func shell_rect() -> Rect2:
 	return UIScale.screen_rect(_box) if _box else Rect2()
+
+# --- the armed chip (D47) --------------------------------------------------
+
+func _on_cursor_power_changed(item_id: StringName) -> void:
+	if _armed_button == null:
+		return
+	var item := ItemDB.get_item(item_id) if item_id != &"" else null
+	_armed_button.visible = item != null
+	if item == null:
+		return
+	_armed_button.text = "Holding: %s" % item.display_name
+	UIStyle.set_icon(_armed_button, UIStyle.item_face(item, UIStyle.ICON_CANVAS),
+		UIStyle.ICON_CANVAS)
+
+func _on_armed_pressed() -> void:
+	var spawner := get_tree().get_first_node_in_group(&"item_spawner")
+	if spawner and spawner.has_method("holster_power"):
+		spawner.call("holster_power")
 
 ## The knockout meter, nearly there. A slow warm pulse on the bar while it is within reach,
 ## and a punch on the card the moment it gets there — so the player who has been tapping

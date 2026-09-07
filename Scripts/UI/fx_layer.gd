@@ -286,6 +286,60 @@ func _buddy_position(fallback: Vector2) -> Vector2:
 	var buddy := get_tree().get_first_node_in_group(&"buddy") as Node2D
 	return buddy.global_position if buddy else fallback
 
+# --- keeping the numbers off the HUD (D48) ---------------------------------
+
+## Gap left between a number and the HUD when one is moved out of the way.
+const HUD_MARGIN := 10.0
+
+## How long a read of the HUD's rect is trusted. The rect only changes when the window
+## resizes or the HUD parks itself, and `hover_drawer.gd` records that drawers polling
+## `screen_rect()` every frame for eight hours was the largest "runs when nothing is
+## happening" cost in the shell. Numbers spawn per hit, which can be many a second, so this
+## is capped rather than left to the caller: four reads a second, and auto-hide is tracked
+## within a quarter of a second of parking.
+const HUD_RECT_TTL_MSEC := 250
+
+var _hud_rect := Rect2()
+var _hud_rect_msec := -HUD_RECT_TTL_MSEC
+
+## Move a number out of the HUD's corner rather than under or over it.
+##
+## The alternatives were to shrink the HUD or to draw the numbers on top of it. Shrinking
+## trades a permanent loss of readable state for a transient collision. Drawing on top hides
+## the purse and the meter at exactly the moment the player is being paid, which is when
+## those two numbers are worth watching. Moving the number keeps both, and it only happens on
+## the small fraction of hits that land in one corner.
+##
+## Sideways first, because these rise as they live: pushing a number down puts it back under
+## the HUD a moment later. Down is the fallback for a play area too narrow to step aside in,
+## where sideways would push it off the other edge.
+func _clear_of_hud(centre: Vector2, half: Vector2) -> Vector2:
+	var keep := _hud_keep_out()
+	if keep.size.x <= 0.0 or keep.size.y <= 0.0:
+		return centre
+	# The band it will occupy over its whole life, not just where it starts.
+	var band := Rect2(centre - half, half * 2.0)
+	band.position.y -= RISE_PIXELS
+	band.size.y += RISE_PIXELS
+	if not keep.intersects(band):
+		return centre
+	var view := get_viewport().get_visible_rect().size
+	var beside := keep.end.x + HUD_MARGIN + half.x
+	if beside + half.x <= view.x:
+		return Vector2(beside, centre.y)
+	return Vector2(centre.x, keep.end.y + HUD_MARGIN + half.y)
+
+func _hud_keep_out() -> Rect2:
+	var now := Time.get_ticks_msec()
+	if now - _hud_rect_msec < HUD_RECT_TTL_MSEC:
+		return _hud_rect
+	_hud_rect_msec = now
+	_hud_rect = Rect2()
+	var hud := get_tree().get_first_node_in_group(HUD.GROUP_HUD)
+	if hud and hud.has_method("shell_rect"):
+		_hud_rect = hud.call("shell_rect") as Rect2
+	return _hud_rect
+
 func spawn_number(text: String, world_pos: Vector2, colour: Color, scale: float = 1.0,
 		tier: int = 0) -> void:
 	var intensity := Settings.intensity_scale()
@@ -307,7 +361,8 @@ func spawn_number(text: String, world_pos: Vector2, colour: Color, scale: float 
 	label.reset_size()
 	label.pivot_offset = label.size * 0.5
 	label.scale = Vector2.ONE * scale
-	label.position = world_pos - label.size * 0.5 * scale
+	var half := label.size * 0.5 * scale
+	label.position = _clear_of_hud(world_pos, half) - half
 	# A little sideways scatter, so a burst of hits in one place reads as several numbers
 	# rather than one flickering one.
 	var drift := randf_range(-18.0, 18.0) * (1.0 + float(tier) * 0.3)

@@ -70,10 +70,25 @@ func _fit() -> void:
 	if _blocker:
 		UIScale.apply(self, _blocker)
 
+## Escape backs out of the innermost thing first (D47). With a cursor power equipped that is
+## the power, not the game: the player armed the pistol, and the gesture for "never mind" is
+## the one they already know. A second press opens the menu as it always did.
+##
+## The precedence lives here rather than in a second `_unhandled_input` on the spawner
+## because two nodes racing for the same key across a CanvasLayer and the world is decided by
+## tree order, which is not a thing to hang a control scheme on.
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed(&"ui_cancel"):
+		if not _open and _holster_power():
+			get_viewport().set_input_as_handled()
+			return
 		toggle()
 		get_viewport().set_input_as_handled()
+
+func _holster_power() -> bool:
+	var spawner := get_tree().get_first_node_in_group(&"item_spawner")
+	return spawner != null and spawner.has_method("holster_power") \
+		and bool(spawner.call("holster_power"))
 
 func toggle() -> void:
 	if _open:
