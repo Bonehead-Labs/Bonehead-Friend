@@ -145,9 +145,31 @@ func _end_drag() -> void:
 		mouse_joint.queue_free()
 		mouse_joint = null
 
+## Maximum speed and spin a dragged body may be given by the joint (D54). Not a leash — at a
+## fast 1200 px/s hand the bat peaks around 1,600 px/s, so this never fires in normal play. It
+## is a backstop for the next thing nobody predicted: the joint is a spring, and a spring with
+## no ceiling is one solver surprise away from launching a 26 kg gorilla off the desk.
+@export var max_drag_speed: float = 4500.0
+@export var max_drag_spin: float = 40.0
+
+## True while the hit-stop has the 2D physics server switched off (D54).
+##
+## Set by `FXLayer`, which owns the freeze. A static flag rather than a query because
+## `PhysicsServer2D` has no `is_active()` to ask — `set_active` is write-only — and rather
+## than a signal because every draggable on the desk would have to connect to it to answer a
+## question that is the same for all of them.
+static var physics_frozen := false
+
 func _physics_process(_delta: float) -> void:
-	if dragging and handle:
+	# Not while the world is stopped. `_physics_process` is still called during a hit-stop
+	# (`PhysicsServer2D.set_active(false)`), so without this guard the handle teleports to the
+	# real cursor on every frozen frame and hands the joint all of that error at once the
+	# instant physics resumes — which is the bug the freeze was introduced to fix, arriving by
+	# the other door. Measured: eight frozen frames, eight teleports.
+	if dragging and handle and not physics_frozen:
 		handle.global_position = handle.global_position.lerp(get_global_mouse_position(), follow_lerp)
+		linear_velocity = linear_velocity.limit_length(max_drag_speed)
+		angular_velocity = clampf(angular_velocity, -max_drag_spin, max_drag_spin)
 	_trail_step()
 
 # --- the trail --------------------------------------------------------------

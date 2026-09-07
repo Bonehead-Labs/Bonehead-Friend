@@ -44,6 +44,13 @@ const MIN_INTERVAL := 0.05
 ## turning rather than as a sprite snapping between two angles.
 const LEAN_LERP := 6.0
 
+## How far back along the shot the impact is placed, from his centre toward the muzzle.
+##
+## Enough to give the blast a direction and some falloff, small enough to stay well inside his
+## 88x120 silhouette so a shot still reads as landing on him. Zero — which is what this was —
+## makes every shot a full-strength impulse straight up (D54).
+const IMPACT_INSET := 18.0
+
 ## Seconds between shots, before the fire-rate augment.
 ##
 ## This is the turret's whole identity. A nail gun at 0.14 and a mortar at 3.6 are two
@@ -154,11 +161,22 @@ func _fire(target: Buddy) -> void:
 	if space == null:
 		return
 	var mult := effective_damage_mult()
-	var at := target.global_position
 	var from := muzzle_position()
+	# Where the shot lands ON him, not on his origin (D54).
+	#
+	# `at` used to be `target.global_position` exactly. Inside `point_blast` that makes
+	# `to_body` the zero vector, so the direction falls through to the `Vector2.UP` fallback
+	# **and** the falloff returns the full undiminished `blast_force` — so every shot from the
+	# six single-pellet turrets was a maximum-strength impulse straight up, and a running
+	# turret simply levitated him. Aiming a little way back along the shot gives it a real
+	# direction and a real falloff, and it is where the pellet would have struck anyway.
+	var at: Vector2 = target.global_position + (from - target.global_position).limit_length(IMPACT_INSET)
 	for i in maxi(1, pellets):
 		var point := at
-		if pellets > 1 and spread > 0.0:
+		# No `pellets > 1` gate. A nail gun fires one nail and declares a spread; gating on
+		# the pellet count meant every single-pellet turret was perfectly accurate and its
+		# authored spread was dead data.
+		if spread > 0.0:
 			point += Vector2.RIGHT.rotated(randf() * TAU) * randf() * spread
 		for hit in ExplosionUtil.point_blast(space, point, blast_radius, blast_force):
 			var body: Node = hit["body"]

@@ -1409,6 +1409,73 @@ top", and silently changed meaning when the ladder grew; they read `MasteryMath.
 always was rather than growing by two thirds because there are more steps to climb. No save
 migration: the tier is presentation only and is never persisted.
 
+## D54 — The hit-stop freezes physics instead of squeezing time (2026-09-07)
+
+**Decision.** `FXLayer._hit_stop` calls `PhysicsServer2D.set_active(false)` for its handful of
+frames instead of setting `Engine.time_scale = 0.05`. Four smaller force bugs are fixed
+alongside it. This is the cause of the rebounding the owner reported.
+
+**Why it rebounded.** Godot hands the 2D solver `physics_step * time_scale`, so `0.05` did not
+slow the world so much as shrink the timestep from 1/60 s to 1/1200 s. A `PinJoint2D`'s
+positional correction is `error * bias / step`, so the drag joint's authority went up
+**twentyfold** for the duration — while `BaseDraggable._physics_process` went on chasing the
+real cursor in real time, opening fresh error on every one of those frames. The joint turned
+that error into velocity, and the body kept it when time returned to 1.0.
+
+It was armed by the very contact it amplified, which makes it a positive feedback loop: a
+bigger hit bought a longer stop, and a longer stop bought a bigger launch. Measured on a rig
+carrying the shipped bat and buddy, an eight-frame stop threw him at **24,729 px/s**; freezing
+instead of squeezing gives **2,056**.
+
+**The joint parameters are not the problem and were not changed.** `joint_softness = 1.0`,
+`joint_bias = 0.2`, `follow_lerp = 1.0` are byte-identical to the prototype the owner
+remembers as near-perfect. One investigation proposed "restoring" 0.9 / 0.0 / 0.5; three
+independent reviews checked the history and found that configuration never shipped in the
+build being remembered. Raising `joint_bias` trades tracking lag for release violence one for
+one, so tightening it would have made the reported symptom worse.
+
+**Four more force bugs, all found by measurement:**
+
+- **Every blast applied a torque.** `apply_impulse(dir * strength, Vector2.ZERO)` offsets from
+  the body *origin*, not "no offset" — and the buddy's centre of mass is authored at (0, 10),
+  so a 10,000 sideways impulse spun him at 16 rad/s, two and a half turns a second, at the
+  same linear speed `apply_central_impulse` gives with zero spin. The same one-word mistake
+  was in `npc_base.gd` twice, so a goose peck and a gorilla slam did it too. That was most of
+  the "weird sudden movement".
+- **Every turret shot fired straight up at full strength.** The blast was centred exactly on
+  `target.global_position`, so `to_body` was the zero vector: the direction fell through to
+  the `Vector2.UP` fallback *and* the falloff returned the undiminished `blast_force`. Six of
+  the eight turrets fire a single pellet, so a running turret simply levitated him. The impact
+  is now inset toward the muzzle. The `pellets > 1` gate on spread went with it — a nail gun
+  fires one nail and declares a spread, and that spread was dead data.
+- **The fist erased its own punch.** `_physics_process` assigned `linear_velocity` every frame,
+  which both stopped an 11.5 kg body ever being slowed by what it hit and silently discarded
+  the `punch_impulse` applied earlier in the same frame. It steers toward the wanted velocity
+  now. This is the starter power, so its damage augment had been a placebo for every new player.
+- **A cast-iron frying pan was 85% elastic** and a beach ball 95%. Both are weapons in the Play
+  tab. 0.2 and 0.7.
+
+*Consequence:* `BaseDraggable.physics_frozen` is a static flag set by `FXLayer`, because
+`PhysicsServer2D.set_active` is write-only and there is no `is_active()` to ask. The handle
+chase is guarded by it — `_physics_process` is still called during the freeze, and without the
+guard the handle teleports to the cursor on every frozen frame and hands the joint all of that
+error at once when physics resumes, which is the same bug through the other door. A
+`max_drag_speed` / `max_drag_spin` backstop was added at 4500 / 40; at a fast 1200 px/s hand
+the bat peaks near 1,600, so it never fires in play and exists for the next surprise. And
+`_exit_tree` restores physics unconditionally: the resume sat after an `await`, so a layer
+freed mid-stop left the whole game frozen.
+
+*Not done, and measured rather than guessed:* the collision-shape audit found two systematic
+faults and a list of individual offenders. `seed_friendly.gd` draws its sprites at 2x and
+writes the collider extent unscaled while `seed_m35_roster.gd` multiplies by `ART_SCALE`, so 28
+of 31 kind items have colliders at 0.33–0.86 of their art. Separately the nunchaku (2%
+coverage), the monitor, keyboard, stapler, cricket bat, machete, cleaver, chainsaw and flail
+overhang their art by 6–20 world px, and the greatsword, sickle, katar and rail gun were
+authored against an orientation their sprite does not have. Seven scenes are also frozen
+against sprites replaced in D45. None of that is a one-line fix and all of it changes how the
+game plays, so it is left for the owner to direct rather than guessed at in a sweep. The
+layers themselves are fine: 97 bodies on layer 4 / mask 7, the buddy on 2 / 5.
+
 ## Recommendations not yet decided
 
 Carried in the spec, owner's call before they matter:

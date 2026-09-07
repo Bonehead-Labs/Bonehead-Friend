@@ -486,15 +486,45 @@ func _on_damage_dealt(info: HitInfo) -> void:
 	var frames := lerpf(b.hit_stop_min_frames, b.hit_stop_max_frames, t)
 	_hit_stop(frames / 60.0)
 
+## The hit-stop **pauses physics**. It used to squeeze `Engine.time_scale`, and that was the
+## cause of the rebounding the owner reported (D54).
+##
+## Godot hands the 2D solver `physics_step * time_scale`, so `0.05` did not slow the world so
+## much as shrink the timestep from 1/60 s to 1/1200 s. A `PinJoint2D`'s positional correction
+## is `error * bias / step`, so the drag joint's authority went up **twentyfold** for the
+## duration — while `BaseDraggable._physics_process` went on chasing the real cursor in real
+## time, opening fresh error every one of those frames. The joint turned that error into
+## velocity and the body kept it when time returned to 1.0.
+##
+## It was armed by the very contact it amplified, which made it a positive feedback loop:
+## a bigger hit bought a longer stop, and a longer stop bought a bigger launch. Measured on a
+## rig with the shipped bat and buddy, an eight-frame stop threw him at **24,729 px/s**;
+## freezing instead of squeezing gives **2,056**.
+##
+## Freezing is also what a hit-stop is supposed to be. Everything that is not the simulation —
+## the numbers, the shake, the tweens — keeps running, which is the effect the player came for.
 func _hit_stop(seconds: float) -> void:
 	var now := Time.get_ticks_msec()
 	# Overlapping hits must not stack into a visible freeze.
 	if now < _hit_stop_until_msec:
 		return
 	_hit_stop_until_msec = now + int(seconds * 1000.0)
-	Engine.time_scale = 0.05
-	# ignore_time_scale, or the timer that ends the hit-stop is itself slowed by it.
+	BaseDraggable.physics_frozen = true
+	PhysicsServer2D.set_active(false)
+	# ignore_time_scale is kept even though nothing scales time now: it costs nothing and it
+	# is one less thing to remember if a slow-motion effect ever does arrive.
 	await get_tree().create_timer(seconds, true, false, true).timeout
+	PhysicsServer2D.set_active(true)
+	BaseDraggable.physics_frozen = false
+
+## The restore above sits after an `await`. If this layer is freed mid-stop — a scene change,
+## a quit, a killed test run — that coroutine is abandoned and physics stays switched off for
+## the rest of the process, which looks exactly like the game hanging.
+func _exit_tree() -> void:
+	PhysicsServer2D.set_active(true)
+	BaseDraggable.physics_frozen = false
+	# Belt and braces: an older build squeezed time here, and a save left mid-stop by a
+	# previous version has no other way back.
 	Engine.time_scale = 1.0
 
 # --- the things that happen to him ------------------------------------------

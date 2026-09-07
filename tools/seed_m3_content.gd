@@ -137,13 +137,13 @@ func _seed_scenes() -> void:
 	# thing that differentiates these — a bowling ball hurts because it is heavy, not
 	# because it has a bigger number attached to it (docs/decisions.md D7).
 	_save_scene(_build_prop("FryingPan", &"frying_pan", WeaponBaseScript, Color(0.30, 0.31, 0.35),
-		Vector2(46, 18), 6.0, {"damage_mult": 0.75}, 0.85),
+		Vector2(46, 18), 6.0, {"damage_mult": 0.75}, 0.2),
 		"%s/frying_pan.tscn" % PROPS_DIR)
 	_save_scene(_build_prop("BowlingBall", &"bowling_ball", WeaponBaseScript, Color(0.16, 0.14, 0.22),
 		Vector2(34, 34), 14.0, {"damage_mult": 1.0}, 0.15),
 		"%s/bowling_ball.tscn" % PROPS_DIR)
 	_save_scene(_build_prop("BeachBall", &"beach_ball", WeaponBaseScript, Color(0.95, 0.45, 0.45),
-		Vector2(40, 40), 0.4, {"damage_mult": 0.4}, 0.95),
+		Vector2(40, 40), 0.4, {"damage_mult": 0.4}, 0.7),
 		"%s/beach_ball.tscn" % PROPS_DIR)
 
 	# The baseball is the Interactive Buddy homage: throw it at him and he catches it. It is

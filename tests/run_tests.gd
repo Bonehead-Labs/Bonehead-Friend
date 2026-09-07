@@ -837,12 +837,9 @@ func _test_juice_tier_ladders() -> void:
 		Mastery.juice_tier(0, 55) == Mastery.JUICE_TIERS)
 	_check("nothing exceeds the top, however far past the ladder it goes",
 		Mastery.juice_tier(9999, 9999) == Mastery.JUICE_TIERS)
-	# Both ramps are indexed by tier and read with a clamp, but they must still be long
-	# enough — an array a rung short is an out-of-range on every item spawn in the game.
-	_check("the glow ramp covers every tier",
-		BaseDraggable.GLOW_STRENGTH.size() >= Mastery.JUICE_TIERS + 1)
-	_check("and so does the aura ramp",
-		BaseDraggable.AURA_AMOUNT.size() >= Mastery.JUICE_TIERS + 1)
+	# The ramp-length assertions live in `ui_check`, not here: `BaseDraggable` references
+	# `EventBus`, and autoloads are not registered under `-s`, so importing it from this file
+	# prints a compile error for every dependent script (CLAUDE.md, "Two more constraints").
 	_check("the two ladders have one entry per tier",
 		Mastery.JUICE_RANKS.size() == Mastery.JUICE_TIERS
 		and Mastery.JUICE_LEVELS.size() == Mastery.JUICE_TIERS)

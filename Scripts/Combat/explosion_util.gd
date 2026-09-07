@@ -3,6 +3,15 @@ extends RefCounted
 
 ## Radial impulse with quadratic falloff, shared by throwables, missiles and cursor powers.
 ## Every caller used to carry its own byte-identical copy of this loop.
+##
+## **Both blasts push through the centre of mass** (D54). They used to call
+## `apply_impulse(dir * strength, Vector2.ZERO)`, and that second argument is an offset from
+## the body **origin** — not "no offset". The buddy's centre of mass is authored at (0, 10),
+## so every sideways blast in the game was also applying a torque of ten times the impulse.
+## Measured on the shipped buddy: a 10,000 sideways impulse spun him at 16 rad/s, two and a
+## half turns a second, at exactly the same linear speed `apply_central_impulse` gives with
+## 0.00 spin. That was most of the "weird sudden movement" — the same one-word mistake was in
+## `npc_base.gd` twice as well, so a goose peck and a gorilla slam did it too.
 
 ## The blast's real reach, in world units.
 ##
@@ -48,7 +57,7 @@ static func apply_blast(area: Area2D, origin: Vector2, max_force: float, shape_n
 		var strength := blast_strength(to_body.length(), radius, max_force)
 		# A body exactly at the origin has no direction to be pushed in; nudge it up.
 		var dir := to_body.normalized() if to_body.length() > 0.01 else Vector2.UP
-		body.apply_impulse(dir * strength, Vector2.ZERO)
+		body.apply_central_impulse(dir * strength)
 		affected.append({"body": body, "impulse": strength})
 	return affected
 
@@ -99,6 +108,6 @@ static func point_blast(space: PhysicsDirectSpaceState2D, origin: Vector2, radiu
 		var to_body: Vector2 = body.global_position - origin
 		var strength := blast_strength(to_body.length(), radius, max_force)
 		var dir := to_body.normalized() if to_body.length() > 0.01 else Vector2.UP
-		body.apply_impulse(dir * strength, Vector2.ZERO)
+		body.apply_central_impulse(dir * strength)
 		affected.append({"body": body, "impulse": strength})
 	return affected

@@ -476,7 +476,7 @@ func _land_blow(buddy: Buddy) -> bool:
 	var dir := to_him.normalized() if to_him.length() > 1.0 else Vector2(_facing, 0.0)
 	dir = (dir + Vector2.UP * BLOW_LIFT).normalized()
 
-	buddy.apply_impulse(dir * attack_impulse, Vector2.ZERO)
+	buddy.apply_central_impulse(dir * attack_impulse)
 	buddy.take_impulse(attack_impulse, item_id, effective_damage_mult(),
 		buddy.global_position - dir * 18.0)
 
@@ -541,7 +541,7 @@ func _shake_grapple() -> void:
 	# Dragged toward the thing holding him and rattled sideways, so a grapple reads as being
 	# shaken rather than as being hit repeatedly from the same angle.
 	dir = (dir + Vector2(randf_range(-0.6, 0.6), -0.25)).normalized()
-	_buddy.apply_impulse(dir * shake, Vector2.ZERO)
+	_buddy.apply_central_impulse(dir * shake)
 	_buddy.take_impulse(shake, item_id, effective_damage_mult(), _buddy.global_position)
 
 ## What Bonehead multiplies the impulse by, read the way a weapon and a turret both read it.

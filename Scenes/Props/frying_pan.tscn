@@ -1,46 +1,46 @@
 [gd_scene format=3]
 
-[ext_resource type="Script" path="res://Scripts/Bodies/weapon_base.gd" id="1_qdgyy"]
+[ext_resource type="Script" path="res://Scripts/Bodies/weapon_base.gd" id="1_qvs7h"]
 [ext_resource type="Texture2D" path="res://Assets/sprites/items/frying_pan.png" id="2_ll1oo"]
-[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="2_qvs7h"]
+[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_rdtan"]
 
-[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_qvs7h"]
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_6eg7i"]
 friction = 0.8
-bounce = 0.85
+bounce = 0.2
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_ll1oo"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_kwnq1"]
 size = Vector2(46, 18)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_rdtan"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_cnah6"]
 size = Vector2(58, 30)
 
-[node name="FryingPan" type="RigidBody2D" unique_id=212789127 node_paths=PackedStringArray("drag_area", "handle", "collider")]
+[node name="FryingPan" type="RigidBody2D" unique_id=1158178157 node_paths=PackedStringArray("drag_area", "handle", "collider")]
 collision_layer = 4
 collision_mask = 7
 mass = 6.0
-physics_material_override = SubResource("PhysicsMaterial_qvs7h")
+physics_material_override = SubResource("PhysicsMaterial_6eg7i")
 contact_monitor = true
 max_contacts_reported = 4
-script = ExtResource("1_qdgyy")
+script = ExtResource("1_qvs7h")
 damage_mult = 0.75
 drag_area = NodePath("DraggableArea")
 handle = NodePath("Handle")
 collider = NodePath("CollisionShape2D")
 
-[node name="Sprite" type="Sprite2D" parent="." unique_id=1639305928]
+[node name="Sprite" type="Sprite2D" parent="." unique_id=1046866277]
 scale = Vector2(2, 2)
 texture = ExtResource("2_ll1oo")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=705388366]
-shape = SubResource("RectangleShape2D_ll1oo")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1549902752]
+shape = SubResource("RectangleShape2D_kwnq1")
 
-[node name="DraggableArea" type="Area2D" parent="." unique_id=81147435]
-script = ExtResource("2_qvs7h")
+[node name="DraggableArea" type="Area2D" parent="." unique_id=1223188976]
+script = ExtResource("3_rdtan")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=744325165]
-shape = SubResource("RectangleShape2D_rdtan")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=863183091]
+shape = SubResource("RectangleShape2D_cnah6")
 
-[node name="Handle" type="StaticBody2D" parent="." unique_id=2044113382]
+[node name="Handle" type="StaticBody2D" parent="." unique_id=580167574]
 visible = false
 collision_layer = 0
 collision_mask = 0

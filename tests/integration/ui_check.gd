@@ -2065,6 +2065,16 @@ func _the_desk_has_a_rhythm(fx: Node2D, hud: Node) -> void:
 ## An upgraded item looks upgraded (D41): the tier is read from rank and augments, and a
 ## spawned body wears it as a glow, a wider trail and an aura that Focus Off stills.
 func _the_upgrades_are_worn(centre: Vector2) -> void:
+	# Both ramps are indexed by tier. They are read through a clamp, but they must still be
+	# long enough or the top tiers all look the same — and this is the assertion that catches
+	# a rung added without scrolling down to the arrays. Here rather than in `run_tests`
+	# because `BaseDraggable` references `EventBus`, which does not exist under `-s`.
+	_check("the glow ramp covers every juice tier",
+		BaseDraggable.GLOW_STRENGTH.size() >= MasteryMath.JUICE_TIERS + 1,
+		"%d entries" % BaseDraggable.GLOW_STRENGTH.size())
+	_check("and so does the aura ramp",
+		BaseDraggable.AURA_AMOUNT.size() >= MasteryMath.JUICE_TIERS + 1,
+		"%d entries" % BaseDraggable.AURA_AMOUNT.size())
 	_check("an untouched item is tier 0", Progression.juice_tier(&"scythe") == 0)
 	Progression.add_mastery_xp(&"baseball_bat", 1.0e9)
 	await _settle()
