@@ -4,13 +4,13 @@
 [ext_resource type="Texture2D" path="res://Assets/sprites/items/chocolate_fountain.png" id="2_gs0rb"]
 [ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_praqd"]
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_73cri"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_w860l"]
 size = Vector2(62, 100)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_gs0rb"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_peicx"]
 size = Vector2(74, 112)
 
-[node name="ChocolateFountain" type="RigidBody2D" unique_id=1415054809 node_paths=PackedStringArray("drag_area", "handle", "sprite", "collider")]
+[node name="ChocolateFountain" type="RigidBody2D" unique_id=1243694622 node_paths=PackedStringArray("drag_area", "handle", "sprite", "collider")]
 collision_layer = 4
 collision_mask = 7
 mass = 5.0
@@ -25,20 +25,20 @@ handle = NodePath("Handle")
 sprite = NodePath("Sprite")
 collider = NodePath("CollisionShape2D")
 
-[node name="Sprite" type="Sprite2D" parent="." unique_id=410964077]
+[node name="Sprite" type="Sprite2D" parent="." unique_id=897136210]
 scale = Vector2(2, 2)
 texture = ExtResource("2_gs0rb")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=534009286]
-shape = SubResource("RectangleShape2D_73cri")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1180973858]
+shape = SubResource("RectangleShape2D_w860l")
 
-[node name="DraggableArea" type="Area2D" parent="." unique_id=1300023918]
+[node name="DraggableArea" type="Area2D" parent="." unique_id=1234330763]
 script = ExtResource("3_praqd")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=388301563]
-shape = SubResource("RectangleShape2D_gs0rb")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=558543632]
+shape = SubResource("RectangleShape2D_peicx")
 
-[node name="Handle" type="StaticBody2D" parent="." unique_id=474207922]
+[node name="Handle" type="StaticBody2D" parent="." unique_id=1810007029]
 visible = false
 collision_layer = 0
 collision_mask = 0

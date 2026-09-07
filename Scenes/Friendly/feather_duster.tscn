@@ -5,12 +5,12 @@
 [ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_t755v"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_4o13b"]
-size = Vector2(34, 14)
+size = Vector2(32, 22)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_yf0cj"]
-size = Vector2(46, 26)
+size = Vector2(44, 34)
 
-[node name="FeatherDuster" type="RigidBody2D" unique_id=454769868 node_paths=PackedStringArray("drag_area", "handle", "collider")]
+[node name="FeatherDuster" type="RigidBody2D" unique_id=1781327273 node_paths=PackedStringArray("drag_area", "handle", "collider")]
 collision_layer = 4
 collision_mask = 7
 mass = 0.2
@@ -23,20 +23,20 @@ drag_area = NodePath("DraggableArea")
 handle = NodePath("Handle")
 collider = NodePath("CollisionShape2D")
 
-[node name="Sprite" type="Sprite2D" parent="." unique_id=1401309070]
+[node name="Sprite" type="Sprite2D" parent="." unique_id=178237620]
 scale = Vector2(2, 2)
 texture = ExtResource("2_3qkls")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1045623587]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=2078510807]
 shape = SubResource("RectangleShape2D_4o13b")
 
-[node name="DraggableArea" type="Area2D" parent="." unique_id=42623341]
+[node name="DraggableArea" type="Area2D" parent="." unique_id=995125630]
 script = ExtResource("3_t755v")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=1070046022]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=1310345817]
 shape = SubResource("RectangleShape2D_yf0cj")
 
-[node name="Handle" type="StaticBody2D" parent="." unique_id=613925442]
+[node name="Handle" type="StaticBody2D" parent="." unique_id=1485964412]
 visible = false
 collision_layer = 0
 collision_mask = 0

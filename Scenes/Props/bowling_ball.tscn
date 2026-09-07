@@ -1,45 +1,45 @@
 [gd_scene format=3]
 
-[ext_resource type="Script" path="res://Scripts/Bodies/weapon_base.gd" id="1_trknq"]
-[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="2_butlg"]
+[ext_resource type="Script" path="res://Scripts/Bodies/weapon_base.gd" id="1_butlg"]
 [ext_resource type="Texture2D" path="res://Assets/sprites/items/bowling_ball.png" id="2_mnnfk"]
+[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_oey58"]
 
-[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_butlg"]
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_pgead"]
 friction = 0.8
 bounce = 0.15
 
-[sub_resource type="CircleShape2D" id="CircleShape2D_mnnfk"]
-radius = 17.0
+[sub_resource type="CircleShape2D" id="CircleShape2D_4100p"]
+radius = 20.0
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_oey58"]
-size = Vector2(46, 46)
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_51ug3"]
+size = Vector2(52, 52)
 
-[node name="BowlingBall" type="RigidBody2D" unique_id=173800817 node_paths=PackedStringArray("drag_area", "handle", "collider")]
+[node name="BowlingBall" type="RigidBody2D" unique_id=759806865 node_paths=PackedStringArray("drag_area", "handle", "collider")]
 collision_layer = 4
 collision_mask = 7
 mass = 14.0
-physics_material_override = SubResource("PhysicsMaterial_butlg")
+physics_material_override = SubResource("PhysicsMaterial_pgead")
 contact_monitor = true
 max_contacts_reported = 4
-script = ExtResource("1_trknq")
+script = ExtResource("1_butlg")
 drag_area = NodePath("DraggableArea")
 handle = NodePath("Handle")
 collider = NodePath("CollisionShape2D")
 
-[node name="Sprite" type="Sprite2D" parent="." unique_id=1391466758]
+[node name="Sprite" type="Sprite2D" parent="." unique_id=1143867134]
 scale = Vector2(2, 2)
 texture = ExtResource("2_mnnfk")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1502381241]
-shape = SubResource("CircleShape2D_mnnfk")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=596448702]
+shape = SubResource("CircleShape2D_4100p")
 
-[node name="DraggableArea" type="Area2D" parent="." unique_id=400368484]
-script = ExtResource("2_butlg")
+[node name="DraggableArea" type="Area2D" parent="." unique_id=9780443]
+script = ExtResource("3_oey58")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=1367992715]
-shape = SubResource("RectangleShape2D_oey58")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=1970513321]
+shape = SubResource("RectangleShape2D_51ug3")
 
-[node name="Handle" type="StaticBody2D" parent="." unique_id=170444925]
+[node name="Handle" type="StaticBody2D" parent="." unique_id=1766174709]
 visible = false
 collision_layer = 0
 collision_mask = 0

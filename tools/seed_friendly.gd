@@ -249,17 +249,19 @@ func _build_friendly(node_name: String, item_id: StringName, colour: Color, exte
 
 	root.add_child(_visual_for(item_id, colour, extent))
 
+	var solid := _collider_extent(item_id, extent)
 	var shape := RectangleShape2D.new()
-	shape.size = extent
+	shape.size = solid
 	var collider := CollisionShape2D.new()
 	collider.name = "CollisionShape2D"
 	collider.shape = shape
 	root.add_child(collider)
 
 	# The grab region is deliberately larger and simpler than the physics collider, which
-	# is the whole reason DraggableArea is its own node.
+	# is the whole reason DraggableArea is its own node. Never smaller than a comfortable
+	# click target: a rubber duck is 20 art pixels and nobody can hit that while it rolls.
 	var grab_shape := RectangleShape2D.new()
-	grab_shape.size = extent + Vector2(12, 12)
+	grab_shape.size = Vector2(maxf(solid.x + 12.0, 34.0), maxf(solid.y + 12.0, 34.0))
 	var grab_collider := CollisionShape2D.new()
 	grab_collider.name = "CollisionShape2D"
 	grab_collider.shape = grab_shape
@@ -288,6 +290,31 @@ func _build_friendly(node_name: String, item_id: StringName, colour: Color, exte
 
 ## The item's generated sprite, if it has one. Items without art keep their flat Polygon2D
 ## placeholder, so a half-finished art pass still leaves every item visible and playable.
+## How much bigger the sprite is drawn than its art pixels. The same 2 the sprite node
+## carries; named here because the collider has to agree with it.
+const ART_SCALE := 2.0
+
+## The collider is the picture (D55).
+##
+## This file used to write the hand-typed `extent` straight into the shape while drawing the
+## sprite at 2x — so every kind item's collider was a fraction of the thing you could see,
+## measured across the roster at 0.33 to 0.86 of the drawn size. You could push a bat most of
+## the way into a hot tub before anything touched. `item_body_builder.gd` and
+## `seed_m35_roster.gd` both already did this correctly; these two files were the outliers.
+##
+## Derived from the sprite's own opaque pixels rather than from a number somebody typed, so it
+## cannot drift again when the art is regenerated — which is exactly what happened to seven
+## scenes in the D45 art pass. The typed extent survives only as the fallback for an item that
+## has no art yet and draws a placeholder block.
+func _collider_extent(item_id: StringName, fallback: Vector2) -> Vector2:
+	var texture := _art_for(item_id)
+	if texture == null:
+		return fallback
+	var used := texture.get_image().get_used_rect()
+	if used.size.x <= 0 or used.size.y <= 0:
+		return fallback
+	return Vector2(used.size) * ART_SCALE
+
 func _art_for(item_id: StringName) -> Texture2D:
 	var path := "res://Assets/sprites/items/%s.png" % item_id
 	if not ResourceLoader.exists(path):

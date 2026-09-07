@@ -4,16 +4,16 @@
 [ext_resource type="Texture2D" path="res://Assets/sprites/items/desk_fan.png" id="2_rvvm7"]
 [ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_8hgy7"]
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_75ab7"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_7q75f"]
 size = Vector2(42, 56)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_rvvm7"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_awuni"]
 size = Vector2(440, 120)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_8hgy7"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_du87q"]
 size = Vector2(66, 80)
 
-[node name="DeskFan" type="RigidBody2D" unique_id=94567728 node_paths=PackedStringArray("wind_area", "drag_area", "handle", "sprite", "collider")]
+[node name="DeskFan" type="RigidBody2D" unique_id=346605006 node_paths=PackedStringArray("wind_area", "drag_area", "handle", "sprite", "collider")]
 collision_layer = 4
 collision_mask = 7
 mass = 7.0
@@ -27,28 +27,28 @@ handle = NodePath("Handle")
 sprite = NodePath("Sprite")
 collider = NodePath("CollisionShape2D")
 
-[node name="Sprite" type="Sprite2D" parent="." unique_id=2064280646]
+[node name="Sprite" type="Sprite2D" parent="." unique_id=330510040]
 scale = Vector2(2, 2)
 texture = ExtResource("2_rvvm7")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1925205548]
-shape = SubResource("RectangleShape2D_75ab7")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=135722344]
+shape = SubResource("RectangleShape2D_7q75f")
 
-[node name="WindArea" type="Area2D" parent="." unique_id=1100240679]
+[node name="WindArea" type="Area2D" parent="." unique_id=53797434]
 collision_layer = 32
 collision_mask = 6
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="WindArea" unique_id=226469692]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="WindArea" unique_id=1708178193]
 position = Vector2(220, 0)
-shape = SubResource("RectangleShape2D_rvvm7")
+shape = SubResource("RectangleShape2D_awuni")
 
-[node name="DraggableArea" type="Area2D" parent="." unique_id=841452113]
+[node name="DraggableArea" type="Area2D" parent="." unique_id=2101153107]
 script = ExtResource("3_8hgy7")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=1462192274]
-shape = SubResource("RectangleShape2D_8hgy7")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=217908996]
+shape = SubResource("RectangleShape2D_du87q")
 
-[node name="Handle" type="StaticBody2D" parent="." unique_id=758114063]
+[node name="Handle" type="StaticBody2D" parent="." unique_id=1020484868]
 visible = false
 collision_layer = 0
 collision_mask = 0

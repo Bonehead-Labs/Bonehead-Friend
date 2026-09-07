@@ -5,12 +5,12 @@
 [ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_3maon"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_e0qu7"]
-size = Vector2(14, 14)
-
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_uvtqt"]
 size = Vector2(26, 26)
 
-[node name="TennisBall" type="RigidBody2D" unique_id=1656718152 node_paths=PackedStringArray("drag_area", "handle", "collider")]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_uvtqt"]
+size = Vector2(38, 38)
+
+[node name="TennisBall" type="RigidBody2D" unique_id=649254173 node_paths=PackedStringArray("drag_area", "handle", "collider")]
 collision_layer = 4
 collision_mask = 7
 mass = 0.25
@@ -24,20 +24,20 @@ drag_area = NodePath("DraggableArea")
 handle = NodePath("Handle")
 collider = NodePath("CollisionShape2D")
 
-[node name="Sprite" type="Sprite2D" parent="." unique_id=1310939825]
+[node name="Sprite" type="Sprite2D" parent="." unique_id=25331027]
 scale = Vector2(2, 2)
 texture = ExtResource("2_y1tsp")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1276772214]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=778020475]
 shape = SubResource("RectangleShape2D_e0qu7")
 
-[node name="DraggableArea" type="Area2D" parent="." unique_id=1119936636]
+[node name="DraggableArea" type="Area2D" parent="." unique_id=1217293305]
 script = ExtResource("3_3maon")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=807605588]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=2004259641]
 shape = SubResource("RectangleShape2D_uvtqt")
 
-[node name="Handle" type="StaticBody2D" parent="." unique_id=446084318]
+[node name="Handle" type="StaticBody2D" parent="." unique_id=1576049437]
 visible = false
 collision_layer = 0
 collision_mask = 0

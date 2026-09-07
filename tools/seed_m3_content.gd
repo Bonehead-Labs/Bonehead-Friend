@@ -202,20 +202,26 @@ func _build_prop(node_name: String, item_id: StringName, script: Script, colour:
 	var round_shape := extent.x == extent.y
 	root.add_child(_visual_for(item_id, colour, extent, round_shape))
 
+	# The collider is the picture (D55) — measured off the sprite's own opaque pixels rather
+	# than a hand-typed extent that the art then moved away from. The frying pan's box was
+	# 46x18 inside a 116x60 picture: a sixth of the thing you were swinging.
+	var solid := _collider_extent(item_id, extent)
 	var collider := CollisionShape2D.new()
 	collider.name = "CollisionShape2D"
-	if round_shape:
+	# Round only when the art really is round, decided by the art and not by the typed
+	# numbers happening to be square.
+	if round_shape and absf(solid.x - solid.y) <= 2.0:
 		var circle := CircleShape2D.new()
-		circle.radius = extent.x * 0.5
+		circle.radius = maxf(solid.x, solid.y) * 0.5
 		collider.shape = circle
 	else:
 		var box := RectangleShape2D.new()
-		box.size = extent
+		box.size = solid
 		collider.shape = box
 	root.add_child(collider)
 
 	var grab_shape := RectangleShape2D.new()
-	grab_shape.size = extent + Vector2(12, 12)
+	grab_shape.size = Vector2(maxf(solid.x + 12.0, 34.0), maxf(solid.y + 12.0, 34.0))
 	var grab_collider := CollisionShape2D.new()
 	grab_collider.name = "CollisionShape2D"
 	grab_collider.shape = grab_shape
@@ -241,6 +247,21 @@ func _build_prop(node_name: String, item_id: StringName, script: Script, colour:
 
 ## The item's generated sprite, if it has one. Items without art keep their flat Polygon2D
 ## placeholder, so a half-finished art pass still leaves every item visible and playable.
+## How much bigger the sprite is drawn than its art pixels; the collider has to agree.
+const ART_SCALE := 2.0
+
+## The collider is the picture (D55). See the long note in `tools/seed_friendly.gd` — this
+## file had the same fault, writing a typed art-pixel extent into a world-pixel shape while
+## drawing the sprite at 2x.
+func _collider_extent(item_id: StringName, fallback: Vector2) -> Vector2:
+	var texture := _art_for(item_id)
+	if texture == null:
+		return fallback
+	var used := texture.get_image().get_used_rect()
+	if used.size.x <= 0 or used.size.y <= 0:
+		return fallback
+	return Vector2(used.size) * ART_SCALE
+
 func _art_for(item_id: StringName) -> Texture2D:
 	var path := "res://Assets/sprites/items/%s.png" % item_id
 	if not ResourceLoader.exists(path):

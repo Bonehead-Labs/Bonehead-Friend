@@ -59,6 +59,7 @@ func _ready() -> void:
 	_spawning_and_the_item_limit()
 	_the_idle_brain_knows_who_is_at_the_desk()
 	await _every_toy_is_worth_walking_to()
+	_the_colliders_match_the_pictures()
 	_knockout_pays_and_resets()
 	_the_buddy_art_is_wired()
 	_the_expression_brain_arbitrates()
@@ -1052,6 +1053,67 @@ func _every_toy_is_worth_walking_to() -> void:
 	_check("but spawning a weapon is still the player arriving, and cancels the offer",
 		is_equal_approx(brain._wait_seconds, IdleBrain.IDLE_SECONDS))
 	tool_body.queue_free()
+
+## The collider is the picture (D55).
+##
+## Checked for every item whose body has exactly ONE collider — those are derived from the
+## sprite's own opaque pixels, so they should match it almost exactly. Bodies with several
+## colliders are deliberately authored (D25: a bat is a barrel and a grip, not a box around
+## both) and are not measurable this way, so they are skipped rather than guessed at.
+##
+## This exists because the fault was invisible from source and silent in play. Two seeders
+## wrote a hand-typed art-pixel extent into a world-pixel shape while drawing the sprite at
+## 2x, so 28 of 31 kind items had a collider between a third and six-sevenths of the thing
+## you could see — you could push a bat most of the way into a hot tub before it touched. A
+## third route let a collider go stale when its art was regenerated and the scene was not.
+func _the_colliders_match_the_pictures() -> void:
+	_suite("collider shapes")
+	var checked := 0
+	var wrong: Array[String] = []
+	for item in ItemDB.all_items():
+		if item.scene == null:
+			continue
+		var root := item.scene.instantiate()
+		var body := root as RigidBody2D
+		if body == null:
+			root.free()
+			continue
+		var shapes: Array[CollisionShape2D] = []
+		var sprite: Sprite2D = null
+		for child in body.get_children():
+			if child is CollisionShape2D:
+				shapes.append(child)
+			elif child is Sprite2D and sprite == null:
+				sprite = child
+		# One collider only, and only where there is art to compare it against. An offset
+		# collider is an authored sub-part rather than a derived box — the trampoline's is the
+		# mat, deliberately not the frame and legs — so position is the honest test for "did a
+		# person mean this shape", and a derived box always sits on the origin.
+		if shapes.size() != 1 or sprite == null or sprite.texture == null:
+			root.free()
+			continue
+		if not shapes[0].position.is_zero_approx():
+			root.free()
+			continue
+		var rect := (shapes[0].shape.get_rect() if shapes[0].shape is RectangleShape2D
+			else Rect2()) if shapes[0].shape else Rect2()
+		var extent := rect.size
+		if extent == Vector2.ZERO:
+			root.free()
+			continue
+		var used := sprite.texture.get_image().get_used_rect()
+		var art := Vector2(used.size) * sprite.scale
+		checked += 1
+		if art.x > 0.0 and art.y > 0.0:
+			var rx := extent.x / art.x
+			var ry := extent.y / art.y
+			if absf(rx - 1.0) > 0.25 or absf(ry - 1.0) > 0.25:
+				wrong.append("%s %.0fx%.0f vs art %.0fx%.0f" % [item.id, extent.x, extent.y, art.x, art.y])
+		root.free()
+	_check("every single-shape body's collider is the size of its picture (%d checked, %d off)"
+		% [checked, wrong.size()], wrong.is_empty())
+	for line in wrong.slice(0, 5):
+		print("        %s" % line)
 
 func _the_idle_brain_knows_who_is_at_the_desk() -> void:
 	_suite("idle brain")
@@ -2476,10 +2538,13 @@ func _he_goes_and_plays_with_his_toys() -> void:
 
 	# He does not set off lying on his side: rotation is locked for the trip, so a start from
 	# 45 degrees would walk him across the desk on his face.
-	buddy.global_rotation = deg_to_rad(45.0)
 	EventBus.spawn_requested.emit(&"beanbag", Vector2(buddy.global_position.x - 200.0, 100.0))
 	for i in 20:
 		await get_tree().physics_frame
+	# Tipped over AFTER the settle, not before it. Twenty physics frames are long enough for
+	# him to fall back upright on his own, so setting the rotation first meant the gate this
+	# asserts was not being exercised at all — the check passed because he was standing up.
+	buddy.global_rotation = deg_to_rad(45.0)
 	brain.pretend_idle()
 	brain.think_now()
 	_check("he does not set off on his side (phase '%s')" % brain.phase_name(),

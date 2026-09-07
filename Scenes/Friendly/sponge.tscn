@@ -1,42 +1,42 @@
 [gd_scene format=3]
 
-[ext_resource type="Script" path="res://Scripts/Bodies/friendly_base.gd" id="1_s0oh7"]
-[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="2_keqqy"]
+[ext_resource type="Script" path="res://Scripts/Bodies/friendly_base.gd" id="1_keqqy"]
 [ext_resource type="Texture2D" path="res://Assets/sprites/items/sponge.png" id="2_otfga"]
+[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_mobw0"]
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_keqqy"]
-size = Vector2(30, 22)
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_1up1n"]
+size = Vector2(38, 30)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_otfga"]
-size = Vector2(42, 34)
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_5fq4s"]
+size = Vector2(50, 42)
 
-[node name="Sponge" type="RigidBody2D" unique_id=1166063892 node_paths=PackedStringArray("drag_area", "handle", "collider")]
+[node name="Sponge" type="RigidBody2D" unique_id=1746784092 node_paths=PackedStringArray("drag_area", "handle", "collider")]
 collision_layer = 4
 collision_mask = 7
 mass = 0.6
 contact_monitor = true
 max_contacts_reported = 4
-script = ExtResource("1_s0oh7")
+script = ExtResource("1_keqqy")
 hearts_per_second_touching = 0.4
 cleans_grime = true
 drag_area = NodePath("DraggableArea")
 handle = NodePath("Handle")
 collider = NodePath("CollisionShape2D")
 
-[node name="Sprite" type="Sprite2D" parent="." unique_id=139945650]
+[node name="Sprite" type="Sprite2D" parent="." unique_id=242672972]
 scale = Vector2(2, 2)
 texture = ExtResource("2_otfga")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1894186754]
-shape = SubResource("RectangleShape2D_keqqy")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=296824051]
+shape = SubResource("RectangleShape2D_1up1n")
 
-[node name="DraggableArea" type="Area2D" parent="." unique_id=1318205788]
-script = ExtResource("2_keqqy")
+[node name="DraggableArea" type="Area2D" parent="." unique_id=538016496]
+script = ExtResource("3_mobw0")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=1892150916]
-shape = SubResource("RectangleShape2D_otfga")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=2069534455]
+shape = SubResource("RectangleShape2D_5fq4s")
 
-[node name="Handle" type="StaticBody2D" parent="." unique_id=1971622626]
+[node name="Handle" type="StaticBody2D" parent="." unique_id=371466930]
 visible = false
 collision_layer = 0
 collision_mask = 0
