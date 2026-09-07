@@ -161,6 +161,15 @@ const START_UPRIGHT_DEG := 20.0
 const JIG_SPEED := 60.0
 const JIG_INTERVAL := 0.45
 
+## Seconds between knocks of a ball. Slow enough to read as him playing with it rather than
+## juggling, and long enough that the ball has come back down before he hits it again.
+const BOP_INTERVAL := 0.9
+## How much faster than the toy's own threshold he knocks it, so a ball that is already
+## drifting still clears the check and a rounding error never eats a payout.
+const BOP_SPEED_MARGIN := 1.35
+## Floor on that, for a toy that asks for very little: a one-pixel nudge is not a bop.
+const BOP_MIN_SPEED := 260.0
+
 ## Speed above which he counts as having actually moved during a think window. The brain-paid
 ## routines are paid for *doing* something, so a skeleton wedged under a trampoline earns
 ## nothing — the kindness-side twin of the damage cooldown and the sponge's clean-return.
@@ -193,6 +202,18 @@ const ROUTINE_PLAY := 2     ## placed generator — pays whether he is there or 
 const ROUTINE_SOAK := 3     ## hot tub, massage chair — the toy pays per second of contact
 const ROUTINE_SCRUB := 4    ## sponge — the toy pays for grime actually removed
 const ROUTINE_NIBBLE := 5   ## pizza — the toy pays once, on contact
+## Balls — the toy pays on contact, but only above a closing speed. He makes it himself.
+##
+## These used to return `ROUTINE_NONE` on the reasoning that "he cannot throw himself", so
+## walking to one would be a wasted trip. True, and the conclusion was wrong: it left the
+## tennis ball, the baseball, the kite and the party popper inert whenever the player was not
+## personally throwing them, which is most of a game that is meant to run unattended. Seven
+## of the eleven items in the Play tab did nothing for him at all.
+##
+## He does not throw it. He knocks it up off himself, and it pays on the way off — the toy's
+## own check is the ball's speed, and an impulse gives it that in the frame it is still
+## touching him. Then it falls back on him and pays again. Keepy-uppies.
+const ROUTINE_BOP := 6
 
 const PHASE_WATCHING := &"watching"
 const PHASE_TRAVELLING := &"travelling"
@@ -223,6 +244,7 @@ var _bank_position := Vector2.ZERO
 var _gravity := 980.0
 var _climb_timer := 0.0
 var _jig_timer := 0.0
+var _bop_timer := 0.0
 var _wander_dir := 1.0
 
 ## Builds, names and installs the brain in one line, so `main.gd` gains exactly one call.
@@ -345,6 +367,7 @@ func _physics_process(delta: float) -> void:
 		_moved_since_think = true
 	_climb_timer -= delta
 	_jig_timer -= delta
+	_bop_timer -= delta
 
 	if _phase == PHASE_WANDERING:
 		_walk(_wander_direction())
@@ -386,6 +409,8 @@ func _physics_process(delta: float) -> void:
 		# The mat does the work; this is only the shove that gets him going again once a
 		# bounce has died out. Its launch is external energy and pays, by design.
 		_climb(true)
+	elif _routine == ROUTINE_BOP:
+		_bop()
 
 ## Pushed through his middle, bounded, with friction paid for up front. Central, because
 ## rotation is locked while the brain drives him: the old shove "at his feet" was aimed 32 px
@@ -470,6 +495,39 @@ func _jig() -> void:
 	_wander_dir = -_wander_dir
 	_buddy.apply_central_impulse(Vector2(_wander_dir * _buddy.mass * JIG_SPEED, 0.0))
 
+## Knock the ball up off himself.
+##
+## The toy's own rule is that `hearts_per_contact` pays only above `min_contact_speed`, and
+## it measures **the ball's** speed, not his. So the impulse pays in the frame it is applied,
+## while the ball is still touching him — and again when it comes back down on him. He never
+## has to throw anything, which is just as well.
+##
+## Aimed as `mass * (wanted - current)` rather than as a fixed shove: that is a hit rather
+## than a nudge, so the result is the speed asked for whether the ball was sitting still or
+## already rolling. A fixed impulse on a ball drifting downward can land under the threshold
+## and pay nothing, which looks exactly like the feature not working.
+##
+## The ball's velocity is never assigned directly. Same rule as the buddy: everything here is
+## simulated, and a body that gets its velocity written stops colliding the way the rest of
+## the game assumes.
+func _bop() -> void:
+	if _bop_timer > 0.0 or not is_instance_valid(_target):
+		return
+	var ball := _target as RigidBody2D
+	if ball == null:
+		return
+	_bop_timer = BOP_INTERVAL
+	var friendly := _target as FriendlyBase
+	var needed := friendly.min_contact_speed if friendly else 0.0
+	var speed := maxf(needed * BOP_SPEED_MARGIN, BOP_MIN_SPEED)
+	# Up, and a little back over him, so it comes down on him instead of beside him.
+	var toward := signf(_buddy.global_position.x - ball.global_position.x)
+	var wanted := Vector2(speed * 0.18 * toward, -speed)
+	ball.apply_central_impulse((wanted - ball.linear_velocity) * ball.mass)
+	# He heads it: a small hop, so the knock reads as him doing something rather than the
+	# ball deciding to leave.
+	_climb(true)
+
 ## Mooching. Turns round before the wall so he does not spend the whole wander leaning on it.
 func _wander_direction() -> float:
 	var rect := get_viewport().get_visible_rect()
@@ -521,6 +579,14 @@ func _routine_for(body: BaseDraggable) -> int:
 		return ROUTINE_BOUNCE
 	var friendly := body as FriendlyBase
 	if friendly == null:
+		# A ball that is not a kind item is still a ball. The beach ball and the bowling ball
+		# sit in the Play tab and are `WeaponBase`, so they pay **Bones** off the contact
+		# impulse rather than Hearts — which is a payout, and knocking one about is the most
+		# obvious thing in the world to do with it. He is a skeleton; a bowling ball landing
+		# on him is the game.
+		var toy := ItemDB.get_item(body.item_id)
+		if body is WeaponBase and toy and toy.category == ItemData.CATEGORY_TOY:
+			return ROUTINE_BOP
 		return ROUTINE_NONE
 	var item := ItemDB.get_item(body.item_id)
 	# The whole kind half, not one drawer of it. This read `category != CATEGORY_FRIENDLY`
@@ -533,10 +599,10 @@ func _routine_for(body: BaseDraggable) -> int:
 	# the player's to hold. Reading the switch alone would send him over to sit in it.
 	if friendly.handheld:
 		return ROUTINE_NONE
-	# He cannot throw himself. The baseball's catch pays only above a closing speed he has no
-	# way to produce on foot, so walking to it would be a wasted trip every time.
+	# A ball that only pays above a closing speed. He cannot throw, but he can knock it up
+	# off himself, which is the same thing as far as the toy's own check is concerned.
 	if friendly.min_contact_speed > 0.0:
-		return ROUTINE_NONE
+		return ROUTINE_BOP if friendly.hearts_per_contact > 0.0 else ROUTINE_NONE
 	# Scrub before soak: the sponge now pays a touching trickle as well as its grime bonus,
 	# and read in the other order he would sit in it like a beanbag.
 	if friendly.cleans_grime:
@@ -572,6 +638,11 @@ func _appeal(body: BaseDraggable, routine: int) -> float:
 		return b.sponge_clean_rate * b.hearts_per_grime_cleaned * grime
 	if routine == ROUTINE_NIBBLE:
 		return friendly.hearts_per_contact / maxf(friendly.contact_cooldown, 0.1)
+	if routine == ROUTINE_BOP:
+		# Paced by the bop, not by the toy's cooldown — he cannot hit it faster than he
+		# swings, so quoting the toy's rate would make a ball look better than it plays.
+		return friendly.hearts_per_contact \
+			/ maxf(friendly.contact_cooldown, BOP_INTERVAL)
 	return 0.0
 
 ## The kindness-value multiplier, read the same way `FriendlyBase.value_multiplier()` reads

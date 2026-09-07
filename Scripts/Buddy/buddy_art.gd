@@ -156,6 +156,17 @@ var _squash := Vector2.ONE
 var _foot_fix := 0.0
 var _face_base_scale := Vector2.ONE
 
+## How much bigger his expression is drawn than the body it sits on.
+##
+## The face art is 18x12 pixels on a 63px body, and at the body's own scale his eyes were
+## four screen pixels across at 1x — the whole expression system arguing in a whisper. Scaled
+## about the sprite's centre, which is within a pixel of the art's own centre, so nothing
+## needs repositioning.
+##
+## 1.5 rather than 2: at 1.75 the eyes reach the headphones and at 2 the face spills past his
+## shoulders. Judged by compositing the real frames rather than in the editor.
+const FACE_SCALE := 1.5
+
 ## Posture: continuous, below every beat. `_posture_speed` is the body `speed_scale` he
 ## rests at (0.7 in the mood trough), `_slouch` a lean in radians, `_stretch` how far he is
 ## drawn out along a fall. `posture_bias` names an idle to prefer over plain `idle` — a
@@ -197,7 +208,7 @@ func _ready() -> void:
 		if frames:
 			face.sprite_frames = frames
 		_face_home = face.position
-		_face_base_scale = face.scale
+		_face_base_scale = face.scale * FACE_SCALE
 		set_expression(&"neutral")
 	if body:
 		_body_home = body.position

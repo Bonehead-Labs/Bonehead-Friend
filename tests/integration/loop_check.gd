@@ -58,6 +58,7 @@ func _ready() -> void:
 	_shop_refuses_what_you_cannot_afford()
 	_spawning_and_the_item_limit()
 	_the_idle_brain_knows_who_is_at_the_desk()
+	await _every_toy_is_worth_walking_to()
 	_knockout_pays_and_resets()
 	_the_buddy_art_is_wired()
 	_the_expression_brain_arbitrates()
@@ -943,6 +944,89 @@ func _shop_refuses_what_you_cannot_afford() -> void:
 ## turret running he never reached the twenty-five idle seconds a routine needs, and the
 ## player who bought automation specifically to watch him potter about got a buddy who
 ## never moved again. No test failed, because there was no test.
+## Every toy in the Play tab is something he will actually do something with.
+##
+## The complaint that produced this: "make him actually interact with the items under the
+## play tab and gain points from them, it almost seems totally useless". It was true. Seven
+## of the eleven Play items returned `ROUTINE_NONE` — the balls because they only pay above a
+## closing speed, on the reasoning that he cannot throw, and three more because they are not
+## friendly bodies at all. Nothing in the suite looked at routine selection, so a toy could be
+## added and be inert forever without a single assertion going red.
+##
+## Asserted against `ItemDB` rather than a hard-coded list, so the next toy added to the tab
+## is covered the day it lands.
+func _every_toy_is_worth_walking_to() -> void:
+	_suite("toys are playable")
+	var brain := get_tree().get_first_node_in_group(&"idle_brain") as IdleBrain
+	if brain == null:
+		IdleBrain.install(self)
+		brain = get_tree().get_first_node_in_group(&"idle_brain") as IdleBrain
+	if brain == null:
+		_check("the idle brain is installed to test against", false)
+		return
+
+	_check("bopping a ball is not paid for by the brain — the toy pays on the contact",
+		not brain._brain_pays(IdleBrain.ROUTINE_BOP))
+
+	var toys: Array[StringName] = []
+	for item in ItemDB.all_items():
+		if item.category == ItemData.CATEGORY_TOY and item.scene != null:
+			toys.append(item.id)
+	_check("the Play tab has toys in it", toys.size() >= 8)
+
+	var inert: Array[String] = []
+	for id in toys:
+		var body := ItemDB.get_item(id).scene.instantiate() as BaseDraggable
+		if body == null:
+			continue
+		body.item_id = id
+		add_child(body)
+		# The one honest exception. A `WindSource` earns nothing and is not a thing he uses:
+		# it changes every *other* item's arc, so its whole job happens while he plays with
+		# something else. There is nothing to walk over and do to a fan.
+		if body is not WindSource and brain._routine_for(body) == IdleBrain.ROUTINE_NONE:
+			inert.append(String(id))
+		body.queue_free()
+	# A ball he can knock about, a mat he can bounce on, a puzzle he can sit at — the point
+	# is that none of them is furniture he walks past.
+	_check("and he has something to do with every one of them (inert: %s)"
+		% ("none" if inert.is_empty() else ", ".join(inert)), inert.is_empty())
+
+	# The mechanism, not just the choice. The toy measures the *ball's* speed, so a bop that
+	# leaves it under the threshold is a walk across the desk for nothing — which is
+	# indistinguishable, from the sofa, from the feature not existing.
+	var ball := ItemDB.get_item(&"tennis_ball").scene.instantiate() as FriendlyBase
+	if ball == null:
+		_check("a tennis ball can be staged", false)
+		return
+	ball.item_id = &"tennis_ball"
+	add_child(ball)
+	var him := _buddy()
+	# Clear of him, not touching. Twenty pixels put the ball inside his collider, where the
+	# solver spends the impulse pushing the two apart and the bop reads as a tap.
+	ball.global_position = him.global_position + Vector2(90.0, -60.0)
+	# The body has to be fully in the physics space before it can be hit. On the frame it is
+	# added the impulse is dropped entirely; on the next, its *mass* has still not reached
+	# the server, so a mass-scaled impulse lands as though the ball weighed 1 and the bop
+	# reads four times too weak. Two frames, then hit it.
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	ball.sleeping = false
+	brain._buddy = him
+	brain._target = ball
+	brain._bop_timer = 0.0
+	brain._bop()
+	# An impulse is not a velocity until the solver has run. Reading it back on the same
+	# frame reports zero, which looks like the bop having no effect at all.
+	await get_tree().physics_frame
+	var launched := ball.linear_velocity.length()
+	_check("a bop leaves the ball above the speed the toy pays at (%.0f vs %.0f)"
+		% [launched, ball.min_contact_speed], launched >= ball.min_contact_speed)
+	_check("and it goes upward, so it comes back down on him",
+		ball.linear_velocity.y < 0.0)
+	brain._target = null
+	ball.queue_free()
+
 func _the_idle_brain_knows_who_is_at_the_desk() -> void:
 	_suite("idle brain")
 
