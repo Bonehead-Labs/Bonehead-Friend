@@ -1164,11 +1164,34 @@ side: equipping and unequipping is annoying, and you cannot use anything else wh
 Being armed silently changes what a left click does, which made it the one piece of hidden
 state in the game a player could act on by accident.
 
+**Then: none of it is visible.** The owner's second note on this was that the scheme "isn't
+necessarily obvious to a new user", which is the right objection — a control scheme that has
+to be discovered by experiment is one most players will conclude is broken. They will try to
+drag him, shoot him instead, and stop equipping powers. So the rules are taught the same way
+the removal gestures are (`HINT_REMOVAL`): a one-off toast the first time anything is
+equipped, remembered in `Settings` so it survives the Reincarnation that wipes the save.
+
+Which parts need teaching is not symmetric. *Clicking a toy picks it up* needs none — that is
+what clicking a toy already did, so the rule is invisible in the good sense. *Esc* is written
+on the chip itself rather than left in a tooltip, because a tooltip has to be found by
+hovering something the player does not yet know is interactive, and that is the wrong place
+for the one instruction they need in order to stop. *Shift* is the line that earns the toast:
+nothing anywhere suggests that holding a key gives you your plain hands back.
+
 *Consequence:* the Escape precedence lives in `EscMenu`, not in a second handler on the
 spawner — two nodes racing for one key across a CanvasLayer and the world is decided by tree
 order, which is not a thing to hang a control scheme on. `ItemSpawner.holster_power()` is the
 one call behind both exits. The chip carries a 32px icon in a 32px box because the art size
-contract (D27) forbids stepping it down into the 22px row the other footer buttons use.
+contract (D27) forbids stepping it down into the 22px row the other footer buttons use, and
+`ui_check` measures the chip against the HUD's column for **every** power in the roster:
+"Magnifying Glass" comes to 257px of a 268px column, and a Button grows to fit rather than
+clipping, so a longer name would silently widen the whole HUD.
+
+*Also fixed on the way:* `ui_check` captured and restored six `Settings` fields but not
+`hints_seen`, and the suite both puts an item on the desk and now equips a power — each of
+which fires a one-off tip that marks itself seen and saves. A developer would have quietly
+lost the tips they had not met yet and only found out by never being taught the controls. The
+list is duplicated into `_restore`, not aliased.
 
 ## D48 — The big payout numbers step around the HUD (2026-09-07)
 

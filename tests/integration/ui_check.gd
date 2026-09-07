@@ -36,6 +36,12 @@ func _ready() -> void:
 		"hud_pinned": Settings.hud_pinned,
 		"tabs_pinned": Settings.tabs_pinned,
 		"backdrop": Settings.backdrop,
+		# Duplicated, not aliased: the one-off tips are an Array on the singleton, and
+		# holding a reference to it would "restore" whatever the run appended. The suite puts
+		# an item on the desk and equips a power, and both of those fire a hint that marks
+		# itself seen and saves — so without this a developer would silently lose the tips
+		# they have not met yet, and only find out by never being taught the controls.
+		"hints": Settings.hints_seen.duplicate(),
 	}
 	Settings.focus_intensity = Settings.Intensity.OFF
 	# Pinned, so the suite's coverage is a property of the suite and not of whatever the
@@ -116,6 +122,7 @@ func _restore_settings() -> void:
 	Settings.hud_pinned = _restore["hud_pinned"]
 	Settings.tabs_pinned = _restore["tabs_pinned"]
 	Settings.backdrop = _restore["backdrop"]
+	Settings.hints_seen = _restore["hints"]
 	Settings.save_settings()
 
 # --- checks ----------------------------------------------------------------
@@ -1066,12 +1073,25 @@ func _the_power_leaves_your_hands_free() -> void:
 		return
 	_check("and it is hidden while your hands are empty", not chip.visible)
 
+	# Cleared so the first-equip tip is genuinely first. Safe to stomp: `_restore` holds a
+	# duplicate of the whole hint list and puts it back before the suite quits.
+	Settings.hints_seen.erase(String(HUD.HINT_CURSOR_POWER))
+	var toast := _find(hud, "Toast") as CanvasItem
+	_check("the HUD's toast is named, so it can be found", toast != null)
+
 	Progression.purchase_item(&"pistol")
 	EventBus.spawn_requested.emit(&"pistol", Vector2.ZERO)
 	await _settle()
 	_check("equipping a power arms the spawner",
 		StringName(spawner.call("active_power")) == &"pistol")
 	_check("and the chip says so", chip.visible and chip.text.contains("Pistol"))
+	# The rules are good and invisible, so the one that cannot be guessed gets taught once.
+	_check("and the way out is written on the chip, not hidden in a tooltip",
+		chip.text.contains("Esc"))
+	_check("the first power equipped teaches the gestures",
+		Settings.hint_seen(HUD.HINT_CURSOR_POWER))
+	if toast:
+		_check("and the tip is on screen", toast.visible)
 
 	# The rule that gives the hands back: a click over something the player put on the desk
 	# is a grab, not a shot. Asked of the power itself, because a synthetic click cannot move
@@ -1094,6 +1114,26 @@ func _the_power_leaves_your_hands_free() -> void:
 			_check("but over one of your toys it declines, so you can pick it up",
 				bool(power.call("_pointing_at_a_toy")))
 			area.is_hovered = false
+
+	# The chip carries an icon, a name and a key in a 268px column. "Magnifying Glass" is a
+	# lot longer than "Pistol", and a Button grows to fit rather than clipping — so the
+	# longest name in the roster would silently widen the whole HUD if this went unchecked.
+	var widest := ""
+	var widest_px := 0.0
+	for candidate in ItemDB.all_items():
+		if not candidate.is_cursor_power():
+			continue
+		EventBus.cursor_power_changed.emit(candidate.id)
+		await _settle()
+		var need := chip.get_combined_minimum_size().x
+		if need > widest_px:
+			widest_px = need
+			widest = candidate.display_name
+	_check("the armed chip fits the HUD column for every power (%s, %.0fpx)"
+		% [widest, widest_px], widest_px <= HUD.WIDTH,
+		"%.0f > %.0f" % [widest_px, HUD.WIDTH])
+	EventBus.cursor_power_changed.emit(&"pistol")
+	await _settle()
 
 	# One click on the chip puts it away — the whole point of the chip existing.
 	chip.pressed.emit()

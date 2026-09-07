@@ -37,6 +37,14 @@ var _clear_button: Button
 ## Key for the one-off tip that teaches both removal gestures. Lives in `Settings`, so it is
 ## remembered per machine and survives the Reincarnation that wipes the save.
 const HINT_REMOVAL := &"removal_gestures"
+
+## Key for the one-off tip that teaches what being armed does and does not cost (D47).
+##
+## The rules are good and none of them is *visible*: nothing on screen says that your toys
+## still pick up normally, or that Shift gets you your plain hands back. A control scheme
+## that has to be discovered by experiment is a control scheme most players will conclude is
+## broken — they will try to drag him, shoot him instead, and stop equipping powers.
+const HINT_CURSOR_POWER := &"cursor_power_gestures"
 var _grime_label: Label
 var _toast: PanelContainer
 var _toast_label: Label
@@ -282,6 +290,9 @@ func _build() -> void:
 	toast_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	column.add_child(toast_row)
 	_toast = PanelContainer.new()
+	# Named, so a suite can find it. An unnamed `PanelContainer.new()` comes out as
+	# `@PanelContainer@31`, which no test can look up and nobody can read in a remote tree.
+	_toast.name = "Toast"
 	_toast.theme_type_variation = &"Card"
 	_toast.visible = false
 	_toast.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -699,9 +710,28 @@ func _on_cursor_power_changed(item_id: StringName) -> void:
 	_armed_button.visible = item != null
 	if item == null:
 		return
-	_armed_button.text = "Holding: %s" % item.display_name
+	# The exit is written on the chip, not left in the tooltip. A tooltip has to be found by
+	# hovering something the player does not yet know is interactive, which is the wrong
+	# place for the one instruction they need in order to stop.
+	_armed_button.text = "Holding: %s  ·  Esc" % item.display_name
 	UIStyle.set_icon(_armed_button, UIStyle.item_face(item, UIStyle.ICON_CANVAS),
 		UIStyle.ICON_CANVAS)
+	_offer_the_power_hint(item)
+
+## Said once, the first time the player equips anything, and never again.
+##
+## Same argument as the removal hint above: the alternative to teaching this once is either
+## permanent chrome on somebody's desktop or a player who never finds it. Shift is the line
+## that earns the toast — the other two rules are guessable, because clicking a toy to pick
+## it up is what clicking a toy already did, but nothing suggests that holding a key gives
+## you your hands back.
+func _offer_the_power_hint(item: ItemData) -> void:
+	if Settings.hint_seen(HINT_CURSOR_POWER):
+		return
+	Settings.mark_hint_seen(HINT_CURSOR_POWER)
+	show_toast("You're holding the %s. Click him to use it — your toys still pick up "
+		% item.display_name
+		+ "as normal. Hold Shift to grab him instead. Esc puts it away.", 12.0)
 
 func _on_armed_pressed() -> void:
 	var spawner := get_tree().get_first_node_in_group(&"item_spawner")
