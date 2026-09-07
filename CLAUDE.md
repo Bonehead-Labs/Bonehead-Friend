@@ -100,7 +100,9 @@ that are not obvious from the code:
   `request_refresh()` / `request_rebuild()`; deferred work replays on open. Never gate on
   `visible` — a page's own flag is written only when the card switches pages, so the last page
   opened stays flagged visible under a shut card and `if visible:` passes forever.
-- **The shell is scaled by a whole number per CanvasLayer** (D23, `UIScale`). Because of that,
+- **The shell is scaled per CanvasLayer** (D23, `UIScale`) — by a whole number when the game
+  chooses, and in quarter steps when the player pins one (D50); auto never picks a fraction,
+  because a resampled pixel face is a cost only the player may opt into. Because of that,
   `get_global_rect()` on any shell Control is in canvas space and wrong by the scale factor:
   anything comparing a control to a mouse position uses `UIScale.screen_centre` /
   `screen_rect`. Each layer's root Control is sized explicitly rather than anchored full-rect.
@@ -472,3 +474,9 @@ HUD links to Reincarnation once a run is worth a Marrow; the welcome is a Dream 
 Streak, buff and cap prices are `BalanceData` knobs. The wardrobe (`CosmeticData`, worklist §6) tints the
 bone and headphone masks of the same shader; a Jobs badge, a best streak, a per-round score and a
 session receipt round out the hooks.
+
+**Test helper arity differs by suite, and the failure is a parse error that hangs the run.**
+`ui_check`'s `_check(name, ok, detail)` takes three arguments; `loop_check`'s and
+`window_check`'s take two. Passing three to the latter two fails to parse, which means the
+scene never loads, nothing prints, and the run sits there until it is killed — it looks like
+a hang, not a typo. Both suites have now cost a debugging round to this.
