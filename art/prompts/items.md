@@ -284,3 +284,113 @@ signed for `...368` and takes 1 and 2 for `...369`. Reusing one expiry for the w
 silently returns an XML error body saved as a `.png`. The session token also rotates between
 requests. `dl.sh` in the scratchpad handles both by trying each token it has seen and checking
 for the PNG magic number.
+
+---
+
+## The Codex batch — the five hands-on kind items and the fist (2026-09-07)
+
+A different generator, so a different record. `docs/decisions.md` D44 said no image generator
+was reachable from an agent session and shipped these five as plotted polygons. That was
+wrong: the Codex CLI on this machine carries a native `imagegen` tool, and `codex exec`
+drives it headlessly. `art/tools/codex_imagegen.sh` is the wrapper; D45 has the reasoning.
+
+**There are no seeds.** `imagegen` takes a prompt and nothing else, so a generation cannot be
+reproduced exactly the way a Retro Diffusion seed reproduces one. The prompt *is* the record
+here, which is why each is written out in full below rather than summarised.
+
+| Field | Value |
+|---|---|
+| Model | `gpt-5.6-luna` at low reasoning effort, about 32k tokens per image |
+| Size | whatever the generator picks (1254x1254, or 1536x1024 when the prompt implies landscape) |
+| Takes | one, judged, re-prompted if it failed — cheaper than three blind takes |
+| Background | **magenta**, keyed out by `art/tools/keyout.py` (there is no `remove_bg`) |
+| Post | `keyout.py --size 48` then `item_postprocess.py <raw> <id> <height>` |
+
+### The recipe that worked
+
+Every prompt ends with the same tail, and it is doing real work:
+
+```
+simple bold shapes, thick dark outline, flat solid colours, centred with generous
+margin, on a plain solid magenta background, no text, no shadow, no gradient
+```
+
+`flat solid colours` is the clause that makes this generator usable at all — without it it
+renders soft shading that survives neither the palette snap nor an 11-pixel reduction.
+`no shadow` matters more than it looks: a cast shadow keys out as part of the subject and
+becomes a grey smear welded to the silhouette.
+
+### Sizes
+
+Held to what the plotted versions measured rather than to the handoff's targets, so the
+extents barely move and `seed_friendly` does not need re-running.
+
+| Item | height passed | result | plotted before |
+|---|---|---|---|
+| tennis_ball | 13 | 13x13 | 13x13 |
+| feather_duster | 11 | 16x11 | 27x11 |
+| party_popper | 22 | 14x22 | 12x22 |
+| warm_towel | 13 | 28x13 | 22x17 |
+| kite | 26 | 18x26 | 20x26 |
+| fist (32 cell, `--desaturate`) | 28 | 23x26 | 24x26 |
+
+### The prompts
+
+```
+tennis_ball
+a single tennis ball seen straight on, bright yellow-green felt with one curved white seam
+line across it, <tail>
+
+party_popper
+a party popper cone firing upward, a teal cone body with a gold rim, and a burst of short
+colourful streamers attached to and emerging from the open top, side view, <tail>
+
+warm_towel
+a neatly folded towel seen from the side as a single thick stack, cream fabric with one BOLD
+wide teal horizontal band across the middle of the stack, the band about one third of the
+total height, only two fold layers so the shape stays simple, <tail>
+
+kite
+a diamond kite seen face on, a teal and cream diamond sail split into quarters by a dark
+cross spar, with a SHORT stubby ribbon tail attached to the bottom point, the tail no longer
+than half the height of the sail, the whole kite compact and roughly as wide as it is tall,
+<tail>
+
+feather_duster  (take B of three)
+a feather duster lying flat and horizontal, a thick warm brown wooden handle on the left
+third, and on the right a fan of five or six SEPARATE pointed feather fronds spreading
+outward like a hand of cards, each frond a distinct spike with a dark gap of background
+visible between them, alternating light lilac and darker slate purple fronds, side view,
+<tail>
+
+fist  (keyed with --desaturate, 32px cell)
+a clenched human fist seen from the front with the knuckles facing the viewer and the thumb
+folded across the front of the fingers, a short wrist at the bottom, four distinct knuckle
+bumps along the top edge, <tail>
+```
+
+### What each retry taught
+
+**The despeckle pass is a judgement call, not a cleanup.** `keyout.py` keeps only the largest
+connected mass, which is right for the party popper — its confetti is genuinely detached and
+would be four stray pixels at 22px — and wrong for the kite, whose tail is a separate blob
+and is half the point of the object. The kite is keyed with `--keep-all`. Read what the tool
+dropped before accepting it; it reports the count for that reason.
+
+**The towel lost its stripe the first time.** A pale teal line one fold thick averaged away
+in the reduction to 13 pixels and left a plain cream slab. Asking for the band to be *a third
+of the total height* is what made it survive. This is the same lesson `items.md` already
+records for the minigun, arriving through a different door: a feature has to be a third of
+the subject to exist at icon size, not a tenth.
+
+**The feather duster took three takes and is still the weakest of the five.** A plume is one
+material, so it has no internal edges — the first take reduced to a grey blob on a stick.
+Asking for separated fronds with visible gaps (take B) got the structure back. Take C pushed
+the separation further and produced a claw: five spikes with no mass between them stops being
+a duster. The plotted version is still in git on `main` if the blob reads better in the shop
+than the plume does.
+
+**Judge after the palette snap.** The tennis ball's yellow-green has nowhere to land in a
+palette with no yellow-green, so it snaps to the gold `#f2d06b` and reads as a yellow ball.
+That is the right call and not a defect — but it is only visible after the snap, never in
+the raw.

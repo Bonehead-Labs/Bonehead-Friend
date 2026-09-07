@@ -13,6 +13,13 @@ replaces the prototype's grey render with a bone-cream fist in the same idiom.
 
 Replace any of them with a generated sprite when the generator is back; nothing references
 the pixels, and `make_icons.py` rebuilds the shop icons from whatever is in the folder.
+
+**All six have since been replaced by generated art** (2026-09-07, D45) via Codex's
+`imagegen` — see `art/prompts/items.md`. This tool is kept because it is the only record of
+how the placeholders were drawn and because a plotted shape is still the right answer if a
+generation cannot be made to read at 11 pixels. It now refuses to overwrite the generated
+files unless you pass `--force`, so re-running it out of habit cannot silently undo the
+art pass.
 """
 
 import os
@@ -241,15 +248,25 @@ ITEMS = {
 
 
 def main():
+	force = "--force" in sys.argv[1:]
 	os.makedirs(OUT_ITEMS, exist_ok=True)
 	os.makedirs(OUT_ICONS, exist_ok=True)
-	for item, draw in ITEMS.items():
-		path = "%s/%s.png" % (OUT_ITEMS, item)
+	targets = [("%s/%s.png" % (OUT_ITEMS, item), draw) for item, draw in ITEMS.items()]
+	targets.append(("%s/fist.png" % OUT_ICONS, fist_icon))
+
+	if not force:
+		existing = [p for p, _ in targets if os.path.exists(p)]
+		if existing:
+			print("Refusing to overwrite %d file(s) — these are the generated sprites that"
+				" replaced these plots (D45)." % len(existing))
+			for p in existing:
+				print("  ", p)
+			print("Pass --force if you really mean to go back to the plotted shapes.")
+			return 1
+
+	for path, draw in targets:
 		draw().save(path)
 		print("wrote", path)
-	path = "%s/fist.png" % OUT_ICONS
-	fist_icon().save(path)
-	print("wrote", path)
 
 
 if __name__ == "__main__":
