@@ -61,6 +61,18 @@ const GROUP_IDLE_BRAIN := &"idle_brain"
 ## to the kettle finds him already busy when you get back.
 const IDLE_SECONDS := 25.0
 
+## How long he waits after being *offered* something, rather than after being left alone.
+##
+## Putting a toy on the desk used to call `_disturb()` like any other interaction, which
+## reset the full twenty-five seconds — so "spawn a beach ball and watch him play with it",
+## the most obvious thing a player will try, was the one sequence guaranteed to show nothing.
+## The owner tried exactly that and reported the feature as broken. It was not broken; it was
+## unreachable.
+##
+## Six seconds because it has to outlast the throw: a ball is usually spawned in the air and
+## dropped, and him setting off before it has landed reads as him walking to where it is not.
+const INVITED_SECONDS := 6.0
+
 ## How often he re-plans. Half a hertz.
 ##
 ## The search walks the `interactive` group, which is at most `item_limit` bodies plus him,
@@ -236,6 +248,9 @@ var _best_distance := INF
 var _moved_since_think := false
 
 var _last_disturbance_msec := 0
+## How long he must be left alone before starting. `IDLE_SECONDS` normally; `INVITED_SECONDS`
+## when the player has just put a toy down for him (which is an offer, not an arrival).
+var _wait_seconds := IDLE_SECONDS
 var _cooldowns: Dictionary = {}   ## toy instance id -> earliest msec he will go back
 
 var _banked := 0.0
@@ -308,7 +323,7 @@ func _think() -> void:
 			_enter(PHASE_WATCHING)
 
 func _consider_starting() -> void:
-	if Time.get_ticks_msec() - _last_disturbance_msec < int(IDLE_SECONDS * 1000.0):
+	if Time.get_ticks_msec() - _last_disturbance_msec < int(_wait_seconds * 1000.0):
 		return
 	# Rotation is locked for the trip, so setting off from his side would walk him across the
 	# desk on his face. Nothing rights him but the out-of-bounds rescue; he waits.
@@ -658,6 +673,9 @@ func _value_multiplier() -> float:
 ## Anything the player does to him ends the routine on the spot.
 func _disturb() -> void:
 	_last_disturbance_msec = Time.get_ticks_msec()
+	# Back to the full wait. An arrival cancels an outstanding offer: if the player drops a
+	# ball and then starts hitting him, they are playing with him, not leaving him to it.
+	_wait_seconds = IDLE_SECONDS
 	if _phase != PHASE_WATCHING:
 		_stand_down()
 
@@ -700,8 +718,35 @@ func _on_buddy_state_changed(state: StringName) -> void:
 
 ## Spawning something means a hand on the mouse. Despawning does not — the pizza he just ate
 ## despawns itself, and treating that as the player would interrupt him with his own dinner.
-func _on_item_spawned(_item: Node2D) -> void:
-	_disturb()
+## Putting a toy down is not the player arriving — it is the player offering him something.
+##
+## Treated as a *shortened* wait rather than a reset: the clock is backdated so only
+## `INVITED_SECONDS` remain, instead of the full `IDLE_SECONDS`. Anything he cannot use
+## (a bat, a grenade, a turret) is still an arrival, because that is the player picking up a
+## tool rather than giving him a thing.
+##
+## He is not interrupted if he is already busy. Dropping a second ball next to a buddy who is
+## happily bouncing on a trampoline should not march him across the desk.
+func _on_item_spawned(item: Node2D) -> void:
+	var body := item as BaseDraggable
+	if body == null or _routine_for(body) == ROUTINE_NONE:
+		_disturb()
+		return
+	# Busy with something already: leave him to it. Dropping a second ball beside a buddy
+	# happily bouncing on a trampoline should not march him across the desk.
+	if _phase == PHASE_TRAVELLING or _phase == PHASE_PLAYING:
+		return
+	# Mooching counts as free. He has finished with something and is wandering with nothing
+	# to do, so a toy arriving is exactly what he is waiting for — stand him down to watching
+	# so the new thing is considered, rather than making him mooch out the remaining seconds.
+	if _phase != PHASE_WATCHING:
+		_stand_down()
+	# The threshold moves, not the timestamp. Backdating the clock instead underflows in the
+	# first twenty-five seconds of a session — `Time.get_ticks_msec()` is still smaller than
+	# the head start, it clamps to zero, and the offer silently does nothing at exactly the
+	# moment a new player is most likely to be trying it.
+	_last_disturbance_msec = Time.get_ticks_msec()
+	_wait_seconds = INVITED_SECONDS
 
 func _on_item_despawned(item: Node2D) -> void:
 	if item == _target:

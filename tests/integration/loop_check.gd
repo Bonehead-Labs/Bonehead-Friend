@@ -1027,6 +1027,32 @@ func _every_toy_is_worth_walking_to() -> void:
 	brain._target = null
 	ball.queue_free()
 
+	# And the gate in front of all of it. Putting a toy down used to call `_disturb()`, which
+	# reset the full 25-second idle clock — so "spawn a ball and watch him play with it", the
+	# first thing any player tries, was the one sequence guaranteed to show nothing. Offering
+	# him something now shortens the wait instead of restarting it.
+	var offered := ItemDB.get_item(&"beach_ball").scene.instantiate() as BaseDraggable
+	offered.item_id = &"beach_ball"
+	add_child(offered)
+	brain._phase = IdleBrain.PHASE_WATCHING
+	brain._disturb()
+	_check("being interrupted leaves him the full wait (%.0fs)" % brain._wait_seconds,
+		is_equal_approx(brain._wait_seconds, IdleBrain.IDLE_SECONDS))
+	brain._on_item_spawned(offered)
+	_check("offering him a toy shortens the wait to %.0fs instead of resetting it"
+		% brain._wait_seconds, is_equal_approx(brain._wait_seconds, IdleBrain.INVITED_SECONDS))
+	offered.queue_free()
+
+	# A bat is not an offer. Picking up a tool is the player arriving, and must still reset —
+	# otherwise every weapon spawned mid-fight would start a countdown to him wandering off.
+	var tool_body := ItemDB.get_item(&"baseball_bat").scene.instantiate() as BaseDraggable
+	tool_body.item_id = &"baseball_bat"
+	add_child(tool_body)
+	brain._on_item_spawned(tool_body)
+	_check("but spawning a weapon is still the player arriving, and cancels the offer",
+		is_equal_approx(brain._wait_seconds, IdleBrain.IDLE_SECONDS))
+	tool_body.queue_free()
+
 func _the_idle_brain_knows_who_is_at_the_desk() -> void:
 	_suite("idle brain")
 

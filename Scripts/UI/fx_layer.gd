@@ -100,7 +100,14 @@ var _next_spark := 0
 var _face: Font
 
 func _ready() -> void:
-	layer = 5
+	# Above the HUD (10), below the panels (20). D48 moved the numbers sideways out of the
+	# HUD's corner and that was only ever half the problem: at layer 5 the HUD painted over
+	# every number wherever it was, so a knockout headline wide enough to reach the corner
+	# lost to the status card no matter where it started. Position cannot beat draw order.
+	#
+	# Below the panels on purpose. An open shop is something the player is reading, and a
+	# payout number scrolling across it is worse than a payout number they missed.
+	layer = 15
 	_face = load(UIStyle.FONT_DISPLAY) as Font
 	for i in POOL_SIZE:
 		var label := Label.new()

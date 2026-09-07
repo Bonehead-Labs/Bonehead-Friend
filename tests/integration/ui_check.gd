@@ -1030,6 +1030,19 @@ func _the_big_numbers_dodge_the_hud() -> void:
 		_check("the FX layer and the HUD are both present to test", false)
 		return
 
+	# Draw order first, because position cannot beat it. D48 moved the numbers out of the
+	# HUD's corner and the owner still had a knockout headline painted over by the status
+	# card: FXLayer was on layer 5 and the HUD on 10, so every number lost wherever it sat.
+	# Below the panels on purpose — a payout scrolling across an open shop is worse than one
+	# the player missed.
+	var panels := _find(_main, "PanelLayer") as CanvasLayer
+	_check("payout numbers draw above the HUD, not behind it (%d vs %d)"
+		% [(fx as CanvasLayer).layer, (hud as CanvasLayer).layer],
+		(fx as CanvasLayer).layer > (hud as CanvasLayer).layer)
+	if panels:
+		_check("and below the panels, so an open page is never scribbled on",
+			(fx as CanvasLayer).layer < panels.layer)
+
 	var keep: Rect2 = hud.call("shell_rect")
 	_check("the HUD reports a rect to keep clear of", keep.size.x > 0.0 and keep.size.y > 0.0,
 		"rect %s" % keep)
