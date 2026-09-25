@@ -168,8 +168,14 @@ func _physics_process(_delta: float) -> void:
 	# the other door. Measured: eight frozen frames, eight teleports.
 	if dragging and handle and not physics_frozen:
 		handle.global_position = handle.global_position.lerp(get_global_mouse_position(), follow_lerp)
-		linear_velocity = linear_velocity.limit_length(max_drag_speed)
-		angular_velocity = clampf(angular_velocity, -max_drag_spin, max_drag_spin)
+		# Written only when over the ceiling (D56). The getters return what the server reported
+		# after the last step, so writing them back unconditionally every frame replaced the
+		# body's real velocity with that stale copy — erasing any impulse applied since, which is
+		# the fist's bug from D54 again: a held gun's recoil measured exactly 0.0 degrees.
+		if linear_velocity.length_squared() > max_drag_speed * max_drag_speed:
+			linear_velocity = linear_velocity.limit_length(max_drag_speed)
+		if absf(angular_velocity) > max_drag_spin:
+			angular_velocity = clampf(angular_velocity, -max_drag_spin, max_drag_spin)
 	_trail_step()
 
 # --- the trail --------------------------------------------------------------
