@@ -5,16 +5,16 @@
 [ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_y7iu1"]
 [ext_resource type="Script" path="res://Scripts/Components/effects_player.gd" id="4_ctyhw"]
 
-[sub_resource type="CircleShape2D" id="CircleShape2D_nolna"]
+[sub_resource type="CircleShape2D" id="CircleShape2D_ueoj7"]
 radius = 28.0
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_6ufva"]
-size = Vector2(88, 76)
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_4hqcs"]
+size = Vector2(70, 76)
 
-[sub_resource type="CircleShape2D" id="CircleShape2D_gnp14"]
+[sub_resource type="CircleShape2D" id="CircleShape2D_y7iu1"]
 radius = 230.0
 
-[node name="_ImplosionCharge" type="RigidBody2D" unique_id=1594757039 node_paths=PackedStringArray("explosion_area", "drag_area", "handle", "sprite", "collider", "Effects_Player")]
+[node name="_ImplosionCharge" type="RigidBody2D" unique_id=675434812 node_paths=PackedStringArray("explosion_area", "drag_area", "handle", "sprite", "collider", "Effects_Player")]
 collision_layer = 4
 collision_mask = 7
 mass = 2.0
@@ -33,31 +33,31 @@ sprite = NodePath("Sprite")
 collider = NodePath("CollisionShape2D")
 Effects_Player = NodePath("EffectsPlayer")
 
-[node name="Sprite" type="Sprite2D" parent="." unique_id=1205068324]
+[node name="Sprite" type="Sprite2D" parent="." unique_id=2023484059]
 scale = Vector2(2, 2)
 texture = ExtResource("2_4hqcs")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1184438684]
-shape = SubResource("CircleShape2D_nolna")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1347350827]
+shape = SubResource("CircleShape2D_ueoj7")
 
-[node name="DraggableArea" type="Area2D" parent="." unique_id=2124166955]
+[node name="DraggableArea" type="Area2D" parent="." unique_id=1045533987]
 script = ExtResource("3_y7iu1")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=787312084]
-shape = SubResource("RectangleShape2D_6ufva")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=1559785701]
+shape = SubResource("RectangleShape2D_4hqcs")
 
-[node name="Handle" type="StaticBody2D" parent="." unique_id=702039346]
+[node name="Handle" type="StaticBody2D" parent="." unique_id=665890165]
 visible = false
 collision_layer = 0
 collision_mask = 0
 
-[node name="EffectsPlayer" type="Node" parent="." unique_id=1746287402]
+[node name="EffectsPlayer" type="Node" parent="." unique_id=42391225]
 script = ExtResource("4_ctyhw")
 
-[node name="ExplosionArea" type="Area2D" parent="." unique_id=132757746]
+[node name="ExplosionArea" type="Area2D" parent="." unique_id=637084689]
 collision_layer = 0
 collision_mask = 6
 monitoring = false
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="ExplosionArea" unique_id=1672023821]
-shape = SubResource("CircleShape2D_gnp14")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="ExplosionArea" unique_id=774093640]
+shape = SubResource("CircleShape2D_y7iu1")

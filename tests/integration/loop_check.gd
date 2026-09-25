@@ -1318,6 +1318,47 @@ func _the_authored_colliders_match_the_pictures() -> void:
 	_check("and the enumeration found them (%d, at least the 42 D61 audited)" % checked, checked >= 42)
 	for id in EXEMPT:
 		_check("the exemption for %s names a real item" % id, ItemDB.get_item(id) != null)
+	_the_grab_regions_match_their_seeder()
+
+## A grab region the seeder derives from the sprite is only right for the sprite it was derived
+## from. The implosion charge was built as 88x76 around an earlier picture and kept it through
+## D61's redraw, when its seeder would have built 70x76 (D65 noticed, D70 re-seeded it). So every
+## body `seed_m36_explosives` owns is rebuilt here by the same factory, and its click target
+## compared with the one on disk. Nothing is written.
+func _the_grab_regions_match_their_seeder() -> void:
+	var seeder := load("res://tools/seed_m36_explosives.gd") as Script
+	var table: Array = seeder.get_script_constant_map().get("EXPLOSIVES", [])
+	var checked := 0
+	var wrong: Array[String] = []
+	for entry in table:
+		var item := ItemDB.get_item(entry["id"])
+		if item == null or item.scene == null:
+			continue
+		var spec := {"id": entry["id"], "script": entry["script"], "mass": entry["mass"],
+			"blast_radius": entry["blast"], "properties": {}}
+		for authored in ["shapes", "com", "grip", "grab"]:
+			if entry.has(authored):
+				spec[authored] = entry[authored]
+		var built := ItemBodyBuilder.build(spec)
+		var shipped := item.scene.instantiate()
+		var want := _grab_size(built)
+		var have := _grab_size(shipped)
+		built.free()
+		shipped.free()
+		checked += 1
+		if want == Vector2.ZERO or not have.is_equal_approx(want):
+			wrong.append("%s: %s on disk, the seeder builds %s" % [entry["id"], have, want])
+	_check("every explosive's grab region is what its seeder builds from today's sprite (%d checked%s)"
+		% [checked, "" if wrong.is_empty() else ": " + "; ".join(wrong)], wrong.is_empty() and checked >= 10)
+
+## The click target's size: the rectangle under the body's `DraggableArea`, found by what it is.
+static func _grab_size(root: Node) -> Vector2:
+	for child in root.get_children():
+		if child is Area2D and child.get_script() == preload("res://Scripts/Bodies/draggable_area.gd"):
+			for piece in child.get_children():
+				if piece is CollisionShape2D and (piece as CollisionShape2D).shape is RectangleShape2D:
+					return ((piece as CollisionShape2D).shape as RectangleShape2D).size
+	return Vector2.ZERO
 
 func _the_idle_brain_knows_who_is_at_the_desk() -> void:
 	_suite("idle brain")
