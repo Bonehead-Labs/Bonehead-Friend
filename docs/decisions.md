@@ -2606,8 +2606,8 @@ it lands.
 ## D70 — The loose ends: his own play, Off still earns, in the beanbag, blasts with a ceiling, gestures that outlive a panel (2026-09-26)
 
 **Decision.** What the item audit (D59), the AI audit (D60) and D64–D66 measured and left, closed
-together, each with a check that fails without it. Twelve fixes; one finding recorded rather than
-changed.
+together, each with a check that fails without it. Thirteen fixes; one finding recorded rather
+than changed.
 
 **1. He goes back to the cradle and the car.** brain_check's two failures at 208a8d1. Both toys
 quoted zero appeal while running — the cradle while it swung, the car while it drove — and zero is
@@ -2708,7 +2708,10 @@ measured before it was changed, and every check here was run against the code wi
 new seams: a new held toy honours `cancelled`, a new held power overrides `release_hold()`, a new
 soak toy is sat in by default and tuned with `seat_depth`. brain_check takes `--toys id,id`, walks
 every routine toy at Off, and fails an animal that throws him past the drag's backstop or hurts
-him with its body; `tools/soak_shots.tscn` (windowed) shoots him in each soak toy. Pacing moves
+him with its body; `tools/soak_shots.tscn` (windowed) shoots him in each soak toy. Three of the
+suites' own timing flakes were found on the way and fixed at their cause: item_check counts touch
+on every tick, brain_check holds his mood still across a reading and times a tell on the
+engine's clock (docs/ai-audit-2026-09.md J). Pacing moves
 nowhere — no price, rate or knob changed: 4/4, first Reincarnation 9:47:54. *Not seen by a
 person:* the slingshot drawn across the real HUD, the goose waiting at the beanbag, the duck being
 bopped.
