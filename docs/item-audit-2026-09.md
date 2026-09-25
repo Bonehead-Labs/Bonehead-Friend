@@ -127,6 +127,10 @@ things, which is not what "drags him and every loose thing on the desk into one 
 **Recommendation.** Tuning: scale the pull by the body's mass (an acceleration, as gravity is), or
 raise the forces. A balance call.
 
+**Fixed (D65).** All three pull by the body's own mass times `pull_accel`. Measured: black hole
+126 → 71 px (stopped against the charge), implosion 132 → 68, vortex 197 → 11; a 0.3 kg prop in the
+vortex 155 → 42 px, peak 561 px/s (it was 155 → 106 at 1,137). Checks: "gathers", "pulls", "light".
+
 ### F5. The gravity vortex and the desk fan earn nothing under their own name
 
 Neither class bills anything: the vortex's damage is the collisions it causes (billed to the floor
@@ -137,6 +141,13 @@ bought**. (The fan's "Higher Setting" reads as wind strength; a damage key is th
 **Recommendation.** Design: attribute vortex-driven collisions to the vortex, or give both a tree
 that means something for what they do (pull strength, wind strength) and a capstone not gated on
 mastery.
+
+**Fixed (D65), both halves.** While the vortex's pull or the fan's wind is on him, an impact with
+the world is billed to that item instead of to `world` (`Buddy.claim_impacts`) — who is billed,
+never whether, so nothing pays twice. The vortex earns and ranks end to end (a slam into the desk:
+10.5 Bones plain, 46.6 upgraded). The fan's "Higher Setting" is wind strength (`wind_mult`, ×1.10
+measured on a probe). The fan's claim is checked directly; the suite's own drop bounces apart inside
+one step, so its payout waits on F1 and carries `~F1` lines.
 
 ### F6. The trampoline returns less than it was given
 
@@ -167,10 +178,15 @@ ball) fits the description.
 
 - **F7. Two cooldown nodes with no cooldown.** The fist's "Faster Hands" and the vortex's "Faster
   Collapse" multiply `cooldown_seconds`, which is 0 on both. The fist's could mean follow speed.
+  **Fixed (D65):** "Faster Hands" is the fist's chase speed (`speed_mult`, 1,997 → 2,116 px/s),
+  "Faster Collapse" the vortex's pull (`pull_mult`, ×1.10 on a probe).
 - **F8. Seven consumables sell a cooldown.** Pizza, cup of tea, donut box, ice cream, noodle bowl,
   birthday cake and party popper are `consume_on_use`: each pays once and is gone, so the gap their
   third node shortens never runs. A kindness-value or payout node would mean something.
+  **Fixed (D65):** the third node is how much a helping lifts his mood (`mood_mult`), checked on
+  every act to 1e-4 against `MoodMath`.
 - **The donut box says "Six. He is going to have all six."** It is consumed on the first contact.
+  **Fixed (D65):** six helpings of 5, half a second apart (`FriendlyBase.servings`).
 - **The fist's damage node counts twice.** `FistPower.fire` scales the punch impulse by
   `effective_damage_mult()`, and the receiver scales the damage by the fist body's multiplier
   again, so one level is ×1.32 on a punch, not ×1.15. Balance call.

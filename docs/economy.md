@@ -39,6 +39,12 @@ nested rigid body and therefore measured *time since last hit*, not swing speed.
 also means **any** rigid body is a weapon — a bowling ball dropped from height pays properly
 without special-casing.
 
+A **field** — the gravity vortex's pull, the desk fan's wind — never touches him, so every impact
+it causes is with the world or a prop. While a field acts on him, and briefly after, an impact
+with the *world* is billed to the field instead of to `world` (D65). A prop is still billed for
+its own hit, and the world's fall floor still applies: the rule changes who is paid, never
+whether, so nothing is billed twice.
+
 **Kindness → Hearts.** Two shapes, and they are two different signals (`docs/decisions.md` D14):
 - *Event* kindness — `EventBus.kindness_given`. A pet, a caught baseball, a slice of pizza:
   flat value per event, **with** a combo multiplier on repeats inside a short window.
@@ -166,6 +172,12 @@ at 30 minutes against a first Reincarnation at 6–10 hours.
 
 Exclusive branches give three flavours from one weapon at almost no content cost. Respec is
 allowed for a Hearts fee.
+
+The third lever is whatever the item actually has (D65): a rate for anything with a gap between
+uses, weight for the heavy things, and for the rest a key of their own — `pull_mult` (the
+vortex), `wind_mult` (the fan), `speed_mult` (the fist's chase) and `mood_mult` (a treat's mood
+lift, since food is gone before any gap could run). A node on a key nothing reads is a placebo,
+and `item_check` measures every key.
 
 Gating gradient across the game: **Cash → Cash + Mastery → Cash + Mastery + Prestige.** Three
 escalating keys, so progress is never purely a money wall.
