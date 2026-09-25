@@ -1059,6 +1059,20 @@ func _drive_black_hole(run: Run) -> void:
 	if not await _prime_and_drop(run, body, _centre() + Vector2(-190.0, -10.0)):
 		return
 	run.notes.append("pull %.1fs" % body.pull_seconds)
+	# A 0.3 kg prop beside it, touching nothing: the well gathers it into the heart of the heap,
+	# where the blast hands it `max_force / 0.3` — tens of thousands of px/s until D70 capped what
+	# any blast may hand one body. Sampled every frame: [last speed vector, largest one-frame
+	# change, peak speed]. An Array, because a lambda captures locals by value.
+	var probe := _probe(body.global_position + Vector2(60.0, -30.0), 4)
+	var seen := [Vector2.ZERO, 0.0, 0.0]
+	var sample := func() -> void:
+		if not is_instance_valid(probe):
+			return
+		var v := probe.linear_velocity
+		seen[1] = maxf(float(seen[1]), (v - (seen[0] as Vector2)).length())
+		seen[2] = maxf(float(seen[2]), v.length())
+		seen[0] = v
+	get_tree().physics_frame.connect(sample)
 	var well: WeakRef = weakref(body)
 	await _await(func() -> bool: return well.get_ref() == null or well.get_ref()._pull_left > 0.0, 90)
 	var start := _centre().distance_to(body.global_position) if not _gone(body) else 0.0
@@ -1072,6 +1086,15 @@ func _drive_black_hole(run: Run) -> void:
 	_expect(run, "gathers", nearest < start - 25.0,
 		"the well drags him in before it goes (%.0f px to %.0f)" % [start, nearest])
 	await _expect_blast(run, body, 60)
+	get_tree().physics_frame.disconnect(sample)
+	# The largest change in one frame is the blast's push (the pull adds at most a few hundred
+	# px/s a frame to a body this light, and nothing else touches it).
+	_expect(run, "prop", float(seen[1]) > 0.0 and float(seen[1]) <= ExplosionUtil.MAX_BLAST_SPEED + 300.0,
+		"a 0.3 kg prop it gathered is thrown no harder than any blast may throw anything: %.0f px/s in one frame, peak %.0f (the cap is %.0f)"
+		% [float(seen[1]), float(seen[2]), ExplosionUtil.MAX_BLAST_SPEED])
+	run.notes.append("a gathered 0.3 kg prop: +%.0f px/s in a frame, peak %.0f" % [float(seen[1]), float(seen[2])])
+	if is_instance_valid(probe):
+		probe.queue_free()
 
 ## The one explosive nobody aims: lit in the hand and let go.
 func _drive_firework(run: Run) -> void:

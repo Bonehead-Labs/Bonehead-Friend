@@ -13,6 +13,24 @@ extends RefCounted
 ## 0.00 spin. That was most of the "weird sudden movement" — the same one-word mistake was in
 ## `npc_base.gd` twice as well, so a goose peck and a gorilla slam did it too.
 
+## **The most any blast may hand one body, as a change of speed in px/s** (D70). D54's drag
+## backstop, for blasts. A blast's impulse falls off with distance and nothing else, so what it
+## does to a body is `impulse / mass`: fine for him at 3 kg, and absurd for a 0.3 kg prop. One
+## gathered to the heart of a black hole charge was measured leaving at 74,608 px/s in a single
+## frame (the implosion charge 36,698 at its worst), and a pencil beside any grenade does much the
+## same: a body crossing the whole window in a frame, which CCD and the walls cannot always stop.
+##
+## Set above every launch a blast gives *him*, measured: the black hole charge is the fastest at
+## 6,478 px/s, then the demolition charge at 6,324. So no explosion is any smaller as he feels
+## it; only the prop that would have left the window. The push is capped, never the impulse a
+## caller bills him for — damage is his to measure (D7), and it has its own per-hit cap.
+const MAX_BLAST_SPEED := 7500.0
+
+## The impulse a blast of `strength` actually hands `body`: all of it, up to `max_speed` of
+## change in its speed.
+static func capped(body: RigidBody2D, strength: float, max_speed: float = MAX_BLAST_SPEED) -> float:
+	return minf(strength, maxf(body.mass, 0.001) * max_speed)
+
 ## The blast's real reach, in world units.
 ##
 ## **The scale factor is load-bearing.** get_overlapping_bodies() reports whatever the
@@ -38,7 +56,8 @@ static func blast_strength(distance: float, radius: float, max_force: float) -> 
 ## magnitude is returned rather than discarded because damage is measured on the receiver
 ## (docs/decisions.md D7): the blast hands Bonehead the same kind of number the contact
 ## solver would, and he decides what it costs him.
-static func apply_blast(area: Area2D, origin: Vector2, max_force: float, shape_node: String = "") -> Array[Dictionary]:
+static func apply_blast(area: Area2D, origin: Vector2, max_force: float, shape_node: String = "",
+		max_speed: float = MAX_BLAST_SPEED) -> Array[Dictionary]:
 	var affected: Array[Dictionary] = []
 	var cs := _circle_in(area, shape_node)
 	if cs == null:
@@ -57,7 +76,7 @@ static func apply_blast(area: Area2D, origin: Vector2, max_force: float, shape_n
 		var strength := blast_strength(to_body.length(), radius, max_force)
 		# A body exactly at the origin has no direction to be pushed in; nudge it up.
 		var dir := to_body.normalized() if to_body.length() > 0.01 else Vector2.UP
-		body.apply_central_impulse(dir * strength)
+		body.apply_central_impulse(dir * capped(body, strength, max_speed))
 		affected.append({"body": body, "impulse": strength})
 	return affected
 
@@ -88,7 +107,8 @@ static func _circle_in(area: Area2D, preferred: String) -> CollisionShape2D:
 ## than cached in a `static var`: shots are click-driven, so there is nothing to optimise,
 ## and a static that holds a Resource keeps this script alive past engine shutdown, which
 ## shows up as a leak and masks the real ones.
-static func point_blast(space: PhysicsDirectSpaceState2D, origin: Vector2, radius: float, max_force: float, max_results: int = 16) -> Array[Dictionary]:
+static func point_blast(space: PhysicsDirectSpaceState2D, origin: Vector2, radius: float, max_force: float,
+		max_results: int = 16, max_speed: float = MAX_BLAST_SPEED) -> Array[Dictionary]:
 	var affected: Array[Dictionary] = []
 	if space == null or radius <= 0.0:
 		return affected
@@ -108,6 +128,6 @@ static func point_blast(space: PhysicsDirectSpaceState2D, origin: Vector2, radiu
 		var to_body: Vector2 = body.global_position - origin
 		var strength := blast_strength(to_body.length(), radius, max_force)
 		var dir := to_body.normalized() if to_body.length() > 0.01 else Vector2.UP
-		body.apply_central_impulse(dir * strength)
+		body.apply_central_impulse(dir * capped(body, strength, max_speed))
 		affected.append({"body": body, "impulse": strength})
 	return affected
