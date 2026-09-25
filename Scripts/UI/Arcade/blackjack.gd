@@ -467,7 +467,7 @@ func _paint(row: Control, is_dealer: bool) -> void:
 	var font := UITheme.get_theme().get_font("font", "Numeral")
 	if font == null:
 		return
-	var rule := float(UIStyle.BORDER_WIDTH)
+	var rule := float(UIStyle.rule_width())
 
 	# The cards fan out at a fixed pitch until the hand is wider than the row it was dealt
 	# into, and then they overlap — which is what a real hand does, and is the only reason a

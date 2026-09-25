@@ -69,6 +69,9 @@ func _ready() -> void:
 	var host := get_parent() as Control
 	if host:
 		host.resized.connect(_fit_stages)
+	# And when the rule width changes with the Menu size (D68): the reel bank's fit counts its
+	# rules, and the card can keep its size across the change.
+	theme_changed.connect(_fit_stages)
 	_fit_stages.call_deferred()
 
 ## Tells every machine how wide its stage is on this card. Everything else in a cabinet is laid
@@ -86,6 +89,19 @@ func _fit_stages() -> void:
 	for machine in _machines:
 		var cabinet := machine["cabinet"] as Cabinet
 		(machine["game"] as ArcadeGame).fit_stage(cabinet.stage_width_for(width))
+	# And every cabinet's marquee and deck, the wardrobe's and the back room's too (D68).
+	for id in _room_order:
+		for cabinet in _cabinets_in(_rooms[id]["view"] as Node):
+			cabinet.fit(width)
+
+func _cabinets_in(root: Node) -> Array[Cabinet]:
+	var found: Array[Cabinet] = []
+	if root is Cabinet:
+		found.append(root as Cabinet)
+		return found
+	for child in root.get_children():
+		found.append_array(_cabinets_in(child))
+	return found
 
 ## The Rebirth page, nested here as the back-room machine. Held so its visibility flag can
 ## be kept in step with this page's.
@@ -114,7 +130,8 @@ func _build_page() -> void:
 
 	_room_strip = HBoxContainer.new()
 	_room_strip.name = "Rooms"
-	_room_strip.add_theme_constant_override("separation", 6)
+	_room_strip.add_theme_constant_override("separation", ROOM_GAP)
+	_room_strip.resized.connect(_fit_room_captions)
 	add_child(_room_strip)
 
 	for path in MACHINES:
@@ -159,9 +176,10 @@ func _add_room(id: StringName, caption: String, mark: StringName, accent: String
 	tab.toggle_mode = true
 	tab.custom_minimum_size = Vector2(0, 36)
 	tab.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	# Clipped rather than allowed to widen its own key: five keys share the strip evenly.
+	# Five keys share the strip evenly, and give up their mark, then their word, before any is
+	# clipped (`_fit_room_captions`, D68). Clipping stays as the backstop: never wider.
 	tab.clip_text = true
-	UIStyle.set_icon(tab, UIStyle.glyph(mark))
+	UIStyle.caption_key(tab, caption, UIStyle.glyph(mark))
 	tab.pressed.connect(func() -> void: show_room(id))
 	_room_strip.add_child(tab)
 
@@ -172,14 +190,34 @@ func _add_room(id: StringName, caption: String, mark: StringName, accent: String
 	lamp.theme_type_variation = UIStyle.marquee_variation(accent)
 	lamp.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	lamp.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	lamp.offset_left = UIStyle.BORDER_WIDTH
-	lamp.offset_right = -UIStyle.BORDER_WIDTH
-	lamp.offset_top = UIStyle.BORDER_WIDTH
-	lamp.offset_bottom = UIStyle.BORDER_WIDTH + UITheme.ROOM_LAMP
+	_hang_lamp(lamp)
+	# Inside the key's rule, and the rule's width follows the Menu size (D68).
+	lamp.theme_changed.connect(func() -> void: _hang_lamp(lamp))
 	tab.add_child(lamp)
 
 	_rooms[id] = {"tab": tab, "view": view}
 	_room_order.append(id)
+
+## The gap between two room keys.
+const ROOM_GAP := 6
+
+## Every room key is the strip's width shared out, so that is the width each caption has to fit
+## (D68). At 2x on the default play area a key is 100px and "The Wheel" with its mark is 102.
+func _fit_room_captions() -> void:
+	var keys: Array = []
+	for id in _room_order:
+		keys.append(_rooms[id]["tab"])
+	if keys.is_empty():
+		return
+	var share := (_room_strip.size.x - float(ROOM_GAP * (keys.size() - 1))) / float(keys.size())
+	UIStyle.fit_captions(keys, floorf(share))
+
+static func _hang_lamp(lamp: Control) -> void:
+	var rule := float(UIStyle.rule_width())
+	lamp.offset_left = rule
+	lamp.offset_right = -rule
+	lamp.offset_top = rule
+	lamp.offset_bottom = rule + UITheme.ROOM_LAMP
 
 ## Bring one room forward. The others stay built and hidden — a spin still running in a room
 ## the player left keeps running and still pays.

@@ -416,6 +416,51 @@ func _the_shell_has_its_look() -> void:
 	_check("no box in the theme has a rounded corner%s"
 		% ("" if rounded.is_empty() else ": " + ", ".join(rounded)), rounded.is_empty())
 
+	# Every state of every key is the size of the key at rest, and holds its label at the same
+	# x (D68). A Button measures itself from the state it is in, so a state with more margin is
+	# a key that grows when it is pressed, toggled or disabled, and takes its row with it — the
+	# arcade's deck grew under a hand being dealt. Resolved the way Godot resolves it: a state
+	# a variation leaves undefined comes from the base Button, margins and all, which is how a
+	# price key came out 4px wider pressed than at rest.
+	var key_types: Array[String] = ["Button"]
+	key_types.append_array(theme.get_type_variation_list("Button"))
+	var resized: Array[String] = []
+	for type_name in key_types:
+		var rest := _state_box(theme, "normal", type_name)
+		if rest == null:
+			continue
+		for state in ["hover", "pressed", "hover_pressed", "disabled"]:
+			var box := _state_box(theme, state, type_name)
+			if box == null:
+				resized.append("%s/%s is left to the stock theme" % [type_name, state])
+			elif not box.get_minimum_size().is_equal_approx(rest.get_minimum_size()):
+				resized.append("%s/%s %s at rest, %s here" % [type_name, state,
+					rest.get_minimum_size(), box.get_minimum_size()])
+			elif not is_equal_approx(box.get_margin(SIDE_LEFT), rest.get_margin(SIDE_LEFT)):
+				resized.append("%s/%s moves its label %+.0fpx sideways" % [type_name, state,
+					box.get_margin(SIDE_LEFT) - rest.get_margin(SIDE_LEFT)])
+	_check("every state of every key (%d variations) is the size of the key at rest%s"
+		% [key_types.size(), "" if resized.is_empty() else ": " + ", ".join(resized)],
+		resized.is_empty())
+
+	# The rule at every Menu size the settings can reach (D68): the base 3px at the whole
+	# factors, 4 at the quarter steps between, and a whole number of screen pixels at each — the
+	# rule and the key's lift both. A 3px rule at 1.25x is 3.75 screen pixels and lands as 3 or
+	# 4 depending on where it sits.
+	var ladder: Array[String] = []
+	var factor := UIScale.MIN
+	while factor <= UIScale.MAX + 0.001:
+		var width := UIStyle.rule_for(factor)
+		var whole := is_equal_approx(factor, roundf(factor))
+		var expected := UIStyle.BORDER_WIDTH if whole else 4
+		var lift := float(UITheme.KEY_LIFT) * factor
+		if width != expected or absf(float(width) * factor - roundf(float(width) * factor)) > 0.001 \
+				or absf(lift - roundf(lift)) > 0.001:
+			ladder.append("%.2fx -> %dpx" % [factor, width])
+		factor += UIScale.STEP
+	_check("a rule is 3px at every whole Menu size and 4 between, whole on screen at each%s"
+		% ("" if ladder.is_empty() else ": " + ", ".join(ladder)), ladder.is_empty())
+
 	# A scrollbar's width is its track stylebox's minimum size. Zero here means a panel
 	# that silently cannot be scrolled, which reads as content simply missing.
 	var track := theme.get_stylebox("scroll", "VScrollBar")
@@ -429,6 +474,16 @@ func _the_shell_has_its_look() -> void:
 	# The invariant every headless click test leans on: a control caught mid-tween is at
 	# the wrong scale, and hit-testing it is a coin flip.
 	_check("motion is off in headless", not UIMotion.enabled())
+
+## The box a state of `type_name` is drawn with: its own, else its base type's, as Godot looks
+## it up. Null if nothing in this theme defines it — the stock theme's box would be drawn.
+func _state_box(theme: Theme, state: String, type_name: String) -> StyleBox:
+	var walk := type_name
+	while walk != "":
+		if theme.has_stylebox(state, walk):
+			return theme.get_stylebox(state, walk)
+		walk = String(theme.get_type_variation_base(walk))
+	return null
 
 # --- the loop --------------------------------------------------------------
 

@@ -104,6 +104,7 @@ func _ready() -> void:
 	await _the_payouts_are_visible()
 	await _the_big_numbers_dodge_the_hud()
 	await _the_numbers_keep_apart()
+	await _numbers_leave_without_a_ghost()
 	await _the_hud_reads_on_any_desk()
 	await _the_power_leaves_your_hands_free()
 	await _the_world_has_juice()
@@ -111,6 +112,7 @@ func _ready() -> void:
 	await _the_hud_points_at_the_next_toy()
 	await _the_shell_hides_until_hovered()
 	await _nothing_overflows_its_box()
+	await _the_shell_at_every_menu_size()
 	await _closed_pages_do_no_work()
 	await _the_buddy_still_takes_clicks()
 	await _he_notices_the_player()
@@ -1218,15 +1220,79 @@ func _the_numbers_keep_apart() -> void:
 		and banner != null and _drawn_rect(banner).end.y <= _drawn_rect(headline).position.y + 0.5)
 	var coins_behind := true
 	for child in fx.get_children():
-		var coin := child as Label
-		if coin and coin.visible and coin.text.begins_with("+") and headline \
-				and coin.z_index >= headline.z_index:
+		var coin := child as Sprite2D
+		if coin and coin.visible and headline and coin.z_index >= headline.z_index:
 			coins_behind = false
 	_check("and the fountain's coins draw behind the lines", coins_behind)
 	await _apart_for_life(fx, "the knockout's lines")
 
 	Settings.focus_intensity = saved
 	await _quiet_numbers(fx)
+
+## Nothing on the FX layer is ever drawn part-transparent (D68). A number used to fade out over
+## the second half of its life, and over a flat backdrop — the chroma green a streamer keys out —
+## a half-transparent number is a grey ghost of itself, on every hit. Numbers now leave by
+## drawing in to their centre, and the fountain is coins that do the same. Watched frame by frame
+## through a payout's whole life and then a whole fountain.
+func _numbers_leave_without_a_ghost() -> void:
+	_suite("no ghosts")
+	var fx := _find(_main, "FXLayer")
+	if fx == null:
+		_check("the FX layer is present to test", false)
+		return
+	var saved := Settings.focus_intensity
+	Settings.focus_intensity = Settings.Intensity.NORMAL
+	await _quiet_numbers(fx)
+	Economy._streak_deadline_msec = 0
+
+	EventBus.payout.emit(Economy.BONES, 4800.0, Vector2(VIEW_SIZE) * 0.5, &"baseball_bat")
+	var payout := await _watch_leaving(fx, FXLayer.LIFETIME + 0.15)
+	_check("a payout number is drawn at full strength for its whole life (faintest %.2f)"
+		% payout["faintest"], payout["seen"] >= 1 and payout["faintest"] >= 0.999,
+		"%d watched" % payout["seen"])
+	_check("and leaves by drawing in, not by vanishing", payout["popped"].is_empty(),
+		", ".join(payout["popped"]))
+
+	await _quiet_numbers(fx)
+	fx.call("_on_knockout_payout", 12345.0)
+	fx.call("_on_buddy_state_changed", &"pile")
+	var fountain := await _watch_leaving(fx, FXLayer.ARC_LIFETIME + FXLayer.ARC_STAGGER * 16.0 + 0.15)
+	_check("the knockout's fountain is coins, not ten copies of one number (%d coins)"
+		% fountain["coins"], fountain["coins"] >= 5)
+	_check("and the headline and every coin are drawn at full strength (faintest %.2f)"
+		% fountain["faintest"], fountain["faintest"] >= 0.999)
+	_check("and each of them leaves by drawing in", fountain["popped"].is_empty(),
+		", ".join(fountain["popped"]))
+	Settings.focus_intensity = saved
+	await _quiet_numbers(fx)
+
+## Samples every frame for `seconds`: the faintest alpha any visible number or coin was drawn at,
+## and which of them were still more than a third of their size on their last visible frame.
+func _watch_leaving(fx: Node, seconds: float) -> Dictionary:
+	var faintest := 1.0
+	var last_scale := {}
+	var peak_scale := {}
+	var coins := {}
+	var until := Time.get_ticks_msec() + int(seconds * 1000.0)
+	while Time.get_ticks_msec() < until:
+		await get_tree().process_frame
+		for child in fx.get_children():
+			if not (child is Label or child is Sprite2D) or not (child as CanvasItem).visible:
+				continue
+			faintest = minf(faintest, _drawn_alpha(child as CanvasItem))
+			var s: float = (child as Control).scale.x if child is Control else (child as Node2D).scale.x
+			last_scale[child] = s
+			peak_scale[child] = maxf(float(peak_scale.get(child, 0.0)), s)
+			if child is Sprite2D:
+				coins[child] = true
+	var popped: Array[String] = []
+	for item in last_scale:
+		if (item as CanvasItem).visible:
+			continue
+		if float(last_scale[item]) > float(peak_scale[item]) / 3.0:
+			popped.append("%s at %.2f of %.2f" % [item.name, last_scale[item], peak_scale[item]])
+	return {"faintest": faintest, "seen": last_scale.size(), "coins": coins.size(),
+		"popped": popped}
 
 func _visible_label(fx: Node, prefix: String) -> Label:
 	for child in fx.get_children():
@@ -1709,6 +1775,238 @@ func _nothing_overflows_its_box() -> void:
 
 	panels.call("close")
 	await _settle()
+	await _keys_hold_their_size(panels)
+
+## A key of every variation, pressed, hovered while pressed and disabled on a bench in the real
+## shell, and measured each time (D68). A Button sizes itself from the state it is in, so a
+## state with more margin than the key at rest grows the key — and its row, and the card under
+## it. The arcade's deck grew 2px every time a hand was dealt and its keys went dead.
+##
+## A toggle does not re-measure the key on its own; the next thing that does (a caption change,
+## a theme change) picks up the pressed size. So the bench asks, the way that next thing would.
+func _keys_hold_their_size(panels: Node) -> void:
+	var root := panels.get("_root") as Control
+	var theme := UITheme.get_theme()
+	var types: Array[String] = ["Button"]
+	types.append_array(theme.get_type_variation_list("Button"))
+	var bench := VBoxContainer.new()
+	bench.name = "KeyBench"
+	bench.position = Vector2(40, 40)
+	root.add_child(bench)
+	var keys: Array[Button] = []
+	for type_name in types:
+		var row := HBoxContainer.new()
+		bench.add_child(row)
+		var key := Button.new()
+		key.name = "Bench%s" % type_name
+		key.text = "Deal"
+		UIStyle.set_icon(key, UIStyle.glyph(&"star"))
+		key.toggle_mode = true
+		key.focus_mode = Control.FOCUS_NONE
+		key.theme_type_variation = type_name
+		row.add_child(key)
+		keys.append(key)
+	await _settle()
+	var grew: Array[String] = []
+	for key in keys:
+		var rest := key.get_rect()
+		var states: Array[String] = []
+		key.button_pressed = true
+		key.update_minimum_size()
+		await _settle()
+		states.append("pressed %s" % key.size)
+		var pressed_ok := key.get_rect().is_equal_approx(rest)
+		_hovered_at(_centre_of(key))
+		key.update_minimum_size()
+		await _settle()
+		states.append("hovered %s" % key.size)
+		var hovered_ok := key.get_rect().is_equal_approx(rest)
+		_hovered_at(Vector2(VIEW_SIZE) * 0.5)
+		key.button_pressed = false
+		key.disabled = true
+		await _settle()
+		states.append("disabled %s" % key.size)
+		var disabled_ok := key.get_rect().is_equal_approx(rest)
+		if not (pressed_ok and hovered_ok and disabled_ok):
+			grew.append("%s: at rest %s, %s" % [key.theme_type_variation, rest.size,
+				", ".join(states)])
+	_check("a key of every variation (%d) keeps its rect pressed, hovered and disabled"
+		% keys.size(), grew.is_empty(), "; ".join(grew))
+	bench.queue_free()
+	await _settle()
+
+## The shell at the sizes it is actually used at (D68). Every other suite runs at 1x in a
+## 960x640 window; the owner plays at Menu size 1.25x on a 1440x960 play area, 2x is one step
+## away in Settings, 1180x760 is the play area a new player starts in, and 480x360 is the
+## smallest the window goes. Four things were wrong at those sizes and right at 1x:
+##
+## - **rules landed uneven.** A 3px rule at 1.25x is 3.75 screen pixels and draws as 3 or 4 by
+##   position, so a box was heavier on top than underneath. Rules are 4 at a fractional factor.
+## - **captions were clipped** — "Upgrad", "The Whee" — because a tab's width is the card's
+##   shared out and the card is narrower at 2x while the words are not.
+## - **pages were wider than the card**: seven backdrop keys in one row put Chroma past the
+##   card's right edge at 2x, and every Arcade room was wider than the 480x360 card.
+## - **the shop scrolled the whole card** at 2x, and took its buy key below the fold.
+const MENU_SIZES := [
+	[Vector2i(960, 640), 1.0],
+	[Vector2i(1440, 960), 1.25],
+	[Vector2i(1440, 960), 2.0],
+	[Vector2i(1180, 760), 2.0],
+	[Vector2i(960, 640), 1.75],
+	[Vector2i(480, 360), 1.0],
+]
+
+func _the_shell_at_every_menu_size() -> void:
+	_suite("menu sizes")
+	var panels := _find(_main, "PanelLayer")
+	var arcade := _find(_main, "ArcadePanel")
+	if panels == null or arcade == null:
+		_check("the panels are present to test", false)
+		return
+	var host := panels.get("_host") as ScrollContainer
+	var rebuilds_before := UITheme.rebuilds
+	for entry in MENU_SIZES:
+		var view_size: Vector2i = entry[0]
+		var asked: float = entry[1]
+		_view.size = view_size
+		Settings.set_ui_scale(asked)
+		await _settle()
+		await _settle()
+		var factor := UIScale.factor_for(Vector2(view_size))
+		var at := "%dx%d at %sx" % [view_size.x, view_size.y, ("%.2f" % factor).rstrip("0").rstrip(".")]
+		_check("%s: the shell is drawn at the size asked for" % at,
+			is_equal_approx(factor, asked) and is_equal_approx((panels as CanvasLayer).scale.x, asked))
+		_rules_land_whole(factor, at)
+		var widths: Array[String] = []
+		var clipped: Array[String] = []
+		var shop_scrolls := ""
+		for page_id in [&"shop", &"tree", &"contracts", &"deeds", &"arcade", &"settings"]:
+			panels.call("show_panel", page_id)
+			await _settle()
+			var page := _pages_page(panels, page_id)
+			if page == null:
+				continue
+			var room := host.size.x
+			if host.get_v_scroll_bar().visible:
+				room -= host.get_v_scroll_bar().size.x
+			var wide := page.get_combined_minimum_size().x
+			if wide > room + 0.5:
+				widths.append("%s %.0f in %.0f" % [page_id, wide, room])
+			if page_id == &"shop" and page.get_combined_minimum_size().y > host.size.y + 0.5:
+				shop_scrolls = "%.0f of page in %.0f of card" % [page.get_combined_minimum_size().y,
+					host.size.y]
+			if page_id == &"arcade":
+				for id in arcade.call("room_ids"):
+					arcade.call("show_room", id)
+					await _settle()
+					var room_wide: float = (arcade as Control).get_combined_minimum_size().x
+					if room_wide > room + 0.5:
+						widths.append("arcade/%s %.0f in %.0f" % [id, room_wide, room])
+					var key := (arcade.get("_rooms") as Dictionary)[id]["tab"] as Button
+					var fits := _caption_fits(key)
+					if fits != "":
+						clipped.append(fits)
+		for tab in (panels.get("_buttons") as Dictionary).values():
+			var fits := _caption_fits(tab as Button)
+			if fits != "":
+				clipped.append(fits)
+		_check("%s: no page is wider than the card" % at, widths.is_empty(), ", ".join(widths))
+		_check("%s: every tab's caption fits its tab, page and room" % at, clipped.is_empty(),
+			", ".join(clipped))
+		_check("%s: the shop fits the card rather than scrolling it" % at, shop_scrolls == "",
+			shop_scrolls)
+		panels.call("close")
+		await _settle()
+		# The tabs are right-aligned and as wide as the card, so on a narrow window they reached
+		# across into the status card's corner and the first tab sat on the purse.
+		var hud := get_tree().get_first_node_in_group(HUD.GROUP_HUD)
+		var tabs: Rect2 = panels.call("shell_rect")
+		var status: Rect2 = hud.call("shell_rect") if hud else Rect2()
+		_check("%s: the page tabs never sit on the status card" % at,
+			status.size.x > 0.0 and not tabs.intersects(status), "tabs %s, status %s" % [tabs, status])
+
+	# Rebuilding the theme is paid when the rule width changes and at no other time: the steps
+	# above crossed between whole and fractional factors, and a resize at the same factor
+	# changes nothing.
+	var crossed := UITheme.rebuilds - rebuilds_before
+	_check("the theme was rebuilt once per change of rule width (%d)" % crossed, crossed >= 2)
+	_view.size = Vector2i(1440, 960)
+	Settings.set_ui_scale(1.25)
+	await _settle()
+	var settled := UITheme.rebuilds
+	_view.size = Vector2i(1400, 940)
+	await _settle()
+	_view.size = Vector2i(1440, 960)
+	await _settle()
+	_check("and resizing the window at the same factor rebuilds nothing",
+		UITheme.rebuilds == settled, "%d rebuild(s)" % (UITheme.rebuilds - settled))
+
+	_view.size = VIEW_SIZE
+	Settings.set_ui_scale(1.0)
+	await _settle()
+	await _settle()
+	_check("and back at 1x the rules are the base width again",
+		UIStyle.rule_width() == UIStyle.BORDER_WIDTH)
+
+## Every rule the theme draws is a whole number of screen pixels at `factor`, and the shell is
+## actually drawing with that theme: the card's own rule, every `UIStyle.rule()`, every lamp.
+func _rules_land_whole(factor: float, at: String) -> void:
+	var theme := UITheme.get_theme()
+	var uneven: Array[String] = []
+	var checked := 0
+	for type_name in theme.get_stylebox_type_list():
+		# Drawn in the world, which the Menu size never scales.
+		if type_name == "Bubble":
+			continue
+		for box_name in theme.get_stylebox_list(type_name):
+			var flat := theme.get_stylebox(box_name, type_name) as StyleBoxFlat
+			if flat == null:
+				continue
+			for side in [SIDE_LEFT, SIDE_TOP, SIDE_RIGHT, SIDE_BOTTOM]:
+				var width := flat.get_border_width(side)
+				# A hairline is one pixel on purpose and cannot be whole at a quarter step
+				# without being four; D68 leaves them.
+				if width <= 1:
+					continue
+				checked += 1
+				var screen := float(width) * factor
+				if absf(screen - roundf(screen)) > 0.001:
+					uneven.append("%s/%s %dpx" % [type_name, box_name, width])
+	_check("%s: every rule in the theme is whole screen pixels (%d)" % [at, checked],
+		checked > 0 and uneven.is_empty(), ", ".join(uneven))
+	var rule := UIStyle.rule_for(factor)
+	var card := _find(_main, "Card") as Control
+	var drawn := (card.get_theme_stylebox("panel") as StyleBoxFlat).border_width_top if card else -1
+	var off: Array[String] = []
+	var lines := 0
+	for node in _all_nodes(_main):
+		var panel := node as Panel
+		if panel == null:
+			continue
+		if panel.theme_type_variation == &"Rule":
+			lines += 1
+			var thick := maxf(panel.custom_minimum_size.x, panel.custom_minimum_size.y)
+			if absf(thick - float(rule)) > 0.01:
+				off.append("rule %.0f" % thick)
+		elif panel.name == "Lamp" and absf(panel.offset_top - float(rule)) > 0.01:
+			off.append("lamp at %.0f" % panel.offset_top)
+	_check("%s: the card, %d cell rules and every lamp are drawn at %dpx" % [at, lines, rule],
+		drawn == rule and lines > 0 and off.is_empty(), "card %d, %s" % [drawn, ", ".join(off)])
+
+## "" if a button's caption fits the width it was given, else what it needed. Measured on the
+## realised button — its own face, its own box, its own icon — not on what `UIStyle` decided.
+func _caption_fits(button: Button) -> String:
+	if button == null or button.text == "":
+		return ""
+	var font := button.get_theme_font("font")
+	var box := button.get_theme_stylebox("normal")
+	var need := font.get_string_size(button.text, HORIZONTAL_ALIGNMENT_LEFT, -1,
+		button.get_theme_font_size("font_size")).x + box.get_margin(SIDE_LEFT) + box.get_margin(SIDE_RIGHT)
+	if button.icon:
+		need += float(button.icon.get_width() + button.get_theme_constant("h_separation"))
+	if need > button.size.x + 0.5:
+		return "\"%s\" needs %.0f of %.0f" % [button.text, need, button.size.x]
+	return ""
 
 ## No page may be left flagged visible under a shut card. That gap is what made every
 ## page's `if visible:` guard a no-op and left five pages doing full refreshes per hit,

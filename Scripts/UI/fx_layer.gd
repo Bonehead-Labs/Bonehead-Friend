@@ -92,9 +92,8 @@ const HEARTS_COLOUR := Color("ff5f9e")
 
 var _pool: Array[Label] = []
 ## The tween currently animating each pool slot, so recycling one can stop it. Without this
-## a reused label has two tweens writing its position, and the fountain makes that reachable
-## — it claims most of the pool in a single frame, so the next few payouts wrap onto slots
-## whose arc is still running and fly off along the old parabola.
+## a reused label has two tweens writing its position — which the fountain made reachable
+## while its coins were labels in this pool, since it claimed most of the pool in one frame.
 ##
 ## It is also each rising number's clock: `get_total_elapsed_time()` is exactly how far along
 ## its path the number is, on the same clock that moves it — which the wall clock is not
@@ -174,6 +173,8 @@ func _ready() -> void:
 		sparks.process_material = _spark_material()
 		add_child(sparks)
 		_sparks.append(sparks)
+
+	_build_coins()
 
 	EventBus.payout.connect(_on_payout)
 	EventBus.damage_dealt.connect(_on_damage_dealt)
@@ -316,20 +317,19 @@ func _on_buddy_state_changed(state: StringName) -> void:
 	if not round.is_empty() and bool(round.get("record", false)) and int(round.get("number", 0)) > 1:
 		spawn_number("NEW BEST ROUND", centre - Vector2(0.0, 56.0), BONES_RAMP[BONES_RAMP.size() - 1],
 			1.1, TIER_SIZE.size() - 1, RANK_HEADLINE, &"best_round", LEAN_UP)
-	_fountain(_buddy_position(centre), total,
+	_fountain(_buddy_position(centre),
 		maxf(_line_bottom(&"knockout"), _line_bottom(&"best_round")) + HUD_MARGIN)
 
-## Coins bursting out of the heap. Each is a share of the bonus rather than a decoration,
-## so the fountain adds up to the number the player was just shown.
+## Coins bursting out of the heap — the bonus the headline states, poured out of him in the
+## currency's own mark (D68; it was ten numbers each printing a tenth of it).
 ##
 ## `ceiling` is the bottom of the headline: no coin is thrown hard enough to reach it. The
 ## coins are a spray from one point and are not placed like the rising lines, so the one thing
 ## they must not do is fly through the words that say what they add up to — which they did,
 ## straight through NEW BEST ROUND. Where he lies too close under the headline for any arc to
 ## fit, they are thrown as they always were.
-func _fountain(origin: Vector2, total: float, ceiling: float = -INF) -> void:
+func _fountain(origin: Vector2, ceiling: float = -INF) -> void:
 	var coins := maxi(1, int(ItemDB.balance.knockout_fountain_coins * Settings.intensity_scale()))
-	var share := total / float(coins)
 	var from := origin - Vector2(0, ARC_ORIGIN_LIFT)
 	var room := from.y - ceiling
 	var climb := sqrt(2.0 * ARC_GRAVITY * room) if room > ARC_MIN_ROOM else INF
@@ -338,7 +338,7 @@ func _fountain(origin: Vector2, total: float, ceiling: float = -INF) -> void:
 		angle += randf_range(-0.1, 0.1)
 		var velocity := Vector2.RIGHT.rotated(angle) * randf_range(ARC_SPEED_MIN, ARC_SPEED_MAX)
 		velocity.y = maxf(velocity.y, -climb)
-		spawn_arc("+%s" % _format(share), from, velocity, BONES_COLOUR, float(i) * ARC_STAGGER)
+		spawn_coin(Economy.BONES, from, velocity, float(i) * ARC_STAGGER)
 
 ## The lowest a live line with this key reaches, at the top of its punch, or -INF.
 func _line_bottom(key: StringName) -> float:
@@ -473,6 +473,11 @@ const LEAN_UP := -1
 const LEAN_DOWN := 1
 const LEAN_COST := 2.5
 
+## When a number starts to leave, by drawing in to its centre (D68). A little past halfway: the
+## old fade began at half, but a fade that has only just begun is still read as the number, and
+## a shrink that has only just begun is already visibly going.
+const SHRINK_FROM := LIFETIME * 0.55
+
 ## The punch-in, which is the one moment a number is bigger than its settled size. Reserved in
 ## full: two numbers from the same frame are both mid-punch at once.
 const PUNCH_FROM := 0.55
@@ -550,10 +555,16 @@ func spawn_number(text: String, world_pos: Vector2, colour: Color, scale: float 
 	# out.
 	tween.tween_property(label, "position:y", label.position.y - rise, LIFETIME) \
 		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	# Held at full opacity for the first half, then faded. Fading from the first frame makes
-	# the number hardest to read exactly when it is largest.
-	tween.tween_property(label, "modulate:a", 0.0, LIFETIME * 0.5) \
-		.set_delay(LIFETIME * 0.5).set_ease(Tween.EASE_IN)
+	# **It leaves by shrinking, never by fading** (D68). It used to hold full opacity for half
+	# its life and then fade, and over a flat backdrop — the chroma green a streamer keys out —
+	# a half-transparent pale core in a half-transparent outline is a grey ghost of the number,
+	# drifting upward for the better part of half a second, on every hit. Now every pixel of a
+	# number is ink or nothing for as long as it is on screen: full size while it is read, then
+	# drawn in to its own centre, as the chips are. Never larger than its settled size, so the
+	# space `_place` reserved for it still covers it.
+	tween.tween_property(label, "scale", Vector2.ZERO, LIFETIME - SHRINK_FROM) \
+		.from(Vector2.ONE * scale).set_delay(SHRINK_FROM) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	tween.chain().tween_callback(func() -> void: label.visible = false)
 	_tweens[index] = tween
 
@@ -824,51 +835,146 @@ func _sparkle(at: Vector2, colour: Color, tier: int, intensity: float) -> void:
 	sparks.amount = count
 	sparks.restart()
 
-## A number thrown on a ballistic arc, for the knockout fountain. Same pool, same Focus
-## Mode gate; only the path differs.
-func spawn_arc(text: String, world_pos: Vector2, velocity: Vector2, colour: Color,
-		delay: float = 0.0) -> void:
-	if Settings.intensity_scale() <= 0.0:
-		return
-	var index := _take()
-	var label := _pool[index]
-	label.text = text
-	# Every override set, not just the colour. A coin used to inherit the size and outline of
-	# whatever number last had its slot, so one fountain could be half 20px coins in a gold
-	# outline and half 48px coins in Ectoplasm green.
-	label.add_theme_color_override("font_color", CORE_RAMP[1])
-	label.add_theme_color_override("font_outline_color", colour)
-	label.add_theme_font_size_override("font_size", TIER_SIZE[1])
-	label.add_theme_constant_override("outline_size", TIER_OUTLINE[1])
-	label.scale = Vector2.ONE
-	# Under the rising lines, so a coin that does cross one passes behind the words.
-	label.z_index = Z_COIN
-	label.modulate.a = 1.0
-	label.reset_size()
-	label.position = world_pos - label.size * 0.5
-	# Hidden until its turn, or a staggered coin sits motionless at the origin waiting to
-	# be thrown — which reads as the effect being broken rather than as a stagger.
-	label.visible = delay <= 0.0
+# --- coins -------------------------------------------------------------------
+#
+# **The fountain throws coins, not numbers** (D68). It used to throw ten labels each reading the
+# same "+1.23k" — a share of the headline that nobody adds up, printed ten times beside the
+# headline that already says the total — and they took ten of the twenty-four number slots with
+# them, so a hit landing while the fountain flew wrapped onto a slot still in the air. A coin is
+# the currency's own glyph, from a pool of its own, and like a number it leaves by shrinking.
 
-	# Solved rather than tweened: two tweens on x and y cannot describe a parabola, and a
-	# tween on position with a curve preset gets the arc wrong in a way that reads as a
-	# glitch rather than as gravity.
-	var start := label.position
+## A fountain at Chaos is sixteen coins and the welcome shower ten; if both are ever in the air
+## at once, the oldest coin is the one recycled.
+const COIN_POOL := 24
+## A glyph pixel is this many screen pixels: the 16px bone is a 32px coin, beside a 24px figure.
+const COIN_ART := 2
+const COIN_OUTLINE := 2
+## The numbers' shadow offset, so a coin and a number are lit from the same place.
+const COIN_SHADOW := Vector2i(2, 3)
+## Opaque, unlike a number's 55% black: the coin is plotted, so it can be ink or nothing at every
+## pixel, which is what a keyed-out backdrop needs.
+const COIN_SHADOW_INK := Color("17140e")
+## The last part of its flight a coin spends drawing in.
+const COIN_SHRINK := 0.4
+
+var _coins: Array[Sprite2D] = []
+var _coin_tweens: Array[Tween] = []
+var _next_coin := 0
+var _coin_faces: Dictionary = {}   ## currency -> Texture2D
+
+func _build_coins() -> void:
+	for i in COIN_POOL:
+		var coin := Sprite2D.new()
+		coin.name = "Coin%d" % i
+		coin.visible = false
+		# Under the rising lines, so a coin that does cross one passes behind the words.
+		coin.z_index = Z_COIN
+		add_child(coin)
+		_coins.append(coin)
+		_coin_tweens.append(null)
+	for currency in [Economy.BONES, Economy.HEARTS]:
+		_coin_face(currency)
+
+## A coin thrown on a ballistic arc: the knockout fountain and the welcome shower. Same Focus
+## Mode gate as a number.
+func spawn_coin(currency: StringName, world_pos: Vector2, velocity: Vector2,
+		delay: float = 0.0) -> void:
+	if Settings.intensity_scale() <= 0.0 or _coins.is_empty():
+		return
+	var index := _next_coin
+	_next_coin = (_next_coin + 1) % _coins.size()
+	var running := _coin_tweens[index]
+	if running != null and running.is_valid():
+		running.kill()
+	var coin := _coins[index]
+	coin.texture = _coin_face(currency)
+	coin.position = world_pos
+	coin.scale = Vector2.ONE
+	# Hidden until its turn, or a staggered coin sits motionless at the origin waiting to be
+	# thrown — which reads as the effect being broken rather than as a stagger.
+	coin.visible = delay <= 0.0
+
+	# Solved rather than tweened: two tweens on x and y cannot describe a parabola, and a tween
+	# on position with a curve preset gets the arc wrong in a way that reads as a glitch rather
+	# than as gravity.
 	var tween := create_tween().set_parallel(true)
 	if delay > 0.0:
-		tween.tween_callback(func() -> void: label.visible = true).set_delay(delay)
+		tween.tween_callback(func() -> void: coin.visible = true).set_delay(delay)
 	tween.tween_method(func(t: float) -> void:
-			label.position = start + velocity * t + Vector2(0, 0.5 * ARC_GRAVITY * t * t),
+			coin.position = world_pos + velocity * t + Vector2(0, 0.5 * ARC_GRAVITY * t * t),
 		0.0, ARC_LIFETIME, ARC_LIFETIME).set_delay(delay)
-	tween.tween_property(label, "modulate:a", 0.0, ARC_LIFETIME) \
-		.set_ease(Tween.EASE_IN).set_delay(delay)
-	tween.chain().tween_callback(func() -> void: label.visible = false)
-	_tweens[index] = tween
+	tween.tween_property(coin, "scale", Vector2.ZERO, ARC_LIFETIME * COIN_SHRINK) 		.from(Vector2.ONE).set_delay(delay + ARC_LIFETIME * (1.0 - COIN_SHRINK)) 		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	tween.chain().tween_callback(func() -> void: coin.visible = false)
+	_coin_tweens[index] = tween
+
+func _coin_face(currency: StringName) -> Texture2D:
+	if _coin_faces.has(currency):
+		return _coin_faces[currency]
+	var outline := HEARTS_COLOUR if currency == Economy.HEARTS else BONES_COLOUR
+	var face := _plot_coin(UIStyle.currency_glyph(currency), outline, CORE_RAMP[1])
+	_coin_faces[currency] = face
+	return face
+
+## The currency's glyph as a coin: a pale core inside an outline in its colour over a hard
+## shadow — the three layers a number is drawn in, so a coin reads on every desktop a number
+## does. Plotted once per currency, whole pixels only.
+static func _plot_coin(glyph: Texture2D, outline: Color, core: Color) -> Texture2D:
+	if glyph == null:
+		return null
+	var src := glyph.get_image()
+	if src == null:
+		return glyph
+	src = src.duplicate()
+	if src.is_compressed():
+		src.decompress()
+	src.convert(Image.FORMAT_RGBA8)
+	src.resize(src.get_width() * COIN_ART, src.get_height() * COIN_ART, Image.INTERPOLATE_NEAREST)
+	var pad := COIN_OUTLINE + maxi(COIN_SHADOW.x, COIN_SHADOW.y)
+	var w := src.get_width() + pad * 2
+	var h := src.get_height() + pad * 2
+	var ink := PackedByteArray()
+	ink.resize(w * h)
+	for y in src.get_height():
+		for x in src.get_width():
+			if src.get_pixel(x, y).a > 0.5:
+				ink[(y + pad) * w + x + pad] = 1
+	# The outline is the ink grown by COIN_OUTLINE in every direction — a square grow, done as a
+	# row pass and then a column pass.
+	var rows := PackedByteArray()
+	rows.resize(w * h)
+	for y in h:
+		for x in w:
+			for d in range(-COIN_OUTLINE, COIN_OUTLINE + 1):
+				if x + d >= 0 and x + d < w and ink[y * w + x + d] == 1:
+					rows[y * w + x] = 1
+					break
+	var body := PackedByteArray()
+	body.resize(w * h)
+	for y in h:
+		for x in w:
+			for d in range(-COIN_OUTLINE, COIN_OUTLINE + 1):
+				if y + d >= 0 and y + d < h and rows[(y + d) * w + x] == 1:
+					body[y * w + x] = 1
+					break
+	var out := Image.create_empty(w, h, false, Image.FORMAT_RGBA8)
+	out.fill(Color(0, 0, 0, 0))
+	for y in h:
+		for x in w:
+			var sx := x - COIN_SHADOW.x
+			var sy := y - COIN_SHADOW.y
+			if sx >= 0 and sy >= 0 and body[sy * w + sx] == 1:
+				out.set_pixel(x, y, COIN_SHADOW_INK)
+	for y in h:
+		for x in w:
+			if ink[y * w + x] == 1:
+				out.set_pixel(x, y, core)
+			elif body[y * w + x] == 1:
+				out.set_pixel(x, y, outline)
+	return ImageTexture.create_from_image(out)
 
 ## A free slot if there is one, else the next in turn. A free list first, because the pool
 ## now holds its numbers' places: recycling a live number to make room for one that then
-## finds nowhere to go would put a number away for nothing. A coin waiting out its stagger is
-## hidden but not free — its tween is still running — so it is never taken from under itself.
+## finds nowhere to go would put a number away for nothing.
 func _take() -> int:
 	var count := _pool.size()
 	var index := _next
@@ -991,16 +1097,15 @@ func welcome_shower(bones: float, hearts: float) -> void:
 		return
 	var from := _buddy_position(_centre()) - Vector2(0, ARC_ORIGIN_LIFT)
 	var index := 0
-	for pair in [[bones, BONES_COLOUR, 6], [hearts, HEARTS_COLOUR, 4]]:
-		var total := float(pair[0])
-		if total < 0.01:
+	for pair in [[bones, Economy.BONES, 6], [hearts, Economy.HEARTS, 4]]:
+		if float(pair[0]) < 0.01:
 			continue
 		var coins := int(pair[2])
 		for i in coins:
 			var angle := lerpf(-PI * 0.85, -PI * 0.15, float(i) / float(maxi(1, coins - 1)))
-			spawn_arc("+%s" % _format(total / float(coins)), from,
+			spawn_coin(pair[1], from,
 				Vector2.RIGHT.rotated(angle) * randf_range(ARC_SPEED_MIN * 0.8, ARC_SPEED_MAX * 0.8),
-				pair[1], float(index) * ARC_STAGGER)
+				float(index) * ARC_STAGGER)
 			index += 1
 
 func _centre() -> Vector2:

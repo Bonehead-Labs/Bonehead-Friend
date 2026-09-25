@@ -34,9 +34,10 @@ const MARK_BOX := 32
 ## The display's minimum width. The readout inside it clips rather than grows (a single
 ## unwrapped Label would otherwise widen the card for every page in the shell, D22).
 const DISPLAY_MIN := 240
-## Every key on a deck is this tall, whatever it says, so a deck is one row of equal keys. Tall
-## enough for a *pressed* key as well: pressing moves the lift into the top margin, and a key
-## whose pressed box is taller than its floor grows under the finger and the whole deck with it.
+## Every key on a deck is this tall, whatever it says, so a deck is one row of equal keys. It
+## used to be a floor raised to cover a pressed key's extra margin as well — and 44 did not
+## quite, so a deck still grew 2px when its keys went dead. A pressed key is now the size of the
+## key at rest by construction (`UITheme._pressed`, D68), and this is only a height.
 const KEY_HEIGHT := 44
 
 var accent: StringName = &"gold"
@@ -104,6 +105,92 @@ func _init(caption: String = "", mark: StringName = &"star", accent_id: StringNa
 	deck.name = "Controls"
 	deck.add_theme_constant_override("separation", 6)
 	controls.add_child(deck)
+	deck.minimum_size_changed.connect(_refit)
+	(display.get_parent() as Control).minimum_size_changed.connect(_refit)
+
+## The narrowest the display gets on a small card. Wide enough for the resting line's first
+## words; the readout clips the rest, as it always has.
+const DISPLAY_FLOOR := 120
+
+## Fits the cabinet to a card `outer` UI pixels wide (D68).
+##
+## Every room was laid out for the 700px card, and the smallest play area's card is 453 — so a
+## room was wider than its page and its right edge was cut off: the display's 240px floor beside
+## a name in capitals, and a deck of keys at the widths they were given for a wide card. On a
+## narrow card the display gives up width down to `DISPLAY_FLOOR`, and the deck's keys give up
+## theirs down to what their captions need, in proportion to what each was given. A card wide
+## enough for both changes nothing.
+func fit(outer: float) -> void:
+	_fit_outer = outer
+	var frame := get_theme_stylebox("panel")
+	if frame == null:
+		return
+	var inner := outer - frame.get_margin(SIDE_LEFT) - frame.get_margin(SIDE_RIGHT)
+	_fit_display(inner)
+	_fit_deck(inner)
+
+## The width last fitted to, so the cabinet can fit itself again when what is on its deck or
+## in its marquee changes size — a figure written after the page fitted it ("Lives handed back
+## 0") put the back room's key 7px past the card's edge.
+var _fit_outer := -1.0
+var _refit_queued := false
+
+func _refit() -> void:
+	if _fit_outer <= 0.0 or _refit_queued:
+		return
+	_refit_queued = true
+	_refit_now.call_deferred()
+
+## Converges: fitting the same content to the same width writes the same minimums, and an
+## unchanged minimum emits nothing.
+func _refit_now() -> void:
+	_refit_queued = false
+	fit(_fit_outer)
+
+func _fit_display(inner: float) -> void:
+	var box := marquee.get_theme_stylebox("panel")
+	var row := display.get_parent() as HBoxContainer
+	if box == null or row == null:
+		return
+	var room := inner - box.get_margin(SIDE_LEFT) - box.get_margin(SIDE_RIGHT)
+	var gap := float(row.get_theme_constant("separation"))
+	for child in row.get_children():
+		var control := child as Control
+		if control and control.visible and control != display:
+			room -= control.get_combined_minimum_size().x + gap
+	display.custom_minimum_size.x = clampf(floorf(room), DISPLAY_FLOOR, DISPLAY_MIN)
+
+func _fit_deck(inner: float) -> void:
+	var box := (deck.get_parent() as Control).get_theme_stylebox("panel")
+	if box == null:
+		return
+	var room := inner - box.get_margin(SIDE_LEFT) - box.get_margin(SIDE_RIGHT)
+	var gap := float(deck.get_theme_constant("separation"))
+	var keys: Array[Button] = []
+	var shown := 0
+	var wanted := 0.0
+	var needed := 0.0
+	for child in deck.get_children():
+		var control := child as Control
+		if control == null or not control.visible:
+			continue
+		shown += 1
+		if control is Button and control.has_meta(&"deck_width"):
+			keys.append(control as Button)
+			wanted += float(control.get_meta(&"deck_width"))
+			# What the caption needs, without the width it was given.
+			needed += control.get_minimum_size().x
+		else:
+			room -= control.get_combined_minimum_size().x
+	room -= gap * float(maxi(0, shown - 1))
+	# 1 is every key at its own width, 0 every key at its caption's.
+	var share := 1.0
+	if room < wanted and wanted > needed:
+		share = clampf((room - needed) / (wanted - needed), 0.0, 1.0)
+	for key in keys:
+		var own := float(key.get_meta(&"deck_width"))
+		var floor_width := minf(key.get_minimum_size().x, own)
+		key.custom_minimum_size.x = floorf(lerpf(floor_width, own, share))
 
 ## How wide the stage's content is when the cabinet is `outer` wide: the frame's margins and
 ## the stage's, read off the theme rather than repeated here.
@@ -284,6 +371,8 @@ static func key(caption: String, width: int = 120) -> Button:
 		button.name = caption.replace(" ", "")
 	button.theme_type_variation = &"DeckKey"
 	button.custom_minimum_size = Vector2(width, KEY_HEIGHT)
+	# The width it was given, which `fit()` may lend back on a narrow card.
+	button.set_meta(&"deck_width", width)
 	return button
 
 ## Space that pushes everything after it to the right-hand end of the deck.

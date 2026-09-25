@@ -26,9 +26,36 @@ const EDGE := Color("000000")        ## Every rule in the UI is this, at BORDER_
 const TEXT := Color("17140e")
 const TEXT_DIM := Color("655f4c")
 
-## Three pixels, everywhere, unscaled. The whole skin reads as printed card because the
-## rules never get thinner or softer — a 1px hairline somewhere would look like a mistake.
+## Three pixels at every whole-number Menu size. The whole skin reads as printed card because
+## the rules never get thinner or softer — a 1px hairline somewhere would look like a mistake.
+##
+## This is the rule's *base* width. What is drawn is `rule_width()`, which is four at the
+## quarter steps between whole sizes (D68): anything that draws or sizes a rule reads that,
+## never this.
 const BORDER_WIDTH := 3
+
+## The rule as drawn at the Menu size in force. Written by `UITheme.use_factor()` only.
+static var _rule_width := BORDER_WIDTH
+
+static func rule_width() -> int:
+	return _rule_width
+
+## The narrowest rule at least `BORDER_WIDTH` wide that covers a whole number of screen pixels
+## at `factor` — 3 at every whole factor, 4 at every quarter step between them.
+##
+## A rule's two edges land on the screen at `y * factor` and `(y + w) * factor`, and each is
+## rounded to a pixel on its own. At 1.25x a 3px rule is 3.75 screen pixels, so it draws as 4
+## or 3 depending on where it sits — D58 counted 894 and 218 of one room's samples, and a box
+## came out heavier on top than underneath. A 4px rule is exactly 5 at 1.25x, 6 at 1.5x and 7
+## at 1.75x, wherever it sits, because 4 x k/4 is always whole.
+static func rule_for(factor: float) -> int:
+	for width in range(BORDER_WIDTH, BORDER_WIDTH * 2):
+		var screen := float(width) * factor
+		if absf(screen - roundf(screen)) < 0.001:
+			return width
+	# No width near the base lands whole (a factor that is not a quarter step). Keep the base
+	# rather than draw a rule twice as heavy to chase it.
+	return BORDER_WIDTH
 
 # --- meaning ---------------------------------------------------------------
 #
@@ -202,6 +229,73 @@ static func sprite(texture: Texture2D, box: int = 44) -> TextureRect:
 ## shop row's height. `box` defaults to a glyph; pass the row's own icon size otherwise.
 static func set_icon(button: Button, texture: Texture2D, box: int = GLYPH) -> void:
 	button.icon = boxed(texture, box) if texture else null
+
+## How a key in a strip of equal keys shows itself, from `fit_captions()`.
+const CAPTION_FULL := 0   ## its mark and its word
+const CAPTION_WORD := 1   ## its word alone
+const CAPTION_MARK := 2   ## its mark alone, and the word in its tooltip
+
+## A key that says what it is twice — a mark and a word — and may have to give one of them up
+## when its strip is narrow (`fit_captions`). Keeps both, so the strip can take them back.
+static func caption_key(button: Button, caption: String, mark: Texture2D) -> void:
+	button.set_meta(&"caption", caption)
+	button.set_meta(&"mark", mark)
+	_show_caption(button, CAPTION_FULL)
+
+## Fits a strip of keys that share one width (D68): mark and word if every key has room for
+## both, the word alone if that is what fits, and the mark alone with the word in its tooltip if
+## not even that. **The whole strip changes together** — two keys that have lost their word
+## beside four that have not reads as broken rather than as tight.
+##
+## A caption used to be clipped at the key's edge, so at 2x the strip read "Upgrad" and the
+## Arcade's read "The Whee": the width a tab gets is the card's divided by six, and the card is
+## smaller at 2x while the words are not. Nothing measured whether the words fit in it.
+static func fit_captions(keys: Array, width: float) -> int:
+	var full := 0.0
+	var word := 0.0
+	for key in keys:
+		var button := key as Button
+		if button == null or not button.has_meta(&"caption"):
+			continue
+		var needs := caption_needs(button)
+		full = maxf(full, needs.x)
+		word = maxf(word, needs.y)
+	var mode := CAPTION_FULL
+	if full > width:
+		mode = CAPTION_WORD if word <= width else CAPTION_MARK
+	for key in keys:
+		var button := key as Button
+		if button and button.has_meta(&"caption"):
+			_show_caption(button, mode)
+	return mode
+
+## The width a caption key needs with its mark (x) and with its word alone (y): the widest
+## box's margins, the word in the key's own face, and a glyph and its gap.
+static func caption_needs(button: Button) -> Vector2:
+	var caption := String(button.get_meta(&"caption", ""))
+	var font := button.get_theme_font("font")
+	var word := 0.0
+	if font:
+		word = font.get_string_size(caption, HORIZONTAL_ALIGNMENT_LEFT, -1,
+			button.get_theme_font_size("font_size")).x
+	var chrome := 0.0
+	for state in ["normal", "hover", "pressed", "hover_pressed", "disabled"]:
+		var box := button.get_theme_stylebox(state)
+		if box:
+			chrome = maxf(chrome, box.get_margin(SIDE_LEFT) + box.get_margin(SIDE_RIGHT))
+	var mark := float(GLYPH + button.get_theme_constant("h_separation"))
+	return Vector2(ceilf(chrome + word + mark), ceilf(chrome + word))
+
+static func _show_caption(button: Button, mode: int) -> void:
+	var caption := String(button.get_meta(&"caption", ""))
+	var mark: Texture2D = null
+	if button.has_meta(&"mark"):
+		mark = button.get_meta(&"mark") as Texture2D
+	var text := "" if mode == CAPTION_MARK else caption
+	if button.text != text:
+		button.text = text
+	set_icon(button, null if mode == CAPTION_WORD else mark)
+	button.tooltip_text = caption if mode == CAPTION_MARK else ""
 
 static func set_sprite(rect: TextureRect, texture: Texture2D) -> void:
 	if rect == null:
@@ -475,12 +569,23 @@ static func room_tab_variation(accent: StringName) -> StringName:
 
 ## A solid rule, for dividing one section of a cabinet into cells. A `Panel` whose look is
 ## the theme's `Rule` — never a `ColorRect`, which the theme cannot restyle and no suite sees.
+##
+## Its thickness follows `rule_width()`, re-read whenever the theme changes, which is when the
+## Menu size moves between a whole and a fractional factor (D68).
 static func rule(vertical: bool = true) -> Panel:
 	var line := Panel.new()
 	line.theme_type_variation = &"Rule"
 	line.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	line.custom_minimum_size = Vector2(BORDER_WIDTH, 0) if vertical else Vector2(0, BORDER_WIDTH)
+	line.set_meta(&"vertical", vertical)
+	_size_rule(line)
+	# Connected to the rule's own signal, so the lambda cannot outlive the node it holds.
+	line.theme_changed.connect(func() -> void: _size_rule(line))
 	return line
+
+static func _size_rule(line: Control) -> void:
+	var width := float(rule_width())
+	line.custom_minimum_size = Vector2(width, 0.0) if bool(line.get_meta(&"vertical", true)) \
+		else Vector2(0.0, width)
 
 # --- contrast --------------------------------------------------------------
 

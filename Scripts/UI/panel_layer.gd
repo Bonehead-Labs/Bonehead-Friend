@@ -156,12 +156,14 @@ func _add_page(id: StringName, caption: String, mark: StringName, page: Control)
 	# the card's own cream with no bottom rule — so the open tab stops looking like a key
 	# and becomes the top edge of the page below it.
 	var tab := UIStyle.button(caption, UIStyle.MICRO)
+	tab.name = "Tab_%s" % id
 	tab.theme_type_variation = &"TabButton"
 	tab.toggle_mode = true
-	UIStyle.set_icon(tab, UIStyle.glyph(mark))
+	UIStyle.caption_key(tab, caption, UIStyle.glyph(mark))
 	tab.custom_minimum_size = Vector2(0, 32)
-	# Width is `_fit()`'s to decide (see there); a caption too long for its share is clipped
-	# rather than allowed to widen its own tab.
+	# Width is `_fit()`'s to decide (see there), and so is whether the caption keeps its mark,
+	# its word or both (`UIStyle.fit_captions`). Clipping stays as the backstop: a caption must
+	# never widen its own tab.
 	tab.clip_text = true
 	tab.size_flags_horizontal = Control.SIZE_FILL
 	tab.pressed.connect(func() -> void: toggle(id))
@@ -244,6 +246,9 @@ func _fit() -> void:
 		# SIZE_FILL, not EXPAND_FILL: expanding is what let the container hand the leftover
 		# to some tabs and not others.
 		tab.size_flags_horizontal = Control.SIZE_FILL
+	# The words have to fit the width they were just given. At 2x on the default play area a tab
+	# is 91px and "Upgrades" with its mark is 102, so it read "Upgrad" (D68).
+	UIStyle.fit_captions(_buttons.values(), tab_width)
 	# Pinned on the strip too, so the tabs keep their width with the card shut.
 	_strip.custom_minimum_size.x = strip_width
 
@@ -260,6 +265,18 @@ func _fit() -> void:
 		_drawer.set_home(home)
 	else:
 		_column.position = home
+	# Where the tabs are at home, in screen pixels, for the status card to keep clear of (D68).
+	# Deferred as well, because at boot the HUD may not have joined its group yet.
+	_tabs_home = Rect2(home * scale, Vector2(strip_width, strip_height) * scale)
+	_tell_hud()
+	_tell_hud.call_deferred()
+
+var _tabs_home := Rect2()
+
+## A group call rather than a path: the HUD is another layer's business (D9).
+func _tell_hud() -> void:
+	if is_inside_tree():
+		get_tree().call_group(HUD.GROUP_HUD, "keep_clear_of_tabs", _tabs_home)
 
 ## A child of a plain `Control` is never laid out, so the column keeps whatever size it was
 ## last given. That bites in both axes and both directions:

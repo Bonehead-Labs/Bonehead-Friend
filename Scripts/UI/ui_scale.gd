@@ -86,6 +86,9 @@ static func apply(layer: CanvasLayer, root: Control) -> float:
 		return MIN
 	var size := viewport.get_visible_rect().size
 	var factor_now := factor_for(size)
+	# The rules follow the factor (D68): at a fractional one a 3px rule lands as 3 or 4 screen
+	# pixels depending on where it sits. Every layer asks; only a change of width costs anything.
+	UITheme.use_factor(factor_now)
 	layer.scale = Vector2(factor_now, factor_now)
 	root.size = size / factor_now
 	return factor_now

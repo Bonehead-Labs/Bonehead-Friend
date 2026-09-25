@@ -354,7 +354,7 @@ func _wires(above: int, below: int) -> Control:
 		var width := wires.size.x
 		var height := wires.size.y
 		var middle := floorf(height * 0.5)
-		var thickness := float(UIStyle.BORDER_WIDTH)
+		var thickness := float(UIStyle.rule_width())
 		var half := thickness * 0.5
 		for i in above:
 			var x := width * (float(i) + 0.5) / float(above)

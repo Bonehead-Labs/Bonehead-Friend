@@ -55,15 +55,51 @@ static func get_theme() -> Theme:
 		_theme = _build()
 	return _theme
 
-## Only for the tools that render specimen sheets; the game never needs to rebuild.
+## Only for the tools that render specimen sheets. The game rebuilds in place instead, and only
+## when the Menu size crosses between a whole and a fractional factor (`use_factor`).
 static func invalidate() -> void:
 	_theme = null
 
+## Times the theme has been rebuilt for a new rule width. A suite asserts that resizing the
+## window at the same factor costs none.
+static var rebuilds := 0
+
+## The Menu size in force, told by `UIScale.apply()` on every fit (D68).
+##
+## Rules are drawn a whole number of screen pixels thick at every Menu size: 3 at a whole
+## factor, 4 at the quarter steps between (`UIStyle.rule_for`). When that width changes, the
+## theme is rebuilt and **merged into the Theme every layer already holds**, rather than swapped
+## for a new one — one `changed`, one theme notification down the shell, and nothing has to be
+## told to re-ask. Anything sized or drawn from the rule outside the theme re-reads
+## `UIStyle.rule_width()` on `theme_changed`. Same width, no work: every layer calls this on
+## every fit, and only the first to see a new width pays.
+static func use_factor(factor: float) -> bool:
+	var width := UIStyle.rule_for(factor)
+	if width == UIStyle.rule_width():
+		return false
+	UIStyle._rule_width = width
+	if _theme != null:
+		_theme.merge_with(_build())
+		rebuilds += 1
+	return true
+
 # --- fonts -----------------------------------------------------------------
+
+## Loaded once. A rebuild for a new rule width reuses them: a fresh FontFile is a fresh glyph
+## cache, and every label in the shell would re-rasterise its text for a change of border.
+static var _fonts: Dictionary = {}
 
 ## Crisp, unhinted, no subpixel positioning. A pixel face rendered with the defaults is
 ## a blurry pixel face, which is worse than not using one.
 static func _font(path: String) -> Font:
+	if _fonts.has(path):
+		return _fonts[path]
+	var font := _crisp(path)
+	if font:
+		_fonts[path] = font
+	return font
+
+static func _crisp(path: String) -> Font:
 	var loaded := ResourceLoader.load(path) as FontFile
 	if loaded == null:
 		push_error("UITheme: missing font %s" % path)
@@ -102,11 +138,12 @@ static func _fallback() -> Font:
 
 # --- boxes -----------------------------------------------------------------
 
+## Card stock inside a rule, at the rule width in force (`use_factor`).
 static func _box(fill: Color, margin_h: int = 10, margin_v: int = 8) -> StyleBoxFlat:
 	var box := StyleBoxFlat.new()
 	box.bg_color = fill
 	box.border_color = UIStyle.EDGE
-	box.set_border_width_all(UIStyle.BORDER_WIDTH)
+	box.set_border_width_all(UIStyle.rule_width())
 	box.set_corner_radius_all(0)
 	box.content_margin_left = margin_h
 	box.content_margin_right = margin_h
@@ -116,24 +153,62 @@ static func _box(fill: Color, margin_h: int = 10, margin_v: int = 8) -> StyleBox
 
 ## How far a key rises off the card. The bottom rule is thicker than the other three, and
 ## pressing the key spends that thickness — which is the whole trick: the button is not
-## drawn moving, it *is* shorter, and the label inside it drops to match.
+## drawn moving, it *is* shorter, and the label inside it drops to match. Four, so the lift
+## lands on whole screen pixels at every quarter-step Menu size as the rule does (D68).
 const KEY_LIFT := 4
 
 ## A key at rest: thick bottom rule, label sitting high on it.
 static func _key(fill: Color, margin_h: int = 12, margin_v: int = 7) -> StyleBoxFlat:
 	var box := _box(fill, margin_h, margin_v)
-	box.border_width_bottom = UIStyle.BORDER_WIDTH + KEY_LIFT
+	box.border_width_bottom = UIStyle.rule_width() + KEY_LIFT
 	box.content_margin_bottom = margin_v - 2
 	return box
 
-## The same key pressed. Total height is identical to `_key`'s by construction — the lift
-## moves from the bottom rule into the top margin — so a container never re-lays-out
-## mid-press and the row does not twitch.
+## The same key pressed.
 static func _key_pressed(fill: Color, margin_h: int = 12, margin_v: int = 7) -> StyleBoxFlat:
-	var box := _key(fill, margin_h, margin_v)
-	box.border_width_bottom = UIStyle.BORDER_WIDTH
-	box.content_margin_top = margin_v + KEY_LIFT
+	return _pressed(_key(fill, margin_h, margin_v), fill)
+
+## Any key, pressed: derived from the key at rest, so the two are the same size by
+## construction. The lift leaves the bottom rule, and the label drops by as much of it as the
+## bottom margin can give — so a container never re-lays-out mid-press and the row does not
+## twitch.
+##
+## **Content margins are measured from the box's outer edge.** A rule is drawn *inside* them,
+## never added to them. The first version was written as though they stacked the way CSS
+## padding stacks on a border: it moved the lift into the top margin and left the bottom margin
+## where it was, so every pressed, toggled and disabled key was 4px taller than the same key at
+## rest. A Button measures itself from the state it is in, so a key grew the moment it was
+## disabled — the arcade's deck grew under a hand being dealt — and a toggled one grew the next
+## time anything asked for its size (D68).
+static func _pressed(rest: StyleBoxFlat, fill: Color) -> StyleBoxFlat:
+	var box := rest.duplicate() as StyleBoxFlat
+	box.bg_color = fill
+	box.border_width_bottom = rest.border_width_top
+	var drop := mini(KEY_LIFT, int(rest.content_margin_bottom))
+	box.content_margin_top = rest.content_margin_top + drop
+	box.content_margin_bottom = rest.content_margin_bottom - drop
 	return box
+
+## A key that cannot be pressed now: pressed into the card, quiet (D26). The rule is a third
+## of black unless `solid` — a cabinet's deck keeps a hard edge (D58).
+static func _key_disabled(margin_h: int = 12, margin_v: int = 7, solid: bool = false) -> StyleBoxFlat:
+	var box := _key_pressed(UIStyle.SUNK, margin_h, margin_v)
+	if not solid:
+		box.border_color = Color(UIStyle.EDGE, 0.35)
+	return box
+
+## Every state of a key, from one geometry. A variation that leaves a state undefined inherits
+## the base Button's box for it — with the base Button's margins — so a price key that was 20px
+## of margin at rest became 24px pressed, and a quiet key grew by 6px when it was disabled.
+## Defining all five here is what makes "every state is the same size" a property of the theme
+## rather than of whichever states somebody remembered.
+static func _key_states(theme: Theme, type_name: String, rest: Color, lit: Color, down: Color,
+		lit_down: Color, margin_h: int, margin_v: int, solid_disabled: bool = false) -> void:
+	theme.set_stylebox("normal", type_name, _key(rest, margin_h, margin_v))
+	theme.set_stylebox("hover", type_name, _key(lit, margin_h, margin_v))
+	theme.set_stylebox("pressed", type_name, _key_pressed(down, margin_h, margin_v))
+	theme.set_stylebox("hover_pressed", type_name, _key_pressed(lit_down, margin_h, margin_v))
+	theme.set_stylebox("disabled", type_name, _key_disabled(margin_h, margin_v, solid_disabled))
 
 # --- the theme ------------------------------------------------------------
 
@@ -219,14 +294,17 @@ static func _panels(theme: Theme) -> void:
 	# ruled down its left edge only, so it cannot be mistaken for the mastery well below it.
 	var how := _box(UIStyle.SUNK, 10, 6)
 	how.set_border_width_all(0)
-	how.border_width_left = UIStyle.BORDER_WIDTH
+	how.border_width_left = UIStyle.rule_width()
 	theme.set_type_variation("HowTo", "PanelContainer")
 	theme.set_stylebox("panel", "HowTo", how)
 
 	# A toy speaking in the world: the fortune ball's answer, over whatever the player's
-	# desktop is. Card stock inside the rule like every card, and snug around one line.
+	# desktop is. Card stock inside the rule like every card, and snug around one line. Always
+	# the base rule: it is drawn in the world, which the Menu size never scales (D68).
 	theme.set_type_variation("Bubble", "PanelContainer")
-	theme.set_stylebox("panel", "Bubble", _box(UIStyle.PANEL, 8, 3))
+	var bubble := _box(UIStyle.PANEL, 8, 3)
+	bubble.set_border_width_all(UIStyle.BORDER_WIDTH)
+	theme.set_stylebox("panel", "Bubble", bubble)
 
 	theme.set_type_variation("Chip", "PanelContainer")
 	theme.set_stylebox("panel", "Chip", _box(UIStyle.PANEL, 9, 5))
@@ -260,7 +338,9 @@ static func _panels(theme: Theme) -> void:
 	# on the one upgrade that keeps earning after the window is closed.
 	var capstone := _box(UIStyle.PANEL, 10, 9)
 	capstone.border_color = UIStyle.TEAL
-	capstone.border_width_bottom = UIStyle.BORDER_WIDTH + 3
+	# A double rule underneath: 6 at a whole Menu size, as it always was, and 8 between them,
+	# where `rule + 3` would have been 7 and uneven again.
+	capstone.border_width_bottom = UIStyle.rule_width() * 2
 	theme.set_type_variation("Capstone", "PanelContainer")
 	theme.set_stylebox("panel", "Capstone", capstone)
 
@@ -272,7 +352,7 @@ static func _panels(theme: Theme) -> void:
 ## read as *the machine*. A section here owns only the rule on its top edge, so two of them
 ## stacked share one line instead of drawing two.
 static func _cabinets(theme: Theme) -> void:
-	var rule := UIStyle.BORDER_WIDTH
+	var rule := UIStyle.rule_width()
 
 	# The frame. Its content margin is exactly the rule, so the sections inside butt up to it
 	# rather than sitting on a strip of card stock that would read as a second frame.
@@ -352,14 +432,8 @@ static func _buttons(theme: Theme, display: Font) -> void:
 	theme.set_constant("h_separation", "Button", 8)
 	theme.set_constant("outline_size", "Button", 0)
 
-	theme.set_stylebox("normal", "Button", _key(UIStyle.RAISED))
-	theme.set_stylebox("hover", "Button", _key(UIStyle.PANEL))
-	theme.set_stylebox("pressed", "Button", _key_pressed(UIStyle.SUNK))
-	theme.set_stylebox("hover_pressed", "Button", _key_pressed(UIStyle.RAISED))
+	_key_states(theme, "Button", UIStyle.RAISED, UIStyle.PANEL, UIStyle.SUNK, UIStyle.RAISED, 12, 7)
 	theme.set_stylebox("focus", "Button", StyleBoxEmpty.new())
-	var disabled := _key_pressed(UIStyle.SUNK)
-	disabled.border_color = Color(UIStyle.EDGE, 0.35)
-	theme.set_stylebox("disabled", "Button", disabled)
 
 	# --- page tabs ---
 	#
@@ -367,16 +441,7 @@ static func _buttons(theme: Theme, display: Font) -> void:
 	# bottom rule at all — so the selected tab stops being a key and becomes the top edge
 	# of the page underneath it. That join is the whole reason the tabs read as tabs.
 	theme.set_type_variation("TabButton", "Button")
-	theme.set_stylebox("normal", "TabButton", _key(UIStyle.SUNK, 10, 6))
-	theme.set_stylebox("hover", "TabButton", _key(UIStyle.RAISED, 10, 6))
-	var tab_on := _box(UIStyle.PANEL, 10, 6)
-	tab_on.border_width_bottom = 0
-	tab_on.content_margin_bottom = 6 + UIStyle.BORDER_WIDTH
-	theme.set_stylebox("pressed", "TabButton", tab_on)
-	# An open tab does not change colour under the cursor — it is the card's top edge,
-	# and recolouring it would break that. The hover feedback is the motion hook.
-	theme.set_stylebox("hover_pressed", "TabButton", tab_on)
-	theme.set_stylebox("disabled", "TabButton", _key(UIStyle.SUNK, 10, 6))
+	_tab_states(theme, "TabButton", 10)
 	theme.set_font_size("font_size", "TabButton", UIStyle.MICRO)
 
 	# --- shop categories ---
@@ -385,18 +450,12 @@ static func _buttons(theme: Theme, display: Font) -> void:
 	# bat by its silhouette and stops reading the word underneath it.
 	theme.set_type_variation("IconTab", "Button")
 	theme.set_font_size("font_size", "IconTab", UIStyle.MICRO)
-	theme.set_stylebox("normal", "IconTab", _key(UIStyle.SUNK, 6, 6))
-	theme.set_stylebox("hover", "IconTab", _key(UIStyle.RAISED, 6, 6))
-	var cat_on := _box(UIStyle.PANEL, 6, 6)
-	cat_on.border_width_bottom = 0
-	cat_on.content_margin_bottom = 6 + UIStyle.BORDER_WIDTH
-	theme.set_stylebox("pressed", "IconTab", cat_on)
-	theme.set_stylebox("hover_pressed", "IconTab", cat_on)
+	_tab_states(theme, "IconTab", 6)
 
 	# --- prices and actions ---
 	theme.set_type_variation("BuyButton", "Button")
-	theme.set_stylebox("normal", "BuyButton", _key(UIStyle.PANEL, 10, 7))
-	theme.set_stylebox("hover", "BuyButton", _key(UIStyle.BUY_HOVER, 10, 7))
+	_key_states(theme, "BuyButton", UIStyle.PANEL, UIStyle.BUY_HOVER, UIStyle.SUNK, UIStyle.RAISED,
+		10, 7)
 
 	# --- a row in a list ---
 	#
@@ -422,11 +481,13 @@ static func _buttons(theme: Theme, display: Font) -> void:
 	var row_hover := row.duplicate() as StyleBoxFlat
 	row_hover.bg_color = UIStyle.RAISED
 	theme.set_stylebox("hover", "ListRow", row_hover)
+	# The bar is drawn inside the margin, so the margin stays where it was: the name does not
+	# step sideways when its row is chosen. (It used to be `8 - rule`, on the reasoning that the
+	# bar would be added to it — the same misreading of content margins as the pressed key.)
 	var row_on := row.duplicate() as StyleBoxFlat
 	row_on.bg_color = UIStyle.SUNK
 	row_on.border_color = UIStyle.EDGE
-	row_on.border_width_left = UIStyle.BORDER_WIDTH
-	row_on.content_margin_left = 8 - UIStyle.BORDER_WIDTH
+	row_on.border_width_left = UIStyle.rule_width()
 	theme.set_stylebox("pressed", "ListRow", row_on)
 	theme.set_stylebox("hover_pressed", "ListRow", row_on)
 	theme.set_stylebox("disabled", "ListRow", row)
@@ -439,16 +500,15 @@ static func _buttons(theme: Theme, display: Font) -> void:
 	theme.set_stylebox("hover", "GhostButton", _box(UIStyle.SUNK, 9, 5))
 	theme.set_stylebox("pressed", "GhostButton", _box(UIStyle.SUNK, 9, 5))
 	theme.set_stylebox("hover_pressed", "GhostButton", _box(UIStyle.SUNK, 9, 5))
+	var ghost_off := _box(UIStyle.SUNK, 9, 5)
+	ghost_off.border_color = Color(UIStyle.EDGE, 0.35)
+	theme.set_stylebox("disabled", "GhostButton", ghost_off)
 	theme.set_font_size("font_size", "GhostButton", UIStyle.MICRO)
 
 	# Reincarnation. The only red button in the game, and it takes two presses.
 	theme.set_type_variation("DangerButton", "Button")
-	var danger := _key(UIStyle.LOCKED, 12, 8)
-	theme.set_stylebox("normal", "DangerButton", danger)
-	var danger_hover := _key(UIStyle.DANGER_HOVER, 12, 8)
-	theme.set_stylebox("hover", "DangerButton", danger_hover)
-	theme.set_stylebox("pressed", "DangerButton", _key_pressed(UIStyle.DANGER_DOWN, 12, 8))
-	theme.set_stylebox("hover_pressed", "DangerButton", _key_pressed(UIStyle.DANGER_DOWN, 12, 8))
+	_key_states(theme, "DangerButton", UIStyle.LOCKED, UIStyle.DANGER_HOVER, UIStyle.DANGER_DOWN,
+		UIStyle.DANGER_DOWN, 12, 8)
 	theme.set_color("font_color", "DangerButton", UIStyle.PANEL)
 	theme.set_color("font_hover_color", "DangerButton", UIStyle.PANEL)
 	theme.set_color("font_pressed_color", "DangerButton", UIStyle.PANEL)
@@ -465,11 +525,8 @@ static func _arcade_keys(theme: Theme) -> void:
 	# meant to be the hardest-edged thing in the shell. The pressed-in shape and the quiet ink
 	# still say "not now" (D26).
 	theme.set_type_variation("DeckKey", "Button")
-	theme.set_stylebox("normal", "DeckKey", _key(UIStyle.PANEL, 10, 7))
-	theme.set_stylebox("hover", "DeckKey", _key(UIStyle.BUY_HOVER, 10, 7))
-	theme.set_stylebox("pressed", "DeckKey", _key_pressed(UIStyle.SUNK, 10, 7))
-	theme.set_stylebox("hover_pressed", "DeckKey", _key_pressed(UIStyle.RAISED, 10, 7))
-	theme.set_stylebox("disabled", "DeckKey", _key_pressed(UIStyle.SUNK, 10, 7))
+	_key_states(theme, "DeckKey", UIStyle.PANEL, UIStyle.BUY_HOVER, UIStyle.SUNK, UIStyle.RAISED,
+		10, 7, true)
 
 	# A room of the Arcade on its strip, one variation per marquee colour. At rest it is a
 	# sunk key with its machine's colour lit along the top (a `Marquee*` panel the page lays
@@ -488,13 +545,32 @@ static func _arcade_keys(theme: Theme) -> void:
 		var lifted := _key(UIStyle.RAISED, 8, 5)
 		lifted.content_margin_top = 4 + ROOM_LAMP
 		theme.set_stylebox("hover", variation, lifted)
-		var lit := _key_pressed(UIStyle.marquee_fill(accent), 8, 5)
-		lit.content_margin_top = 4 + ROOM_LAMP + KEY_LIFT
+		# Pressed from the key at rest, lamp margin and all: a lit key is the same size as an
+		# unlit one, so choosing a room never moves the strip.
+		var lit := _pressed(rest, UIStyle.marquee_fill(accent))
 		theme.set_stylebox("pressed", variation, lit)
 		theme.set_stylebox("hover_pressed", variation, lit)
 		for state in ["font_pressed_color", "font_hover_pressed_color",
 				"icon_pressed_color", "icon_hover_pressed_color"]:
 			theme.set_color(state, variation, ink)
+
+## A tab: a sunk key at rest, and toggled on it becomes the top edge of what it opened — the
+## card's own stock with no bottom rule. The label stays exactly where it was: a tab is not
+## pressed into the card, it is joined to it, and a caption that jumped when its page opened
+## would read as the strip being knocked. (Its bottom margin used to be `6 + rule`, which made
+## an open tab 5px taller than a shut one.)
+static func _tab_states(theme: Theme, type_name: String, margin_h: int) -> void:
+	var rest := _key(UIStyle.SUNK, margin_h, 6)
+	theme.set_stylebox("normal", type_name, rest)
+	theme.set_stylebox("hover", type_name, _key(UIStyle.RAISED, margin_h, 6))
+	theme.set_stylebox("disabled", type_name, _key(UIStyle.SUNK, margin_h, 6))
+	var on := _box(UIStyle.PANEL, margin_h, 6)
+	on.border_width_bottom = 0
+	on.content_margin_bottom = rest.content_margin_bottom
+	theme.set_stylebox("pressed", type_name, on)
+	# An open tab does not change colour under the cursor — it is the card's top edge, and
+	# recolouring it would break that. The hover feedback is the motion hook.
+	theme.set_stylebox("hover_pressed", type_name, on)
 
 ## Height of the colour band across the top of an unlit room key, in UI pixels.
 const ROOM_LAMP := 6
@@ -502,7 +578,7 @@ const ROOM_LAMP := 6
 static func _meters(theme: Theme) -> void:
 	# The fill is inset by the background's content margin, so the rule stays a rule
 	# instead of being painted over by a full bar.
-	var track := _box(UIStyle.SUNK, UIStyle.BORDER_WIDTH, UIStyle.BORDER_WIDTH)
+	var track := _box(UIStyle.SUNK, UIStyle.rule_width(), UIStyle.rule_width())
 	theme.set_stylebox("background", "ProgressBar", track)
 	theme.set_stylebox("fill", "ProgressBar", UIStyle.meter_fill())
 	theme.set_font("font", "ProgressBar", _font(UIStyle.FONT_DISPLAY))
