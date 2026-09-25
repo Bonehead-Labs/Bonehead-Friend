@@ -253,12 +253,83 @@ func _stage(id: StringName) -> void:
 						break
 				await _shot("%s-blow" % id, 1)
 				await _shot("%s-quake" % id, 5)
+		&"tether":
+			await _stage_tether(id, ability as TetherAbility, centre)
 		_:
 			print("    no staging for the %s archetype yet — add a branch here" % ability.archetype())
 	await _idle(30)
 	if is_instance_valid(_weapon):
 		_weapon.bin_myself()
 	await _idle(10)
+
+## The three tethers: the chain round him and swung, the hook out and reeling, the lever.
+func _stage_tether(id: StringName, tether: TetherAbility, centre: Vector2) -> void:
+	if tether is HookTether:
+		var hook := tether as HookTether
+		await _carry(centre + Vector2(-230.0, -60.0), 40)
+		await _carry(_hand, 20)
+		hook.press()
+		hook.release()
+		await _shot("%s-hook-out" % id, 5)
+		for i in 30:
+			await _carry(_hand, 1)
+			if hook.catches > 0:
+				break
+		await _shot("%s-hooked" % id, 2)
+		for i in 60:
+			await _carry(_hand, 1)
+			if hook.spiked or not hook.is_active():
+				break
+		await _shot("%s-spike" % id, 1)
+		await _shot("%s-thrown" % id, 10)
+		return
+	if tether is PryTether:
+		var pry := tether as PryTether
+		# It hangs claw-down: carried slowly across to him a bar's length above his lower half, until
+		# the claw is against his side.
+		var bar := pry.grip_world().distance_to(pry.tip_world())
+		var level := _buddy.get_interaction_rect().end.y - 40.0 - bar
+		await _carry(Vector2(centre.x - 150.0, level), 40)
+		await _carry(_hand, 60)
+		for i in 300:
+			if pry.touches_him(pry.tip_world(), pry.num("reach", 30.0) - 8.0):
+				break
+			level = _buddy.get_interaction_rect().end.y - 40.0 - bar
+			var to := Vector2(_buddy.get_interaction_rect().get_center().x, level)
+			await _carry(_hand.move_toward(to, clampf(_hand.distance_to(to) / 30.0, 1.5, 8.0)), 1)
+		pry.press()
+		await _shot("%s-wedged" % id, 3)
+		await _carry(_hand + Vector2(0.0, 28.0), 12)
+		await _shot("%s-levering" % id, 4)
+		await _carry(_hand + Vector2(0.0, 28.0), 12)
+		await _shot("%s-levered" % id, 6)
+		pry.release()
+		await _shot("%s-pop" % id, 3)
+		await _shot("%s-over" % id, 12)
+		return
+	# The Wrap: right held through a swing; he is caught, swung round, and flung.
+	await _carry(centre + Vector2(-190.0, -30.0), 30)
+	tether.press()
+	for i in 60:
+		await _carry(_hand.move_toward(centre + Vector2(190.0, -30.0), 22.0), 1)
+		if tether.catches > 0:
+			break
+	await _shot("%s-wrapped" % id, 2)
+	# Up into the open, then round: he whirls on the end of the chain. His meter is kept clear for
+	# the picture: a flail's hits knock him out in four, which ends the hold, as it should in play.
+	var round := Vector2(float(SIZE.x) * 0.5, float(SIZE.y) * 0.5 - 40.0)
+	for i in 24:
+		_buddy.health.reset_meter()
+		await _carry(_hand.lerp(round + Vector2(110.0, 0.0), float(i + 1) / 24.0), 1)
+	for i in 36:
+		_buddy.health.reset_meter()
+		var a := TAU * float(i) / 36.0
+		await _carry(round + Vector2(cos(a) * 110.0, sin(a) * 70.0), 1)
+		if i == 24:
+			await _shot("%s-swung" % id)
+	tether.release()
+	await _shot("%s-flung" % id, 3)
+	await _shot("%s-landing" % id, 14)
 
 ## The weapon held at `at` the way swing_rig holds one: its grip on a joint to its own handle.
 func _hold(at: Vector2) -> void:

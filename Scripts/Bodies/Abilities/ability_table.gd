@@ -48,6 +48,7 @@ const ARCHETYPES := {
 	&"spin": "res://Scripts/Bodies/Abilities/spin_ability.gd",
 	&"throw": "res://Scripts/Bodies/Abilities/throw_ability.gd",
 	&"transform": "res://Scripts/Bodies/Abilities/transform_ability.gd",
+	&"tether": "res://Scripts/Bodies/Abilities/tether_ability.gd",
 }
 
 const ABILITIES := {

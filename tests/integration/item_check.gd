@@ -978,7 +978,7 @@ const ABILITY_STANDOFF := {
 	&"charge": Vector2(-120, -30), &"dash": Vector2(-200, -20), &"stun": Vector2(-150, -30),
 	&"sustain": Vector2(-70, 0), &"shockwave": Vector2(-100, -150), &"projectile": Vector2(-320, -40),
 	&"spin": Vector2(-95, -40), &"throw": Vector2(-250, -80),
-	&"transform": Vector2(-150, -30),
+	&"transform": Vector2(-150, -30), &"tether": Vector2(-150, -30),
 }
 
 ## A weapon with an ability (D74) uses it once, the way its line says — right pressed, held for as
@@ -1016,12 +1016,17 @@ func _use_ability(run: Run, body: WeaponBase) -> void:
 			hold = ability.num("charge_seconds", 0.8) + 0.1
 		&"sustain":
 			hold = 1.0
-	_press(MOUSE_BUTTON_RIGHT)
-	for i in maxi(1, int(hold * 60.0)):
-		if kind == &"sustain":
-			_move(_centre() + off + Vector2(20.0 * sin(float(i) * 0.2), 0.0))
-		await _step()
-	_release(MOUSE_BUTTON_RIGHT)
+	# A tether is pressed its own way: the Wrap keeps right down through the swing that catches him,
+	# the hook is a tap from range, and the crowbar's claw has to be against him first.
+	if ability is TetherAbility:
+		await _use_tether(ability as TetherAbility)
+	else:
+		_press(MOUSE_BUTTON_RIGHT)
+		for i in maxi(1, int(hold * 60.0)):
+			if kind == &"sustain":
+				_move(_centre() + off + Vector2(20.0 * sin(float(i) * 0.2), 0.0))
+			await _step()
+		_release(MOUSE_BUTTON_RIGHT)
 	# The armed ones need the swing that follows; the rest are on their way already.
 	if kind == &"charge" or kind == &"stun":
 		for i in 3:
@@ -1061,6 +1066,57 @@ func _use_ability(run: Run, body: WeaponBase) -> void:
 			_centre().round()]
 	run.notes.append("%s: %d uses, %d landed%s" % [ability.ability_name(), ability.uses,
 		ability.payoffs, impact])
+
+## A tether, used the way its line says, from the stand-off `_use_ability` carried it to.
+func _use_tether(tether: TetherAbility) -> void:
+	if tether is HookTether:
+		# A tap; the hook does the rest.
+		_press(MOUSE_BUTTON_RIGHT)
+		await _step()
+		_release(MOUSE_BUTTON_RIGHT)
+		return
+	if tether is PryTether:
+		# The claw against him first — anywhere else the press is refused — brought up to him slowly
+		# at his lower half from whichever side has room, the way a player does it.
+		# It hangs claw-down, so the hand goes a bar's length above his lower half — once he has come
+		# down from whatever the swings did to him.
+		for i in 120:
+			if _buddy.is_grounded() and _buddy.linear_velocity.length() < 5.0:
+				break
+			await _step()
+		var side := -1.0 if _centre().x > float(VIEW_SIZE.x) * 0.5 else 1.0
+		var bar := tether.grip_world().distance_to(tether.tip_world())
+		var level := _buddy.get_interaction_rect().end.y - 40.0 - bar
+		await _mouse_to(Vector2(_centre().x + side * 150.0, level), 600.0)
+		await _steady(tether.body, 60)
+		for i in 300:
+			if tether.touches_him(tether.tip_world(), tether.num("reach", 30.0) - 8.0):
+				break
+			level = _buddy.get_interaction_rect().end.y - 40.0 - bar
+			var to := Vector2(_centre().x, level)
+			_move(_mouse.move_toward(to, clampf(_mouse.distance_to(to) / 30.0, 1.5, 8.0)))
+			await _step()
+		_press(MOUSE_BUTTON_RIGHT)
+		await _step()
+		await _mouse_to(_mouse + Vector2(0.0, 70.0), 220.0)
+		_release(MOUSE_BUTTON_RIGHT)
+		return
+	# The Wrap: right down, and a swing through him with it still down catches him.
+	_press(MOUSE_BUTTON_RIGHT)
+	for i in 3:
+		if not tether.is_armed():
+			break
+		await _mouse_to(_centre() + Vector2(160.0, -30.0), 1300.0)
+		await _mouse_to(_centre() + Vector2(-160.0, -30.0), 1000.0)
+	var round := Vector2(640.0, 380.0)
+	await _mouse_to(round + Vector2(120.0, 0.0), 1200.0)
+	for i in 36:
+		if not tether.is_holding():
+			break
+		var a := TAU * float(i) / 36.0
+		_move(round + Vector2(cos(a) * 120.0, sin(a) * 70.0))
+		await _step()
+	_release(MOUSE_BUTTON_RIGHT)
 
 ## A ball in the Play drawer: dropped on him from height, then thrown at him.
 func _ball(run: Run) -> void:

@@ -212,6 +212,7 @@ func _check_ability(id: StringName) -> void:
 	_buddy.health.reset_meter()
 	await _settle_him()
 	_hits.clear()
+	_claimed.clear()
 	_faces.clear()
 	_pipeline_bad.clear()
 	var before_uses := ability.uses
@@ -236,6 +237,8 @@ func _check_ability(id: StringName) -> void:
 			measured = await _drive_throw(body, ability as ThrowAbility)
 		&"transform":
 			measured = await _drive_transform(body, ability as TransformAbility)
+		&"tether":
+			measured = await _drive_tether(body, ability as TetherAbility)
 		_:
 			# A new archetype arrives with its driver here, or this fails by name — the same
 			# rule item_check keeps for a class with no row in DRIVERS.
@@ -581,6 +584,146 @@ func _drive_transform(body: WeaponBase, ability: TransformAbility) -> Dictionary
 	return {"blows": ability.blows, "burns": ability.burns, "inside": ability.inside_seconds,
 		"kg": ability.peak_mass, "hits": _hits.size()}
 
+## The three tethers, each used the way its line says.
+func _drive_tether(body: WeaponBase, ability: TetherAbility) -> Dictionary:
+	if ability is HookTether:
+		return await _drive_hook(body, ability as HookTether)
+	if ability is PryTether:
+		return await _drive_pry(body, ability as PryTether)
+	return await _drive_wrap(body, ability)
+
+## Wrap: right held while it is swung through him; caught, he is swung round on it by the hand, and
+## letting go of right flings him.
+func _drive_wrap(body: WeaponBase, ability: TetherAbility) -> Dictionary:
+	_press(MOUSE_BUTTON_RIGHT)
+	await _step()
+	_check("right arms the chain", ability.is_armed())
+	var swings := 0
+	while ability.is_armed() and swings < 3:
+		await _sweep_through(900.0, 1300.0)
+		swings += 1
+	await _step(2)
+	_check("a hit with it armed wraps him (%d caught)" % ability.catches, ability.is_holding())
+	_check("and he and it do not collide while he is on it",
+		body.get_collision_exceptions().has(_buddy))
+	await _expect_face(&"wrapped", &"wrapped")
+	# The hand goes up into the open and round: he is the ball on the chain.
+	var start := _buddy.global_position
+	var centre := Vector2(640.0, 380.0)
+	await _mouse_to(centre + Vector2(120.0, 0.0), 1200.0)
+	var gap := 0.0
+	var travelled := 0.0
+	var last := start
+	for i in 50:
+		if not ability.is_holding():
+			break
+		var a := TAU * float(i) / 36.0
+		_move(centre + Vector2(cos(a) * 120.0, sin(a) * 70.0))
+		await _step()
+		gap = maxf(gap, ability.him_world().distance_to(ability.com_world()))
+		travelled += _buddy.global_position.distance_to(last)
+		last = _buddy.global_position
+	var rope := ability.num("rope", 0.0)
+	_check("he is kept on the chain (never %.0f px from the head, the chain is %.0f)" % [gap, rope],
+		gap <= rope + 60.0)
+	_check("round with the hand (%.0f px travelled)" % travelled, travelled >= 200.0)
+	_release(MOUSE_BUTTON_RIGHT)
+	await _step(3)
+	_check("letting go of right flings him (%.0f px/s)" % ability.last_fling,
+		ability.flung and ability.last_fling >= 400.0)
+	_check("and where he lands is the flail's", _buddy.impacts_claimed_by() == _id)
+	await _expect_face(&"flung", &"launched")
+	await _step(90)
+	var landed := 0.0
+	for info in _claimed:
+		landed += info.amount
+	await _await_cond(func() -> bool: return not ability.is_active(), 90)
+	_check("the exception comes off once they are clear", not body.get_collision_exceptions().has(_buddy))
+	return {"caught": ability.catches, "held": ability.held_for, "peak": ability.peak_speed,
+		"fling": ability.last_fling, "landed": landed, "hits": _hits.size()}
+
+## Hook and Spike: from 230 px off, a tap; the hook catches him and reels him onto the spike.
+func _drive_hook(body: WeaponBase, ability: HookTether) -> Dictionary:
+	await _mouse_to(_centre() + Vector2(-230.0, -60.0), 700.0)
+	await _steady(body, 60)
+	_press(MOUSE_BUTTON_RIGHT)
+	await _step()
+	_release(MOUSE_BUTTON_RIGHT)
+	_check("a tap throws the hook (his body %.0f px from the spike)" % ability.last_gap,
+		ability.is_reaching() or ability.catches > 0)
+	var caught := await _await_cond(func() -> bool: return ability.catches > 0 or not ability.is_active(), 40)
+	_check("it catches him (%.0f px out)" % ability.last_reach, caught and ability.catches > 0)
+	await _expect_face(&"hooked", &"hooked")
+	await _await_cond(func() -> bool: return ability.spiked or not ability.is_holding(), 90)
+	_check("he is reeled onto the spike (at %.0f px/s)" % ability.last_arrival, ability.spiked)
+	await _step(3)
+	var spike := _hit_with_impulse(ability.last_spike)
+	_check("billed once, as its own impulse at x%.2f (%.0f)" % [ability.num("spike_mult", 1.5),
+		ability.last_spike], spike != null and _hits_with_impulse(ability.last_spike) == 1
+		and absf(_mult_of(spike) - Progression.damage_mult_for(_id, body.damage_mult)
+		* ability.num("spike_mult", 1.5)) < 0.01)
+	await _expect_face(&"skewered", &"launched")
+	var thrown := await _peak_speed(20)
+	await _await_cond(func() -> bool: return not ability.is_active(), 90)
+	_check("the exception comes off once they are clear", not body.get_collision_exceptions().has(_buddy))
+	return {"reach": ability.last_reach, "arrival": ability.last_arrival, "spike": ability.last_spike,
+		"thrown": thrown, "hits": _hits.size()}
+
+## Pry: refused anywhere but against him; the claw against him, right held and the hand pulled down,
+## he rises; let go and he pops.
+func _drive_pry(body: WeaponBase, ability: PryTether) -> Dictionary:
+	var refused := ability.denied
+	_press(MOUSE_BUTTON_RIGHT)
+	await _step()
+	_release(MOUSE_BUTTON_RIGHT)
+	await _step()
+	_check("away from him the press is refused", ability.denied == refused + 1 and not ability.is_active())
+	# The claw to his near lower side: carried there by the hand, which is wherever puts it there.
+	# The crowbar hangs from the hand with the claw at the bottom. Carried slowly across to him with
+	# the hand a bar's length above his lower half, from whichever side has room, the claw meets his
+	# side — the way a player does it, and without sweeping him along the desk first.
+	var side := -1.0 if _centre().x > float(VIEW_SIZE.x) * 0.5 else 1.0
+	var bar := ability.grip_world().distance_to(ability.tip_world())
+	var level := _buddy.get_interaction_rect().end.y - 40.0 - bar
+	await _mouse_to(Vector2(_centre().x + side * 150.0, level), 600.0)
+	await _steady(body, 60)
+	for i in 300:
+		if ability.touches_him(ability.tip_world(), ability.num("reach", 30.0) - 8.0):
+			break
+		level = _buddy.get_interaction_rect().end.y - 40.0 - bar
+		var to := Vector2(_centre().x, level)
+		_move(_mouse.move_toward(to, clampf(_mouse.distance_to(to) / 30.0, 1.5, 8.0)))
+		await _step()
+	var top := _buddy.global_position.y
+	var claw := ability.tip_world()
+	var rect := _buddy.get_interaction_rect()
+	_press(MOUSE_BUTTON_RIGHT)
+	await _step()
+	_check("with the claw against him it wedges (claw %s, him %s)" % [claw.round(), rect],
+		ability.is_holding())
+	await _expect_face(&"pried", &"pried")
+	var hand := _mouse
+	await _mouse_to(hand + Vector2(0.0, 70.0), 220.0)
+	await _step(10)
+	var rise := top - _buddy.global_position.y
+	_check("pulling the hand down levers him up (%.0f px, %.0f%% of the way)" % [rise,
+		ability.lift() * 100.0], rise >= 30.0 and ability.lift() >= 0.5)
+	_check("tipped away from the bar (%.0f degrees)" % rad_to_deg(_buddy.global_rotation),
+		absf(_buddy.global_rotation) >= deg_to_rad(5.0))
+	_release(MOUSE_BUTTON_RIGHT)
+	await _step(3)
+	_check("letting go pops him up and over (%.0f px/s)" % ability.last_pop, ability.popped)
+	var pry := _hit_with_impulse(ability.last_pull)
+	_check("the pry billed once at x%.2f (%.0f)" % [ability.num("pry_mult", 1.3), ability.last_pull],
+		pry != null and _hits_with_impulse(ability.last_pull) == 1)
+	await _expect_face(&"flung", &"launched")
+	var peak := await _peak_speed(40)
+	await _step(60)
+	await _await_cond(func() -> bool: return not ability.is_active(), 90)
+	_check("the exception comes off once they are clear", not body.get_collision_exceptions().has(_buddy))
+	return {"lift": ability.last_lift, "rise": rise, "pop": ability.last_pop, "pull": ability.last_pull,
+		"peak": peak, "hits": _hits.size()}
+
 # --- what each hit carried -------------------------------------------------------------------
 
 func _on_payout(currency: StringName, amount: float, _at: Vector2, source_id: StringName) -> void:
@@ -591,6 +734,8 @@ func _on_payout(currency: StringName, amount: float, _at: Vector2, source_id: St
 		* Economy.grime_multiplier()}
 
 var _claimed_seen := false
+## Hits billed to the weapon while it held a claim on where he lands (D65).
+var _claimed: Array[HitInfo] = []
 
 func _on_damage(info: HitInfo) -> void:
 	if _id == &"" or info.source_id != _id:
@@ -599,6 +744,7 @@ func _on_damage(info: HitInfo) -> void:
 	_hits.append(info)
 	if is_instance_valid(_buddy) and _buddy.impacts_claimed_by() == _id:
 		_claimed_seen = true
+		_claimed.append(info)
 	if _pending.is_empty():
 		_pipeline_bad.append("a hit of %.2f paid nothing" % info.amount)
 		return
@@ -671,6 +817,15 @@ func _extra_damage(body: WeaponBase, archetype: StringName, ordinary: float) -> 
 		extra += maxf(plain - ordinary, 0.0)
 	if archetype == &"transform":
 		extra += _heavier(body, ordinary)
+	# A tether's payoff is where it throws him: the landings it claimed, which a home run's claim is
+	# not counted for because its hit was already billed x2.5.
+	if archetype == &"tether":
+		for info in _claimed:
+			var own := false
+			for impulse in struck:
+				own = own or absf(info.raw_impulse - impulse) <= 0.5
+			if not own:
+				extra += info.amount
 	return extra
 
 ## What a weapon made heavier added beyond its multiplier: each boosted blow, unboosted, less an
