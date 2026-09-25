@@ -990,6 +990,19 @@ const ABILITY_STANDOFF := {
 	&"charge": Vector2(-120, -30), &"dash": Vector2(-200, -20), &"stun": Vector2(-150, -30),
 	&"sustain": Vector2(-70, 0), &"shockwave": Vector2(-100, -150), &"projectile": Vector2(-320, -40),
 	&"spin": Vector2(-95, -40), &"throw": Vector2(-250, -80),
+	# Hooked rows that want the hand somewhere their archetype's stand-off is not, by ability id.
+	&"flurry": Vector2(-115, -10), &"reap": Vector2(-170, -30), &"special_delivery": Vector2(-260, -60),
+	&"snap": Vector2(-300, -40),
+}
+
+## Hooked abilities that are used with a stroke made while right is held — a greatsword kept
+## swinging, a rapier lunged, a scythe flicked — by ability id: where the hand starts, where the
+## stroke goes, and how fast. The hand strokes there and back twice while right is down, then
+## lets go. Both points are mirrored with the stand-off when he is against a wall.
+const ABILITY_STROKE := {
+	&"momentum": [Vector2(-220, -40), Vector2(180, -40), 1600.0],
+	&"en_garde": [Vector2(-240, -40), Vector2(-60, -40), 1100.0],
+	&"soul_reap": [Vector2(-430, -30), Vector2(-130, -30), 1800.0],
 }
 
 ## A weapon with an ability (D74) uses it once, the way its line says — right pressed, held for as
@@ -1014,12 +1027,53 @@ func _use_ability(run: Run, body: WeaponBase) -> void:
 	if not body.dragging and not await _grab(run, body):
 		return
 	var kind := ability.archetype()
-	var off: Vector2 = ABILITY_STANDOFF.get(kind, Vector2(-150, -30))
+	var off: Vector2 = ABILITY_STANDOFF.get(ability.ability_id(), ABILITY_STANDOFF.get(kind, Vector2(-150, -30)))
+	var stroke := ABILITY_STROKE.has(ability.ability_id())
+	var stroke_to := Vector2.ZERO
+	var stroke_speed := 1600.0
+	if stroke:
+		off = ABILITY_STROKE[ability.ability_id()][0]
+		stroke_to = ABILITY_STROKE[ability.ability_id()][1]
+		stroke_speed = ABILITY_STROKE[ability.ability_id()][2]
 	var at := _centre() + off
 	if kind == &"shockwave":
 		at = Vector2(_centre().x + off.x, _buddy.get_interaction_rect().end.y + off.y)
 	await _mouse_to(at, 700.0)
 	await _steady(body, 40)
+	# A hooked row's ability is positional (a reap wants his feet, a flurry his reach), and the
+	# approach can knock him on. So it comes at him again, round him rather than through him, until
+	# the hand is where the stand-off says.
+	# Against a wall, the stand-off is taken from his other side.
+	if ability.row.has("script"):
+		for attempt in 3:
+			# Knocked down on the way in, he is waited for: nothing bills him while he is down.
+			for i in 600:
+				if not ExpressionBrain.KNOCKOUT_STATES.has(_buddy.state) and not _buddy.health.down:
+					break
+				await _step()
+			_buddy.health.reset_meter()
+			var width := _buddy.get_viewport_rect().size.x
+			if _centre().x + off.x < 40.0 or _centre().x + off.x > width - 40.0:
+				off.x = -off.x
+				stroke_to.x = -stroke_to.x
+			var want := _centre() + off
+			if kind == &"shockwave":
+				want = Vector2(_centre().x + off.x, _buddy.get_interaction_rect().end.y + off.y)
+			if _mouse.distance_to(want) <= 40.0:
+				break
+			for i in 120:
+				if _buddy.is_grounded() and _buddy.linear_velocity.length() < 5.0:
+					break
+				await _step()
+			# Over him, down well to his side, and in: a blade lowered straight onto its stand-off
+			# beside him comes down on his shoulder and stays there.
+			var over := _buddy.get_interaction_rect().position.y - 220.0
+			var wide := want.x + signf(off.x) * 90.0
+			await _mouse_to(Vector2(_mouse.x, minf(_mouse.y, over)), 700.0)
+			await _mouse_to(Vector2(wide, over), 700.0)
+			await _mouse_to(Vector2(wide, want.y), 500.0)
+			await _mouse_to(want, 400.0)
+			await _steady(body, 40)
 	var before := ability.uses
 	var hold := 0.0
 	match kind:
@@ -1028,10 +1082,20 @@ func _use_ability(run: Run, body: WeaponBase) -> void:
 		&"sustain":
 			hold = 1.0
 	_press(MOUSE_BUTTON_RIGHT)
-	for i in maxi(1, int(hold * 60.0)):
-		if kind == &"sustain":
-			_move(_centre() + off + Vector2(20.0 * sin(float(i) * 0.2), 0.0))
-		await _step()
+	if stroke:
+		# Right held a moment first — a guard comes round onto him — then the stroke, twice.
+		await _step(30)
+		for i in 2:
+			if not ability.is_active():
+				break
+			await _mouse_to(_centre() + stroke_to, stroke_speed)
+			await _step(4)
+			await _mouse_to(_centre() + off, 900.0)
+	else:
+		for i in maxi(1, int(hold * 60.0)):
+			if kind == &"sustain":
+				_move(_centre() + off + Vector2(20.0 * sin(float(i) * 0.2), 0.0))
+			await _step()
 	_release(MOUSE_BUTTON_RIGHT)
 	# The armed ones need the swing that follows; the rest are on their way already.
 	if kind == &"charge" or kind == &"stun":

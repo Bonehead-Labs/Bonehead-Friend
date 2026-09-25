@@ -14,3 +14,4 @@ scene = ExtResource("2_3lfl7")
 icon = ExtResource("1_jctht")
 requires = Array[StringName]([&"rapier"])
 sort_order = 57
+controls = "Hold · Right: Embed — throw it; it sticks in him and keeps biting"

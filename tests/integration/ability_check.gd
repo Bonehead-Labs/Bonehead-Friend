@@ -217,7 +217,12 @@ func _check_ability(id: StringName) -> void:
 	var before_uses := ability.uses
 
 	var measured := {}
-	match archetype:
+	# A hooked row that is used differently from its archetype brings a driver named for its
+	# ability (`_drive_<ability id>`), below the eight.
+	var own_driver := "_drive_%s" % row.get("id", "")
+	match &"hooked" if has_method(own_driver) else archetype:
+		&"hooked":
+			measured = await call(own_driver, body, ability)
 		&"charge":
 			measured = await _drive_charge(body, ability as ChargeAbility)
 		&"dash":
@@ -519,6 +524,285 @@ func _drive_throw(body: WeaponBase, ability: ThrowAbility) -> Dictionary:
 	_check("at the hand", ability.grip_world().distance_to(hand) <= 120.0)
 	return {"speed": ability.last_throw_speed, "hits": ability.throw_hits, "trip": ability.last_trip}
 
+# --- the blades (hooked rows, driven by ability id) -------------------------------------------
+
+## Momentum: right held, the hand swings it back and forth through him; the grip is loose, the
+## chain climbs with each hit that did not stop it, and letting go puts the grip back.
+func _drive_momentum(body: WeaponBase, ability: MomentumAbility) -> Dictionary:
+	var damp_before := body.angular_damp
+	var mode_before := body.angular_damp_mode
+	await _approach(body, Vector2(-220.0, -40.0))
+	_press(MOUSE_BUTTON_RIGHT)
+	await _step(2)
+	_check("right held loosens the grip (damping %.2f -> %.2f)" % [damp_before, body.angular_damp],
+		ability.is_active() and body.angular_damp == 0.0
+		and body.angular_damp_mode == RigidBody2D.DAMP_MODE_REPLACE)
+	for i in 4:
+		if not ability.is_active() or _buddy.health.down:
+			break
+		await _sweep_through(900.0, 1300.0)
+	_check("the chain climbs with hits that do not stop it (best %d, %d hits, broken %d)"
+		% [ability.best_chain, ability.chain_hits, ability.chains_broken], ability.best_chain >= 2)
+	_check("and a later hit is billed higher than x1", _boosted_hits(body, 1.0 + ability.num("step_mult", 0.15)) >= 1)
+	_release(MOUSE_BUTTON_RIGHT)
+	await _step(2)
+	_check("letting go ends it and gives the grip back", not ability.is_active()
+		and is_equal_approx(body.angular_damp, damp_before) and body.angular_damp_mode == mode_before)
+	return {"hits": _hits.size(), "chain": ability.best_chain, "broken": ability.chains_broken}
+
+## Embed: thrown from 250 px, it goes in, rides him, ticks, and drops out at his feet.
+func _drive_embed(body: WeaponBase, ability: EmbedAbility) -> Dictionary:
+	await _approach(body, Vector2(-250.0, -80.0))
+	_press(MOUSE_BUTTON_RIGHT)
+	await _step()
+	_release(MOUSE_BUTTON_RIGHT)
+	_check("right throws it out of the hand", not body.dragging and ability.is_active())
+	var hit := await _await_cond(func() -> bool: return ability.lodged, 60)
+	_check("it goes in (%.0f px/s thrown, %.0f)" % [ability.last_throw_speed, ability.last_hit], hit)
+	await _step(3)
+	var local := _buddy.global_transform.affine_inverse() * body.global_transform
+	await _step(12)
+	var later := _buddy.global_transform.affine_inverse() * body.global_transform
+	_check("and rides with him (%.1f px drift in his frame)" % local.origin.distance_to(later.origin),
+		ability.is_lodged() and local.origin.distance_to(later.origin) < 1.0 and body.freeze
+		and body.collision_layer == 0)
+	_check("the throw is billed once, as its own impulse (%.0f)" % ability.last_hit,
+		_hits_with_impulse(ability.last_hit) == 1)
+	await _expect_face(&"skewered", &"skewered")
+	await _await_cond(func() -> bool: return not ability.is_lodged(), 240)
+	await _step(3)
+	var ticks := _hits_with_impulse(ability.num("tick_force", 600.0))
+	_check("it worked in, a hit a tick (%d ticks, %d billed)" % [ability.ticks, ticks],
+		ability.ticks >= 4 and ticks == ability.ticks)
+	_check("then came out (%s), unfrozen, its layers back" % ability.came_out,
+		not body.freeze and body.collision_layer != 0 and ability.came_out != &"")
+	await _await_cond(func() -> bool: return not ability.is_active(), 240)
+	_check("and the exception came off once it was clear", not body.get_collision_exceptions().has(_buddy))
+	return {"throw": ability.last_hit, "ticks": ability.ticks, "out": String(ability.came_out),
+		"hits": _hits.size()}
+
+## Brush Clear: a prop in front of the hand and one behind it; one swipe throws him and the one in
+## front away from the hand, and leaves the one behind alone.
+func _drive_brush_clear(body: WeaponBase, ability: BrushClearAbility) -> Dictionary:
+	await _approach(body, Vector2(-200.0, -20.0))
+	var hand := _mouse
+	var front := _prop(hand + Vector2(105.0, 40.0))
+	var behind := _prop(hand + Vector2(-110.0, 40.0))
+	await _step(20)
+	_press(MOUSE_BUTTON_RIGHT)
+	await _step()
+	_release(MOUSE_BUTTON_RIGHT)
+	await _await_cond(func() -> bool: return ability.last_origin != Vector2.INF or not ability.is_active(), 40)
+	await _step()
+	_check("one swipe cleared the cone (%d thrown)" % ability.last_swept, ability.last_swept >= 2)
+	_check("him away from the hand (%.0f px/s handed, moving %.0f)" % [ability.last_push,
+		_buddy.linear_velocity.x], ability.last_push > 0.0 and _buddy.linear_velocity.x > 50.0)
+	_check("the prop in front with him (%.0f, %.0f)" % [front.linear_velocity.x, front.linear_velocity.y],
+		front.linear_velocity.x > 100.0 and front.linear_velocity.y < 0.0)
+	_check("and not the one behind (%.0f px/s)" % behind.linear_velocity.length(),
+		behind.linear_velocity.length() < 40.0)
+	await _step(3)
+	_check("billed as the impulse it handed him", _hit_with_impulse(_buddy.mass * ability.last_push) != null)
+	await _expect_face(&"swept", &"swept")
+	var him := await _peak_speed(20)
+	front.queue_free()
+	behind.queue_free()
+	return {"push": ability.last_push, "swept": ability.last_swept, "him": him, "hits": _hits.size()}
+
+## Reap: from beside him at chest height, one press: the hand drops and sweeps, the hook takes
+## his feet, and he goes head over heels.
+func _drive_reap(body: WeaponBase, ability: ReapAbility) -> Dictionary:
+	await _approach(body, Vector2(-170.0, -30.0))
+	var top := _buddy.global_position.y
+	_press(MOUSE_BUTTON_RIGHT)
+	await _step()
+	_release(MOUSE_BUTTON_RIGHT)
+	var low := 0.0
+	var contact_hits := 0
+	for i in 40:
+		await _step()
+		low = maxf(low, ability.hand_world().y - _mouse.y)
+		if ability.caught_him:
+			break
+		contact_hits = _hits.size()
+	_check("the hand went down to the desk (%.0f px)" % low, low >= 60.0)
+	_check("and the hook caught his feet without shoving him first (%d contact hits)" % contact_hits,
+		ability.caught_him and contact_hits == 0)
+	var turned := 0.0
+	var rise := 0.0
+	for i in 50:
+		turned += absf(_buddy.angular_velocity) / 60.0
+		rise = maxf(rise, top - _buddy.global_position.y)
+		await _step()
+	_check("head over heels (%.1f rad turned, %.0f px up)" % [turned, rise], turned >= 2.0 and rise >= 15.0)
+	_check("billed as the reap's own impulse at x%.2f" % ability.num("reap_mult", 1.2),
+		_hit_with_impulse(ability.last_reap) != null)
+	_check("and where he lands is the sickle's", _claimed_seen or _buddy.impacts_claimed_by() == _id)
+	await _expect_face(&"upended", &"upended")
+	await _await_cond(func() -> bool: return not ability.is_active(), 120)
+	_check("the exception comes off and the hand is its own again",
+		not body.get_collision_exceptions().has(_buddy) and body.hand_offset == Vector2.ZERO)
+	return {"reap": ability.last_reap, "turned": turned, "rise": rise, "hits": _hits.size()}
+
+## Soul Reap: right held, a quick stroke toward him from 430 px: the ghost leaves the blade and goes
+## through him while the scythe is still far away.
+func _drive_soul_reap(body: WeaponBase, ability: SoulReapAbility) -> Dictionary:
+	await _approach(body, Vector2(-430.0, -60.0))
+	_press(MOUSE_BUTTON_RIGHT)
+	await _step(10)
+	_check("right held arms it", ability.is_active() and ability.last_ghost_speed == 0.0)
+	# The swing: a quick stroke of the hand toward him that stops well short of him.
+	await _mouse_to(_centre() + Vector2(-130.0, -60.0), 1800.0)
+	var left := await _await_cond(func() -> bool: return not ability.is_active(), 20)
+	_release(MOUSE_BUTTON_RIGHT)
+	_check("a swing lets the ghost go (%.0f px/s%s)" % [ability.last_ghost_speed,
+		", bent onto him" if ability.assisted else ""], left and not ability.fizzled and ability.last_ghost_speed > 0.0)
+	var reaped := await _await_cond(func() -> bool: return ability.reaps > 0, 60)
+	var gap := ability.tip_world().distance_to(_centre())
+	_check("it reaps him at range (%.0f px from the blade)" % gap, reaped and gap >= 100.0)
+	await _step(3)
+	_check("billed once, as its own impulse (%.0f)" % ability.last_strike,
+		_hits_with_impulse(ability.last_strike) == 1)
+	_check("his soul is tugged out", _buddy.get_node_or_null("SoulWisp") != null)
+	await _expect_face(&"soul_reaped", &"soul_reaped")
+	return {"ghost": ability.last_ghost_speed, "reap": ability.last_strike, "gap": gap, "hits": _hits.size()}
+
+## En Garde: right held, it points itself at him; lunges along the blade are thrusts, x2.
+func _drive_en_garde(body: WeaponBase, ability: EnGardeAbility) -> Dictionary:
+	await _approach(body, Vector2(-200.0, -40.0))
+	_press(MOUSE_BUTTON_RIGHT)
+	await _await_cond(func() -> bool: return ability.aim_error() <= 0.1, 60)
+	_check("on guard, it swings onto him and points at him (%.2f rad off)" % ability.aim_error(),
+		ability.aim_error() <= 0.25)
+	await _expect_face(&"en_garde", &"squared_up")
+	for i in 3:
+		if not ability.is_active() or _buddy.health.down:
+			break
+		await _mouse_to(_centre() + Vector2(-60.0, -40.0), 1100.0)
+		await _step(4)
+		await _mouse_to(_centre() + Vector2(-200.0, -40.0), 600.0)
+		await _step(10)
+	await _step(3)
+	_check("a lunge along the blade is a thrust, x%.1f (%d thrusts)" % [ability.num("thrust_mult", 2.0),
+		ability.thrusts], ability.thrusts >= 1 and _boosted_hits(body, ability.num("thrust_mult", 2.0)) >= 1)
+	_release(MOUSE_BUTTON_RIGHT)
+	await _step(2)
+	_check("letting go ends it", not ability.is_active())
+	return {"thrusts": ability.thrusts, "swipes": ability.swipes, "aim": ability.best_aim, "hits": _hits.size()}
+
+## Flurry: right held beside him, the hand following him, for as long as it lasts.
+func _drive_flurry(body: WeaponBase, ability: FlurryAbility) -> Dictionary:
+	await _approach(body, Vector2(-95.0, -10.0))
+	_press(MOUSE_BUTTON_RIGHT)
+	for i in 150:
+		if not ability.is_active():
+			break
+		_move(_mouse.move_toward(_centre() + Vector2(-95.0, -10.0), 600.0 / 60.0))
+		await _step()
+	_release(MOUSE_BUTTON_RIGHT)
+	await _step(3)
+	_check("it jabbed about six a second (%d jabs)" % ability.jabs,
+		ability.jabs >= int(ability.num("jab_rate", 6.0) * ability.num("fuel_seconds", 2.0)) - 1)
+	_check("and the jabs landed as real contacts (%d landed, %d billed)" % [ability.jabs_landed, _hits.size()],
+		ability.jabs_landed >= 4 and ability.struck.is_empty())
+	_check("the hand is its own again", body.hand_offset == Vector2.ZERO and not ability.is_active())
+	return {"jabs": ability.jabs, "landed": ability.jabs_landed, "hits": _hits.size()}
+
+## Snap: one tap from 300 px: three tips, straight, and the knife never leaves the hand.
+func _drive_snap(body: WeaponBase, ability: SnapAbility) -> Dictionary:
+	await _approach(body, Vector2(-300.0, -40.0))
+	_press(MOUSE_BUTTON_RIGHT)
+	await _step()
+	_release(MOUSE_BUTTON_RIGHT)
+	# The first tip, sampled in flight: a straight line.
+	var tip: Node2D = null
+	for i in 6:
+		await _step()
+		for node in _stage.get_children():
+			if String(node.name).begins_with("BladeTip"):
+				tip = node
+				break
+		if tip:
+			break
+	var path: Array[Vector2] = []
+	for i in 4:
+		if is_instance_valid(tip) and not (tip as SnapAbility.Shard).spent:
+			path.append(tip.global_position)
+		await _step()
+	var straight := path.size() >= 3 and absf((path[1] - path[0]).cross(path[path.size() - 1] - path[0])) \
+		<= 2.0 * path[0].distance_to(path[path.size() - 1])
+	_check("a tip flies dead straight (%d samples)" % path.size(), straight)
+	await _await_cond(func() -> bool: return ability.flicked >= int(ability.num("shots", 3.0)), 40)
+	_check("three of them, and the knife stays in the hand (%d)" % ability.flicked,
+		ability.flicked == int(ability.num("shots", 3.0)) and body.dragging)
+	await _await_cond(func() -> bool: return ability.tips_hit >= 2, 60)
+	await _step(3)
+	_check("they hit him, each billed once (%d hit)" % ability.tips_hit,
+		ability.tips_hit >= 2 and _hits_with_impulse(ability.num("tip_force", 1300.0)) == ability.tips_hit)
+	return {"tips": ability.flicked, "hit": ability.tips_hit, "hits": _hits.size()}
+
+## Special Delivery: thrown from 260 px, point first and straight; x2 on him; stuck where it lands,
+## nothing running; and the cooldown starts when it is fetched.
+func _drive_special_delivery(body: WeaponBase, ability: DeliveryAbility) -> Dictionary:
+	await _approach(body, Vector2(-260.0, -60.0))
+	_press(MOUSE_BUTTON_RIGHT)
+	await _step()
+	_release(MOUSE_BUTTON_RIGHT)
+	_check("right throws it out of the hand", not body.dragging and ability.in_flight())
+	var hit := await _await_cond(func() -> bool: return ability.point_hits > 0, 60)
+	_check("point first all the way (%.2f rad off its flight at worst)" % ability.worst_heading,
+		ability.worst_heading <= 0.35)
+	_check("and the point arrives (%.0f)" % ability.last_hit, hit)
+	await _step(3)
+	var chop := _hit_with_impulse(ability.last_hit)
+	_check("billed once, x%.1f on the point" % ability.num("point_mult", 2.0), chop != null
+		and _hits_with_impulse(ability.last_hit) == 1 and absf(_mult_of(chop)
+		- Progression.damage_mult_for(_id, body.damage_mult) * ability.num("point_mult", 2.0)) < 0.01)
+	await _expect_face(&"delivered", &"pricked")
+	var stuck := await _await_cond(func() -> bool: return ability.is_stuck(), 180)
+	_check("it sticks where it lands (%s)" % ability.stuck_at.round(), stuck)
+	await _step(60)
+	_check("and waits there: nothing runs, and no cooldown yet", body.freeze and not ability.is_busy()
+		and not ability.is_cooling() and ability.is_active())
+	await _grab(body)
+	await _step(2)
+	_check("fetched, the cooldown starts", ability.fetched and ability.is_cooling() and body.dragging
+		and not body.freeze)
+	return {"speed": ability.last_throw_speed, "point": ability.last_hit, "hits": _hits.size()}
+
+## The hand to where a blade's ability starts, round him rather than through him — over his head,
+## across, and down — and him still again before anything is counted, so a blade carried into
+## place is never measured as its ability.
+func _approach(body: WeaponBase, offset: Vector2) -> void:
+	var over := _buddy.get_interaction_rect().position.y - 220.0
+	await _mouse_to(Vector2(_mouse.x, minf(_mouse.y, over)), 700.0)
+	await _mouse_to(Vector2(_centre().x + offset.x, over), 700.0)
+	await _mouse_to(_centre() + offset, 500.0)
+	await _steady(body, 60)
+	await _settle_him()
+	# He may have been nudged on the way: once more, the short way.
+	await _mouse_to(_centre() + offset, 400.0)
+	await _steady(body, 60)
+	_hits.clear()
+	_faces.clear()
+	_pipeline_bad.clear()
+
+## A plain free body on the item layer, for a swipe to throw.
+func _prop(at: Vector2) -> RigidBody2D:
+	var prop := RigidBody2D.new()
+	prop.name = "Prop"
+	prop.collision_layer = 4
+	prop.collision_mask = 1 | 4
+	prop.mass = 1.0
+	var shape := CollisionShape2D.new()
+	var box := RectangleShape2D.new()
+	box.size = Vector2(20, 20)
+	shape.shape = box
+	prop.add_child(shape)
+	_stage.add_child(prop)
+	prop.global_position = at
+	return prop
+
 # --- what each hit carried -------------------------------------------------------------------
 
 func _on_payout(currency: StringName, amount: float, _at: Vector2, source_id: StringName) -> void:
@@ -605,7 +889,8 @@ func _extra_damage(body: WeaponBase, archetype: StringName, ordinary: float) -> 
 			extra += info.amount * (1.0 - 1.0 / m)
 		else:
 			plain += info.amount
-	if archetype == &"spin":
+	# A whirl's and a flurry's hits are ordinary contacts, many to a use.
+	if archetype == &"spin" or (body.ability and body.ability.ability_id() == &"flurry"):
 		extra += maxf(plain - ordinary, 0.0)
 	return extra
 
@@ -846,6 +1131,12 @@ func _leftovers() -> String:
 	for node in _stage.get_children():
 		if node is RigidBody2D and String(node.name).begins_with("GolfBall") and not node.is_queued_for_deletion():
 			return "a golf ball"
+		for left in ["GhostBlade", "BladeTip"]:
+			if String(node.name).begins_with(left) and not node.is_queued_for_deletion():
+				return "a %s" % left
+	for child in _buddy.get_children():
+		if String(child.name).begins_with("SoulWisp") and not child.is_queued_for_deletion():
+			return "his soul, still out"
 	if not _buddy.get_collision_exceptions().is_empty():
 		return "an exception on him"
 	return ""

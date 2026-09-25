@@ -14,3 +14,4 @@ scene = ExtResource("2_kh1g5")
 icon = ExtResource("1_neau1")
 requires = Array[StringName]([&"halberd"])
 sort_order = 87
+controls = "Hold · Right: Momentum — keep it swinging; each hit that doesn't stop it hits harder"

@@ -3111,6 +3111,65 @@ owner:
   sparkle that makes the next pet worth more).
 - The water pistol and the bubble blaster already use right for their shot (D56). They keep it.
 
+### The blades: nine more, on the archetypes that exist (2026-09-26)
+
+The greatsword, cleaver, machete, sickle, scythe, rapier, katar, boxcutter and letter opener are
+rows now, each with a hook script (`Scripts/Bodies/Abilities/*_ability.gd`) naming the archetype it
+builds on. No archetype script changed, and the eight measure as they did. Measured in
+`ability_check`, same rig and same "worth" as the table above:
+
+| Weapon | Ability | Builds on | What you do | Measured |
+|---|---|---|---|---|
+| Greatsword | Momentum | sustain | hold: the grip loosens (its damping comes off, gravity about the grip is cancelled), a heave starts the first arc and the wrist only ever *keeps* spin (6 rad/s), never brakes it. Each hit that did not stop it adds x0.15, to x1.6; notches by the hand count it | a chain of 4 in 5 hits, one break; 1.0 |
+| Cleaver | Embed | throw | tap: thrown end over end at his chest. In him it is frozen and rides his transform for 3 s, a 600 tick every 0.5 s, then drops at his feet; grab it and you pull it out | 0.0 px drift in his frame; throw 1,766 + 5 ticks; 2.5 |
+| Machete | Brush Clear | shockwave | tap: a wide chest-high swipe; everything within 260 px in the 120-degree cone in front of where you stood is thrown away from you (the cone flattened so the desk in front is in it) | him 382 px/s from 200 px, a prop in front 690, one behind 0; 0.6 |
+| Sickle | Reap | dash | tap: the hand drops to the desk, sweeps past his far foot and pulls back. The hook takes his feet (swept, not touched) and he goes head over heels toward you, his landing the sickle's | 0 contacts before the catch; 6.5 rad turned, 132 px up; 1.1 |
+| Scythe | Soul Reap | projectile | hold and flick: the blade's ghost, a pale silhouette of the art, leaves the way the hand went and passes through him; his soul is tugged out and snaps back | ghost 1,296 px/s, the reap 3,370 at 229 px from the blade; 1.1 to 1.6 |
+| Rapier | En Garde | sustain | hold: D56's aim lays the blade on him; a lunge along it is x2, a swipe across it x0.5 | settles to 0.08 rad; 3 thrusts at x2 from 3 lunges; 1.3 |
+| Katar | Flurry | sustain | hold near him: the hand draws, jabs and returns six times a second for 2 s, point first, every jab a real contact | 13 jabs, 11 landed; 1.6 |
+| Boxcutter | Snap | projectile | tap: the knife turns on him, then three tips snap off 0.12 s apart and fly dead straight | 3 tips, 2 hit, each on one straight line; 1.5 |
+| Letter opener | Special Delivery | throw | tap: turned point-first, no gravity, straight at him; x2 on the point, then it sticks where it lands, and the cooldown starts when you fetch it | 0.25 rad off its flight at worst; point 1,584 at x2; stuck with nothing running; 1.2 |
+
+He answers six of them with new rows (`skewered`, `upended`, `swept`, `soul_reaped`, `squared_up`,
+`pricked`); the greatsword's, the katar's and the boxcutter's are hits, and the hit rows say them.
+Five voices are synthesised: swish, thunk, snap, wail, tink. `BladeAim` is D56's aim for a blade,
+shared by the rapier, the katar and the boxcutter. `swing_rig` is identical to the digit on all nine
+with the ability idle.
+
+**What the frames changed.** Every ability was staged in `ability_shots` and looked at.
+
+- **The scythe's ghost went up.** Launched along the point's velocity, a heavy head turning on the
+  grip flung it at the ceiling off a stroke aimed straight at him. It follows the hand now. And a
+  multiplied copy of the art read as a dim second scythe, so the ghost is a white silhouette of the
+  sprite made once per scythe and tinted.
+- **The greatsword was a plank.** A flywheel that only removed damping looked like nothing in a
+  frame: the blade hung, its point on the desk. The press heaves it, the wrist keeps it at 6 rad/s,
+  and it goes round the hand in long arcs.
+- **A hanging blade turned the short way jams its point in the desk.** The rapier sat 1.4 rad off him
+  for a second. `BladeAim` goes up and over when the short way passes straight down.
+- **The katar hung point-down and the boxcutter pointed at the ceiling**, so neither jab nor tip left
+  the point. Both lay the blade along the shot now.
+- **Bone dust on a white skeleton is invisible.** The cleaver's ticks throw soot and a ring.
+
+**What cost time.** The cleaver thrown at his middle tumbled its handle into the desk, so it is thrown
+at his chest and a glance off the desk at speed is not a miss. The machete's apex travelled with the
+swipe and overshot him against a wall, so the cone is from where you stood. A jab from a fist already
+resting on him is a push that bills nothing, so each jab draws back first. And a blade carried into
+place through him is measured as its ability: `ability_check` brings each blade in over his head
+(`_approach`), and `item_check` does the same for hooked rows, mirroring the stand-off off a wall and
+waiting out a knockout on the way in.
+
+**Pacing**, 4/4: first Reincarnation 9:11:08 -> **9:11:07**, first automation 16:57 unchanged,
+worst dead stretch 1:23 -> 1:31. The modelled player leans on one favourite and spreads the rest
+of the damage across the drawer, and the blades' uplifts (1.08 to 1.29) mostly land on that spread
+share, so the curve barely moves. `ability_check` 314 -> 651, `loop_check` 747 -> 753 with 17
+on `ABILITY_STILL_TO_DO`, `item_check` 123 items and 0 failed. unit 242, ui 621, gun 103 and fidget
+188 are unchanged, and `brain_check` has its two known failures and no new ones.
+
+*Not done:* nobody has held any of these yet. The frames were looked at; the feel is the owner's.
+The capture tool cannot fetch the letter opener or pull the cleaver out, because a grab re-reads
+the OS pointer, so those two are only shown in `ability_check`.
+
 
 ## Recommendations not yet decided
 

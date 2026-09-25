@@ -14,3 +14,4 @@ scene = ExtResource("2_io7ny")
 icon = ExtResource("1_k405e")
 requires = Array[StringName]([&"boxcutter"])
 sort_order = 27
+controls = "Hold · Right: Special Delivery — thrown point-first; go and fetch it"

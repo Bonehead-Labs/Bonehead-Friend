@@ -310,6 +310,101 @@ func _build_streams() -> void:
 	_streams[&"rev"] = _wav(_rev_samples())
 	_streams[&"tock"] = _wav(_tick_samples(0.05, 1750.0, 1.0))
 	_streams[&"quake"] = _wav(_boom_samples(0.7, 42.0))
+	# --- the blades' abilities (D74) ---
+	#
+	# A machete clearing brush, a blade biting into something and staying there, a blade tip
+	# snapped off, a scythe's ghost leaving it, and a foil touching. Each is short, and each is a
+	# thing the whoosh and the shing above are not.
+	_streams[&"swish"] = _wav(_swish_samples())
+	_streams[&"thunk"] = _wav(_thunk_samples())
+	_streams[&"snap"] = _wav(_snap_samples())
+	_streams[&"wail"] = _wav(_wail_samples())
+	_streams[&"tink"] = _wav(_tink_samples())
+
+## A wide cut through leaves: bright noise whose band falls fast, with a rustle riding it —
+## broader and higher than a whoosh, which is one thing passing the ear rather than many.
+func _swish_samples() -> PackedFloat32Array:
+	var duration := 0.24
+	var count := int(MIX_RATE * duration)
+	var out := PackedFloat32Array()
+	out.resize(count)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 20260930
+	var low := 0.0
+	for i in count:
+		var t := float(i) / float(MIX_RATE)
+		var progress := t / duration
+		var noise := rng.randf_range(-1.0, 1.0)
+		low = lerpf(low, noise, lerpf(0.9, 0.2, progress))
+		# The high-passed part is the edge; the rustle is the noise gated in short bursts.
+		var edge := noise - low
+		var rustle := noise * (0.5 + 0.5 * signf(sin(TAU * 38.0 * t))) * 0.25
+		var envelope := minf(progress * 14.0, 1.0) * (1.0 - progress) * (1.0 - progress)
+		out[i] = clampf((edge * 0.7 + rustle) * envelope, -1.0, 1.0)
+	return out
+
+## A blade biting into something and staying: a dull low knock with no ring after it, and one
+## short ping of the steel on top.
+func _thunk_samples() -> PackedFloat32Array:
+	var count := int(MIX_RATE * 0.2)
+	var out := PackedFloat32Array()
+	out.resize(count)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 20260931
+	for i in count:
+		var t := float(i) / float(MIX_RATE)
+		var knock := sin(TAU * lerpf(210.0, 150.0, minf(t * 20.0, 1.0)) * t) * 0.7 * exp(-t * 34.0)
+		var ping := sin(TAU * 2150.0 * t) * 0.16 * exp(-t * 70.0)
+		var click := rng.randf_range(-1.0, 1.0) * 0.5 * exp(-t * 600.0)
+		out[i] = clampf(knock + ping + click, -1.0, 1.0)
+	return out
+
+## A snap-off blade breaking at its score: a crack of noise a few milliseconds long and a high,
+## thin ping, gone at once.
+func _snap_samples() -> PackedFloat32Array:
+	var count := int(MIX_RATE * 0.09)
+	var out := PackedFloat32Array()
+	out.resize(count)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 20260932
+	for i in count:
+		var t := float(i) / float(MIX_RATE)
+		var crack := rng.randf_range(-1.0, 1.0) * exp(-t * 520.0)
+		var ping := sin(TAU * 3400.0 * t) * 0.3 * exp(-t * 60.0) + sin(TAU * 5150.0 * t) * 0.12 * exp(-t * 90.0)
+		out[i] = clampf(crack * 0.9 + ping, -1.0, 1.0)
+	return out
+
+## Something leaving a body that is not a body: a whistle that falls and wavers, breathy, with a
+## slow start — the one sound in the set with no attack at all.
+func _wail_samples() -> PackedFloat32Array:
+	var duration := 0.62
+	var count := int(MIX_RATE * duration)
+	var out := PackedFloat32Array()
+	out.resize(count)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 20260933
+	var phase := 0.0
+	var low := 0.0
+	for i in count:
+		var t := float(i) / float(MIX_RATE)
+		var progress := t / duration
+		var pitch := lerpf(880.0, 400.0, progress * progress) * (1.0 + 0.035 * sin(TAU * 6.5 * t))
+		phase += TAU * pitch / float(MIX_RATE)
+		low = lerpf(low, rng.randf_range(-1.0, 1.0), 0.12)
+		var envelope := sin(PI * progress) * (1.0 - 0.4 * progress)
+		out[i] = clampf((sin(phase) * 0.3 + sin(phase * 2.01) * 0.06 + low * 0.25) * envelope, -1.0, 1.0)
+	return out
+
+## A foil touching: two high partials that are not a chord, over in a fifteenth of a second.
+func _tink_samples() -> PackedFloat32Array:
+	var count := int(MIX_RATE * 0.07)
+	var out := PackedFloat32Array()
+	out.resize(count)
+	for i in count:
+		var t := float(i) / float(MIX_RATE)
+		var value := sin(TAU * 3100.0 * t) * 0.34 * exp(-t * 55.0) + sin(TAU * 5270.0 * t) * 0.16 * exp(-t * 80.0)
+		out[i] = clampf(value * minf(t * 4000.0, 1.0), -1.0, 1.0)
+	return out
 
 ## Air moved by something swung: noise through a band that sweeps up and back, inside a swell.
 func _whoosh_samples() -> PackedFloat32Array:

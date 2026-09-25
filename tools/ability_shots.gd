@@ -127,7 +127,12 @@ func _stage(id: StringName) -> void:
 	await _carry(start, 20)
 	var ability := _weapon.ability
 	print("  %s — %s" % [id, ability_row.get("name", "")])
-	match ability.archetype():
+	# A hooked row that is used differently from its archetype brings a staging of its own,
+	# `_stage_<ability id>`, below.
+	var staging := "_stage_%s" % ability.ability_id()
+	match &"hooked" if has_method(staging) else ability.archetype():
+		&"hooked":
+			await call(staging, id, ability, centre, floor_y)
 		&"charge":
 			await _carry(centre + Vector2(-130.0, -20.0), 30)
 			ability.press()
@@ -234,6 +239,156 @@ func _stage(id: StringName) -> void:
 	if is_instance_valid(_weapon):
 		_weapon.bin_myself()
 	await _idle(10)
+
+# --- the blades (D74) -----------------------------------------------------------------------
+
+## Momentum: right held above him and to one side; the heave starts the first arc, the loosened
+## grip keeps it going round, and the hand steers the arcs into him while the notches fill.
+func _stage_momentum(id: StringName, ability: WeaponAbility, centre: Vector2, _floor_y: float) -> void:
+	await _carry(centre + Vector2(-190.0, -200.0), 30)
+	var momentum := ability as MomentumAbility
+	ability.press()
+	await _shot("%s-heave" % id, 10)
+	for i in 150:
+		await _carry(_hand.move_toward(_buddy.get_interaction_rect().get_center() + Vector2(-120.0, -190.0),
+			3.0), 1)
+		if momentum.chain() >= 3 or not ability.is_active():
+			break
+		if i == 40:
+			await _shot("%s-arc" % id)
+	await _shot("%s-chain" % id, 2)
+	ability.release()
+
+## Embed: thrown, lodged in him, a tick of bone dust, and out.
+func _stage_embed(id: StringName, ability: WeaponAbility, centre: Vector2, _floor_y: float) -> void:
+	await _carry(centre + Vector2(-260.0, -80.0), 40)
+	var embed := ability as EmbedAbility
+	ability.press()
+	await _shot("%s-thrown" % id, 6)
+	for i in 40:
+		await _idle(1)
+		if embed.lodged:
+			break
+	await _shot("%s-lodged" % id, 2)
+	for i in 40:
+		await _idle(1)
+		if embed.ticks > 0:
+			break
+	await _shot("%s-tick" % id, 1)
+	for i in 200:
+		await _idle(1)
+		if not embed.is_lodged():
+			break
+	await _shot("%s-out" % id, 8)
+
+## Brush Clear: three toys on the desk in front of the hand, and one swipe.
+func _stage_brush_clear(id: StringName, ability: WeaponAbility, centre: Vector2, floor_y: float) -> void:
+	for toy in [&"rubber_duck", &"tennis_ball", &"baseball"]:
+		_own(toy)
+	EventBus.spawn_requested.emit(&"rubber_duck", Vector2(centre.x - 110.0, floor_y - 30.0))
+	EventBus.spawn_requested.emit(&"tennis_ball", Vector2(centre.x - 75.0, floor_y - 30.0))
+	EventBus.spawn_requested.emit(&"baseball", Vector2(centre.x + 90.0, floor_y - 30.0))
+	await _carry(centre + Vector2(-210.0, -20.0), 50)
+	var brush := ability as BrushClearAbility
+	ability.press()
+	ability.release()
+	await _shot("%s-wind" % id, 4)
+	for i in 20:
+		await _carry(_hand, 1)
+		if brush.last_origin != Vector2.INF:
+			break
+	await _shot("%s-swipe" % id, 1)
+	await _shot("%s-cleared" % id, 8)
+
+## Reap: the hand drops and sweeps; his feet go; he goes over.
+func _stage_reap(id: StringName, ability: WeaponAbility, centre: Vector2, _floor_y: float) -> void:
+	await _carry(centre + Vector2(-170.0, -30.0), 40)
+	var reap := ability as ReapAbility
+	ability.press()
+	ability.release()
+	for i in 20:
+		await _carry(_hand, 1)
+		if reap._phase == ReapAbility.SWEEP:
+			break
+	await _shot("%s-sweep" % id, 3)
+	for i in 30:
+		await _carry(_hand, 1)
+		if reap.caught_him:
+			break
+	await _shot("%s-caught" % id, 1)
+	await _shot("%s-over" % id, 9)
+
+## Soul Reap: armed, one quick stroke toward him that stops short, the ghost, and his soul.
+func _stage_soul_reap(id: StringName, ability: WeaponAbility, centre: Vector2, _floor_y: float) -> void:
+	await _carry(centre + Vector2(-430.0, -60.0), 50)
+	var soul := ability as SoulReapAbility
+	ability.press()
+	await _shot("%s-armed" % id, 20)
+	for i in 10:
+		await _carry(_hand + Vector2(30.0, 0.0), 1)
+		if not ability.is_active():
+			break
+	ability.release()
+	await _shot("%s-ghost" % id, 4)
+	for i in 40:
+		await _carry(_hand, 1)
+		if soul.reaps > 0:
+			break
+	await _shot("%s-reaped" % id, 1)
+	await _shot("%s-soul" % id, 8)
+
+## En Garde: on guard at him, and a lunge.
+func _stage_en_garde(id: StringName, ability: WeaponAbility, centre: Vector2, _floor_y: float) -> void:
+	await _carry(centre + Vector2(-200.0, -40.0), 40)
+	var guard := ability as EnGardeAbility
+	ability.press()
+	await _shot("%s-guard" % id, 40)
+	for i in 12:
+		await _carry(_hand.move_toward(centre + Vector2(-50.0, -40.0), 20.0), 1)
+		if guard.thrusts > 0:
+			break
+	await _shot("%s-thrust" % id, 1)
+	ability.release()
+
+## Flurry: held beside him, jabbing.
+func _stage_flurry(id: StringName, ability: WeaponAbility, centre: Vector2, _floor_y: float) -> void:
+	await _carry(centre + Vector2(-95.0, -10.0), 40)
+	ability.press()
+	await _shot("%s-jab" % id, 5)
+	await _shot("%s-flurry" % id, 14)
+	await _carry(_hand, 60)
+	ability.release()
+
+## Snap: three tips, straight.
+func _stage_snap(id: StringName, ability: WeaponAbility, centre: Vector2, _floor_y: float) -> void:
+	await _carry(centre + Vector2(-300.0, -40.0), 40)
+	var snap := ability as SnapAbility
+	ability.press()
+	ability.release()
+	await _shot("%s-first" % id, 3)
+	await _shot("%s-three" % id, 12)
+	for i in 30:
+		await _carry(_hand, 1)
+		if snap.tips_hit >= 2:
+			break
+	await _shot("%s-hit" % id, 1)
+
+## Special Delivery: point first across the desk, the point arriving, and stuck where it landed.
+func _stage_special_delivery(id: StringName, ability: WeaponAbility, centre: Vector2, _floor_y: float) -> void:
+	await _carry(centre + Vector2(-260.0, -60.0), 40)
+	var delivery := ability as DeliveryAbility
+	ability.press()
+	await _shot("%s-flight" % id, 4)
+	for i in 40:
+		await _idle(1)
+		if delivery.point_hits > 0:
+			break
+	await _shot("%s-point" % id, 1)
+	for i in 120:
+		await _idle(1)
+		if delivery.is_stuck():
+			break
+	await _shot("%s-stuck" % id, 3)
 
 ## The weapon held at `at` the way swing_rig holds one: its grip on a joint to its own handle.
 func _hold(at: Vector2) -> void:

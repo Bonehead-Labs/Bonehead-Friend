@@ -130,6 +130,103 @@ const ABILITIES := {
 		"out_seconds": 0.55, "return_speed": 1200.0, "return_accel": 5000.0, "catch_radius": 48.0,
 		"give_up_seconds": 3.0,
 	},
+
+	# --- the blades (D74, 2026-09-26) ---------------------------------------------------------
+	# Nine edges, nine verbs: a flywheel, a lodged blade, a clearing swipe, a trip, a ghost, a
+	# guard, a flurry, a burst and a dart. Each hooked row's script says what its archetype lacks.
+
+	# Hold: the grip loosens, a heave starts it round and the wrist keeps it turning at 6 rad/s,
+	# never braking it; each hit without it stopping adds x0.15, to x1.6. Notches count the chain.
+	&"greatsword": {
+		"id": &"momentum", "name": "Momentum", "archetype": &"sustain",
+		"script": "res://Scripts/Bodies/Abilities/momentum_ability.gd",
+		"controls": "Hold · Right: Momentum — keep it swinging; each hit that doesn't stop it hits harder",
+		"cooldown": 6.0, "busy": 4.0, "worth": 1.2,
+		"fuel_seconds": 4.0, "heave": 6.0, "carry_spin": 6.0, "carry_accel": 40.0, "keep_speed": 220.0,
+		"stop_grace": 0.3, "step_mult": 0.15, "max_mult": 1.6,
+	},
+	# Thrown end over end; in him, it stays in him for 3 s and works in a light hit every half second,
+	# then drops out at his feet.
+	&"cleaver": {
+		"id": &"embed", "name": "Embed", "archetype": &"throw",
+		"script": "res://Scripts/Bodies/Abilities/embed_ability.gd",
+		"controls": "Hold · Right: Embed — throw it; it sticks in him and keeps biting",
+		"cooldown": 5.0, "busy": 3.6, "worth": 3.0,
+		"throw_speed": 1000.0, "spin": 14.0, "hit_force": 1800.0, "throw_mult": 1.0, "shove": 0.4,
+		"out_seconds": 0.7, "lodge_seconds": 3.0, "tick_seconds": 0.5, "tick_force": 600.0,
+		"tick_mult": 1.0, "give_up_seconds": 3.0,
+	},
+	# One wide chest-high swipe: everything in the 120 degrees in front is thrown away from you.
+	&"machete": {
+		"id": &"brush_clear", "name": "Brush Clear", "archetype": &"shockwave",
+		"script": "res://Scripts/Bodies/Abilities/brush_clear_ability.gd",
+		"controls": "Hold · Right: Brush Clear — one wide swipe clears everything in front of you",
+		"cooldown": 4.0, "busy": 0.5, "worth": 1.0,
+		"wind_px": 40.0, "wind_seconds": 0.08, "swipe_px": 90.0, "swipe_seconds": 0.12,
+		"recover_seconds": 0.2, "whip": 12.0, "radius": 260.0, "cone_degrees": 120.0, "pop": 950.0,
+		"lift_degrees": 20.0, "wave_mult": 1.2, "claim_seconds": 1.5,
+	},
+	# The hand drops to the desk and sweeps a low arc under him and back: caught by the feet, he goes
+	# head over heels toward you.
+	&"sickle": {
+		"id": &"reap", "name": "Reap", "archetype": &"dash",
+		"script": "res://Scripts/Bodies/Abilities/reap_ability.gd",
+		"controls": "Hold · Right: Reap — a low sweep that takes his feet out from under him",
+		"cooldown": 4.0, "busy": 0.7, "worth": 1.2,
+		"drop_seconds": 0.1, "sweep_seconds": 0.16, "pull_seconds": 0.12, "return_seconds": 0.2,
+		"floor_gap": 14.0, "sweep_px": 240.0, "feet_share": 0.45, "reap_force": 1800.0,
+		"reap_mult": 1.2, "pull": 260.0, "lift": 520.0, "flip": 13.0, "claim_seconds": 1.5,
+		"settle_seconds": 1.0,
+	},
+	# Hold and flick: a ghost of the blade leaves it the way the hand went, at the hand's speed, and
+	# passes through him. The one ranged ability the player aims.
+	&"scythe": {
+		"id": &"soul_reap", "name": "Soul Reap", "archetype": &"projectile",
+		"script": "res://Scripts/Bodies/Abilities/soul_reap_ability.gd",
+		"controls": "Hold · Right: Soul Reap — hold and swing; the blade's ghost flies on through him",
+		"cooldown": 4.0, "busy": 1.0, "worth": 1.8,
+		"arm_seconds": 2.0, "release_speed": 600.0, "ghost_min": 700.0, "ghost_max": 1300.0,
+		"ghost_range": 620.0, "assist_degrees": 30.0, "reap_force": 2600.0, "reap_speed": 1000.0,
+		"reap_mult": 1.0, "shove": 0.15,
+	},
+	# Hold: it points itself at him like a held gun (D56); a thrust along the blade is x2, a swipe
+	# across it x0.5.
+	&"rapier": {
+		"id": &"en_garde", "name": "En Garde", "archetype": &"sustain",
+		"script": "res://Scripts/Bodies/Abilities/en_garde_ability.gd",
+		"controls": "Hold · Right: En Garde — it points at him; lunge for x2, a swipe is half",
+		"cooldown": 5.0, "busy": 3.0, "worth": 1.5,
+		"guard_seconds": 4.0, "aim_frequency": 18.0, "aim_damping": 0.8, "aim_accel": 260.0,
+		"thrust_speed": 220.0, "thrust_mult": 2.0, "swipe_mult": 0.5,
+	},
+	# Hold near him: the hand jabs six times a second for two seconds, every jab a real contact.
+	&"katar": {
+		"id": &"flurry", "name": "Flurry", "archetype": &"sustain",
+		"script": "res://Scripts/Bodies/Abilities/flurry_ability.gd",
+		"controls": "Hold · Right: Flurry — hold it near him and it jabs six times a second",
+		"cooldown": 5.0, "busy": 2.0, "worth": 1.8,
+		"fuel_seconds": 2.0, "jab_rate": 6.0, "jab_px": 50.0, "jab_draw": 0.2, "jab_out": 0.3,
+		"kick": 300.0, "reach": 150.0, "aim_frequency": 16.0, "aim_accel": 320.0,
+	},
+	# Tap: click-click-click, three snapped-off blade tips flicked at him dead straight.
+	&"boxcutter": {
+		"id": &"snap", "name": "Snap", "archetype": &"projectile",
+		"script": "res://Scripts/Bodies/Abilities/snap_ability.gd",
+		"controls": "Hold · Right: Snap — three blade tips, snapped off and flicked straight at him",
+		"cooldown": 3.0, "busy": 0.4, "worth": 1.5,
+		"shots": 3.0, "shot_gap": 0.12, "tip_speed": 1400.0, "tip_force": 1300.0, "tip_mult": 1.0,
+		"shove": 0.4, "range": 700.0, "recoil": 60.0,
+	},
+	# Tap: point-first in a dead straight line, x2 on the point, and it sticks where it lands. The
+	# cooldown starts when you fetch it, so `busy` counts the walk.
+	&"letter_opener": {
+		"id": &"special_delivery", "name": "Special Delivery", "archetype": &"throw",
+		"script": "res://Scripts/Bodies/Abilities/delivery_ability.gd",
+		"controls": "Hold · Right: Special Delivery — thrown point-first; go and fetch it",
+		"cooldown": 1.0, "busy": 3.0, "worth": 1.3,
+		"throw_speed": 1500.0, "point_force": 1600.0, "point_mult": 2.0, "shove": 0.5,
+		"align_frequency": 30.0, "flight_seconds": 1.2, "quiver_seconds": 0.6, "give_up_seconds": 3.0,
+	},
 }
 
 static func has(item_id: StringName) -> bool:

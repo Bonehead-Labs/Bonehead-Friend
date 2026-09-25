@@ -14,3 +14,4 @@ scene = ExtResource("2_ltqu4")
 icon = ExtResource("1_xnbsv")
 requires = Array[StringName]([&"shears"])
 sort_order = 37
+controls = "Hold · Right: Reap — a low sweep that takes his feet out from under him"

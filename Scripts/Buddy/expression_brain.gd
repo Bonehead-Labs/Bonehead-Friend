@@ -254,6 +254,27 @@ const ROWS := {
 	# The desk jumped under him.
 	&"quaked": {"face": &"shocked", "tag": &"flinch", "fallback": &"hurt", "motion": &"hop2",
 		"seconds": 0.5, "priority": HEAVY, "gate": GATE_REACTIVE},
+	# The blades (D74). A cleaver lodged in him: cross, and trying to shake it out, for as long as
+	# it keeps ticking. HEAVY, so the ticks' own hit rows do not end it.
+	&"skewered": {"face": &"angry", "tag": &"", "motion": &"shake_off", "seconds": 0.7,
+		"priority": HEAVY, "gate": GATE_REACTIVE, "hold": true, "refresh": 0.7},
+	# The sickle took his feet: head over heels, and dizzy by the time he lands.
+	&"upended": {"face": &"shocked", "tag": &"hurt", "tail_face": &"dizzy", "motion": &"",
+		"seconds": 0.5, "tail": 0.7, "priority": HEAVY, "gate": GATE_REACTIVE, "sound": &"gasp"},
+	# Cleared off the desk like brush, and put out about it.
+	&"swept": {"face": &"shocked", "tag": &"flinch", "fallback": &"hurt", "tail_face": &"angry",
+		"motion": &"lean_away", "seconds": 0.45, "tail": 0.6, "priority": HEAVY, "gate": GATE_REACTIVE},
+	# The scythe's ghost went through him and took something with it for a moment: his eyes shut
+	# while it is out, and snap open when it comes back.
+	&"soul_reaped": {"face": &"asleep", "tag": &"", "tail_face": &"shocked", "motion": &"wobble",
+		"seconds": 0.4, "tail": 0.5, "priority": HEAVY, "gate": GATE_REACTIVE},
+	# A rapier held on guard at him: he squares up and glares down the point, for as long as it
+	# stays on guard. A hit interrupts it and gives way back to it.
+	&"squared_up": {"face": &"angry", "tag": &"", "motion": &"face_toward", "seconds": 1.0,
+		"priority": ATTENTION, "gate": GATE_REACTIVE, "hold": true, "refresh": 1.0},
+	# The letter opener's point: he jumps, the way anyone does at a pin.
+	&"pricked": {"face": &"shocked", "tag": &"hurt", "motion": &"hop", "seconds": 0.45,
+		"priority": HEAVY, "gate": GATE_REACTIVE, "sound": &"gasp"},
 	# --- H: ambient ---
 	&"blink": {"face": &"asleep", "tag": &"",
 		"motion": &"", "seconds": 0.12, "priority": AMBIENT, "gate": GATE_SUBTLE},
@@ -296,6 +317,14 @@ const ABILITY_ROWS := {
 	&"grinding": &"cooking",
 	&"fore": &"startled",
 	&"incoming": &"blast",
+	# The blades: six rows of their own. The greatsword's, the katar's and the boxcutter's hits are
+	# hits, and the hit rows already say them.
+	&"skewered": &"skewered",
+	&"upended": &"upended",
+	&"swept": &"swept",
+	&"soul_reaped": &"soul_reaped",
+	&"en_garde": &"squared_up",
+	&"delivered": &"pricked",
 }
 
 ## The face he pulls when hit, by what hit him — keyed on category, not id, so ten entries

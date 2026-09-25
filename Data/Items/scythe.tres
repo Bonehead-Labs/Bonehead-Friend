@@ -14,3 +14,4 @@ scene = ExtResource("2_eddrf")
 icon = ExtResource("1_sjf7h")
 requires = Array[StringName]([&"war_pick"])
 sort_order = 77
+controls = "Hold · Right: Soul Reap — hold and swing; the blade's ghost flies on through him"
