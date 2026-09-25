@@ -1006,6 +1006,16 @@ func _the_wardrobe_is_on_the_arcade_page() -> void:
 				priced += 1
 	_check("the free finish is worn by default", worn >= 1)
 	_check("and the rest are priced", priced >= 5)
+	# A paid set of headphones is shown in the colour the shader dyes it (its tint), not in a
+	# teal multiplied by it — the swatches once sold Pink Cans as navy and Gold Cans as green.
+	var arcade := _find(_main, "ArcadePanel")
+	var misshown: Array[String] = []
+	for cosmetic in ItemDB.all_cosmetics():
+		if cosmetic.slot == CosmeticData.SLOT_PHONES and not cosmetic.is_free():
+			var shown: Color = arcade.call("_swatch_colour", cosmetic)
+			if not shown.is_equal_approx(cosmetic.tint):
+				misshown.append(String(cosmetic.id))
+	_check("headphone swatches show the dyed colour", misshown.is_empty(), ", ".join(misshown))
 	# Buy the cheapest priced finish with exactly its price and it is worn at once: click its
 	# swatch to choose it, then the deck's key.
 	var cheapest: CosmeticData = null

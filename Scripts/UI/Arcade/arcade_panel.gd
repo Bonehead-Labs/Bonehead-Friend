@@ -538,13 +538,20 @@ func _build_wardrobe() -> void:
 	_add_room(ROOM_WARDROBE, "Wardrobe", &"hand", &"rose", _wardrobe)
 	_select_cosmetic(Economy.worn_cosmetic(CosmeticData.SLOT_BONE))
 
-## The colour a finish is shown in: the tint over ivory for a bone finish, over teal for
-## headphones — the two surfaces the shader actually multiplies.
+## The colour a finish is shown in, computed the way the shader draws it
+## (`EffectsPlayer.FLASH_SHADER`): a bone finish multiplies ivory, and a set of headphones is
+## *dyed* — its tint is the colour the teal becomes, and the free set is the teal as drawn.
+## This used to multiply the headphones too, after the shader had stopped, so the swatches
+## sold Pink Cans as navy and Gold Cans as green.
+const SWATCH_IVORY := Color(0.93, 0.90, 0.82)
+const SWATCH_TEAL := Color(0.18, 0.72, 0.70)
+
 func _swatch_colour(cosmetic: CosmeticData) -> Color:
-	var base := Color(0.93, 0.90, 0.82) if cosmetic.slot == CosmeticData.SLOT_BONE \
-		else Color(0.16, 0.62, 0.62)
-	return Color(clampf(base.r * cosmetic.tint.r, 0.0, 1.0),
-		clampf(base.g * cosmetic.tint.g, 0.0, 1.0), clampf(base.b * cosmetic.tint.b, 0.0, 1.0))
+	if cosmetic.slot != CosmeticData.SLOT_BONE:
+		return SWATCH_TEAL if cosmetic.is_free() else cosmetic.tint
+	return Color(clampf(SWATCH_IVORY.r * cosmetic.tint.r, 0.0, 1.0),
+		clampf(SWATCH_IVORY.g * cosmetic.tint.g, 0.0, 1.0),
+		clampf(SWATCH_IVORY.b * cosmetic.tint.b, 0.0, 1.0))
 
 ## A key on a rail: the colour in a framed swatch, its name, and what it would cost you. A
 ## Button is not a Container, so what it holds is a column anchored inside its rule and given
