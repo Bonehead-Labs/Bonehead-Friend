@@ -1,0 +1,10 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Bodies/Powers/smite_power.gd" id="1_sxen7"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/cursors/smite.png" id="2_c0lyc"]
+
+[node name="SmitePower" type="Node2D" unique_id=1151272687]
+script = ExtResource("1_sxen7")
+item_id = &"smite"
+cursor_texture = ExtResource("2_c0lyc")
+cursor_hotspot = Vector2(32, 32)

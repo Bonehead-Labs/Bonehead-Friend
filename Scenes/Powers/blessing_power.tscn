@@ -1,0 +1,12 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Bodies/Powers/blessing_power.gd" id="1_r5s5p"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/blessing_halo.png" id="2_m5k4a"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/cursors/blessing.png" id="3_tor02"]
+
+[node name="BlessingPower" type="Node2D" unique_id=69668111]
+script = ExtResource("1_r5s5p")
+halo_texture = ExtResource("2_m5k4a")
+item_id = &"blessing"
+cursor_texture = ExtResource("3_tor02")
+cursor_hotspot = Vector2(32, 32)

@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/telekinesis.png" id="1_avghq"]
+[ext_resource type="PackedScene" path="res://Scenes/Powers/telekinesis_power.tscn" id="2_afo5s"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_iwyi3"]
+
+[resource]
+script = ExtResource("3_iwyi3")
+id = &"telekinesis"
+display_name = "Telekinesis"
+description = "Pick him up with your mind. Put him down with some force."
+category = 2
+cost = 6000
+scene = ExtResource("2_afo5s")
+icon = ExtResource("1_avghq")
+requires = Array[StringName]([&"magnifying_glass"])
+sort_order = 27
+controls = "Click anywhere to seize him · Move to carry him, let go to fling · Right-click while holding to crush"

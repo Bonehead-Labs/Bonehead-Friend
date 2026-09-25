@@ -1,0 +1,12 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Bodies/Powers/meteor_shower_power.gd" id="1_vnalv"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/meteor_shower_rock.png" id="2_lai05"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/cursors/meteor_shower.png" id="3_ey1fd"]
+
+[node name="MeteorShowerPower" type="Node2D" unique_id=1474585876]
+script = ExtResource("1_vnalv")
+meteor_texture = ExtResource("2_lai05")
+item_id = &"meteor_shower"
+cursor_texture = ExtResource("3_ey1fd")
+cursor_hotspot = Vector2(32, 32)

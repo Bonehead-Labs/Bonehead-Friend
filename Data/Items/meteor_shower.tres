@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/meteor_shower.png" id="1_a44ny"]
+[ext_resource type="PackedScene" path="res://Scenes/Powers/meteor_shower_power.tscn" id="2_djl0l"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_rm160"]
+
+[resource]
+script = ExtResource("3_rm160")
+id = &"meteor_shower"
+display_name = "Meteor Shower"
+description = "Hold the button and the sky falls on the cursor. The sky is mostly rock."
+category = 2
+cost = 25000
+scene = ExtResource("2_djl0l")
+icon = ExtResource("1_a44ny")
+requires = Array[StringName]([&"gravity_vortex"])
+sort_order = 38
+controls = "Hold the button and meteors rain down where you point"

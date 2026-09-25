@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_rm2xb"]
+
+[resource]
+script = ExtResource("1_rm2xb")
+id = &"rainbow_pace"
+item_id = &"rainbow"
+display_name = "Quicker Arcs"
+effect_key = &"cooldown_mult"
+effect_per_level = 0.94
+cost_base = 27481
+cost_growth = 1.09
+currency = 1
+sort_order = 2

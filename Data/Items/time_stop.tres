@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/time_stop.png" id="1_765c8"]
+[ext_resource type="PackedScene" path="res://Scenes/Powers/time_stop_power.tscn" id="2_y7epo"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_iomor"]
+
+[resource]
+script = ExtResource("3_iomor")
+id = &"time_stop"
+display_name = "Time Stop"
+description = "Stop him mid-air, hit him ten times, and let time catch up all at once."
+category = 2
+cost = 12000
+scene = ExtResource("2_y7epo")
+icon = ExtResource("1_765c8")
+requires = Array[StringName]([&"telekinesis"])
+sort_order = 32
+controls = "Click him to stop time · Click him again to bank blows · Click away, or wait, and they all land at once"

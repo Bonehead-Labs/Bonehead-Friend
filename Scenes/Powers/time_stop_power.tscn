@@ -1,0 +1,10 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Bodies/Powers/time_stop_power.gd" id="1_3ieaf"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/cursors/time_stop.png" id="2_34d5w"]
+
+[node name="TimeStopPower" type="Node2D" unique_id=1348073050]
+script = ExtResource("1_3ieaf")
+item_id = &"time_stop"
+cursor_texture = ExtResource("2_34d5w")
+cursor_hotspot = Vector2(32, 32)

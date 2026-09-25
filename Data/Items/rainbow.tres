@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/rainbow.png" id="1_2biw0"]
+[ext_resource type="PackedScene" path="res://Scenes/Powers/rainbow_power.tscn" id="2_wud0j"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_4fass"]
+
+[resource]
+script = ExtResource("3_4fass")
+id = &"rainbow"
+display_name = "Rainbow"
+description = "Draw him a rainbow and he slides down it. Every single time."
+category = 3
+cost = 1000000
+currency = 1
+scene = ExtResource("2_wud0j")
+icon = ExtResource("1_2biw0")
+requires = Array[StringName]([&"levitation"])
+sort_order = 70
+equips_as_cursor_power = true
+controls = "Press on him, drag to where he should land and let go · He slides down the rainbow"

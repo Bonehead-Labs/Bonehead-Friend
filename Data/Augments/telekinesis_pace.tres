@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_1nf5i"]
+
+[resource]
+script = ExtResource("1_1nf5i")
+id = &"telekinesis_pace"
+item_id = &"telekinesis"
+display_name = "Quicker Squeeze"
+effect_key = &"cooldown_mult"
+effect_per_level = 0.94
+cost_base = 195
+cost_growth = 1.09
+sort_order = 2

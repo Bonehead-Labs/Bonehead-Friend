@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_dtpm3"]
+
+[resource]
+script = ExtResource("1_dtpm3")
+id = &"rainbow_machine"
+item_id = &"rainbow"
+display_name = "Rainbow Machine"
+description = "It makes rainbows and he slides down them. Nobody has asked how it works."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 500800
+currency = 1
+is_automation = true
+automation_rate = 667.17
+device_mount = &"arm"
+requires_mastery = 25
