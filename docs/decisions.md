@@ -1476,6 +1476,95 @@ against sprites replaced in D45. None of that is a one-line fix and all of it ch
 game plays, so it is left for the owner to direct rather than guessed at in a sweep. The
 layers themselves are fine: 97 bodies on layer 4 / mask 7, the buddy on 2 / 5.
 
+## D57 — Fidget toys: click zones, gestures, and one grammar for everything held (2026-09-25)
+
+**Decision.** Toys get parts you can work, not just a body you can throw. A `GestureZones`
+component on any body carries named zones authored in art pixels, turns the mouse into
+gestures, and hands them to the toy's script. Five toys ship on it: bubble wrap, a fidget
+spinner, a jack-in-the-box, a fortune ball and a stress ball.
+
+**The owner's ask**, verbatim: "a lot more creative fidget style click and drag objects we can
+do that utilise a combination of left and right click, utilise different click zones etc." A
+second button and a second place to click are worth nothing if every toy spends them
+differently, so the principle came first and is shared with the held guns being built beside
+this:
+
+- **Left = hold / carry.** Unchanged — the pin joint and the handle that chases the mouse.
+- **Right while holding = the item's action**: squeeze, fire, prime. Explosives already did
+  this; it is now the rule rather than their habit.
+- **Right on a zone of an item you are not holding = that zone's action**: crank, flick, pop,
+  read. A zone under the cursor still wins while the item is held, so a spinner can be spun
+  in the hand rather than binned from it.
+- **Left on a zone that claims it = that zone's action instead of a grab**, and a zone may
+  claim only the *tap*: press a bubble and drag, and you have picked up the sheet.
+- **Shift+Right = bin**, and nothing may claim it. D24's override, unchanged.
+- **Hovering a zone shows the pointing hand**, and the rest of the toy the grab, driven from
+  motion events and never from `get_mouse_position()`. A zone nobody can see is a zone nobody
+  uses.
+
+**The framework.** A component rather than a base class, because the fidget layer has to
+compose with both halves of the roster: `FriendlyBase` owns the Hearts banking, juice and
+ambient life, `WeaponBase` owns the damage multiplier, and a class both would need is a class
+neither can have. `BaseDraggable` gained one field and three lines: the zones see every event
+first and may claim a press. The gestures are tap, hold, drag, cross (entering another zone
+mid-stroke, sampled along the segment so a fast swipe cannot skip a bubble), crank (angle
+accumulated about a pivot), flick (release velocity), the held action, and carry (the body
+moved in the hand). Zones live in the body's own frame, so they turn with it and flip with
+`mirrored`; the suite clicks a crank on a box turned a quarter and mirrored. `FidgetToy` is the
+kind side's convenience on top — `pay_act` for the player's hand (an act: combo, contracts,
+Dollars), `pay_sustained` for his own play or a toy running on its own (a trickle, for exactly
+the reasons `IdleBrain` gives), and the two idle hooks.
+
+**He plays with them.** `IdleBrain.ROUTINE_FIDGET` is any toy with `idle_appeal()` and
+`idle_use(buddy)`: the brain walks him there and the toy does the using on the think tick, so
+the brain still pays for nothing it did not do. He hops on the bubble wrap, flicks the
+spinner when it runs down, winds the jack a turn at a time, shakes and reads the ball, and
+squeezes the stress ball. Every Play toy is still something he uses (`0f04aa5`). His face has
+eight new rows — `fiddling`, `entranced`, `amused`, `startled`, `laugh` and three answers —
+fed by one new bus signal, `fidget_event`, through `ExpressionBrain.FIDGET_ROWS`. A toy worked
+by hand answers for itself: without that, the Play tab's generic reaction would have had him
+celebrating a catch every time a bubble popped across the desk.
+
+| Toy | The verb | His | Pays |
+|---|---|---|---|
+| Bubble wrap, 120 | tap a bubble; right-stroke a run | lands on it | 2 a pop, one back every 4 s |
+| Stress ball, 450 | hold right to squeeze, let go | catches a throw | 5 by squeeze, 10 a catch |
+| Fidget spinner, 1,200 | right-swipe an arm | stares, flicks it | 0.8/s at full spin, watched |
+| Fortune ball, 2,400 | shake it, right-click to read | believes it | 14 for a yes |
+| Jack-in-the-box, 6,000 | right-circle the crank; right-tap the lid | startles, laughs | 30, if he laughs |
+
+Each has three tier-1 nodes and a capstone by the M3.5 rules, and every key is one its own
+script reads — value, Hearts, and "time between uses" meaning whatever that is for the toy (a
+bubble grows back sooner, a spinner runs down slower, the tune is shorter). Pacing with the
+five in: first automation 14:40 of play (was 12:55), worst dead stretch 1:07 (was 1:29), first
+Reincarnation 9:23 (was 9:16). All inside their targets.
+
+**What it cost to find, measured.** A thrown ball is reported touching him one physics step
+*after* the step that stopped it, so a one-frame speed memory read a 900 px/s throw as 36 and
+nothing was ever caught; the stress ball keeps a decaying peak instead. His first hop at the
+bubble wrap was aimed across it, and a skeleton moving sideways against a sheet of plastic
+shoves it: three hops, three misses, the sheet 490 px further on. He hops straight up now and
+the brain's lean carries him over — and the sheet cannot turn, because free to, it stood on its
+edge the first time and "on top of it" stopped meaning anything.
+
+**Budget.** Nothing per frame. `GestureZones` has no frame callback at all — the suite reads
+its method list — and the hold timer runs only while a button is down. A toy runs `_process`
+only while it is doing something (spinning, winding, showing an answer, being squeezed) and
+turns it off itself; the suite asserts all five are silent at rest.
+
+*Consequence:* a new fidget is a grid in `art/pixel/`, a row in `tools/seed_m39_fidgets.gd`
+(zones included) and a script under `Scripts/Bodies/Fidgets/`; `GestureZones`' class comment is
+the API. `ItemData.controls` is on the shop's detail pane (a `HowTo` strip) and taught once per
+toy as a toast the first time it lands, so a new toy's gestures are never a secret. The next
+five it is ready for:
+
+- **Slinky** — hold one end; right plants it on the desk while the cursor stretches the other,
+  and letting go walks it.
+- **Newton's cradle** — right-drag an end ball back and let go; the far one answers.
+- **Yo-yo** — carry it; right throws it down the string and back, a flick sends it round.
+- **Pull-back car** — right-drag it backwards to wind it, let go and it drives at him.
+- **Wind-up teeth** — crank the key; they chatter across the desk toward him.
+
 ## Recommendations not yet decided
 
 Carried in the spec, owner's call before they matter:
