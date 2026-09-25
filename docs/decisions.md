@@ -2694,6 +2694,166 @@ this pass ran headless on a machine the owner was using, so everything was judge
 previews at 1x, 2x and 8x on a dark and a light desk, never on a real one.
 
 
+## D71 — Every gun is a gun you hold (2026-09-26)
+
+**Decision.** The cursor stops being a gun. The pistol, the shotgun and the minigun leave the
+Cursor tab for Guns as `HeldGun`s **under the ids they already had**, `GunPower` and its three
+power scenes are deleted, and six new held guns join them — five that hurt him and one that is
+kind. The Cursor tab keeps the powers: the fist, the missile strike, the magnifying glass, the
+vortex and the lightning, with more to come (D72). Sixteen guns in all, every one of them a thing
+on the desk that you pick up, that aims itself, that kicks, and that he can see pointed at him.
+
+**Why.** The owner, after an evening with D56's guns: "just tested out the guns and they feel
+excellent, so much so that cursor powers should not have guns anymore, these can be godlike
+powers and more advanced things like missles, so as part of your work add more guns to what you
+did and remove the gun cursor powers". A cursor gun is a click with a crosshair; a held gun is a
+body with weight, lag, recoil and a barrel he can watch. Once both exist, the first is the second
+with everything good taken out.
+
+**The three, and why their ids stay.** An id is a save key — ownership, mastery, every level
+bought in a tree, a capstone's levels, a switched-off device and a contract's goal all join on it
+— so a new id would have been a migration that took each of those away from somebody and paid it
+back as something else. Kept, every one of them carries over untouched:
+
+| id | was | is | kept |
+|---|---|---|---|
+| `pistol` | a point blast at the crosshair, 600 | the starter gun, 600, first in the drawer: square slide, no cylinder, quick and light | Hollow Point, Bounty, Quick Draw; Turret Mount; Range Day |
+| `shotgun` | five pellets at the crosshair, 2,200 | a sawn-off double barrel, 2,200, after the revolver: two barrels 0.18 s apart, then it breaks open for 1.3 s and throws both cases | Tighter Choke, Buckshot Bounty, and "Pump Action", renamed "Snap Breech" — a double barrel has no pump; Trap Bench |
+| `minigun` | a held-down stream at the crosshair, 9,000 | a minigun you hold, 9,000, after the SMG: 0.7 s of spin-up, then 20 rounds a second that climb, a shudder in the hand, and a spin-down it still fires through | Heavier Rounds, Volume Discount, Spun Up; Sentry Gun |
+
+- **The nodes mean the same thing on a held gun.** Damage multiplies the shot, payout is payout,
+  and the rate node shortens the gap between shots — so no key was retargeted. "Pump Action" was
+  renamed in place (`seed_m35_trees -- --only shotgun_third`, id and cost untouched). The minigun's
+  0.05 s gap is already the drawer's floor (`HeldGun.MIN_INTERVAL`), so "Spun Up" is read on the
+  spin-up instead (0.70 → 0.66 s a level), which is what its name always said. Each also gains
+  the two nodes every harm gun has, Weight and Steady, under new ids.
+- **The capstones run as they ran.** Automation is a rate paid by `Progression`, gated on mastery
+  of the item id, and both are unchanged. `seed_m35_engine` now mounts the three on the tripod
+  every gun's device stands on, rather than the claw arm a cursor power's icon hung from; nothing
+  else in any capstone moved.
+- **Saves need nothing.** The equipped power was never saved — `ItemSpawner` holds it for the
+  session — so a player who had the pistol armed when this lands boots with nothing armed and the
+  pistol owned, on the desk the first time they spawn it. No `SAVE_VERSION` bump, because no key
+  changed meaning. `tests/fixtures/save_v4_cursor_guns.json` is a save from the day before — all
+  three owned, levels in their trees, two devices running and one switched off, mastery past the
+  automation rank, Range Day half done — and `gun_check` loads it into the real autoloads and
+  asserts every one of those survived and is read by the held guns.
+- **Range Day stays.** `daily_use_pistol` counts `use:pistol`, which a held pistol emits for every
+  shot, as every held gun does; the fixture's job goes from 120 to 121 on the first shot.
+- **The Cursor ladder ran through the guns.** The glass required the shotgun and the vortex the
+  minigun; it climbs power to power now, the missile strike to the glass to the vortex, as one-line
+  `requires` edits and the roster seeder's rows.
+- **Nothing may write them back.** `seed_data`, `seed_m3_content` and `seed_m35_roster` built the
+  cursor versions; they no longer can. The shotgun's and the minigun's reticles went with them, and
+  `make_crosshairs` draws powers only. The suites that taught D47 with the pistol teach it with the
+  missile strike (the armed chip and its hint in `ui_check`, the harm equip in `brain_check`), the
+  cooking tick with the magnifying glass, and `loop_check`'s unowned power is the lightning.
+  `item_check`'s Shift-suspends-the-power check moved to the strike driver.
+
+**What a gun can do now.** Four things `HeldGun` did not have, each off unless a gun's numbers
+turn it on, and each a verb somebody holding a gun understands without being told:
+
+- a **magazine** that runs dry and reloads by the clock — so a gun put down mid-reload is loaded
+  when it is picked up without doing any work on the desk;
+- a **spin-up**, and a spin-down it keeps firing through above a third of full speed — which is
+  how a minigun is fought: in bursts, pressed again before it stops;
+- **heat** that locks the trigger for a moment when it overflows, cooled by the clock;
+- a **lob**: a gun whose shot falls lays its barrel on the low arc through him, not the straight
+  line, so "the gun aims itself" (D56) holds for a grenade too. Across the desk the launcher tips
+  20° above the line; out of reach it lobs at 45° and the bounce does the rest.
+
+What a shot *is* beyond a ray, a squirt or a bubble is a subclass and an inner projectile on one
+base, `GunProjectile`, which makes the slingshot pellet's rule (D66) the rule for all of them: it
+collides with the world only and sweeps the segment it flew for him, so it meets him once, however
+fast. It can stick — frozen, colliding with nothing, carried on his transform — and a binned gun
+takes what it fired with it.
+
+**The six.**
+
+| Gun | Drawer, price | Feel | The verb |
+|---|---|---|---|
+| Flare gun | Guns, 3,500, after the sawn-off | light, one slow orange shot, 1.2 s | **it burns**: a flare that meets him sticks and bills a small hit every half second for four seconds; one that misses lies on the desk and burns out |
+| Tommy gun | Guns, 18,000, after the pump | heavy, 0.07 s, a climb to 46° | a fifty-round drum, then a 2.2 s drum change |
+| Grenade launcher | Guns, 40,000, after the rifle | a thumper, one at a time | **it lobs**: the grenade arcs, bounces, and goes off on him or on its 1.6 s fuse — the explosives' own blast, so it throws everything near it |
+| Harpoon gun | Guns, 50,000, after the launcher | long and slow to swing | **it holds on**: the harpoon sticks in him on a line; right held reels him in until it tears out, which is the second hit; walk away with the gun and he comes too |
+| Ray gun | Guns, 90,000, after the blunderbuss, the last rung | tin-toy science fiction | a beam, as green ticks every 0.06 s, until the gauge overflows after about two seconds and locks it for 1.6 |
+| Dart blaster | Care, 1,100 Hearts, after the water pistol | a toy | **it sticks**: every foam dart that meets him stays on him, a kind act each, until it drops off by itself; six to a load |
+
+Three of them — the flare, the harpoon, the darts — are verbs the roster did not have: nothing
+kept hurting him after the shot, nothing held on to him, and nothing kind stayed on him. The
+harpoon's line is a rope, not a joint: shorter than the gap it pulls him back toward the muzzle,
+each step's pull **capped under the damage floor** (240 of 350), because the pull is not a
+contact and D64's ledger would otherwise ask what touched him for the momentum. While it pulls
+or reels, his impacts with the world are the harpoon gun's (`Buddy.claim_impacts`, D65's rule:
+only *who* is billed moves, never whether). Its contact multiplier equals its shot multiplier on
+purpose — the reel brings him to the gun, and whatever part of it he meets is the harpoon; the
+slingshot's rule (D66).
+
+**Measured**, in `gun_check` on the stepped rig, as D56 measured the first seven:
+
+| | settle | kick | back | |
+|---|---|---|---|---|
+| Pistol | 0.22 s | 13° | 0.20 s | semi, 0.28 s |
+| Sawn-off | 0.28 s | 21° | 0.32 s | two barrels, a 1.3 s break |
+| Minigun | 0.38 s | 2° a round | 0.07 s | first round at 0.70 s, then 20/s; 26° of climb in under a second |
+| Flare gun | 0.22 s | 26° | 0.25 s | 8 ticks of 900 over 4 s |
+| Tommy gun | 0.27 s | 2° a round | 0.10 s | 50 in the drum |
+| Grenade launcher | 0.30 s | 11° | 0.33 s | a blast of 4,879 at his feet, 49 damage |
+| Harpoon gun | 0.43 s | 11° | 0.30 s | reeled 352 → 151 px, torn out, home |
+| Ray gun | 0.25 s | 2° a tick | 0.10 s | 31 ticks, then locked |
+| Dart blaster | 0.22 s | | | 3 of 3 darts stuck, 3 kind acts |
+
+Steady is read on all of them (the minigun 1.8° → 0.8° over ten levels, the harpoon 11.3° →
+4.1°), and `item_check` measures every key the new and kept guns sell: the damage, payout and
+weight nodes exactly, the recoil nodes as angular momentum, the rate nodes as a gap where a frame
+can see one.
+
+**Pacing, and the lever that was not the price.** With the guns in as first priced, the first
+Reincarnation came at **10:21**, over the ten-hour ceiling. The obvious lever was the guns' prices,
+as the slingshot's was in D66, and it did nothing: every price tried for the new guns, from a
+fifth to seven times, singly and together, landed at 10:09 or 10:21 — the simulator's
+play comes in twelve-minute windows at the top of each hour, and the crossing either made hour
+ten's or did not. Taking the six guns out altogether gave 9:50. Leaving them in with their trees
+near free gave 9:50 too. The cost was never the guns; it was **the trees** — the simulator's
+buyer, like a player, levels every cheap node it can see, and the Guns drawer is sixteen trees,
+eleven of them five deep, priced by the same rule as three-node trees everywhere else. So every
+held gun's tree now costs three fifths of the rule, node for node (`GUN_TREE_SHARE`), and a
+five-node gun costs to finish what a three-node item does; one rule for the drawer, kind guns
+included. **4/4**: first Reincarnation **9:50:53** (9:47:54 before any of this), first automation
+16:52 of play, worst dead stretch 1:43, worst ramp 1.0x. `pacing_sim` grew `-- --price id=cost`
+to try prices in memory, trees and capstones re-derived with them, which is how the search ran
+three at a time.
+
+**What else cost time to find.**
+
+- **A heat gauge must gain faster than it cools at full rate.** The ray gun's first numbers added
+  0.028 a tick at 16.7 ticks a second — 0.47 a second against 0.55 of cooling — so it never
+  overheated at all, and the suite's first run fired 67 ticks and reported the lock as missing.
+- **A hit is dealt on his next physics frame**, not the one it was billed in (`Buddy._pending_hits`).
+  The harpoon's and the flare's first checks read the hit list the step they stuck and found it
+  empty.
+- **The minigun's shudder is noise on a one-round kick.** Measured through it, ten levels of
+  Steady appeared to *double* the kick (1.2° → 2.4°); the suites switch the shudder off for the
+  one round they measure, and leave it on everywhere else, because in the hand it is the point.
+- **The first capture photographed an empty desk.** `BaseDraggable._start_drag` anchors the drag
+  joint where the OS cursor is; moving the handle afterwards leaves the gun hanging that far off,
+  so `gun_shots` makes the joint again with the handle at the hand, as `gun_check` always had.
+- **The loaded harpoon is picture.** `loop_check`'s collider audit measures every sprite a body
+  draws, so the speargun covered 63% of its art until its shapes took in the harpoon lying on the
+  rail and its head (90%).
+
+*Consequence:* a new gun is a row in `tools/seed_m39_guns.gd` — `script`, `textures` and
+`overlays` for anything beyond a `HeldGun` — and a grid in `art/pixel/`, an icon grid in
+`art/pixel/icons/` if it is longer than 30 px; the seeder takes `--force --only=id,id` and
+`--trees`. A verb that is a body is a `GunProjectile` subclass inside its gun, with a row in
+`item_check`'s `DRIVERS` by exact class. `gun_check` is 275 assertions; `tools/gun_shots.tscn`
+(windowed) stages the drawer and every verb for a person to look at. *Not done:* the ray gun's beam
+is a stream of short tracers, not one line; its heat tint is invisible on a red gun; the darts all
+land where the lob meets his outline, so four of them stack; a flare or a dart stuck in him is
+half hidden by the payout numbers for a second; the shotgun's and the tommy gun's reloads are
+checked by `gun_check` but read by `item_check` only through the gap it can see; nothing here has
+been held by a person yet.
+
 ## Recommendations not yet decided
 
 Carried in the spec, owner's call before they matter:
