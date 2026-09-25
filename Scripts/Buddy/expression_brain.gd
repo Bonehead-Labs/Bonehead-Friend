@@ -354,8 +354,11 @@ func _on_automation_toggled(_node_id: StringName, enabled: bool) -> void:
 # --- G: the idle brain at work -------------------------------------------------------
 
 var _idle_brain: IdleBrain
-## The routine hold in force, so a phase change can release exactly it.
+## The routine hold in force, so a phase change can release exactly it — and so any beat that
+## interrupts it hands back to it when it ends (see `_end_beat`).
 var _routine_hold: StringName = &""
+## The toy that routine is with. Its own payments are the routine, not a separate kindness.
+var _routine_toy: StringName = &""
 ## A hold to start once the current one-shot ends: `arrived` then the routine, `welcome_back`
 ## then `watched`. Equal priorities would otherwise let the hold cut the greeting short.
 var _pending_hold: StringName = &""
@@ -381,11 +384,12 @@ func _connect_idle_brain() -> void:
 	_idle_brain.phase_changed.connect(_on_phase_changed)
 	_idle_brain.routine_ended.connect(_on_routine_ended)
 
-func _on_phase_changed(phase: StringName, routine: int, _target_id: StringName) -> void:
+func _on_phase_changed(phase: StringName, routine: int, target_id: StringName) -> void:
 	if phase == IdleBrain.PHASE_PLAYING:
 		var row: StringName = ROUTINE_HOLDS.get(routine, &"")
 		if row == &"":
 			return
+		_routine_toy = target_id
 		# The player's cursor over him outranks his toy: he is being looked at.
 		if _attention != ATTEND_CURSOR:
 			attend(ATTEND_TOY, _attention_point)
@@ -397,8 +401,11 @@ func _on_phase_changed(phase: StringName, routine: int, _target_id: StringName) 
 		_routine_hold = row
 		return
 	if _routine_hold != &"":
-		release(_routine_hold)
+		# Cleared before the release, so ending it does not hand straight back to it.
+		var ending := _routine_hold
 		_routine_hold = &""
+		_routine_toy = &""
+		release(ending)
 	_pending_hold = &""
 	if _attention == ATTEND_TOY:
 		attend(ATTEND_NONE)
@@ -563,8 +570,30 @@ func _on_kindness_given(source_id: StringName, _value: float, world_pos: Vector2
 	else:
 		react(&"pet", 0.5, world_pos)
 
-## The sponge, the boombox, the hot tub and all twenty leisure items, for the first time.
-func _on_kindness_sustained(_source_id: StringName, _value: float, world_pos: Vector2) -> void:
+## How far off his rect a sustained payment may land and still be kindness *to him*.
+const CARE_REACH := 24.0
+
+## The sponge, the hot tub, the beanbag he is sat in: kindness that lands on him.
+##
+## **Only on him** (D60). A generator's placed rate is banked where the generator stands and
+## flushed every half second for as long as it is on the desk. That is income, not somebody
+## being kind to him — and holding `cared_for` on it meant one boombox anywhere on the desk
+## kept him in it for the rest of the session: no mood face, no blink, no fidget, no yawn, and
+## no routine of his own, because every one of those sits at or below this row's priority.
+func _on_kindness_sustained(source_id: StringName, _value: float, world_pos: Vector2) -> void:
+	if buddy and not buddy.get_interaction_rect().grow(CARE_REACH).has_point(world_pos):
+		return
+	# The toy he is playing with paying him *is* the routine, and the routine has a look of its
+	# own: the soak, the dance, the scrub. `cared_for` flushed over it twice a second and he
+	# wore the generic face for every routine in the game.
+	if _routine_hold != &"" and source_id == _routine_toy:
+		return
+	# A trickle never cuts a one-shot of its own rank short — the surprise of a toy vanishing
+	# under him was replaced by the last flush off that same toy on its way out. The next flush
+	# is half a second away and picks it up if the kindness is still coming.
+	if _live() and not bool(_beat.get("row", {}).get("hold", false)) \
+			and beat_priority() >= int(ROWS[&"cared_for"].get("priority", ATTENTION)):
+		return
 	hold(&"cared_for", world_pos)
 
 func _on_grime_changed(value: float) -> void:
@@ -918,6 +947,7 @@ func _refresh(row: Dictionary) -> void:
 func _end_beat() -> void:
 	if _beat.is_empty():
 		return
+	var ended: StringName = _beat.get("id", &"")
 	_beat = {}
 	if art:
 		art.clear_beat()
@@ -930,7 +960,12 @@ func _end_beat() -> void:
 	if _pending_hold != &"":
 		var row := _pending_hold
 		_pending_hold = &""
-		hold(row)
+		if hold(row):
+			return
+	# The routine he is in is his background. Whatever interrupted it — a landing on the
+	# trampoline, a hit off the mat, a pet — he goes back to it once that is over; before this,
+	# the first landing ended the bounce look for the rest of the dwell (D60).
+	if _routine_hold != &"" and ended != _routine_hold and hold(_routine_hold):
 		return
 	_arm()
 
