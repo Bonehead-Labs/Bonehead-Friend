@@ -44,6 +44,8 @@ func _refresh_sleep() -> void:
 	var b := ItemDB.balance
 	var hours := b.offline_cap_seconds(Economy.offline_cap_level) / 3600.0
 	var cost := Economy.offline_cap_cost()
+	# The figure in the display, in the face whose digits can be trusted (D20).
+	_sleep_cabinet.say("Sleeps up to %d h" % int(round(hours)), UIStyle.TEXT)
 	if cost < 0.0:
 		_sleep_label.text = ("He keeps earning for up to %d hours while the game is closed, at half "
 			+ "rate. That is as long as he can sleep.") % int(round(hours))
@@ -74,71 +76,108 @@ func _disarm() -> void:
 	_armed = false
 	_refresh()
 
+## The back room's cabinets (D58): Reincarnation, built like every machine in the Arcade —
+## marquee, stage, paytable, deck — and a second, smaller one below it for the one thing sold
+## between lives. The trade reads the way a machine does: what it pays in the display, what
+## you lose on the stage, the figures in the paytable, one key on the deck.
+var _cabinet: Cabinet
+var _sleep_cabinet: Cabinet
+var _lives: Label
+
+## The back room's second cabinet only has a sentence to show, so its stage is short.
+const SLEEP_STAGE := 44
+
 func _build_page() -> void:
 	add_theme_constant_override("separation", 10)
-	add_child(UIStyle.eyebrow("Reincarnation"))
+
+	_cabinet = Cabinet.new("Reincarnation", &"star", &"night")
+	_cabinet.name = "RebirthCabinet"
+	add_child(_cabinet)
+	var stage := _cabinet.stage_body
+	stage.alignment = BoxContainer.ALIGNMENT_BEGIN
+	stage.add_theme_constant_override("separation", 10)
 
 	# The gain, as big as it deserves and with its mark beside it. Marrow is the only
 	# number in the game that survives the reset, so it is the only number that gets the
 	# hero size.
 	var gain := HBoxContainer.new()
 	gain.add_theme_constant_override("separation", 8)
-	add_child(gain)
+	stage.add_child(gain)
 	_gain_row = gain
-	_ghost = UIStyle.icon(&"star", 16, UIStyle.DOLLARS)
+	_ghost = UIStyle.icon(&"star", Cabinet.MARK_BOX, UIStyle.DOLLARS)
+	_ghost.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	gain.add_child(_ghost)
 	_headline = UIStyle.label("", UIStyle.HERO, UIStyle.DOLLARS)
 	_headline.theme_type_variation = &"Numeral"
 	gain.add_child(_headline)
+	var unit := UIStyle.label("Marrow", UIStyle.LABEL, UIStyle.DOLLARS)
+	unit.theme_type_variation = &"Numeral"
+	unit.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	gain.add_child(unit)
 
 	# The figures and the prose are separated on purpose, and not only for the layout: the
 	# body face draws 5 as a rounded form that reads as an 8, so no number in the game is
 	# ever set in it. Here that split does double duty — the trade is easier to weigh when
-	# what you keep and what you lose is a sentence, and what it is worth is a figure.
-	_figures = HBoxContainer.new()
-	_figures.add_theme_constant_override("separation", 8)
-	add_child(_figures)
+	# what you keep and what you lose is a sentence, and what it is worth is a figure, which
+	# is why the figures are the cabinet's paytable.
+	_figures = _cabinet.odds
 
 	_detail = UIStyle.body("")
 	_detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_detail.custom_minimum_size = Vector2(320, 0)
-	add_child(_detail)
+	stage.add_child(_detail)
 
-	_button = UIStyle.button("", UIStyle.LABEL)
-	_button.custom_minimum_size = Vector2(220, 40)
-	_button.pressed.connect(_on_pressed)
-	add_child(_button)
-	UIMotion.hook(_button)
-
-	add_child(UIStyle.eyebrow("This life"))
-	var who := PanelContainer.new()
-	who.theme_type_variation = &"Tile"
-	add_child(who)
+	# This life, under a rule: who he is now is the thing the reset changes.
+	stage.add_child(UIStyle.rule(false))
+	var who := HBoxContainer.new()
+	who.add_theme_constant_override("separation", 10)
+	stage.add_child(who)
+	var eyebrow := UIStyle.eyebrow("This life")
+	eyebrow.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	who.add_child(eyebrow)
 	_personality_label = UIStyle.body("", UIStyle.BODY, UIStyle.TEXT)
 	_personality_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_personality_label.custom_minimum_size = Vector2(300, 0)
+	_personality_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	who.add_child(_personality_label)
+
+	# Where the machines keep their stake, the back room keeps count of what has been staked
+	# already: every life handed back so far.
+	var lives := HBoxContainer.new()
+	lives.add_theme_constant_override("separation", 6)
+	lives.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_cabinet.deck.add_child(lives)
+	var caption := UIStyle.eyebrow("Lives handed back")
+	caption.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	lives.add_child(caption)
+	_lives = UIStyle.label("", UIStyle.LABEL, UIStyle.TEXT)
+	_lives.theme_type_variation = &"Numeral"
+	_lives.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	lives.add_child(_lives)
+	_cabinet.push_right()
+	_button = Cabinet.key("", 260)
+	_button.name = "Reincarnate"
+	_button.pressed.connect(_on_pressed)
+	_cabinet.deck.add_child(_button)
+	UIMotion.hook(_button, _cabinet.stage)
 
 	# Between lives: how long he keeps earning while the game is closed. Meta, like Marrow —
 	# it survives the reset — which is why it is sold here and not in the run's upgrade tree.
 	# The docs promised it (2 h, then 8, then 24, for Hearts) and nothing sold it.
-	add_child(UIStyle.eyebrow("Between lives"))
-	var sleep := PanelContainer.new()
-	sleep.theme_type_variation = &"Tile"
-	add_child(sleep)
-	var sleep_column := VBoxContainer.new()
-	sleep_column.add_theme_constant_override("separation", 6)
-	sleep.add_child(sleep_column)
+	_sleep_cabinet = Cabinet.new("Between lives", &"heart", &"night", SLEEP_STAGE)
+	_sleep_cabinet.name = "SleepCabinet"
+	add_child(_sleep_cabinet)
 	_sleep_label = UIStyle.body("", UIStyle.BODY, UIStyle.TEXT)
 	_sleep_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_sleep_label.custom_minimum_size = Vector2(300, 0)
-	sleep_column.add_child(_sleep_label)
-	_sleep_button = UIStyle.button("", UIStyle.LABEL)
-	_sleep_button.theme_type_variation = &"BuyButton"
-	_sleep_button.custom_minimum_size = Vector2(220, 36)
+	_sleep_cabinet.stage_body.add_child(_sleep_label)
+	_sleep_cabinet.add_odds_prose("Kept through every reset, like Marrow. Paid in Hearts.")
+	_sleep_cabinet.push_right()
+	_sleep_button = Cabinet.key("", 260)
+	_sleep_button.name = "SleepLonger"
 	_sleep_button.pressed.connect(_on_sleep_pressed)
-	sleep_column.add_child(_sleep_button)
-	UIMotion.hook(_sleep_button, sleep)
+	_sleep_cabinet.deck.add_child(_sleep_button)
+	UIMotion.hook(_sleep_button, _sleep_cabinet.stage)
 
 ## Closing the card is a decision not to reincarnate. The confirm does not survive it.
 ## Below this, a reset is a mistake dressed as a choice: there is no threshold in the maths
@@ -174,6 +213,7 @@ func _refresh() -> void:
 	# non-statement, and the EVER EARNED figure below already says why the number is zero.
 	_gain_row.visible = worth_taking
 	_headline.text = "+%.2f" % pending
+	_lives.text = str(Economy.prestige_count)
 	_detail.text = _explain(pending, held)
 	_write_figures(pending, held)
 
@@ -182,8 +222,9 @@ func _refresh() -> void:
 		_button.text = "Not yet"
 		UIStyle.set_icon(_button, UIStyle.glyph(&"lock"))
 		_button.disabled = true
-		_button.theme_type_variation = &"Button"
+		_button.theme_type_variation = &"DeckKey"
 		UIStyle.tint_button(_button, UIStyle.TEXT_DIM)
+		_cabinet.say("Nothing to take yet")
 	elif _armed:
 		# The armed state says what will happen, not "are you sure" — the player already
 		# knows they are sure, what they need is the consequence spelled out. It is also
@@ -193,12 +234,14 @@ func _refresh() -> void:
 		_button.disabled = false
 		_button.theme_type_variation = &"DangerButton"
 		UIStyle.tint_button(_button, UIStyle.PANEL)
+		_cabinet.say("This ends the run", UIStyle.LOCKED)
 	else:
 		_button.text = "Reincarnate"
 		UIStyle.set_icon(_button, UIStyle.glyph(&"dollar"))
 		_button.disabled = false
-		_button.theme_type_variation = &"Button"
+		_button.theme_type_variation = &"DeckKey"
 		UIStyle.tint_button(_button, UIStyle.DOLLARS)
+		_cabinet.say("+%.2f Marrow, and a new life" % pending, UIStyle.DOLLARS)
 
 	var personality := ItemDB.get_personality(StringName(Economy.personality))
 	if personality:
@@ -207,38 +250,22 @@ func _refresh() -> void:
 		_personality_label.text = Economy.personality
 	_refresh_sleep()
 
-## The figures, in the face whose digits can be trusted. Rebuilt rather than refreshed
-## because the row is two chips before a reincarnation is available and three after.
+## The figures, in the face whose digits can be trusted, as the cabinet's paytable. Rebuilt
+## rather than refreshed because the strip is one cell before a reincarnation is available
+## and two after.
 func _write_figures(pending: float, held: float) -> void:
-	for child in _figures.get_children():
-		child.queue_free()
+	_cabinet.clear_odds()
 	if pending < MINIMUM_WORTH_TAKING:
 		# **This run**, not lifetime: Marrow is scaled by what this life earned, so lifetime
 		# is the wrong number to show someone asking why the button is dark (D33). Showing
 		# lifetime here was true of the Ectoplasm curve and is a lie about this one.
-		_figures.add_child(_figure(&"bone", "THIS RUN", UIStyle.format_amount(Economy.run_earnings),
-			UIStyle.BONES))
+		_cabinet.add_odds_figure(&"bone", "This run", UIStyle.format_amount(Economy.run_earnings),
+			UIStyle.BONES)
 		return
-	_figures.add_child(_figure(&"star", "MARROW", "%.2f \u2192 %.2f" % [held, held + pending],
-		UIStyle.DOLLARS))
-	_figures.add_child(_figure(&"bone", "ALL INCOME", "x%.2f" % (1.0 + held + pending),
-		UIStyle.BONES))
-
-func _figure(mark: StringName, caption: String, value: String, colour: Color) -> Control:
-	var chip := PanelContainer.new()
-	chip.theme_type_variation = &"Sunk"
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 6)
-	chip.add_child(row)
-	row.add_child(UIStyle.icon(mark, 16, colour))
-	var text := VBoxContainer.new()
-	text.add_theme_constant_override("separation", 0)
-	row.add_child(text)
-	text.add_child(UIStyle.eyebrow(caption))
-	var value_label := UIStyle.label(value, UIStyle.LABEL, colour)
-	value_label.theme_type_variation = &"Numeral"
-	text.add_child(value_label)
-	return chip
+	_cabinet.add_odds_figure(&"star", "Marrow", "%.2f \u2192 %.2f" % [held, held + pending],
+		UIStyle.DOLLARS)
+	_cabinet.add_odds_figure(&"bone", "All income", "x%.2f" % (1.0 + held + pending),
+		UIStyle.BONES)
 
 ## Deliberately free of digits: every figure in this screen lives in `_write_figures`,
 ## where it is set in Silkscreen. What is left here is the part that is genuinely prose —

@@ -47,15 +47,19 @@ extends ArcadeGame
 
 const REEL_COUNT := 3
 
-## The reel window, in UI pixels. 32 is not a taste decision: it is the one box in which a
-## 16px glyph doubles to exactly 32 and a 32px item icon is already native, so a bone and a
-## baseball bat fill identical windows with no fraction anywhere (D27, `UIStyle.boxed`). At
-## 44 — the shop's well — the glyph would sit at 16px inside it and the bat at 32, and three
-## reels would show symbols at two different sizes.
-## Three times the icon canvas: a 16px glyph steps up by a whole number to 96, so the reel is
-## drawn one art pixel to six screen pixels, crisp — and a slot machine you can read from the
-## other side of the room.
-const REEL_BOX := 96
+## The reel window, in UI pixels. Not a taste decision: it has to be a whole multiple of both
+## the 16px glyph and the 32px item icon, so a bone and a baseball bat fill identical windows
+## with no fraction anywhere (D27, `UIStyle.boxed`) — at 44, the shop's well, the glyph would
+## sit at 16px inside it and the bat at 32, and three reels would show symbols at two sizes.
+##
+## The reels are the largest box on this ladder that three windows fit across the stage in, so
+## a full card gets 192 — one art pixel to twelve screen pixels, a slot machine you can read
+## from the other side of the room — and a small play area steps down rather than clipping
+## (D58). The room used to be three 96px windows in a big empty well.
+const REEL_BOXES: Array[int] = [192, 160, 128, 96]
+const REEL_BOX := 192
+## Padding inside each reel window, around the symbol.
+const REEL_PAD := 6
 
 const SYM_DOLLAR := &"dollar"
 const SYM_BONE := &"bone"
@@ -127,8 +131,12 @@ const MISS_BEAT := 0.45
 
 # --- state -----------------------------------------------------------------
 
-var _windows: Array[PanelContainer] = []
+var _windows: Array[Control] = []
 var _faces: Array[TextureRect] = []
+## What each reel is showing, so a re-boxed reel shows the same thing at its new size.
+var _shown: Array[StringName] = [&"", &"", &""]
+## The box the reels are drawn at now, from `REEL_BOXES`.
+var _reel_box := REEL_BOX
 ## Where each reel came to rest, as an index into STRIP. Decided in `_play()`, before a single
 ## frame of animation — the reels display the outcome, they do not determine it.
 var _stops: Array[int] = [0, 0, 0]
@@ -140,37 +148,46 @@ func _init() -> void:
 	display_name = "Three Ghosts"
 	blurb = "Two alike hands half your stake back. Three alike pays, and three ghosts pays the room."
 	mark = SYM_ECTO
+	accent = &"mint"
 	play_caption = "Pull"
 	# Twelve Dollars is twelve hits (D31 pays one per act), so a pull costs about as much as a
 	# few seconds of hitting him — cheap enough to be pulled idly, which is what a machine
 	# with a 2.5 second animation has to be.
 	cost = 12.0
-	# The well never changes height, spinning or idle, because nothing in it changes size:
-	# 32 art + 8 + 8 tile margins + 4 separation + the top-prize line, with a little slack.
-	body_height = 270
+	# The stage never changes height, spinning or idle, because nothing on it changes size.
+	body_height = Cabinet.STAGE
 
 # --- the cabinet -----------------------------------------------------------
 
 func _build_body(host: VBoxContainer) -> void:
-	var glass := HBoxContainer.new()
-	# Named, because a control built in code comes out as `@HBoxContainer@31` — unreadable in
-	# the remote scene tree and unfindable from a test.
-	glass.name = "Reels"
-	glass.alignment = BoxContainer.ALIGNMENT_CENTER
-	glass.add_theme_constant_override("separation", 14)
-	# Nothing in this well is clickable — the Play key belongs to the page — so the body
+	# One pane of glass, three windows, two rules between them: the reel bank is one object.
+	# It used to be three tiles standing apart in a sunk well — a frame, in a frame, in a frame.
+	var glass := PanelContainer.new()
+	glass.name = "Glass"
+	glass.theme_type_variation = &"Glass"
+	glass.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	# Nothing on this stage is clickable — the Pull key belongs to the page — so the body
 	# claims no mouse events at all rather than swallowing one that was meant for the card.
 	glass.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	host.add_child(glass)
+	var reels := HBoxContainer.new()
+	# Named, because a control built in code comes out as `@HBoxContainer@31` — unreadable in
+	# the remote scene tree and unfindable from a test.
+	reels.name = "Reels"
+	reels.add_theme_constant_override("separation", 0)
+	reels.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	glass.add_child(reels)
 
 	for index in REEL_COUNT:
-		var window := PanelContainer.new()
+		if index > 0:
+			reels.add_child(UIStyle.rule(true))
+		# A window is padding and nothing else: the glass is the frame, the rules divide it.
+		var window := MarginContainer.new()
 		window.name = "Reel%d" % index
-		# A raised face on the sunk well, so each reel reads as its own lit window. The look
-		# is the theme's answer to the variation, not this file's business.
-		window.theme_type_variation = &"Tile"
+		for side in ["margin_left", "margin_right", "margin_top", "margin_bottom"]:
+			window.add_theme_constant_override(side, REEL_PAD)
 		window.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		glass.add_child(window)
+		reels.add_child(window)
 
 		var face := UIStyle.sprite(_texture_for(STRIP[index]), REEL_BOX)
 		face.name = "Face%d" % index
@@ -181,22 +198,22 @@ func _build_body(host: VBoxContainer) -> void:
 		# result the player has not paid for.
 		_show(index, STRIP[index])
 
-	# What the chase is for, printed on the glass the way a real machine prints it: the top
-	# combination and its multiplier. A multiplier rather than a figure in Dollars, so the
-	# line stays true if `cost` is ever retuned — one source of truth, and it is the constant.
-	var top_prize := HBoxContainer.new()
-	top_prize.name = "TopPrize"
-	top_prize.alignment = BoxContainer.ALIGNMENT_CENTER
-	top_prize.add_theme_constant_override("separation", 8)
-	top_prize.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	host.add_child(top_prize)
-	for _reel in REEL_COUNT:
-		top_prize.add_child(UIStyle.icon(SYM_ECTO, UIStyle.ICON_CANVAS, UIStyle.TEXT))
-	var multiple := UIStyle.label("x%d" % int(PAY_JACKPOT), UIStyle.TITLE, UIStyle.DOLLARS)
-	# Every figure in the game is set in the display face: the body face draws 5 as a rounded
-	# form that reads as an 8, and x300 misread as x800 is a promise the machine cannot keep.
-	multiple.theme_type_variation = &"Numeral"
-	top_prize.add_child(multiple)
+## The pay table, printed under the glass the way a real machine prints it. Multiples of the
+## stake rather than figures in Dollars, so every line stays true at every rung of the stake
+## and if `cost` is ever retuned — one source of truth, and it is the constants. Each mark is
+## the symbol exactly as the reel draws it, at the icon canvas so the bat is its own art.
+func _build_odds(cabinet: Cabinet) -> void:
+	cabinet.add_odds_heading("Three alike")
+	var box := UIStyle.ICON_CANVAS
+	for entry in [[SYM_ECTO, "x%d" % int(PAY_JACKPOT)], [SYM_DOLLAR, "x%d" % int(PAY_DOLLARS)],
+			[SYM_BAT, "x%d %dm" % [int(BOOST_MULT), int(BOOST_SECONDS / 60.0)]],
+			[SYM_BONE, "Bones"], [SYM_HEART, "Hearts"]]:
+		var symbol: StringName = entry[0]
+		cabinet.add_odds_art([_texture_for(symbol)], [_colour_for(symbol)], box, entry[1],
+			UIStyle.DOLLARS if symbol == SYM_ECTO or symbol == SYM_DOLLAR else UIStyle.TEXT)
+	# The pair is the one line that does not fit on the glass, and it is the one most pulls
+	# land on — so the display says it at rest, where the wheel says what its ring pays nothing.
+	say("Two alike hands half your stake back.")
 
 ## The picture for a symbol, always at exactly the window's size.
 ##
@@ -205,8 +222,26 @@ func _build_body(host: VBoxContainer) -> void:
 ## directly is the single way back to windows of three different sizes.
 func _show(index: int, symbol: StringName) -> void:
 	var face := _faces[index]
+	_shown[index] = symbol
 	UIStyle.set_sprite(face, _texture_for(symbol))
 	face.modulate = _colour_for(symbol)
+
+## The largest reel on the ladder that fits the stage: three windows, their padding, two rules
+## between them and the glass's own rule either side. Re-boxed through `_show()`, so a resize
+## mid-spin keeps whatever each reel is showing.
+func _fit_stage(width: float) -> void:
+	var rules := float((REEL_COUNT + 1) * UIStyle.BORDER_WIDTH)
+	var box: int = REEL_BOXES[-1]
+	for candidate in REEL_BOXES:
+		if float(REEL_COUNT * (candidate + REEL_PAD * 2)) + rules <= width:
+			box = candidate
+			break
+	if box == _reel_box:
+		return
+	_reel_box = box
+	for index in _faces.size():
+		_faces[index].custom_minimum_size = Vector2(box, box)
+		_show(index, _shown[index])
 
 func _texture_for(symbol: StringName) -> Texture2D:
 	if symbol == SYM_BAT:
@@ -363,10 +398,10 @@ func _evaluate() -> void:
 func _prize() -> ArcadeGame.Prize:
 	if _triple:
 		if _match_symbol == SYM_ECTO:
-			var jackpot := cost * PAY_JACKPOT
+			var jackpot := stake() * PAY_JACKPOT
 			return prize_dollars(jackpot, "JACKPOT! +%s" % UIStyle.format_amount(jackpot))
 		if _match_symbol == SYM_DOLLAR:
-			var won := cost * PAY_DOLLARS
+			var won := stake() * PAY_DOLLARS
 			return prize_dollars(won, "Three dollars +%s" % UIStyle.format_amount(won))
 		if _match_symbol == SYM_BONE:
 			var bones := garnish_cap(Economy.BONES) * GARNISH_BONES
@@ -383,7 +418,7 @@ func _prize() -> ArcadeGame.Prize:
 	if _match_symbol != &"":
 		# Half the stake is a return, not a win, and the caption says which. A machine that
 		# printed "+6 Dollars" over a 12 Dollar pull would be telling the player they had won.
-		var back := cost * PAY_PAIR
+		var back := stake() * PAY_PAIR
 		var line := "So close. Half back +%s" if _near_miss else "Two alike. Half back +%s"
 		return prize_dollars(back, line % UIStyle.format_amount(back))
 

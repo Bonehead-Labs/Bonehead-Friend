@@ -13,13 +13,15 @@ extends Node
 ## `create_tween()` and a `get_tree().create_timer()` — everything a reel or a wheel needs to
 ## animate — while the *look* of its cabinet stays the page's business, which is what keeps
 ## every machine the same width, the same type and the same contrast grade as the rest of the
-## shell (docs/decisions.md D20). Its visuals go into a well the page hands it.
+## shell (docs/decisions.md D20). Its visuals go onto the stage of a `Cabinet` the page builds (D58).
 ##
 ## The whole lifecycle, from the page's side:
 ##
 ##   game = SomeMachine.new()      # the page instances it and adds it as a child
-##   game.build_body(host)         # once, into a VBoxContainer the page owns
-##   ... the player presses Play, the page takes `cost` in Dollars ...
+##   game.build_deck(cabinet)      # once: any keys of its own, left of the page's Play key
+##   game.build_odds(cabinet)      # once: its paytable, into the cabinet's strip
+##   game.build_body(host)         # once, into the cabinet's stage
+##   ... the player presses Play, the page takes `stake()` in Dollars ...
 ##   game.play()                   # never while is_busy()
 ##   ... the machine animates for as long as it likes ...
 ##   game.report(prize)            # exactly once, and the page grants it
@@ -81,15 +83,19 @@ var blurb: String = ""
 var mark: StringName = &"dollar"
 ## The word on the page's Play button. "Spin", "Deal", "Hit me".
 var play_caption: String = "Play"
-## Dollars per play. The page checks it against the purse, takes it, and only then calls
-## `play()` — a machine is never asked to charge for itself.
+## The colour the cabinet's marquee and its room key are lit in: a key of
+## `UIStyle.MARQUEES`, which is also the whole list to choose from (D58).
+var accent: StringName = &"gold"
+## Dollars per play at the lowest stake — the price every table below is written against.
+## The page checks `stake()` against the purse, takes it, and only then calls `play()`; a
+## machine is never asked to charge for itself.
 var cost: float = 10.0
-## Height the page reserves for the well, in UI pixels before `UIScale`. The cabinet must
+## Height the page reserves for the stage, in UI pixels before `UIScale` — at least `Cabinet.STAGE`. The cabinet must
 ## not change height while the machine animates, or the whole page moves under the cursor,
 ## so this is the space the machine gets whether it is spinning or idle.
 var body_height: int = 96
 
-## The well the page built, once `build_body()` has run. Held so a machine can rebuild its
+## The stage the page built, once `build_body()` has run. Held so a machine can rebuild its
 ## own contents later without the page having to hand it back.
 var body: VBoxContainer = null
 
@@ -115,6 +121,43 @@ const GARNISH_ACTS := 3.0
 const BOOST_MAX_SECONDS := 900.0
 const BOOST_MAX_MULT := 5.0
 
+## The stake the deck's stepper offers, as whole multiples of `cost`. **Every Dollars prize
+## scales with it and nothing else does**: a table written as "12x the stake" or "10 Dollars
+## on a 25 Dollar spin" keeps its odds and its return per Dollar at every rung, while a
+## garnish and a boost stay exactly the size they were — both are capped by acts and by
+## minutes rather than by the stake (D32), so a bigger bet can never buy a bigger one. A
+## single rung hides the stepper.
+const STAKES: Array[int] = [1, 2, 5, 10]
+
+var _stake_step := 0
+
+## The multiple of `cost` the player has chosen.
+func stake_multiple() -> int:
+	return STAKES[clampi(_stake_step, 0, STAKES.size() - 1)]
+
+## Dollars this play costs, and the figure every Dollars prize is written against.
+func stake() -> float:
+	return cost * float(stake_multiple())
+
+## One rung up or down. Refused while a play is running: the stake a hand was dealt at is
+## the stake it is paid at, and a stepper live mid-hand would be a way to change it.
+func step_stake(delta: int) -> bool:
+	if _busy:
+		return false
+	var next := clampi(_stake_step + delta, 0, STAKES.size() - 1)
+	if next == _stake_step:
+		return false
+	_stake_step = next
+	_stake_changed()
+	changed.emit()
+	return true
+
+func can_step_stake(delta: int) -> bool:
+	if _busy:
+		return false
+	var next := _stake_step + delta
+	return next >= 0 and next < STAKES.size()
+
 ## The most Bones or Hearts a single play may pay, at the player's current multipliers.
 ## Both the page and the machines read this, so the cap has one definition — the page still
 ## clamps to it, because the page is what mints.
@@ -130,7 +173,7 @@ static func garnish_cap(currency: StringName) -> float:
 
 ## Build the machine's visuals into `host`, once, at page build time.
 ##
-## `host` is a `VBoxContainer` inside a sunk well: add one child or ten, they are laid out.
+## `host` is a `VBoxContainer` on the cabinet's stage: add one child or ten, they are laid out.
 ## It is a container rather than a bare `Control` on purpose — a child of a plain `Control`
 ## is never laid out and keeps whatever size it was created with, which is zero.
 ##
@@ -138,6 +181,24 @@ static func garnish_cap(currency: StringName) -> float:
 func build_body(host: VBoxContainer) -> void:
 	body = host
 	_build_body(host)
+
+## Print how the machine pays into the cabinet's paytable strip, once. Override
+## `_build_odds()`; the default prints the blurb, which is a paytable in words.
+func build_odds(cabinet: Cabinet) -> void:
+	_build_odds(cabinet)
+
+## Add any keys of the machine's own to the deck, once — they land between the stake and the
+## page's Play key. Most machines have none; blackjack's Hit and Stand live here, on the deck
+## beside Deal, rather than on the table where they were the one control off the deck.
+func build_deck(cabinet: Cabinet) -> void:
+	_build_deck(cabinet)
+
+## The width the stage will have, in UI pixels, whenever the card changes size. A machine laid
+## out by its containers needs nothing; one that draws at a fixed size picks the largest that
+## fits, because a fixed-width stage wider than a small card would widen the card for every
+## page in the shell (D22). Called before the first paint and again on every resize.
+func fit_stage(width: float) -> void:
+	_fit_stage(width)
 
 ## Play one round. The page has already taken `cost` in Dollars and has already checked
 ## `is_busy()`; the machine only has to produce an outcome.
@@ -163,6 +224,20 @@ func is_busy() -> bool:
 ## Create the visuals. Use `UIStyle` for every one of them (see the note at the foot of this
 ## file); nothing here builds its own look.
 func _build_body(_host: VBoxContainer) -> void:
+	pass
+
+func _build_odds(cabinet: Cabinet) -> void:
+	cabinet.add_odds_prose(blurb)
+
+func _build_deck(_cabinet: Cabinet) -> void:
+	pass
+
+func _fit_stage(_width: float) -> void:
+	pass
+
+## The stake moved. Repaint anything printed in Dollars — a paytable written in figures
+## rather than multiples has to follow it.
+func _stake_changed() -> void:
 	pass
 
 ## Produce an outcome. Report it now, or in ten seconds when the wheel stops — but report it,
@@ -281,9 +356,11 @@ static func prize_boon(id: StringName, caption: String = "") -> Prize:
 #   UIStyle.icon(&"bolt", UIStyle.GLYPH, colour) a glyph at exactly its box size
 #   UIStyle.sprite(texture, box)                 art at exactly its box size
 #
-# A `PanelContainer` with `theme_type_variation = &"Tile"` / `&"Sunk"` is a reel window or a
-# card face; the variation names live in `Scripts/UI/ui_theme.gd` and a misspelled one falls
-# back silently and merely looks wrong.
+# The stage is already a section with one rule across its top: do not put a framed panel
+# around the whole machine, which is the frame-inside-a-frame D58 took out. A machine's own
+# glass is `theme_type_variation = &"Glass"`, divided into windows by `UIStyle.rule()`; the
+# variation names live in `Scripts/UI/ui_theme.gd` and a misspelled one falls back silently
+# and merely looks wrong. The paytable goes through `Cabinet.add_odds()`.
 #
 # Three traps this file cannot stop you walking into:
 #
