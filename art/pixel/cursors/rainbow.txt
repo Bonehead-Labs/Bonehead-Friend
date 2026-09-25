@@ -1,0 +1,15 @@
+# The rainbow's cursor (D72): a small one, six bands.
+cell: 64
+
+--- main
+.........RRRRRRR.......
+.......RROOOOOOORR.....
+......ROOOYYYYYOOOR....
+.....ROOYYEEEEEYYOOR...
+....ROYYEEAAAAAEEYYOR..
+...ROOYEAApppppAAEYOOR.
+...ROYEAAppp.pppAAEYOR.
+..ROOYEApp.....ppAEYOOR
+..ROYEApp.......ppAEYOR
+..ROYEApp.......ppAEYOR
+..ROYEAp.........pAEYOR

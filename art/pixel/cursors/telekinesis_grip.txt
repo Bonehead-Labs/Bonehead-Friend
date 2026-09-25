@@ -1,0 +1,16 @@
+# Telekinesis's cursor while it has him (D72): the same hand, closed.
+cell: 64
+
+--- main
+..eEEe.eEEe.eEEe..
+.eEWWEeEWWEeEWWEe.
+.eEWEEeEWEEeEWEEe.
+.eEEEEeEEEEeEEEEe.
+.eEEEEEEEEEEEEEEe.
+eEEEEEEEEEEEEEEEe.
+eWWWWWWWWEEEEEEEe.
+eEEEEEEEWEEEEEEEe.
+.eEEEEEEEEEEEEEe..
+..eEEEEEEEEEEEe...
+...eeeeeeeeeee....
+...eeeeeeeeeee....
