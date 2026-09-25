@@ -2844,6 +2844,11 @@ func _hush() -> void:
 func _advance_brain(ms: int) -> void:
 	_brain._clock_skew += maxi(ms, 0)
 	_brain._arm()
+	# `_arm` never starts its timer for less than 10 ms of real time, and three headless frames
+	# can pass in less than that — then nothing that was due has fired, which read as "ninety
+	# seconds unfocused and he never falls asleep" on a tree that simply ran its frames faster.
+	# Wait out the floor on the engine's clock, then the frames.
+	await get_tree().create_timer(0.03, true, false, true).timeout
 	await _frames(3)
 
 var _sampled: Array[StringName] = []
