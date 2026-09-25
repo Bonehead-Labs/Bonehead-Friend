@@ -14,3 +14,4 @@ scene = ExtResource("2_nbxo7")
 icon = ExtResource("1_ghk3k")
 requires = Array[StringName]([&"office_mug"])
 sort_order = 46
+controls = "Hold · Right: Punch — with him in the jaws: one hole, x2"

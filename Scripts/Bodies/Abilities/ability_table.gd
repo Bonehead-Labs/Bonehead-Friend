@@ -117,6 +117,41 @@ const ABILITIES := {
 		"hold_seconds": 2.5, "stiffness": 16.0, "max_accel": 9000.0, "reaction": 0.3,
 		"pop": 950.0, "spin": 9.0, "pry_force": 2000.0, "pry_mult": 1.3, "claim_seconds": 2.0,
 	},
+	# Get him between the jaws and tap: one bite, x2, a burst of paper and a hole in him for three
+	# seconds. A precise little verb: the jaws have to be on him, and then it always lands. One bite
+	# measured 2.1 ordinary hole-punch hits.
+	&"hole_punch": {
+		"id": &"punch", "name": "Punch", "archetype": &"clamp",
+		"controls": "Hold · Right: Punch — with him in the jaws: one hole, x2",
+		"cooldown": 5.0, "busy": 0.2, "worth": 2.1,
+		"jaw": Vector2(0, 4), "reach": 36.0, "touch": true, "bites": 1, "bite_gap": 0.1, "bite_force": 1200.0,
+		"bite_mult": 2.0, "shove": 0.3, "snap": Vector2(1.0, 0.72), "bite_sound": &"chunk",
+		"confetti": true, "hole_seconds": 3.0, "tell": &"punched",
+	},
+	# Two snips a seventh of a second apart on whatever is between the blades. At his head, the
+	# first one takes his headphones off: they fall to the desk and he is bare-headed and cross for
+	# four seconds, until they fly back on. Both snips on him: 2.0 ordinary shears hits.
+	&"shears": {
+		"id": &"snip", "name": "Snip", "archetype": &"clamp",
+		"controls": "Hold · Right: Snip — two snips; at his head, off come the headphones",
+		"cooldown": 4.0, "busy": 0.3, "worth": 2.0,
+		"jaw": Vector2(0, -24), "reach": 18.0, "touch": true, "bites": 2, "bite_gap": 0.14, "bite_force": 800.0,
+		"bite_mult": 1.0, "shove": 0.05, "snap": Vector2(0.55, 1.0), "bite_sound": &"snip",
+		"snip_head": true, "head_band": 0.45, "head_reach": 60.0, "phones_seconds": 4.0,
+	},
+	# A tap with the jaws on him and they clamp on for two seconds: he is hoisted clear of the desk
+	# on the wrench, and the hand going round him turns him like a nut, every half turn a creak. A turn and a third in the two
+	# seconds, two cranks: 1.4 ordinary wrench hits.
+	&"pipe_wrench": {
+		"id": &"crank", "name": "Crank", "archetype": &"clamp",
+		"controls": "Hold · Right: Crank — clamp it on him, then circle to turn him",
+		"cooldown": 5.0, "busy": 2.2, "worth": 1.4,
+		"jaw": Vector2(-14, -40), "reach": 22.0, "touch": true, "bites": 1, "bite_force": 900.0,
+		"bite_mult": 1.0,
+		"shove": 0.0, "snap": Vector2(0.85, 1.0), "bite_sound": &"clack", "hold_seconds": 2.0,
+		"crank_lift": 96.0, "crank_rate": 14.0, "crank_force": 2400.0, "crank_mult": 1.0,
+		"crank_hits": 4,
+	},
 	# The starter. A full wind-up is 0.9 s; the hit it arms is x2.5 and adds 850 px/s at 38 degrees
 	# — he leaves at about 1,400 with the swing, a home run and not a launch into orbit. Where he
 	# lands is the bat's for two seconds. One use measured at 1.4 ordinary bat hits' worth.

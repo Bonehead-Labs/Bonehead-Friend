@@ -14,3 +14,4 @@ scene = ExtResource("2_ynl83")
 icon = ExtResource("1_bru5i")
 requires = Array[StringName]([&"sledgehammer"])
 sort_order = 48
+controls = "Hold · Right: Crank — clamp it on him, then circle to turn him"

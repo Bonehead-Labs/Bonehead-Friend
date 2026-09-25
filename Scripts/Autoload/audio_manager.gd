@@ -310,6 +310,8 @@ func _build_streams() -> void:
 	_streams[&"sizzle"] = _wav(_sizzle_samples())
 	_streams[&"chain"] = _wav(_chain_samples())
 	_streams[&"creak"] = _wav(_creak_samples())
+	_streams[&"chunk"] = _wav(_chunk_samples())
+	_streams[&"snip"] = _wav(_snip_samples())
 	# --- held weapons' abilities (D74) ---
 	#
 	# One voice each for the moments a CC0 recording does not cover: the air a swing moves, a bat
@@ -597,6 +599,45 @@ func _creak_samples() -> PackedFloat32Array:
 		var ring := sin(TAU * 310.0 * since) * exp(-since * 90.0) + sin(TAU * 145.0 * since) * 0.6 * exp(-since * 50.0)
 		var envelope := minf(t * 30.0, 1.0) * minf((duration - t) * 12.0, 1.0)
 		out[i] = clampf(ring * 0.45 * envelope, -1.0, 1.0)
+	return out
+
+## A hole punch going through: a click, a thump of the lever bottoming out, and a tick of paper.
+func _chunk_samples() -> PackedFloat32Array:
+	var duration := 0.2
+	var count := int(MIX_RATE * duration)
+	var out := PackedFloat32Array()
+	out.resize(count)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 20260933
+	for i in count:
+		var t := float(i) / float(MIX_RATE)
+		var click := rng.randf_range(-1.0, 1.0) * 0.8 * exp(-t * 900.0)
+		var thump := sin(TAU * 125.0 * t) * 0.6 * exp(-t * 26.0)
+		var u := t - 0.03
+		var paper := rng.randf_range(-1.0, 1.0) * 0.35 * exp(-u * 120.0) if u >= 0.0 else 0.0
+		out[i] = clampf(click + thump + paper, -1.0, 1.0)
+	return out
+
+## Shears closing: a bright scrape of blade on blade that climbs, ending in a click at the pivot.
+func _snip_samples() -> PackedFloat32Array:
+	var duration := 0.1
+	var count := int(MIX_RATE * duration)
+	var out := PackedFloat32Array()
+	out.resize(count)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 20260934
+	var phase := 0.0
+	var last := 0.0
+	for i in count:
+		var t := float(i) / float(MIX_RATE)
+		var progress := t / duration
+		phase += TAU * lerpf(3200.0, 5600.0, progress) / float(MIX_RATE)
+		var noise := rng.randf_range(-1.0, 1.0)
+		var scrape := ((noise - last) * 0.25 + sin(phase) * 0.18) * progress
+		last = noise
+		var u := t - duration * 0.82
+		var click := rng.randf_range(-1.0, 1.0) * 0.7 * exp(-u * 700.0) if u >= 0.0 else 0.0
+		out[i] = clampf(scrape + click, -1.0, 1.0)
 	return out
 
 ## A woodblock tick: one decaying sine with a noise transient on the front. The transient

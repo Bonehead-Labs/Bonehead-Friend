@@ -14,3 +14,4 @@ scene = ExtResource("2_uex1m")
 icon = ExtResource("1_m0dwh")
 requires = Array[StringName]([&"letter_opener"])
 sort_order = 32
+controls = "Hold · Right: Snip — two snips; at his head, off come the headphones"
