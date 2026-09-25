@@ -6,23 +6,29 @@
 [ext_resource type="Script" path="res://Scripts/Components/effects_player.gd" id="4_kc67j"]
 [ext_resource type="Texture2D" path="res://Assets/sprites/items/rail_gun_barrel.png" id="5_xgqqx"]
 
-[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_bjhp6"]
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_ly5qe"]
 friction = 0.95
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_jqkkp"]
-size = Vector2(60, 20)
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ew8sm"]
+size = Vector2(184, 18)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_318op"]
-size = Vector2(72, 26)
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_3xrcv"]
+size = Vector2(108, 6)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_wxvg3"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_kc67j"]
+size = Vector2(28, 24)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_xgqqx"]
+size = Vector2(40, 14)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_bjhp6"]
 size = Vector2(80, 104)
 
-[node name="_RailGun" type="RigidBody2D" unique_id=349407436 node_paths=PackedStringArray("barrel", "drag_area", "handle", "sprite", "collider", "Effects_Player")]
+[node name="_RailGun" type="RigidBody2D" unique_id=1835480632 node_paths=PackedStringArray("barrel", "drag_area", "handle", "sprite", "collider", "Effects_Player")]
 collision_layer = 4
 collision_mask = 7
 mass = 20.0
-physics_material_override = SubResource("PhysicsMaterial_bjhp6")
+physics_material_override = SubResource("PhysicsMaterial_ly5qe")
 center_of_mass_mode = 1
 center_of_mass = Vector2(0, 32)
 contact_monitor = true
@@ -44,35 +50,43 @@ handle = NodePath("Handle")
 sprite = NodePath("Sprite")
 collider = NodePath("CollisionShape2D")
 Effects_Player = NodePath("EffectsPlayer")
-grip_offset = Vector2(0, -28)
+grip_offset = Vector2(0, -26)
 
-[node name="Sprite" type="Sprite2D" parent="." unique_id=250100091]
+[node name="Sprite" type="Sprite2D" parent="." unique_id=2087812421]
 scale = Vector2(2, 2)
 texture = ExtResource("2_ew8sm")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1882374592]
-position = Vector2(0, 38)
-shape = SubResource("RectangleShape2D_jqkkp")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=2095186847]
+position = Vector2(0, -17)
+shape = SubResource("RectangleShape2D_ew8sm")
 
-[node name="CollisionShape2D2" type="CollisionShape2D" parent="." unique_id=1754694062]
-position = Vector2(0, -2)
-shape = SubResource("RectangleShape2D_318op")
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="." unique_id=2074508765]
+position = Vector2(0, -5)
+shape = SubResource("RectangleShape2D_3xrcv")
 
-[node name="DraggableArea" type="Area2D" parent="." unique_id=858836346]
+[node name="CollisionShape2D3" type="CollisionShape2D" parent="." unique_id=1362674794]
+position = Vector2(0, 10)
+shape = SubResource("RectangleShape2D_kc67j")
+
+[node name="CollisionShape2D4" type="CollisionShape2D" parent="." unique_id=384217292]
+position = Vector2(0, 29)
+shape = SubResource("RectangleShape2D_xgqqx")
+
+[node name="DraggableArea" type="Area2D" parent="." unique_id=1909636627]
 script = ExtResource("3_3xrcv")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=1821392622]
-shape = SubResource("RectangleShape2D_wxvg3")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=676252745]
+shape = SubResource("RectangleShape2D_bjhp6")
 
-[node name="Handle" type="StaticBody2D" parent="." unique_id=497854491]
+[node name="Handle" type="StaticBody2D" parent="." unique_id=1426475492]
 visible = false
 collision_layer = 0
 collision_mask = 0
 
-[node name="EffectsPlayer" type="Node" parent="." unique_id=1713539744]
+[node name="EffectsPlayer" type="Node" parent="." unique_id=1299271834]
 script = ExtResource("4_kc67j")
 
-[node name="Barrel" type="Sprite2D" parent="." unique_id=1350708189]
+[node name="Barrel" type="Sprite2D" parent="." unique_id=2123781389]
 position = Vector2(-32, 4)
 scale = Vector2(2, 2)
 texture = ExtResource("5_xgqqx")

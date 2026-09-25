@@ -184,12 +184,14 @@ const EXPLOSIVES := [
 		"script": ThrowableBaseScript,
 		"mass": 6.0,
 		"blast": 320.0,
-		# The one silhouette here that is genuinely not a box: a bag and a strap. Weight in
-		# the bag and the pin up on the strap, so it hangs the way a bag hangs and swings its
-		# own weight when you throw it.
+		# The one silhouette here that is genuinely not a box: a sack with the charge sticking
+		# out of the top. Weight in the sack and the pin up on the charge, so it hangs the way
+		# a bag hangs and swings its own weight when you throw it.
 		"shapes": [
-			{"rect": Vector2(26, 22), "at": Vector2(0, 7)},
-			{"rect": Vector2(6, 26), "at": Vector2(-9, -9), "rot": 25.0},
+			{"rect": Vector2(38, 20), "at": Vector2(0.5, 3)},
+			{"rect": Vector2(30, 6), "at": Vector2(0, 16)},
+			{"rect": Vector2(23, 9), "at": Vector2(-3.5, -13)},
+			{"rect": Vector2(12, 3), "at": Vector2(-3, -18.5)},
 		],
 		"com": Vector2(0, 7),
 		"grip": Vector2(-12, -16),

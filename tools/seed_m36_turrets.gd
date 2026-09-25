@@ -79,6 +79,13 @@ const LADDER_ROOT := &"pistol"
 ## above it**. A body pinned above its own weight hangs the right way up, so a turret picked
 ## up off the desk swings back upright and lands standing, which is the one thing a machine
 ## on legs has to do.
+##
+## **A turret that `flips` is solid only where its picture is in both facings** (D61). It
+## turns its sprite round to face him and its colliders do not turn with it, so a shape over
+## a part drawn on one side only is a shape over empty desk half the time. The rail gun's
+## stand and the nail gun's post are drawn off-centre and are therefore not solid; each still
+## stands on a centred foot that is. The laser lattice does not flip, and only its frame is
+## solid — the beams are light, which is the whole joke of walking into them.
 const TURRETS := {
 	&"pellet_turret": {
 		"node": "_PelletTurret",
@@ -93,8 +100,11 @@ const TURRETS := {
 		"body": {
 			"mass": 8.0,
 			"shapes": [
-				{"rect": Vector2(22, 7), "at": Vector2(0, 11)},
-				{"rect": Vector2(16, 15), "at": Vector2(0, -4)},
+				{"rect": Vector2(40, 5), "at": Vector2(0, -3)},
+				{"rect": Vector2(18, 8), "at": Vector2(0, -4.5)},
+				{"rect": Vector2(12, 6), "at": Vector2(0, 3)},
+				{"capsule": Vector2(2.5, 10), "at": Vector2(-8, 10.5), "rot": 20.6},
+				{"capsule": Vector2(2.5, 10), "at": Vector2(8, 10.5), "rot": -20.6},
 			],
 			"com": Vector2(0, 10), "grip": Vector2(0, -11),
 			"grab": {"size": Vector2(30, 34), "at": Vector2(0, 0)},
@@ -119,9 +129,10 @@ const TURRETS := {
 		"body": {
 			"mass": 9.0,
 			"shapes": [
-				{"rect": Vector2(16, 6), "at": Vector2(0, 14)},
-				{"rect": Vector2(7, 14), "at": Vector2(0, 4)},
-				{"rect": Vector2(24, 11), "at": Vector2(0, -10)},
+				{"rect": Vector2(24, 3), "at": Vector2(0, -12.5)},
+				{"rect": Vector2(12, 10), "at": Vector2(0, -12.5)},
+				{"rect": Vector2(8, 3), "at": Vector2(0, 10.5)},
+				{"rect": Vector2(12, 4), "at": Vector2(0, 14)},
 			],
 			"com": Vector2(0, 11), "grip": Vector2(0, -13),
 			"grab": {"size": Vector2(30, 38), "at": Vector2(0, 0)},
@@ -143,9 +154,9 @@ const TURRETS := {
 		"body": {
 			"mass": 14.0,
 			"shapes": [
-				{"rect": Vector2(24, 8), "at": Vector2(0, 18)},
-				{"rect": Vector2(12, 22), "at": Vector2(0, 1)},
-				{"circle": 7.0, "at": Vector2(0, -15)},
+				{"rect": Vector2(26, 15), "at": Vector2(-1, 14)},
+				{"rect": Vector2(9, 16), "at": Vector2(-1.5, -1)},
+				{"capsule": Vector2(14, 21), "at": Vector2(-1.5, -15.5), "rot": 90.0},
 			],
 			"com": Vector2(0, 15), "grip": Vector2(0, -16),
 			"grab": {"size": Vector2(30, 48), "at": Vector2(0, 0)},
@@ -169,10 +180,14 @@ const TURRETS := {
 		"body": {
 			"mass": 11.0,
 			"shapes": [
-				{"rect": Vector2(20, 8), "at": Vector2(0, 14)},
-				{"rect": Vector2(26, 11), "at": Vector2(0, -5)},
+				{"rect": Vector2(54, 10), "at": Vector2(0, -1)},
+				{"rect": Vector2(16, 5), "at": Vector2(0, -9)},
+				{"rect": Vector2(9, 5), "at": Vector2(-21.5, -9)},
+				{"rect": Vector2(9, 5), "at": Vector2(21.5, -9)},
+				{"rect": Vector2(8, 7), "at": Vector2(0, 7.5)},
+				{"rect": Vector2(18, 5), "at": Vector2(0, 13.5)},
 			],
-			"com": Vector2(0, 12), "grip": Vector2(0, -12),
+			"com": Vector2(0, 12), "grip": Vector2(0, -10),
 			"grab": {"size": Vector2(34, 40), "at": Vector2(0, 0)},
 		},
 		"tree": ["Hotter Mix", "Scorch Fees", "Wider Valve"],
@@ -194,10 +209,12 @@ const TURRETS := {
 		"body": {
 			"mass": 20.0,
 			"shapes": [
-				{"rect": Vector2(30, 10), "at": Vector2(0, 19)},
-				{"rect": Vector2(36, 13), "at": Vector2(0, -1)},
+				{"rect": Vector2(92, 9), "at": Vector2(0, -8.5)},
+				{"rect": Vector2(54, 3), "at": Vector2(0, -2.5)},
+				{"rect": Vector2(14, 12), "at": Vector2(0, 5)},
+				{"rect": Vector2(20, 7), "at": Vector2(0, 14.5)},
 			],
-			"com": Vector2(0, 16), "grip": Vector2(0, -14),
+			"com": Vector2(0, 16), "grip": Vector2(0, -13),
 			"grab": {"size": Vector2(40, 52), "at": Vector2(0, 0)},
 		},
 		"tree": ["Denser Slug", "Demolition Rates", "Quicker Charge"],
@@ -219,8 +236,10 @@ const TURRETS := {
 		"body": {
 			"mass": 18.0,
 			"shapes": [
-				{"rect": Vector2(26, 7), "at": Vector2(0, 16)},
-				{"capsule": Vector2(12, 26), "at": Vector2(0, -3), "rot": -20.0},
+				{"rect": Vector2(30, 6), "at": Vector2(0, -10.5)},
+				{"rect": Vector2(14, 3), "at": Vector2(0, -15)},
+				{"rect": Vector2(6, 11), "at": Vector2(0, -0.5)},
+				{"rect": Vector2(26, 9), "at": Vector2(0, 14)},
 			],
 			"com": Vector2(0, 13), "grip": Vector2(0, -12),
 			"grab": {"size": Vector2(34, 44), "at": Vector2(0, 0)},
@@ -244,9 +263,10 @@ const TURRETS := {
 		"body": {
 			"mass": 22.0,
 			"shapes": [
-				{"rect": Vector2(30, 8), "at": Vector2(0, 24)},
-				{"rect": Vector2(8, 42), "at": Vector2(-11, -1)},
-				{"rect": Vector2(8, 42), "at": Vector2(11, -1)},
+				{"rect": Vector2(54, 7), "at": Vector2(0, -23)},
+				{"rect": Vector2(54, 7), "at": Vector2(0, 22.5)},
+				{"rect": Vector2(7, 38), "at": Vector2(-22.5, 0)},
+				{"rect": Vector2(7, 38), "at": Vector2(22.5, 0)},
 			],
 			"com": Vector2(0, 20), "grip": Vector2(0, -22),
 			"grab": {"size": Vector2(38, 58), "at": Vector2(0, 0)},
@@ -270,8 +290,9 @@ const TURRETS := {
 		"body": {
 			"mass": 26.0,
 			"shapes": [
-				{"rect": Vector2(22, 10), "at": Vector2(0, 21)},
-				{"rect": Vector2(32, 30), "at": Vector2(0, -2)},
+				{"rect": Vector2(49, 30), "at": Vector2(-0.5, 0)},
+				{"rect": Vector2(39, 11), "at": Vector2(-5.5, -20.5)},
+				{"rect": Vector2(40, 11), "at": Vector2(-2, 20.5)},
 			],
 			"com": Vector2(0, 17), "grip": Vector2(0, -14),
 			"grab": {"size": Vector2(38, 56), "at": Vector2(0, 0)},
