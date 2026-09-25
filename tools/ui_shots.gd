@@ -46,6 +46,18 @@ func _ready() -> void:
 	var shop := _find(_main, "ShopPanel")
 	var tree := _find(_main, "AugmentPanel")
 
+	# `-- --arcade` shoots only the arcade and quits: every room at 1x, the owner's 1.25x and
+	# 2x, and again in the 640x480 play area — the smallest card the arcade is laid out to fit
+	# (D58). The room a redesign is iterating on, in seconds rather than the whole tour.
+	if OS.get_cmdline_user_args().has("--arcade"):
+		for scale in [0.0, 1.25, 2.0]:
+			await _arcade_set(panels, scale)
+		_show_window(Vector2i(640, 480), "screenshots")
+		await _idle(20)
+		await _arcade_set(panels, 0.0, "-640")
+		_finish()
+		return
+
 	await _shot("01-hud")
 
 	panels.call("show_panel", &"shop")
@@ -61,18 +73,7 @@ func _ready() -> void:
 
 	panels.call("show_panel", &"contracts")
 	await _shot("06-jobs")
-	panels.call("show_panel", &"arcade")
-	var arcade := _find(_main, "ArcadePanel")
-	await _shot("07-arcade-wheel")
-	arcade.call("show_room", &"slot_machine")
-	await _shot("07b-arcade-ghosts")
-	arcade.call("show_room", &"blackjack")
-	arcade.call("_on_play", arcade.get("_machines")[2])
-	await _shot("07c-arcade-blackjack")
-	arcade.call("show_room", &"wardrobe")
-	await _shot("07d-wardrobe")
-	arcade.call("show_room", &"rebirth")
-	await _shot("07e-rebirth")
+	await _arcade_set(panels, 0.0)
 	panels.call("show_panel", &"deeds")
 	await _shot("06b-deeds")
 	panels.call("show_panel", &"settings")
@@ -144,6 +145,11 @@ func _ready() -> void:
 	EventBus.ui_scale_changed.emit(2)
 	panels.call("show_panel", &"shop")
 	await _shot("10-toys-2x")
+	# The arcade again at 1.25x and 2x. 1.25x is the owner's own Menu size (D50, D58): a
+	# fractional factor resamples the pixel shell, so the rules and the type are judged there
+	# too, every run, rather than only at the whole numbers the game picks by itself.
+	await _arcade_set(panels, 1.25)
+	await _arcade_set(panels, 2.0)
 	# Restored, and restored to whatever it was rather than to a guess. Leaving this pinned
 	# meant every later screenshot was silently taken at 2x — including the ones used to
 	# judge whether 1x was readable.
@@ -168,15 +174,60 @@ func _ready() -> void:
 	# the player is (D6).
 	panels.call("close")
 	await _shot("12-devices")
+	_finish()
 
+func _finish() -> void:
 	_clear_slot()
 	print("ui_shots: wrote %s" % ProjectSettings.globalize_path(OUT))
 	Settings.hud_pinned = _had["hud"]
 	Settings.tabs_pinned = _had["tabs"]
 	Settings.ui_scale = _had["scale"]
+	EventBus.ui_scale_changed.emit(_had["scale"])
 	Settings.focus_intensity = _had["focus"]
 	Settings.save_settings()
 	get_tree().quit()
+
+## Every room of the arcade at one Menu size. 0 is auto, which is 1x in this window; the
+## other scales are suffixed onto the file name so a set reads side by side in a folder.
+## The scale is restored to auto afterwards, never left pinned for the next shot.
+func _arcade_set(panels: Node, scale: float, tag: String = "") -> void:
+	Settings.ui_scale = scale
+	EventBus.ui_scale_changed.emit(scale)
+	var rung := ("%d" % int(scale)) if is_equal_approx(scale, roundf(scale)) else ("%.2f" % scale).replace(".", "_")
+	var suffix := ("" if scale <= 0.0 else "-%sx" % rung) + tag
+	if OS.get_cmdline_user_args().has("--oversample") and scale > 0.0:
+		get_viewport().oversampling_override = scale
+		suffix += "-os"
+	if OS.get_cmdline_user_args().has("--probe-text") and get_node_or_null("ProbeLayer") == null:
+		var probe_layer := CanvasLayer.new()
+		probe_layer.name = "ProbeLayer"
+		probe_layer.layer = 50
+		add_child(probe_layer)
+		var probe_root := Control.new()
+		probe_root.theme = UITheme.get_theme()
+		probe_layer.add_child(probe_root)
+		var probe := UIStyle.label("Nothing 10 / 50 x2 for 5m", UIStyle.LABEL, UIStyle.TEXT_DIM)
+		probe.theme_type_variation = &"Numeral"
+		probe.position = Vector2(20, 700)
+		probe_root.add_child(probe)
+	panels.call("show_panel", &"arcade")
+	var arcade := _find(_main, "ArcadePanel")
+	arcade.call("show_room", &"spin_wheel")
+	await _shot("07-arcade-wheel" + suffix)
+	arcade.call("show_room", &"slot_machine")
+	await _shot("07b-arcade-ghosts" + suffix)
+	arcade.call("show_room", &"blackjack")
+	# A hand in play, dealt once per run: the table is the room that looks empty at rest.
+	var blackjack := _find(arcade, "blackjack") as ArcadeGame
+	if blackjack and not blackjack.is_busy() and scale <= 0.0:
+		arcade.call("_on_play", arcade.get("_machines")[2])
+	await _shot("07c-arcade-blackjack" + suffix)
+	arcade.call("show_room", &"wardrobe")
+	await _shot("07d-wardrobe" + suffix)
+	arcade.call("show_room", &"rebirth")
+	await _shot("07e-rebirth" + suffix)
+	Settings.ui_scale = 0.0
+	EventBus.ui_scale_changed.emit(0.0)
 
 ## A mid-run save, because an empty one shows an empty shop. Enough money to make some
 ## prices affordable and some not, one weapon bought, a tier-1 node part-levelled and a

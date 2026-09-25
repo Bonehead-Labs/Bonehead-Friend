@@ -127,6 +127,13 @@ func _every_colour_can_be_read() -> void:
 		var ratio := UIStyle.contrast(entry[1], entry[2])
 		_check("%s is %.2f:1" % [entry[0], ratio], ratio >= FLOOR)
 
+	# The Arcade's marquees (D58): a room's name, its mark and a lit room key are printed in
+	# the marquee's own ink on the marquee's own colour. Read off `UIStyle.MARQUEES`, so a
+	# sixth colour is graded the day it is added.
+	for accent in UIStyle.MARQUEES:
+		var on_it := UIStyle.contrast(UIStyle.marquee_ink(accent), UIStyle.marquee_fill(accent))
+		_check("marquee %s: its ink on it is %.2f:1" % [accent, on_it], on_it >= FLOOR)
+
 	# Every state of every button the Theme actually defines, read off the Theme rather than
 	# from a list kept by hand here. A hand-written grid only covers the states someone
 	# remembered — and nobody remembered `hover_pressed`, so hovering a tab, a shop category
@@ -373,6 +380,38 @@ func _the_shell_has_its_look() -> void:
 			theme.has_stylebox("normal", variation))
 	for variation in ["BodyLabel", "NameLabel", "Eyebrow", "Numeral"]:
 		_check("label variation %s is defined" % variation, theme.has_font("font", variation))
+
+	# The Arcade's cabinets (D58): the frame, its four sections, the display, the reel glass,
+	# the rule between cells, the deck's key — and one marquee panel and one room key per
+	# colour, derived by `UIStyle` from the same table the theme loops over.
+	for variation in ["Cabinet", "Stage", "OddsStrip", "Deck", "Display", "Glass"]:
+		_check("cabinet variation %s is defined" % variation,
+			theme.has_stylebox("panel", variation))
+	_check("the Rule variation is defined", theme.has_stylebox("panel", "Rule"))
+	_check("the DeckKey variation is defined, disabled state and all",
+		theme.has_stylebox("normal", "DeckKey") and theme.has_stylebox("disabled", "DeckKey"))
+	# Its disabled rule is solid. The base Button's is a third of black, which at a
+	# fractional Menu size draws a soft grey edge on the keys a hand spends disabled.
+	var deck_disabled := theme.get_stylebox("disabled", "DeckKey") as StyleBoxFlat
+	_check("a disabled deck key keeps a solid rule",
+		deck_disabled != null and is_equal_approx(deck_disabled.border_color.a, 1.0))
+	for accent in UIStyle.MARQUEES:
+		_check("marquee %s has its panel" % accent,
+			theme.has_stylebox("panel", UIStyle.marquee_variation(accent)))
+		_check("marquee %s has its room key" % accent,
+			theme.has_stylebox("pressed", UIStyle.room_tab_variation(accent))
+				and theme.has_stylebox("hover_pressed", UIStyle.room_tab_variation(accent)))
+	# Square, all of it. The one rounded corner the Arcade had was a wardrobe swatch's inline
+	# StyleBoxFlat — anti-aliased because it was rounded, and soft at every Menu size.
+	var rounded: Array[String] = []
+	for type_name in theme.get_stylebox_type_list():
+		for box_name in theme.get_stylebox_list(type_name):
+			var flat := theme.get_stylebox(box_name, type_name) as StyleBoxFlat
+			if flat and (flat.corner_radius_top_left > 0 or flat.corner_radius_top_right > 0
+					or flat.corner_radius_bottom_left > 0 or flat.corner_radius_bottom_right > 0):
+				rounded.append("%s/%s" % [type_name, box_name])
+	_check("no box in the theme has a rounded corner%s"
+		% ("" if rounded.is_empty() else ": " + ", ".join(rounded)), rounded.is_empty())
 
 	# A scrollbar's width is its track stylebox's minimum size. Zero here means a panel
 	# that silently cannot be scrolled, which reads as content simply missing.

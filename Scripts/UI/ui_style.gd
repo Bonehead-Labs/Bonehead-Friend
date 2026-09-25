@@ -439,6 +439,48 @@ const BUY_HOVER := Color("fffff4")    ## the affordable key, lit
 const DANGER_HOVER := Color("c04a75") ## the reincarnation key, lit
 const DANGER_DOWN := Color("8e2d50")  ## and pressed
 
+# --- the arcade's marquees -------------------------------------------------
+#
+# Every other colour in this file carries a meaning. These carry an *identity*: one per room
+# of the Arcade, lit across the top of its cabinet and on its tab, so five rooms read as five
+# machines rather than as five copies of one grey box (docs/decisions.md D58). Each is taken
+# straight from the locked palette (`art/src/bonehead.gpl`) rather than picked by eye, and
+# each is paired with the ink printed on it — dark ink on the three light ones, card stock on
+# the two dark ones. `loop_check`'s contrast suite grades every pair, and the theme builds one
+# `Marquee*` panel and one `RoomTab*` key per entry, so a sixth machine picks one of these and
+# touches nothing else. None of them is ever an ink on the card: the light three are about as
+# bright as the card stock and would vanish on it.
+const MARQUEES := {
+	&"gold": [Color("f2d06b"), TEXT],    ## palette "bones gold" — the Wheel
+	&"mint": [Color("9febc4"), TEXT],    ## palette "ectoplasm" — Three Ghosts
+	&"wine": [Color("8a2420"), PANEL],   ## palette "red dark" — Blackjack
+	&"rose": [Color("ffa6c1"), TEXT],    ## palette "pink light" — the Wardrobe
+	&"night": [Color("2a2e38"), PANEL],  ## palette "grey dark" — the back room
+}
+
+static func marquee_fill(accent: StringName) -> Color:
+	return (MARQUEES.get(accent, MARQUEES[&"gold"]) as Array)[0]
+
+static func marquee_ink(accent: StringName) -> Color:
+	return (MARQUEES.get(accent, MARQUEES[&"gold"]) as Array)[1]
+
+## The theme variations an accent is drawn with. Derived rather than spelled at each call
+## site, because a misspelled variation falls back to its base type and merely looks wrong.
+static func marquee_variation(accent: StringName) -> StringName:
+	return StringName("Marquee" + String(accent).capitalize())
+
+static func room_tab_variation(accent: StringName) -> StringName:
+	return StringName("RoomTab" + String(accent).capitalize())
+
+## A solid rule, for dividing one section of a cabinet into cells. A `Panel` whose look is
+## the theme's `Rule` — never a `ColorRect`, which the theme cannot restyle and no suite sees.
+static func rule(vertical: bool = true) -> Panel:
+	var line := Panel.new()
+	line.theme_type_variation = &"Rule"
+	line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	line.custom_minimum_size = Vector2(BORDER_WIDTH, 0) if vertical else Vector2(0, BORDER_WIDTH)
+	return line
+
 # --- contrast --------------------------------------------------------------
 
 ## WCAG 2 relative luminance, and the ratio between two of them. Used by the test suite to

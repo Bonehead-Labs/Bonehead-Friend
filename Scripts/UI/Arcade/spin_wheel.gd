@@ -31,6 +31,10 @@ extends ArcadeGame
 # edge that small is deliberate: Dollars buy cosmetics and boons and nothing that earns (D31),
 # so an arcade that bleeds a player dry costs them hats, and one that pays over 1.0 makes
 # spinning strictly better than any other use of the currency. Near-even, with the fun on top.
+#
+# Every figure below is at the lowest stake. A higher stake multiplies the Dollars wedges and
+# nothing else (`ArcadeGame.STAKES`), so the 0.905 holds on every rung and the boost and the
+# Bones are worth relatively less the more you bet — never more.
 
 const COST := 25.0
 const SMALL := 10.0     ## 0.4x the spin, and eight of the nineteen weights.
@@ -95,6 +99,13 @@ const KIND_BOOST := &"boost"
 const KIND_GARNISH := &"garnish"
 const KIND_NOTHING := &"nothing"
 
+## The legend's lines. Wedges of one family share a line and add their odds together.
+const FAMILY_CASH := &"cash"
+const FAMILY_JACKPOT := &"jackpot"
+const FAMILY_BOOST := &"boost"
+const FAMILY_BONES := &"bones"
+const FAMILY_NOTHING := &"nothing"
+
 ## One wedge: what it pays, how wide it is, and how it is printed. `start` and `span` are
 ## derived from `weight` in `_build_ring()` — the picture and the odds come off the same
 ## number, which is the whole reason a wheel is an honest machine.
@@ -107,12 +118,13 @@ class Wedge extends RefCounted:
 	var glyph: StringName = &"cross"
 	## The mark's colour on the wedge itself.
 	var ink := Color.BLACK
-	## The legend line this wedge belongs to, and that line's colour on the sunk well.
+	## The legend line this wedge belongs to, and that line's colour on the sunk stage.
 	## Wedges sharing a family share a row, and the row's odds are their weights added up.
-	var family := ""
+	## An id rather than the printed words: the words carry Dollars, which follow the stake.
+	var family: StringName = &""
 	var family_ink := Color.BLACK
+	## At the lowest stake. `_prize_for()` multiplies by the stake the spin was paid at.
 	var dollars := 0.0
-	var caption := ""
 	## Played on top of the page's own reaction. Only the jackpot has one.
 	var sound: StringName = &""
 	var start := 0.0
@@ -123,10 +135,13 @@ class Wedge extends RefCounted:
 class LegendRow extends RefCounted:
 	var glyph: StringName = &"cross"
 	var ink := Color.BLACK
-	var text := ""
+	var family: StringName = &""
 	var weight := 0.0
+	## The printed line, rewritten when the stake moves.
+	var label: Label = null
 
 var _wedges: Array[Wedge] = []
+var _legend: Array[LegendRow] = []
 var _total_weight := 0.0
 
 var _face: Control = null
@@ -141,9 +156,10 @@ func _init() -> void:
 	display_name = "The Wheel"
 	blurb = "One press, one wedge. The odds are the wedge widths, so you can count them."
 	mark = &"star"
+	accent = &"gold"
 	play_caption = "Spin"
 	cost = COST
-	body_height = 270
+	body_height = FACE
 	_build_ring()
 
 # --- the ring --------------------------------------------------------------
@@ -189,7 +205,7 @@ func _cash(weight: float, amount: float) -> Wedge:
 	var rare := amount >= BIG
 	wedge.fill = UIStyle.DOLLARS if rare else UIStyle.PANEL
 	wedge.ink = UIStyle.PANEL if rare else UIStyle.DOLLARS
-	wedge.family = "%s / %s" % [UIStyle.format_amount(SMALL), UIStyle.format_amount(BIG)]
+	wedge.family = FAMILY_CASH
 	wedge.family_ink = UIStyle.DOLLARS
 	return wedge
 
@@ -201,9 +217,8 @@ func _jackpot(weight: float) -> Wedge:
 	wedge.glyph = &"star"
 	wedge.fill = UIStyle.HEARTS
 	wedge.ink = UIStyle.PANEL
-	wedge.family = UIStyle.format_amount(JACKPOT)
+	wedge.family = FAMILY_JACKPOT
 	wedge.family_ink = UIStyle.HEARTS
-	wedge.caption = "Jackpot! +%s Dollars" % UIStyle.format_amount(JACKPOT)
 	wedge.sound = &"jackpot"
 	return wedge
 
@@ -216,7 +231,7 @@ func _boost(weight: float) -> Wedge:
 	# timed multiplier is a few minutes of. It is the one wedge that pays in time.
 	wedge.fill = UIStyle.TEAL
 	wedge.ink = UIStyle.PANEL
-	wedge.family = "x%d for %dm" % [int(BOOST_MULT), int(BOOST_SECONDS / 60.0)]
+	wedge.family = FAMILY_BOOST
 	wedge.family_ink = UIStyle.TEAL
 	return wedge
 
@@ -227,7 +242,7 @@ func _garnish(weight: float) -> Wedge:
 	wedge.glyph = &"bone"
 	wedge.fill = UIStyle.BONES
 	wedge.ink = UIStyle.PANEL
-	wedge.family = "Bones"
+	wedge.family = FAMILY_BONES
 	wedge.family_ink = UIStyle.BONES
 	return wedge
 
@@ -238,7 +253,7 @@ func _nothing(weight: float) -> Wedge:
 	wedge.glyph = &"cross"
 	wedge.fill = UIStyle.SUNK
 	wedge.ink = UIStyle.TEXT
-	wedge.family = "Nothing"
+	wedge.family = FAMILY_NOTHING
 	wedge.family_ink = UIStyle.TEXT_DIM
 	return wedge
 
@@ -264,10 +279,10 @@ func _build_body(host: VBoxContainer) -> void:
 	_face.draw.connect(_draw_wheel)
 	row.add_child(_face)
 
-	# The wheel is 262px in a well over 600 wide, so the legend costs nothing but
-	# horizontal space that was already spare. Every string in it is short on purpose: this
-	# page's widest declared minimum is the intro paragraph at 320, and a legend that grew
-	# past it would widen the card for every other page in the shell.
+	# The wheel is 262px on a stage over 600 wide, so its legend — the wheel's own printed
+	# odds, which is why it is on the stage beside it rather than down in the paytable — costs
+	# nothing but horizontal space that was already spare. Every string in it is short on
+	# purpose: a legend that grew past the stage would widen the card for every page.
 	var legend := VBoxContainer.new()
 	legend.name = "WheelLegend"
 	legend.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -275,10 +290,11 @@ func _build_body(host: VBoxContainer) -> void:
 	legend.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	legend.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(legend)
-	for entry in _legend_rows():
+	_legend = _legend_rows()
+	for entry in _legend:
 		legend.add_child(_build_legend_row(entry))
 
-	# A resting line, so the readout says something before the first spin — and it says the
+	# A resting line, so the display says something before the first spin — and it says the
 	# one number a player wants before they hand over 25 Dollars.
 	say("%d%% of the ring pays nothing." % _percent(_weight_of(KIND_NOTHING)))
 
@@ -294,11 +310,32 @@ func _legend_rows() -> Array[LegendRow]:
 		var row := LegendRow.new()
 		row.glyph = wedge.glyph
 		row.ink = wedge.family_ink
-		row.text = wedge.family
+		row.family = wedge.family
 		row.weight = wedge.weight
 		seen[wedge.family] = row
 		rows.append(row)
 	return rows
+
+## A legend line's words at the current stake. The Dollars follow it; the boost and the Bones
+## do not, because neither is sized by the stake (D32, `ArcadeGame.STAKES`).
+func _family_text(family: StringName) -> String:
+	var times := float(stake_multiple())
+	match family:
+		FAMILY_CASH:
+			return "%s / %s" % [UIStyle.format_amount(SMALL * times),
+				UIStyle.format_amount(BIG * times)]
+		FAMILY_JACKPOT:
+			return UIStyle.format_amount(JACKPOT * times)
+		FAMILY_BOOST:
+			return "x%d for %dm" % [int(BOOST_MULT), int(BOOST_SECONDS / 60.0)]
+		FAMILY_BONES:
+			return "Bones"
+	return "Nothing"
+
+func _stake_changed() -> void:
+	for entry in _legend:
+		if entry.label:
+			entry.label.text = _family_text(entry.family)
 
 func _build_legend_row(entry: LegendRow) -> Control:
 	var line := HBoxContainer.new()
@@ -312,10 +349,11 @@ func _build_legend_row(entry: LegendRow) -> Control:
 	# Three of the five rows are figures and the odds column is figures throughout, so the
 	# whole legend is set in the display face rather than mixing two faces down one column —
 	# the body face draws 5 as a rounded form that reads as an 8.
-	var what := UIStyle.label(entry.text, UIStyle.LABEL, entry.ink)
+	var what := UIStyle.label(_family_text(entry.family), UIStyle.LABEL, entry.ink)
 	what.theme_type_variation = &"Numeral"
 	what.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	line.add_child(what)
+	entry.label = what
 
 	var odds := UIStyle.label("%d%%" % _percent(entry.weight), UIStyle.LABEL, UIStyle.TEXT_DIM)
 	odds.theme_type_variation = &"Numeral"
@@ -386,9 +424,14 @@ func _finish(wedge: Wedge) -> void:
 func _prize_for(wedge: Wedge) -> ArcadeGame.Prize:
 	match wedge.kind:
 		KIND_DOLLARS:
-			return prize_dollars(wedge.dollars, wedge.caption)
+			# The table is written at the lowest stake and scaled by the one this spin was paid
+			# at, so the odds and the return per Dollar are the same on every rung.
+			var won := wedge.dollars * float(stake_multiple())
+			if wedge.family == FAMILY_JACKPOT:
+				return prize_dollars(won, "Jackpot! +%s Dollars" % UIStyle.format_amount(won))
+			return prize_dollars(won)
 		KIND_BOOST:
-			return prize_boost(BOOST_ID, BOOST_MULT, BOOST_SECONDS, wedge.caption)
+			return prize_boost(BOOST_ID, BOOST_MULT, BOOST_SECONDS)
 		KIND_GARNISH:
 			# Read at report time, not at build time: the cap is anchored to acts at the
 			# player's *current* multipliers, so a garnish is worth about ten seconds of play
@@ -443,7 +486,7 @@ func _flick() -> float:
 
 func _draw_wheel() -> void:
 	var box := _face.size
-	# Height is what the wheel is short of — the well reserves `FACE` and the card is much
+	# Height is what the wheel is short of — the stage reserves `FACE` and the card is much
 	# wider than that — so the pointer's headroom comes out of the vertical measurement only.
 	var radius := minf(box.x * 0.5, (box.y - POINTER_REACH) * 0.5) - 1.0
 	if radius < 8.0:

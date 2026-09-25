@@ -96,6 +96,7 @@ func _ready() -> void:
 	await _the_hud_calls_for_rebirth()
 	await _the_wardrobe_is_on_the_arcade_page()
 	await _the_arcade_is_one_room_at_a_time()
+	await _the_stake_is_a_stepper()
 	await _the_backdrop_is_a_choice()
 	await _the_jobs_tab_wears_a_badge()
 	await _the_purse_can_count_high()
@@ -934,20 +935,27 @@ func _the_wardrobe_is_on_the_arcade_page() -> void:
 	_check("the arcade has a wardrobe", list != null)
 	if list == null:
 		return
-	_check("with a row per cosmetic (%d)" % ItemDB.all_cosmetics().size(),
-		list.get_child_count() == ItemDB.all_cosmetics().size())
+	# A key per cosmetic on the rails (D58: a stage of swatches and a deck for the one you
+	# picked, where it used to be a list of ten tall rows that scrolled off the card).
+	var keys: Array[Button] = []
+	for node in _all_nodes(list):
+		if node is Button and String(node.name).begins_with("Swatch_"):
+			keys.append(node)
+	_check("with a key per cosmetic (%d of %d)" % [keys.size(), ItemDB.all_cosmetics().size()],
+		keys.size() == ItemDB.all_cosmetics().size())
 	var worn := 0
 	var priced := 0
 	for node in _all_nodes(list):
-		if node is Button:
-			var text := (node as Button).text
+		if node is Label and (node as Label).is_visible_in_tree():
+			var text := (node as Label).text
 			if text == "Worn":
 				worn += 1
-			elif text != "Wear":
+			elif text != "Owned" and text.strip_edges() != "" and text[0].is_valid_int():
 				priced += 1
 	_check("the free finish is worn by default", worn >= 1)
 	_check("and the rest are priced", priced >= 5)
-	# Buy the cheapest priced finish with exactly its price and it is worn at once.
+	# Buy the cheapest priced finish with exactly its price and it is worn at once: click its
+	# swatch to choose it, then the deck's key.
 	var cheapest: CosmeticData = null
 	for cosmetic in ItemDB.all_cosmetics():
 		if not cosmetic.is_free() and not Economy.owns_cosmetic(cosmetic.id) \
@@ -958,11 +966,22 @@ func _the_wardrobe_is_on_the_arcade_page() -> void:
 		var page := _find(_main, "ArcadePanel")
 		page.call("request_refresh")
 		await _settle()
-		var button: Button = (page.get("_wardrobe_rows") as Dictionary)[cheapest.id]["button"]
-		await _scroll_into_view(button)
-		await _click(_centre_of(button))
+		var swatch: Button = (page.get("_wardrobe_rows") as Dictionary)[cheapest.id]["key"]
+		await _scroll_into_view(swatch)
+		await _click(_centre_of(swatch))
 		await _settle()
-		_check("clicking its price buys it and he wears it", Economy.is_wearing(cheapest.id))
+		_check("clicking a swatch chooses it", page.get("_wardrobe_selected") == cheapest.id
+			and swatch.button_pressed)
+		_check("and nothing is bought by choosing", not Economy.owns_cosmetic(cheapest.id))
+		var action := _find(page, "WardrobeAction") as Button
+		_check("the deck's key carries its price", action != null
+			and action.text == UIStyle.format_amount(float(cheapest.price_dollars)))
+		if action:
+			await _scroll_into_view(action)
+			await _click(_centre_of(action))
+			await _settle()
+		_check("clicking the deck's key buys it and he wears it", Economy.is_wearing(cheapest.id))
+		_check("and the key says so", action != null and action.text == "Worn" and action.disabled)
 	panels.call("close")
 	await _settle()
 
@@ -1796,17 +1815,58 @@ func _the_arcade_is_one_room_at_a_time() -> void:
 		var view := rooms[id]["view"] as Control
 		_check("%s: the view has a size" % id, view.size.x > 100.0 and view.size.y > 60.0,
 			str(view.size))
-	# Every machine's well is the same height, so the footer never moves between rooms.
-	var wells: Array[float] = []
+	# Every room is a cabinet (D58): marquee, stage, paytable, deck, in that order, and every
+	# room's stage is the same height — so the deck, and the key on it, never moves between
+	# rooms. This was "every machine's well"; the wardrobe and the back room are held to it
+	# now too.
+	var stages: Array[float] = []
+	var decks: Array[float] = []
+	var host := panels.get("_host") as ScrollContainer
 	for id in ids:
-		var well := _find(rooms[id]["view"], "Well")
-		if well:
-			wells.append((well as Control).size.y)
-	_check("three machine wells (%d)" % wells.size(), wells.size() == 3)
-	if wells.size() == 3:
-		_check("all the same height", absf(wells[0] - wells[1]) < 1.0 and absf(wells[1] - wells[2]) < 1.0,
-			str(wells))
-		_check("and tall enough to be a stage (%.0f)" % wells[0], wells[0] >= 280.0)
+		var view := rooms[id]["view"] as Control
+		arcade.call("show_room", id)
+		# The back room scrolls to reach its second cabinet, and the card keeps whatever a
+		# suite above left it scrolled to — so every room is measured from the top.
+		if host:
+			host.scroll_vertical = 0
+		await _settle()
+		var cabinet := (view if view is Cabinet else _first_cabinet(view)) as Cabinet
+		_check("%s is a cabinet" % id, cabinet != null)
+		if cabinet == null:
+			continue
+		var order: Array[String] = []
+		for section in cabinet.sections.get_children():
+			order.append(String(section.name))
+		_check("%s: marquee, stage, paytable, deck" % id,
+			order == ["Marquee", "Stage", "OddsStrip", "Deck"], ", ".join(order))
+		_check("%s: the marquee is lit in its own colour" % id,
+			cabinet.marquee.theme_type_variation == UIStyle.marquee_variation(cabinet.accent))
+		_check("%s: and its key on the strip matches" % id,
+			(rooms[id]["tab"] as Button).theme_type_variation
+				== UIStyle.room_tab_variation(cabinet.accent))
+		stages.append(cabinet.stage.size.y)
+		decks.append(UIScale.screen_rect(cabinet.deck).position.y)
+		# The page-wide readable sweep only ever sees whichever room is open, so each room is
+		# graded here, where it is on screen — the marquees above all, whose ink sits on a
+		# colour nothing else in the shell is printed on.
+		var unreadable: Array[String] = []
+		for node in _all_nodes(view):
+			var label := node as Label
+			if label == null or not label.is_visible_in_tree() or label.text.strip_edges() == "":
+				continue
+			var ratio := UIStyle.contrast(label.get_theme_color("font_color"), _surface_behind(label))
+			if ratio < 4.5:
+				unreadable.append("%s \"%s\" %.2f:1" % [label.name, label.text.substr(0, 18), ratio])
+		_check("%s: every word is legible where it sits" % id, unreadable.is_empty(),
+			", ".join(unreadable))
+	_check("five cabinets (%d)" % stages.size(), stages.size() == 5)
+	if stages.size() == 5:
+		var level := true
+		for i in stages.size():
+			level = level and absf(stages[i] - stages[0]) < 1.0 and absf(decks[i] - decks[0]) < 1.0
+		_check("every stage is one height and every deck on one line", level,
+			"stages %s, decks %s" % [str(stages), str(decks)])
+		_check("and tall enough to be a stage (%.0f)" % stages[0], stages[0] >= float(Cabinet.STAGE))
 	# The rebirth page's own flag follows the room, not just the card (D28).
 	var prestige := _find(_main, "PrestigePanel") as Control
 	arcade.call("show_room", &"rebirth")
@@ -1815,6 +1875,99 @@ func _the_arcade_is_one_room_at_a_time() -> void:
 	arcade.call("show_room", ids[0])
 	await _settle()
 	_check("machine room: the prestige page is not", prestige != null and not prestige.visible)
+	panels.call("close")
+	await _settle()
+
+func _first_cabinet(root: Node) -> Cabinet:
+	for node in _all_nodes(root):
+		if node is Cabinet:
+			return node
+	return null
+
+## The stake is a stepper on the deck (D58). What it may change is decided: every Dollars
+## prize scales with it, a garnish and a boost do not (D32 caps both by acts and minutes, not
+## by the bet), the page charges exactly the stake, and it cannot move while a play is running
+## — the stake a hand was dealt at is the stake it is paid at.
+func _the_stake_is_a_stepper() -> void:
+	_suite("stake")
+	var panels := _find(_main, "PanelLayer")
+	var arcade := _find(_main, "ArcadePanel")
+	if panels == null or arcade == null:
+		_check("the arcade page exists", false)
+		return
+	panels.call("show_panel", &"arcade")
+	arcade.call("show_room", &"spin_wheel")
+	await _settle()
+	var machines: Array = arcade.get("_machines")
+	var wheel_machine: Dictionary = machines[0]
+	var wheel := wheel_machine["game"] as ArcadeGame
+	var more := wheel_machine["more"] as Button
+	var less := wheel_machine["less"] as Button
+	var price := wheel_machine["price"] as Label
+	_check("the wheel opens at its lowest stake", wheel.stake() == wheel.cost
+		and price.text == UIStyle.format_amount(wheel.cost), price.text)
+	_check("where only + is live", less.disabled and not more.disabled)
+	await _click(_centre_of(more))
+	await _settle()
+	_check("clicking + doubles it", is_equal_approx(wheel.stake(), wheel.cost * 2.0)
+		and price.text == UIStyle.format_amount(wheel.cost * 2.0), price.text)
+	var cabinet := wheel_machine["cabinet"] as Cabinet
+	_check("and the legend's Dollars follow it",
+		_label_containing("%s / %s" % [UIStyle.format_amount(WheelGame.SMALL * 2.0),
+			UIStyle.format_amount(WheelGame.BIG * 2.0)], cabinet) != null)
+	var ring: Array = wheel.get("_wedges")
+	for wedge in ring:
+		var prize: ArcadeGame.Prize = wheel.call("_prize_for", wedge)
+		match wedge.kind:
+			WheelGame.KIND_DOLLARS:
+				_check("a %s wedge pays twice its table at x2" % wedge.family,
+					is_equal_approx(prize.amount, wedge.dollars * 2.0))
+			WheelGame.KIND_BOOST:
+				_check("the boost does not scale with the stake",
+					is_equal_approx(prize.multiplier, WheelGame.BOOST_MULT)
+						and is_equal_approx(prize.seconds, WheelGame.BOOST_SECONDS))
+			WheelGame.KIND_GARNISH:
+				_check("nor does the Bones garnish", is_equal_approx(prize.amount,
+					ArcadeGame.garnish_cap(Economy.BONES) * WheelGame.GARNISH_SHARE))
+	await _click(_centre_of(less))
+	await _settle()
+	_check("clicking - brings it back down", wheel.stake() == wheel.cost)
+
+	# A hand in play freezes the stake, and the deal charges exactly what the deck said.
+	arcade.call("show_room", &"blackjack")
+	await _settle()
+	var table_machine: Dictionary = machines[2]
+	var table := table_machine["game"] as ArcadeGame
+	await _click(_centre_of(table_machine["more"] as Button))
+	await _settle()
+	var stake := table.stake()
+	Economy.grant(Economy.DOLLARS, stake * 3.0)
+	await _settle()
+	var before := Economy.balance_of(Economy.DOLLARS)
+	await _click(_centre_of(table_machine["play"] as Button))
+	await _settle()
+	_check("dealing charges the stake (%s)" % UIStyle.format_amount(stake),
+		is_equal_approx(before - Economy.balance_of(Economy.DOLLARS), stake))
+	_check("and the stepper is dead for the hand", table.is_busy()
+		and (table_machine["more"] as Button).disabled
+		and (table_machine["less"] as Button).disabled)
+	await _click(_centre_of(table_machine["less"] as Button))
+	_check("a click on it changes nothing", is_equal_approx(table.stake(), stake))
+	# Play the hand out: stand as soon as it is the player's turn, then wait for the money.
+	# Waited on the clock, not on frames — the cards are dealt by tweens with real intervals,
+	# and a headless frame is far shorter than a sixtieth of a second.
+	var stand := _find(table_machine["cabinet"], "Stand") as Button
+	for i in 80:
+		if not table.is_busy():
+			break
+		if stand and not stand.disabled:
+			await _click(_centre_of(stand))
+		await get_tree().create_timer(0.1).timeout
+	_check("the hand settles", not table.is_busy())
+	await _settle()
+	_check("and the stepper comes back", not (table_machine["less"] as Button).disabled)
+	await _click(_centre_of(table_machine["less"] as Button))
+	await _settle()
 	panels.call("close")
 	await _settle()
 

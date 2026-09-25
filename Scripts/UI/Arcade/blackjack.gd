@@ -49,13 +49,15 @@ const BLACKJACK_PAYS := 1.5
 #
 # Every colour below still comes from `UIStyle`, so the contrast grid already grades them.
 
-const CARD_W := 60
-const CARD_H := 92
-const CARD_GAP := 10
-## The rank is set in the hero size and the pip boxed to twice the glyph: a 60x92 card with a
-## 20px rank and a 16px pip is a big card wearing a small card's face.
+## Two hands of these stack to fill the stage (D58): the table used to be two rows of 60x92
+## cards along the top of a well that was mostly empty felt.
+const CARD_W := 80
+const CARD_H := 124
+const CARD_GAP := 12
+## The rank is set in the hero size and the pip boxed to three times the glyph: an 80x124 card
+## with a 20px rank and a 16px pip is a big card wearing a small card's face.
 const RANK_SIZE := UIStyle.HERO
-const PIP_BOX := 32
+const PIP_BOX := 48
 
 # --- timing ----------------------------------------------------------------
 #
@@ -101,16 +103,44 @@ func _init() -> void:
 	blurb = "Six decks, dealer stands on 17. A natural pays 3:2 and a push hands the stake back."
 	# `scroll` is the only mark in the glyph set shaped like a rectangle of card stock.
 	mark = &"scroll"
+	accent = &"wine"
 	play_caption = "Deal"
 	cost = 20.0
-	# Two hands of cards, their readings, and the two keys — sized for the busiest frame,
-	# because a cabinet that changes height mid-hand moves the page under the cursor.
-	body_height = 270
+	# Two hands of cards and their readings — sized for the busiest frame, because a cabinet
+	# that changes height mid-hand moves the page under the cursor.
+	body_height = Cabinet.STAGE
 
 # --- the cabinet -----------------------------------------------------------
 
+## Hit and Stand live on the deck, beside Deal. They used to sit on the table while Deal sat
+## outside it on the page's footer — the one machine whose controls were in two places.
+func _build_deck(cabinet: Cabinet) -> void:
+	_hit = _build_key("Hit", _on_hit)
+	cabinet.deck.add_child(_hit)
+	_stand = _build_key("Stand", _on_stand)
+	cabinet.deck.add_child(_stand)
+
+## The rules as the paytable. What is left in the shoe is stated with them: the machine
+## shuffles a real shoe rather than rolling an independent card each time, so the composition
+## genuinely changes as cards come out — and a player who counts is right. Hiding the count
+## would make the honesty pointless.
+func _build_odds(cabinet: Cabinet) -> void:
+	# An ordinary win is the one line nobody needs printed; it is also the line that would not
+	# fit on the 640px play area, so it is the one that went.
+	cabinet.add_odds(&"star", "Blackjack", UIStyle.DOLLARS, "3:2")
+	cabinet.add_odds(&"", "Push", UIStyle.TEXT, "stake back")
+	cabinet.add_odds(&"", "Dealer stands", UIStyle.TEXT, str(DEALER_STANDS_ON))
+	var shoe := cabinet.add_odds(&"", "Shoe", UIStyle.TEXT, "")
+	shoe.name = "Shoe"
+	shoe.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	shoe.alignment = BoxContainer.ALIGNMENT_END
+	_shoe_label = UIStyle.label("", UIStyle.LABEL, UIStyle.TEXT_DIM)
+	_shoe_label.theme_type_variation = &"Numeral"
+	_shoe_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	shoe.add_child(_shoe_label)
+
 func _build_body(host: VBoxContainer) -> void:
-	host.add_theme_constant_override("separation", 4)
+	host.add_theme_constant_override("separation", 8)
 
 	var dealer := _build_side(host, "Dealer", true)
 	_dealer_row = dealer["row"]
@@ -118,32 +148,16 @@ func _build_body(host: VBoxContainer) -> void:
 	var player := _build_side(host, "Player", false)
 	_player_row = player["row"]
 	_player_total = player["total"]
-
-	var controls := HBoxContainer.new()
-	controls.name = "Controls"
-	controls.add_theme_constant_override("separation", 6)
-	host.add_child(controls)
-
-	# What is left in the shoe, stated. The machine shuffles a real shoe rather than rolling
-	# an independent card each time, so the composition genuinely changes as cards come out
-	# — and a player who counts is right. Hiding the count would make the honesty pointless.
-	_shoe_label = UIStyle.eyebrow("")
-	_shoe_label.name = "Shoe"
-	_shoe_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_shoe_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	controls.add_child(_shoe_label)
-
-	_hit = _build_key("Hit", _on_hit)
-	controls.add_child(_hit)
 	# Hovering Hit lifts the hand it would add a card to, the way hovering a price lifts the
 	# shop tile it belongs to. `scale`, which is a Container's child's to give away.
-	UIMotion.hook(_hit, _player_row)
-	_stand = _build_key("Stand", _on_stand)
-	controls.add_child(_stand)
+	if _hit:
+		UIMotion.hook(_hit, _player_row)
 
 	_build_shoe()
 	_set_actions(false)
 	_repaint()
+	# A resting line, so the display says something before the first hand.
+	say("Stake down, then deal.")
 
 ## One side of the table: its name and reading in a column, its cards beside them.
 ##
@@ -184,20 +198,12 @@ func _build_side(host: VBoxContainer, caption: String, is_dealer: bool) -> Dicti
 
 	return {"row": row, "total": total}
 
-## Hit and Stand.
-##
-## `BuyButton`, not the `GhostButton` a quiet secondary action would normally take, and the
-## reason is height rather than loudness: `GhostButton` defines no `disabled` stylebox, so a
-## disabled one falls through to the base Button's, which is six pixels taller — and these
-## two spend most of the hand disabled. `_key` and `_key_pressed` are the same height by
-## construction, so a BuyButton is the same size in every state it has.
+## Hit and Stand: deck keys, the same variation and height as Deal beside them, so the deck is
+## one row of keys the same size in every state they have. They spend most of a hand disabled,
+## which is why the deck's key keeps a solid rule when it is (D58).
 func _build_key(caption: String, handler: Callable) -> Button:
-	var key := UIStyle.button(caption, UIStyle.LABEL)
+	var key := Cabinet.key(caption, 84)
 	key.name = caption
-	key.theme_type_variation = &"BuyButton"
-	# Wide enough for the disabled box's fatter margins as well as the resting one's, so the
-	# row does not shuffle sideways every time the hand changes hands.
-	key.custom_minimum_size = Vector2(120, 40)
 	key.pressed.connect(handler)
 	return key
 
@@ -323,20 +329,20 @@ func _settle() -> void:
 	if player > 21:
 		report(prize_nothing("Bust on %d" % player))
 	elif natural and not dealer_natural:
-		report(prize_dollars(cost * (1.0 + BLACKJACK_PAYS), "Blackjack pays 3:2"))
+		report(prize_dollars(stake() * (1.0 + BLACKJACK_PAYS), "Blackjack pays 3:2"))
 	elif dealer_natural and not natural:
 		# A natural beats a made twenty-one as well as everything under it.
 		report(prize_nothing("Dealer's blackjack"))
 	elif dealer > 21:
-		report(prize_dollars(cost * 2.0, "Dealer bust on %d" % dealer))
+		report(prize_dollars(stake() * 2.0, "Dealer bust on %d" % dealer))
 	elif player > dealer:
-		report(prize_dollars(cost * 2.0, "%d beats %d" % [player, dealer]))
+		report(prize_dollars(stake() * 2.0, "%d beats %d" % [player, dealer]))
 	elif player < dealer:
 		report(prize_nothing("%d loses to %d" % [player, dealer]))
 	else:
 		# A push is not a win, but the stake has already left the purse and the only way to
 		# hand it back is to pay it back — so it is a Dollars prize of exactly the stake.
-		report(prize_dollars(cost, "Push on %d" % player))
+		report(prize_dollars(stake(), "Push on %d" % player))
 
 # --- cards -----------------------------------------------------------------
 
@@ -422,7 +428,7 @@ func _repaint() -> void:
 	_player_row.queue_redraw()
 	_dealer_total.text = _dealer_reading()
 	_player_total.text = _reading(_player)
-	_shoe_label.text = ("Shoe %d" % _shoe.size()).to_upper()
+	_shoe_label.text = str(_shoe.size())
 
 ## A hand's reading. A soft hand is printed as both of its values — "7/17" — because "17"
 ## alone hides the one fact that decides how it is played, and the two readings fit the
