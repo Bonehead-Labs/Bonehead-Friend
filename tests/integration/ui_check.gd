@@ -104,6 +104,7 @@ func _ready() -> void:
 	await _the_payouts_are_visible()
 	await _the_big_numbers_dodge_the_hud()
 	await _the_numbers_keep_apart()
+	await _numbers_leave_without_a_ghost()
 	await _the_hud_reads_on_any_desk()
 	await _the_power_leaves_your_hands_free()
 	await _the_world_has_juice()
@@ -1219,14 +1220,79 @@ func _the_numbers_keep_apart() -> void:
 		and banner != null and _drawn_rect(banner).end.y <= _drawn_rect(headline).position.y + 0.5)
 	var coins_behind := true
 	for child in fx.get_children():
-		var coin := child as Label
-		if coin and coin.visible and coin.text.begins_with("+") and headline 				and coin.z_index >= headline.z_index:
+		var coin := child as Sprite2D
+		if coin and coin.visible and headline and coin.z_index >= headline.z_index:
 			coins_behind = false
 	_check("and the fountain's coins draw behind the lines", coins_behind)
 	await _apart_for_life(fx, "the knockout's lines")
 
 	Settings.focus_intensity = saved
 	await _quiet_numbers(fx)
+
+## Nothing on the FX layer is ever drawn part-transparent (D68). A number used to fade out over
+## the second half of its life, and over a flat backdrop — the chroma green a streamer keys out —
+## a half-transparent number is a grey ghost of itself, on every hit. Numbers now leave by
+## drawing in to their centre, and the fountain is coins that do the same. Watched frame by frame
+## through a payout's whole life and then a whole fountain.
+func _numbers_leave_without_a_ghost() -> void:
+	_suite("no ghosts")
+	var fx := _find(_main, "FXLayer")
+	if fx == null:
+		_check("the FX layer is present to test", false)
+		return
+	var saved := Settings.focus_intensity
+	Settings.focus_intensity = Settings.Intensity.NORMAL
+	await _quiet_numbers(fx)
+	Economy._streak_deadline_msec = 0
+
+	EventBus.payout.emit(Economy.BONES, 4800.0, Vector2(VIEW_SIZE) * 0.5, &"baseball_bat")
+	var payout := await _watch_leaving(fx, FXLayer.LIFETIME + 0.15)
+	_check("a payout number is drawn at full strength for its whole life (faintest %.2f)"
+		% payout["faintest"], payout["seen"] >= 1 and payout["faintest"] >= 0.999,
+		"%d watched" % payout["seen"])
+	_check("and leaves by drawing in, not by vanishing", payout["popped"].is_empty(),
+		", ".join(payout["popped"]))
+
+	await _quiet_numbers(fx)
+	fx.call("_on_knockout_payout", 12345.0)
+	fx.call("_on_buddy_state_changed", &"pile")
+	var fountain := await _watch_leaving(fx, FXLayer.ARC_LIFETIME + FXLayer.ARC_STAGGER * 16.0 + 0.15)
+	_check("the knockout's fountain is coins, not ten copies of one number (%d coins)"
+		% fountain["coins"], fountain["coins"] >= 5)
+	_check("and the headline and every coin are drawn at full strength (faintest %.2f)"
+		% fountain["faintest"], fountain["faintest"] >= 0.999)
+	_check("and each of them leaves by drawing in", fountain["popped"].is_empty(),
+		", ".join(fountain["popped"]))
+	Settings.focus_intensity = saved
+	await _quiet_numbers(fx)
+
+## Samples every frame for `seconds`: the faintest alpha any visible number or coin was drawn at,
+## and which of them were still more than a third of their size on their last visible frame.
+func _watch_leaving(fx: Node, seconds: float) -> Dictionary:
+	var faintest := 1.0
+	var last_scale := {}
+	var peak_scale := {}
+	var coins := {}
+	var until := Time.get_ticks_msec() + int(seconds * 1000.0)
+	while Time.get_ticks_msec() < until:
+		await get_tree().process_frame
+		for child in fx.get_children():
+			if not (child is Label or child is Sprite2D) or not (child as CanvasItem).visible:
+				continue
+			faintest = minf(faintest, _drawn_alpha(child as CanvasItem))
+			var s: float = (child as Control).scale.x if child is Control else (child as Node2D).scale.x
+			last_scale[child] = s
+			peak_scale[child] = maxf(float(peak_scale.get(child, 0.0)), s)
+			if child is Sprite2D:
+				coins[child] = true
+	var popped: Array[String] = []
+	for item in last_scale:
+		if (item as CanvasItem).visible:
+			continue
+		if float(last_scale[item]) > float(peak_scale[item]) / 3.0:
+			popped.append("%s at %.2f of %.2f" % [item.name, last_scale[item], peak_scale[item]])
+	return {"faintest": faintest, "seen": last_scale.size(), "coins": coins.size(),
+		"popped": popped}
 
 func _visible_label(fx: Node, prefix: String) -> Label:
 	for child in fx.get_children():
