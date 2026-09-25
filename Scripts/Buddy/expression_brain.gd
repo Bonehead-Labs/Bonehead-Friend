@@ -236,6 +236,25 @@ const ROWS := {
 	&"riding": {"face": &"blissful", "tag": &"happy",
 		"motion": &"wiggle", "seconds": 1.2, "priority": REACTION, "gate": GATE_REACTIVE,
 		"sound": &"giggle"},
+	# --- K: the supernatural powers (D72) ---
+	# Taken from anywhere by telekinesis: he dangles in the grip and kicks. A hold the spell
+	# refreshes while it has him, so it lapses a moment after the hand lets go.
+	&"seized": {"face": &"shocked", "tag": &"dragged", "fallback": &"flinch",
+		"motion": &"kick", "seconds": 1.0, "priority": REACTION, "gate": GATE_REACTIVE,
+		"hold": true, "refresh": 0.6},
+	# Stopped in time: his whole body stands still — speed 0 — shocked. A reaction, so the
+	# blows landing when time catches up (a hit, or the heavy blow below) take over from it.
+	&"time_frozen": {"face": &"shocked", "tag": &"",
+		"motion": &"", "seconds": 1.0, "priority": REACTION, "gate": GATE_REACTIVE,
+		"hold": true, "refresh": 0.8, "speed": 0.0},
+	# Under the blessing's halo: calm, bliss, a slow bob.
+	&"blessed": {"face": &"blissful", "tag": &"relax", "fallback": &"idle_happy",
+		"motion": &"slow_bob", "seconds": 1.0, "priority": REACTION, "gate": GATE_REACTIVE,
+		"hold": true, "refresh": 1.0, "speed": 0.7},
+	# Floating on nothing, asleep.
+	&"levitating": {"face": &"asleep", "tag": &"sleep", "fallback": &"idle_happy",
+		"motion": &"slow_bob", "seconds": 1.0, "priority": REACTION, "gate": GATE_REACTIVE,
+		"hold": true, "refresh": 1.0, "speed": 0.5, "sound": &"yawn"},
 	# --- H: ambient ---
 	&"blink": {"face": &"asleep", "tag": &"",
 		"motion": &"", "seconds": 0.12, "priority": AMBIENT, "gate": GATE_SUBTLE},
@@ -264,6 +283,16 @@ const FIDGET_ROWS := {
 	&"clacking": &"calmed",
 	&"yoyo_trick": &"impressed",
 	&"ride": &"riding",
+	# The supernatural powers (D72) speak through the same signal a toy does. Time catching up
+	# is one heavy blow on his face, not the flinch of each of the ten hits it lands at once.
+	&"seized": &"seized",
+	&"time_stopped": &"time_frozen",
+	&"time_resumed": &"hit_heavy",
+	&"time_thawed": &"meter_reset",
+	&"blessed": &"blessed",
+	&"levitating": &"levitating",
+	&"rainbow_ride": &"riding",
+	&"rainbow_landed": &"amused",
 }
 
 ## The face he pulls when hit, by what hit him — keyed on category, not id, so ten entries

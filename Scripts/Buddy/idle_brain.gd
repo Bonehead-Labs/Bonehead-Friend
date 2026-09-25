@@ -967,3 +967,9 @@ func pretend_idle() -> void:
 
 func think_now() -> void:
 	_think()
+
+## The player is doing something to him that is neither a hit nor a pet: a spell holding him up,
+## lifting him or sliding him down a rainbow (D72). The same as picking him up — whatever routine
+## he was in ends on the spot, and his own steering lets go of him.
+func notice_player() -> void:
+	_disturb()

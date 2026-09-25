@@ -808,7 +808,10 @@ func _on_cursor_power_changed(item_id: StringName) -> void:
 	_armed_button.text = "Holding: %s  ·  Esc" % item.display_name
 	UIStyle.set_icon(_armed_button, UIStyle.item_face(item, UIStyle.ICON_CANVAS),
 		UIStyle.ICON_CANVAS)
+	var first_power := not Settings.hint_seen(HINT_CURSOR_POWER)
 	_offer_the_power_hint(item)
+	if not first_power:
+		_offer_the_power_controls(item)
 
 ## Said once, the first time the player equips anything, and never again.
 ##
@@ -824,6 +827,19 @@ func _offer_the_power_hint(item: ItemData) -> void:
 	show_toast("You're holding the %s. Click him to use it — your toys still pick up "
 		% item.display_name
 		+ "as normal. Hold Shift to grab him instead. Esc puts it away.", 12.0)
+
+## How to work a power that is more than a click (D72): its `controls` line, once, the first time
+## it is equipped — the same one-off a toy with gestures gets when it lands (D57). Not on the very
+## first equip of anything, whose toast is the D47 rules and would be replaced by this one; that
+## power's line waits for the next time it is taken out.
+func _offer_the_power_controls(item: ItemData) -> void:
+	if item.controls.is_empty():
+		return
+	var key := StringName(HINT_CONTROLS_PREFIX + String(item.id))
+	if Settings.hint_seen(key):
+		return
+	Settings.mark_hint_seen(key)
+	show_toast("%s: %s" % [item.display_name, item.controls], 10.0)
 
 func _on_armed_pressed() -> void:
 	var spawner := get_tree().get_first_node_in_group(&"item_spawner")
