@@ -1,0 +1,17 @@
+# One bubble off the bubble blaster (D56). Drawn as a ring with a highlight and a hollow
+# middle, so its outline is placed by hand: the automatic pass would fill the middle black.
+# 9 x 9 art px, about a sixth of his height.
+id: bubble_blaster_bubble
+cell: 16
+outline: off
+
+--- main
+..KKKKK..
+.KAAAAAK.
+KAW...PAK
+KAW....AK
+KA.....AK
+KA.....AK
+KAP...PAK
+.KAAAAAK.
+..KKKKK..

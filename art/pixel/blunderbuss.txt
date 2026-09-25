@@ -1,0 +1,21 @@
+# Blunderbuss (D56). Faces right: a wooden stock that runs under the barrel, a flintlock
+# plate, and a brass barrel ending in the bell that makes it a blunderbuss rather than a
+# musket. The bell is a third of the picture, because at icon size anything less is gone.
+# 42 x 13 art px.
+id: blunderbuss
+cell: 64
+
+--- main
+......................................KKKK
+....................................KKYYYK
+.............KKK..................KKYYOOkK
+............KhhKKKKKKKKKKKKKKKKKKKYYOOOOkK
+...........KGhhhYYYYYYYYYYYYYYYYYYYYOOOOkK
+KKKKKKKKKKKKhhhhOOOOOOOOOOOOOOOOOOOOOOOOkK
+KBBBBBBBBBBhHHHHKKKKKKKKKKKKKKKKKKKKOOOOkK
+KbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbK....KKOOkK
+KbbbbbbnnnnnnnnnnnnnnnnnnnnnnnnK......KKKK
+KbbbbnKKKKKKKKKKKKKKKKKKKKKKKKKK..........
+KbbbnnK......Kh.K.........................
+KbbnnnK......KKKK.........................
+KKKKKKK...................................
