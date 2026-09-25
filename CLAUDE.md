@@ -219,6 +219,12 @@ PROJ='C:\Users\George\Godot Projects\Projects\Bonehead_Friend\interactive-buddy-
 "$GODOT" --headless --path "$PROJ" res://tests/integration/toys2_check.tscn
 "$GODOT" --headless --path "$PROJ" res://tests/integration/verbs_check.tscn
 
+# Every held weapon's ability (D74), the cursor powers (D72): each driven with real input and
+# measured. A new ability of an existing archetype is driven automatically; a hook of one brings
+# `_drive_<ability id>` or `_drive_<item id>`, and a new archetype fails by name until it has one.
+"$GODOT" --headless --path "$PROJ" res://tests/integration/ability_check.tscn
+"$GODOT" --headless --path "$PROJ" res://tests/integration/powers_check.tscn
+
 # Every behaviour of his, each on a desk of its own (D60): every ExpressionBrain row caught
 # live off its real signal, every routine toy, movement, knockout, mood, grime, the
 # personalities, the critters and the turrets. ~6.5 min; `-- --quick` does one toy per routine,
@@ -438,6 +444,49 @@ GDScript quirks already paid for once each:
 - **At boot he is still falling in from his spawn point.** A suite stands him up before putting
   a toy "beside him", or the toy spawns in mid-air.
 - **Python on Windows writes CRLF** unless it opens files with `newline='\n'`.
+- **A canvas shader starts from `COLOR`, which is already the texture times the modulate.**
+  `texture(TEXTURE, UV) * COLOR` squares every colour: his headphones drew at (8, 133, 126)
+  instead of the palette's (46, 184, 179) and every upgraded item drew darker than a new one,
+  until D75. `COLOR.a` likewise already carries the texture's alpha. A canvas shader also cannot
+  pass `TEXTURE` to a function — sample it inline.
+- **While the idle brain drives him, his toy and the world are his own play and never billed**
+  (`Buddy.is_own_play`, D70): his idle bouncing minted Bones with nobody at the desk. Anything
+  that moves or holds him without a hit or a pet calls `IdleBrain.notice_player()`, or a routine
+  keeps steering him.
+- **Ask a kind toy whether he is in it with `touches(him)`.** He passes through a soak toy while
+  sitting in it, so `get_colliding_bodies()` says no. To pass him through props, clear his
+  *layer* as well as his mask — two bodies collide if either one scans the other.
+- **Every blast's push is capped at `ExplosionUtil.MAX_BLAST_SPEED`** (D70: a 0.3 kg prop left a
+  black hole at 56,000 px/s); pass a smaller `max_speed` for a slam.
+- **A hold-to-act toy ignores a `Gesture.cancelled` release** — alt-tab mid-draw used to fire the
+  slingshot — and a live gesture listens in `_input` so a drag over a HUD panel keeps tracking.
+- **Anything an ability or item applies to him happens in `_physics_process`, before
+  `Buddy.StepStart`** (D74). From a timer or a deferred call, D64's ledger bills it a second time.
+  A hit attributed in `_integrate_forces` is dealt on his next tick: a suite waits two or three
+  frames before reading it. A thrown body's contact bills only a fraction of its speed (the
+  engine's CCD slows it before contact), so a throw that must pay bills its own hit through
+  `take_impulse`, with a collision exception with him for the flight.
+- **He weighs 3 kg.** Per-tick impulses cannot hold him against a 14 kg weapon; to hold him still,
+  freeze him the way a knockout does and bill the weapon's hits yourself (D74's Blue Screen).
+- **Aim a projectile along the hand's velocity, never a heavy weapon's tip velocity** — the head
+  turning on the grip flings it off-line (the scythe's ghost went at the ceiling). A hanging
+  blade turned by PD goes up and over (`BladeAim`), or its point jams in the desk.
+- **White or bone-coloured effects on him are invisible**; use soot or the tier colour.
+- **`GPUParticles2D` updates at 30 fps by default**, so a moving emitter leaves clumps — set
+  `fixed_fps = 0` on anything that travels.
+- **A fast rotor strobes at the 30 fps idle cap** — a three-arm spinner at 73° a frame reads as
+  turning backwards. Send anything that spins fast through `RotorBlur` (D75), and judge rotors on
+  `fidget_shots`' motion sheets run at `--fixed-fps 30`.
+- **`instantiate() as T` can come back null and the instance lives on** — free what you instanced
+  (it leaked all ten cursor powers from loop_check for a week).
+- **The pacing simulator's first run hinges on the massage chair reaching rank 25 inside the
+  hour-9 play window**, with about a minute to spare (D72): any Hearts purchase in run one pushes
+  the first Reincarnation back ~20 minutes. When pacing fails, check the trees before the prices
+  (the modelled buyer levels every cheap node); `pacing_sim -- --price id=cost` tries a price in
+  memory.
+- **A perf number is the minimum of `perf_measure -Repeat 3`**, read with its "everything else"
+  and `idle_cap` lines (D73). One run on a busy machine is not a measurement: tonight's single
+  0.89 % read double the true 0.44 % because seven agents were running suites.
 - **A timed gap is read against a timestamp taken before the press**, not after the handler's
   own work has run in between.
 - **`set_default_cursor_shape` pushes a synthetic mouse-motion event** back through the game, so
@@ -549,6 +598,18 @@ The Arcade rebuilt as cabinets (D58). Every item tested alone (D59, `item_check`
 multi-collider weapon re-authored against its art (D61). Fourteen sprites redrawn, a walk cycle
 and headphones that fall (D62). Floating text that never overlaps (D63). The item audit's open
 findings are in `docs/item-audit-2026-09.md` — read it before touching the damage model.
+
+Then, overnight (D64–D75): hits the engine never reports are billed from his own momentum (D64 —
+the starter fist had never paid); augments that did nothing now do (D65); five more toys and
+thirteen everyday things with a right-button verb (D66, D67); the shell at 1.25x and 2x (D68);
+**every gun is a gun you hold** — the pistol, shotgun and minigun kept their ids and left the
+Cursor tab, sixteen guns in all (D71); **the Cursor tab is supernatural** — telekinesis, time stop,
+meteors, smite, and blessing, levitation and a rainbow on the kind side (D72); **every one of the
+35 melee weapons has an ability of its own on right-while-held** — an `AbilityTable` row
+(`Scripts/Bodies/Abilities/ability_table.gd`) on one of eleven archetypes, with a hook script
+where the archetype is not enough, and loop_check fails a melee weapon without one (D74); and the
+art draws as authored now that the shaders stopped squaring every colour (D75). Tools for looking:
+`tools/{fidget_shots,ability_shots,power_shots,gun_shots,soak_shots}.tscn`, all windowed.
 
 **M3's engineering is closed. What remains of the milestone is the art pass and the two
 playtests — neither of which can be done from a keyboard.** Mood, grime, the Hearts economy, the knockout beat, mastery and the shared pool,

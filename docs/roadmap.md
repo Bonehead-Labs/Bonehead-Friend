@@ -13,7 +13,7 @@ start the next milestone until the current gate passes.
 | M3.6 — The content explosion | 1 wk | ✅ **built** (2026-08-30) — 80 items, 50 jobs, arcade, milestones |
 | M3.7 — The desk you can clear, the kind half, a buddy who plays ([uplift-m3.7.md](uplift-m3.7.md)) | 1 wk | ✅ **built and drawn** (2026-08-30) — walk cycle and animation families outstanding |
 | M3.8 — The assessment's top ten ([assessment-2026-09.md](assessment-2026-09.md)) | 1–2 wk | 🟡 **code complete** (2026-09-06) — code fixes, kind rates, six hands-on items, HUD next-up, onboarding, sounds, the expressive buddy's Phase 1 (`ExpressionBrain`, D36), the walk and fall-floor fix ([plan-movement-hitboxes.md](plan-movement-hitboxes.md)) and the assessment's code findings all done; left: the five-minute playtest, a sandbox walk on two monitors, the owner decisions in [worklist-2026-09.md](worklist-2026-09.md) §4, and the art-generator items |
-| M3.9 — The toybox: held guns, fidget toys, verbs, and every item and behaviour tested alone | 2 days | 🟡 **code complete** (2026-09-26) — D56–D70, see below; left: the batched visual checks and a hands-on session with the new toys |
+| M3.9 — The toybox: held guns, fidget toys, verbs, and every item and behaviour tested alone | 2 days | 🟡 **code complete** (2026-09-26) — D56–D75, see below; left: a hands-on session with the abilities, powers and toys |
 | M4 — Demo / Next Fest | 2–3 wk | ⬜ |
 | M5 — 1.0 | 4+ wk | ⬜ |
 | M6 — The Arcade (post-1.0, [D32](decisions.md)) | 2–3 wk | ⬜ **planned** (2026-08-30) |
@@ -960,13 +960,17 @@ merged only after the full suite set passed on the combined tree.
 | Every behaviour tested alone | `brain_check`: every expression row, routine, critter and turret. Found a generator holding him in one face forever, a gorilla that could not walk, routines masked by their own toys. Fixed. | D60 |
 | Physics fidelity | 36 multi-collider weapons re-authored against their art; the collider guard now covers every authored body. | D55, D61 |
 | Art | 14 sprites redrawn as text grids, a walk cycle drawn from his own frames, headphones that fall with him, every new item hand-drawn. | D62, D69 |
+| Overnight, after the owner played the guns | Every gun a held gun (pistol, shotgun, minigun keep their ids; sixteen guns); seven supernatural cursor powers; **a unique right-while-held ability on every one of the 35 melee weapons**, on eleven archetypes; the loose ends of both audits (soak furniture he now gets into, Off still earns, blast ceiling, gestures that survive a panel or an alt-tab); the shaders stopped squaring every colour. | D70–D75 |
 
 Found on the way and fixed outside any stream: the Dream Journal was never in an exported pack;
 all three paid headphone colours drew wrong (and there was no way back to teal); shop icons lost
 their outlines when scaled down.
 
-**Left:** every windowed check was deferred because the owner was using the machine — ui_shots
-(including `-- --arcade`), fidget_shots, ui_motion_shots, audit_shots, window_check, and a
-sandbox session with the new toys. The recorded sounds and the new synthesised ones have still
-not been heard by a person. The performance budget has not been re-measured on a release build
-since D42, and this milestone added per-frame work to held guns and spinning toys.
+**Checked overnight** once the machine was free: every capture tool, window_check (which caught a
+D68 regression, fixed), the overlay on the ultrawide, and a release build — idle 0.44 % of the
+machine, unchanged since D42 (D73).
+
+**Left:** a person holding everything — the guns were played on 2026-09-26 and called excellent;
+the 35 abilities, the seven powers and the new toys have not been. The recorded sounds and the
+synthesised ones have not been heard. Owner decisions are listed in the morning summary and in
+the checkpoint memory.
