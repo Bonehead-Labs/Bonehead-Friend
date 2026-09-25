@@ -647,8 +647,21 @@ func _on_damage(info: HitInfo) -> void:
 	var want := _hit_multiplier(_run, info)
 	var got := info.amount / (info.raw_impulse * b.damage_per_impulse)
 	_run.measured_damage += 1
-	if absf(got - want) > 0.001 * maxf(1.0, want):
+	if not _carries(_run, got, want):
 		_run.damage_bad.append("x%.3f where the data says x%.3f" % [got, want])
+
+## A hit at the multiplier the data says — or, for a weapon with an ability (D74), at that times
+## one its ability billed a hit through: a charged swing, a daze, a throw, a glancing whirl.
+func _carries(run: Run, got: float, want: float) -> bool:
+	if absf(got - want) <= 0.001 * maxf(1.0, want):
+		return true
+	var weapon := run.body as WeaponBase if not _gone(run.body) else null
+	if weapon == null or weapon.ability == null:
+		return false
+	for m in weapon.ability.multipliers():
+		if absf(got - want * float(m)) <= 0.001 * maxf(1.0, want * float(m)):
+			return true
+	return false
 
 func _on_kind_act(source_id: StringName, value: float, _at: Vector2) -> void:
 	if _run == null or source_id != _run.item.id:
@@ -952,10 +965,88 @@ func _swing(run: Run) -> void:
 		# Knocked out is as far as a round goes: he takes nothing until he is back up.
 		if run.hits.size() >= want or _buddy.health.down:
 			break
+	if not _gone(body) and (body as WeaponBase).ability:
+		await _use_ability(run, body as WeaponBase)
 	_release_all()
 	await _step(10)
 	_expect(run, "hits", not run.hits.is_empty(), "a swing through him lands (%d hits)" % run.hits.size())
 	_expect(run, "effect", _fx.reactions.has(run.item.id), "and the world answers each hit")
+
+## Where each archetype wants the hand before right is pressed, relative to his middle — the
+## shockwave's is from the desk under him, since it has to reach the desk.
+const ABILITY_STANDOFF := {
+	&"charge": Vector2(-120, -30), &"dash": Vector2(-200, -20), &"stun": Vector2(-150, -30),
+	&"sustain": Vector2(-70, 0), &"shockwave": Vector2(-100, -150), &"projectile": Vector2(-320, -40),
+	&"spin": Vector2(-95, -40), &"throw": Vector2(-250, -80),
+}
+
+## A weapon with an ability (D74) uses it once, the way its line says — right pressed, held for as
+## long as the archetype fills, let go, and the hand following through him — and it has to do
+## something to him. `ability_check` is where each one is measured; this is where every weapon's
+## ability is used by the same hand that uses everything else, so its hits go through the same
+## pipeline and multiplier checks as every other hit in the catalog.
+func _use_ability(run: Run, body: WeaponBase) -> void:
+	var ability := body.ability
+	# Back on his feet from anything the swings did, with the meter clear, so the use is billed.
+	for i in 600:
+		if not ExpressionBrain.KNOCKOUT_STATES.has(_buddy.state) and not _buddy.health.down:
+			break
+		await _step()
+	# Reassembled at home, he drops the last few pixels to the desk: on it and still before the
+	# stand-off is measured from him.
+	for i in 90:
+		if _buddy.is_grounded() and _buddy.linear_velocity.length() < 5.0:
+			break
+		await _step()
+	_buddy.health.reset_meter()
+	if not body.dragging and not await _grab(run, body):
+		return
+	var kind := ability.archetype()
+	var off: Vector2 = ABILITY_STANDOFF.get(kind, Vector2(-150, -30))
+	var at := _centre() + off
+	if kind == &"shockwave":
+		at = Vector2(_centre().x + off.x, _buddy.get_interaction_rect().end.y + off.y)
+	await _mouse_to(at, 700.0)
+	await _steady(body, 40)
+	var before := ability.uses
+	var hold := 0.0
+	match kind:
+		&"charge", &"projectile":
+			hold = ability.num("charge_seconds", 0.8) + 0.1
+		&"sustain":
+			hold = 1.0
+	_press(MOUSE_BUTTON_RIGHT)
+	for i in maxi(1, int(hold * 60.0)):
+		if kind == &"sustain":
+			_move(_centre() + off + Vector2(20.0 * sin(float(i) * 0.2), 0.0))
+		await _step()
+	_release(MOUSE_BUTTON_RIGHT)
+	# The armed ones need the swing that follows; the rest are on their way already.
+	if kind == &"charge" or kind == &"stun":
+		for i in 3:
+			if ability.payoffs > 0:
+				break
+			await _mouse_to(_centre() + Vector2(160.0, -30.0), 1300.0)
+			await _mouse_to(_centre() + Vector2(-160.0, -30.0), 1000.0)
+	# A whirl knocks him on with every blow; the hand follows him, as a player's would.
+	for i in 300:
+		if not ability.is_active():
+			break
+		if kind == &"spin":
+			_move(_mouse.move_toward(_centre() + off, 900.0 / 60.0))
+		await _step()
+	# A ball is still in the air when the club is done with it.
+	await _await(func() -> bool: return ability.payoffs > 0, 90)
+	await _step(10)
+	_expect(run, "ability", ability.uses == before + 1 and ability.payoffs > 0,
+		"right while holding it uses its ability, %s, and it lands (%d)" % [ability.ability_name(),
+		ability.payoffs])
+	var impact := ""
+	if ability is ShockwaveAbility:
+		impact = ", the wave at %s with him at %s" % [(ability as ShockwaveAbility).last_impact.round(),
+			_centre().round()]
+	run.notes.append("%s: %d uses, %d landed%s" % [ability.ability_name(), ability.uses,
+		ability.payoffs, impact])
 
 ## A ball in the Play drawer: dropped on him from height, then thrown at him.
 func _ball(run: Run) -> void:

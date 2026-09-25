@@ -41,6 +41,14 @@ const DAMAGE_SHARE := 0.6
 ## play, so a base of 10 with the starter bat puts an unaugmented round at 40 seconds.
 const BASE_DAMAGE_PER_SECOND := 10.0
 
+## Ordinary hits a second a player lands swinging a melee weapon at him: what each ability's
+## `worth` — the extra ordinary hits one use adds (`AbilityTable`, D74) — is priced against. A player
+## who uses a weapon's ability every time it is ready deals `1 + worth / (this x cycle)` of what
+## they would have swinging it alone, where the cycle is the cooldown plus the use itself. One and a
+## half is a quick hand on a light weapon; item_check's swing driver lands about one, and a lower
+## number here prices every ability higher, which is the safe side of the six-hour floor.
+const REAL_HITS_PER_SECOND := 1.5
+
 ## Kindness events per second while petting. `balance.pet_interval` is 0.25s, but nobody
 ## strokes a skeleton at a metronomic four times a second for twelve minutes.
 const PETS_PER_SECOND := 3.0
@@ -203,7 +211,9 @@ func _earn(delta: float, playing: bool) -> void:
 		var weapons := _side(false)
 		for weapon in weapons:
 			var share := delta * DAMAGE_SHARE * _attention(weapons, weapon)
-			var damage := BASE_DAMAGE_PER_SECOND * _modifier(weapon, &"damage_mult") * share
+			# Every ability is used every time it is ready: the favourite's most of all.
+			var damage := BASE_DAMAGE_PER_SECOND * _modifier(weapon, &"damage_mult") * share \
+				* AbilityTable.damage_uplift(weapon, REAL_HITS_PER_SECOND)
 			_round_damage += damage
 			_grant(damage * b.bones_per_damage * mood * _modifier(weapon, &"payout_mult")
 				* _mastery(weapon) * pool * prestige, true)

@@ -43,6 +43,7 @@ func _ready() -> void:
 	print("============================")
 
 	_content_loaded()
+	_every_melee_weapon_has_an_ability()
 	_starters_are_owned()
 	var earned := _hitting_him_pays()
 	_augments_change_the_payout(earned)
@@ -486,6 +487,60 @@ func _state_box(theme: Theme, state: String, type_name: String) -> StyleBox:
 	return null
 
 # --- the loop --------------------------------------------------------------
+
+## The melee weapons still without an ability of their own (D74). Each has one proposed on D74's
+## design sheet. This list may only shrink: a weapon that gains a row in `AbilityTable` and is
+## still listed here fails, exactly as a finding in item_check's `KNOWN` fails once it stops
+## reproducing — so the list cannot go stale, and when it is empty every weapon in the drawer
+## does something no other one does.
+const ABILITY_STILL_TO_DO: Array[StringName] = [
+	&"boxcutter", &"cleaver", &"cricket_bat", &"crowbar", &"energy_sabre", &"flail",
+	&"greatsword", &"halberd", &"hole_punch", &"katar", &"letter_opener", &"mace", &"machete",
+	&"mechanical_keyboard", &"monitor", &"morning_star", &"office_mug", &"pipe_wrench",
+	&"rapier", &"rolling_pin", &"scythe", &"shears", &"sickle", &"stapler", &"tyre_iron",
+	&"war_pick",
+]
+
+## Every melee weapon has an ability (D74): a row in `AbilityTable`, or a right-while-holding
+## action of its own already (the yo-yo's throw, D66). Enumerated from the drawer, never listed.
+func _every_melee_weapon_has_an_ability() -> void:
+	_suite("every melee weapon has an ability (D74)")
+	var melee := 0
+	var armed := 0
+	for item in ItemDB.all_items():
+		if item.category != ItemData.CATEGORY_WEAPON:
+			continue
+		melee += 1
+		var own := _has_own_action(item)
+		var has := AbilityTable.has(item.id) or own
+		if has:
+			armed += 1
+		if ABILITY_STILL_TO_DO.has(item.id):
+			_check("%s is still to do (delete it from ABILITY_STILL_TO_DO once it has one)" % item.id,
+				not has)
+		else:
+			_check("%s has an ability (%s)" % [item.id, AbilityTable.row_for(item.id).get("name",
+				"its own right-click" if own else "none")], has)
+		if AbilityTable.has(item.id):
+			_check("and its shop line teaches it", item.controls == AbilityTable.controls(item.id))
+	for id in ABILITY_STILL_TO_DO:
+		var item := ItemDB.get_item(id)
+		_check("%s, still to do, is a melee weapon in the catalog" % id,
+			item != null and item.category == ItemData.CATEGORY_WEAPON)
+	_check("%d of %d melee weapons have one, %d to go" % [armed, melee, ABILITY_STILL_TO_DO.size()],
+		armed + ABILITY_STILL_TO_DO.size() == melee and melee >= 35)
+
+## A right-while-holding action the weapon had before D74: a `GestureZones` with its action on.
+func _has_own_action(item: ItemData) -> bool:
+	if item.scene == null:
+		return false
+	var node := item.scene.instantiate()
+	var own := false
+	for child in node.get_children():
+		if child is GestureZones and (child as GestureZones).action_enabled:
+			own = true
+	node.free()
+	return own
 
 func _content_loaded() -> void:
 	_suite("content")
@@ -1946,6 +2001,7 @@ func _the_expression_brain_arbitrates() -> void:
 			[EventBus.item_spawned, brain._on_item_spawned],
 			[EventBus.automation_toggled, brain._on_automation_toggled],
 			[EventBus.fidget_event, brain._on_fidget_event],
+			[EventBus.ability_event, brain._on_ability_event],
 			[EventBus.mood_changed, brain._on_mood_changed],
 			[EventBus.focus_mode_changed, brain._on_focus_mode_changed]]:
 		var sig: Signal = pair[0]
@@ -1984,6 +2040,25 @@ func _the_expression_brain_arbitrates() -> void:
 	brain.clear()
 	brain._on_automation_toggled(&"bat_swinger", false)
 	_check("switching it off does not", not brain.beat_active())
+
+	# K — a held weapon's ability (D74): its payoff is a row, near him and only near him, and a
+	# daze is a hold that the pan keeps telling him about.
+	brain.clear()
+	brain._on_ability_event(&"baseball_bat", &"home_run", far)
+	_check("a home run across the desk is not his", not brain.beat_active())
+	brain._on_ability_event(&"baseball_bat", &"home_run", near)
+	_check("a home run is a launch", brain.beat_id() == &"launched")
+	brain.clear()
+	brain._on_ability_event(&"frying_pan", &"dazed", near)
+	var dazed_until: int = brain._beat.get("until_msec", 0)
+	_check("a BONG dazes him, as a hold that lapses unless told again",
+		brain.beat_id() == &"dazed" and dazed_until > 0)
+	brain._on_damage_dealt(HitInfo.new(full * 0.4, &"frying_pan", here, 400.0))
+	_check("and an ordinary hit inside the daze does not end it", brain.beat_id() == &"dazed")
+	brain.clear()
+	for event in ExpressionBrain.ABILITY_ROWS:
+		_check("the ability event %s names a row" % event,
+			ExpressionBrain.ROWS.has(ExpressionBrain.ABILITY_ROWS[event]))
 
 	# G — the idle brain's phases, driven through the handlers the real brain is wired to.
 	# Installed lazily here, as the toys suite below does; main.gd installs it in the game.
