@@ -2043,6 +2043,83 @@ apart): they draw beneath the lines and are thrown no higher than the headline. 
 `numbers keep apart` suite checks every visible line's drawn rect pairwise, now and at four
 points through its rise.
 
+## D68 — The shell at the sizes it is used at: even rules, keys that hold their size, words that fit, numbers that leave without a ghost (2026-09-26)
+
+**Decision.** The shell is judged at the Menu sizes people actually play at — the owner's 1.25x
+on a 1440x960 play area over the chroma backdrop, 2x, and both ends of the play-area ladder —
+rather than at the 1x every suite ran at. Six things were right at 1x and wrong there, and each
+is fixed at its source:
+
+1. **Rules land on whole screen pixels at every Menu size.** D58's recommendation, taken. A
+   rule is 3 at a whole factor and 4 at the quarter steps between (`UIStyle.rule_for`), because
+   4 x k/4 is always whole: at 1.25x a 3px rule is 3.75 screen pixels and drew as 3 or 4 by
+   position; a 4px rule is 5 wherever it sits. `UIScale.apply` hands every fit's factor to
+   `UITheme.use_factor`, and only a change of *width* costs anything: the theme is rebuilt and
+   merged into the Theme every layer already holds — one `changed`, fonts reused, nothing per
+   frame. Whole factors keep today's widths exactly. What sizes or draws a rule outside the theme
+   (`UIStyle.rule()`, the room lamps, the wheel, the cards, the tree's wires, the reel fit) reads
+   `rule_width()` and re-reads it on `theme_changed`. The capstone's heavy rule is `rule x 2`
+   (6, or 8 between) rather than `rule + 3`, which would have been 7 and uneven again; the
+   fortune ball's bubble keeps 3, since the world is never scaled by the Menu size.
+2. **A key is the same size in every state.** `_key_pressed` was written as though content
+   margins stacked on a rule like CSS padding on a border; they are measured from the box's
+   outer edge. So every pressed, toggled and disabled key was 4px taller than at rest, an open
+   tab 5px taller than a shut one, a chosen list row's name stepped 3px left, and variations
+   that left a state undefined took the base Button's margins for it — a price key 4px wider
+   pressed, a quiet key 6px bigger disabled: 26 states in 13 variations. Godot sizes a Button
+   from the state it is in (`align_to_largest_stylebox` is 0), so the arcade's deck grew 2px under
+   every hand dealt — `Cabinet.KEY_HEIGHT` had been raised to cover it and fell 2 short. Now the
+   pressed box is derived from the one at rest (`_pressed`) and every key defines all five
+   states from one geometry (`_key_states`).
+3. **A caption gives up its mark, then its word, and never its letters.** The page tabs read
+   "Upgrad" and the Arcade's room keys "The Whee" at 2x: a tab's width is the card's shared out,
+   the card is narrower at 2x, and the words are not. `UIStyle.fit_captions` shows mark and word
+   if every key in the strip fits them, the word alone if that fits, and the mark alone with the
+   word in its tooltip if not — the whole strip together, since two keys without their word
+   beside four with it reads as broken. 2x on the default play area is words; 480x360 is marks.
+4. **No page is wider than the card, and the shop is not taller.** Seven backdrop keys were 624px
+   of row in a 533px card at 2x and Chroma — the owner's — was past its edge; the choice rows now
+   wrap. The shop's detail pane scrolls inside itself with the buy key pinned under it (page
+   455px tall at 2x in a 298px card; now 206). Every Arcade cabinet fits itself to its card
+   (`Cabinet.fit`): the display gives width down to 120 from 240, deck keys down to what their
+   captions need, the wheel is drawn smaller (262 down to 200), and a cabinet refits when its
+   own content changes size. The 480x360 rung D58 left clipping a room now fits every room.
+5. **The status card steps down under the page tabs when they would meet.** The strip is
+   right-aligned and as wide as the card, so at 960x640 and at 2x on most windows its first tab
+   sat on the purse, a layer above it. `PanelLayer` tells the HUD where its tabs are after every
+   fit, by group; the tabs do not move.
+6. **Floating numbers leave by shrinking, never by fading, and the fountain throws coins.**
+   D63 kept a fade over each number's second half. Over a flat backdrop — the chroma green a
+   streamer keys out — a half-transparent pale core in a half-transparent outline is a grey ghost
+   of the number, on every hit. A number now holds full size while it is read and then draws in
+   to its own centre, never larger than its settled size, so `_place`'s reservation still covers
+   it. The fountain was ten labels each printing the same tenth of the headline beside the
+   headline that states the total, and it took ten of the twenty-four number slots with it; it is
+   now the currency's glyph plotted as a coin — pale core, outline in its colour, hard shadow,
+   every pixel ink or nothing — from a pool of its own, shrinking out as the numbers do.
+
+**Left as it was, and why.** The 1.6x headline punch overhanging the HUD for a fifth of a second
+stays as D48 decided it: clearing the punch moved a centred headline ninety pixels off centre for
+its whole life. Hairlines (a list row's rule, a dead tile's, a pip's) stay 1px and so are 1 or 2
+screen pixels at a fractional size — the only width that is whole at every quarter step is 4, and
+a hairline that heavy is not one. Pixel type's stems are still 2 or 3 wide at 1.25x; D58's
+`oversampling_override` fix needs the shell in a viewport of its own. A number's drop shadow is
+still 55% black and its face still the imported, antialiased one: both are constant rather than a
+ghost, and changing either changes every number on every desktop, which wants eyes. The shop's
+picture now sits inside the detail scroll, so its 1.35x spawn punch can lose a few pixels to the
+scroll's edge for 0.15 s.
+
+*Consequence:* `ui_check`'s `menu sizes` suite runs the real shell at 960x640 1x, 1440x960 1.25x
+and 2x, 1180x760 2x, 960x640 1.75x and 480x360 1x, and asserts at each that every rule in the
+theme is whole on screen and the shell draws with it, no page and no Arcade room is wider than
+the card, every tab and room caption fits its key, the shop does not scroll the card, and the
+tabs never sit on the status card — and that the theme is rebuilt only when the rule width
+changes. The geometry suite presses, hovers and disables a real key of every Button variation
+and asserts its rect; `loop_check` asserts every state of every variation is the size of its rest
+state and the rule ladder over every quarter step; `no ghosts` watches a payout's whole life and
+a whole fountain frame by frame and asserts nothing is drawn part-transparent and everything
+leaves by drawing in. A new variation, a new tab or a new room is covered by the sweep the day
+it lands.
 
 ## Recommendations not yet decided
 
