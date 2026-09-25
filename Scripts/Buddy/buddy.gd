@@ -368,6 +368,12 @@ func _attribute(src: Object) -> Array:
 	if src is ThrowableBase:
 		var t := src as ThrowableBase
 		return [t.item_id, t.effective_damage_mult()]
+	# An animal or a turret that runs into him is billed at its own multiplier, the same one
+	# its blows and shots already carry. It was a flat 1.0, so a hornet's body-check ignored the
+	# "Sharper Sting" the player had bought for it, measured by item_check (D59). Duck-typed:
+	# the method is the contract, and the classes that have one are not a list kept here.
+	if src is BaseDraggable and src.has_method(&"effective_damage_mult"):
+		return [(src as BaseDraggable).item_id, float(src.call(&"effective_damage_mult"))]
 	if src is BaseDraggable:
 		return [(src as BaseDraggable).item_id, 1.0]
 	return [&"world", 1.0]

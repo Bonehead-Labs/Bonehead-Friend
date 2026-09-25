@@ -1675,6 +1675,75 @@ in order, one stage height and one deck line across all five rooms, every word i
 legible where it sits, and the stepper's rules; `loop_check` asserts the new variations, every
 marquee's ink, a solid disabled deck rule, and that no box in the theme has a rounded corner.
 
+## D59 — Every item is used, one at a time, by a suite (2026-09-25)
+
+**Decision.** `tests/integration/item_check.tscn` takes every `ItemData` in `ItemDB` —
+enumerated, never listed — puts it on a desk of its own and uses it the way a player does, then
+asserts what it claims. Twice: once as bought, once with one level of each augment key and
+mastery 50. What it measures and D59 does not fix is a `KNOWN` table in the suite, one line per
+check naming its finding; a known finding that stops reproducing fails the run. The per-item
+table is written to `user://item_check_report.md`; the summary a person reads is
+`docs/item-audit-2026-09.md`.
+
+**Why.** The owner: "comprehensive isolated testing of each object and mechanic … and see if they
+actually operate as expected". The history says they do not, and that it is found late: a shop
+tab inert for weeks, every explosion forceless for a release, a placebo on the starter power, the
+fist erasing its own punch. Each of those is a sentence of the form *this item does not do what
+it says*, and that sentence can be asked of a hundred items in six minutes.
+
+**How it is built, and the parts that cost time to get right.**
+
+- **The stage is the game's**: `WorldBounds`, `ItemSpawner` and one buddy in a 1280x720
+  `SubViewport`, so the walls, the rescue and a critter's exit are real (a headless root is 64x64).
+  Input is `push_input` at real positions — the grab region, not the picture — which is why the
+  SubViewport: in one with no container, `get_mouse_position()` is the last pushed event.
+- **Drivers are chosen by exact script class**, not `is`. A `HeldGun` extending `WeaponBase` is a
+  new toy; driving it as a bat would pass it. A class with no row fails by name.
+- **The pipeline is checked inside the grant.** A probe on `EventBus.payout` reads
+  `Economy.payout_for(1.0, id)` while Economy is paying — linear in its base, so that is the whole
+  product of multipliers just applied — and the probe on the event that caused it (connected after
+  the autoloads, before any buddy's components) checks the amount to 1e-6. Every payout of every
+  item, not a sample.
+- **Real-time physics, skewed clocks**: a fuse, a turret's interval, a critter's lifetime and a
+  fountain's are wound on, never waited out, and the authored values go into the report. The RNG
+  is seeded per item, or a shotgun's spread decides the verdict.
+- **A `Logger`** (Godot 4.5+) catches every `push_error` and `push_warning` while an item runs.
+  "A warning nobody read" is how the forceless explosions shipped.
+- **Timing a gap on the item's own clock**, read against a timestamp taken *before* the press: the
+  shot's own work runs between the clock being set and any read after it, which made the minigun's
+  80 ms read as 75 in both phases and look like a placebo.
+
+**What it found.** Seven fixed (the audit's X1–X7): a spent grenade left for half a second as an
+invisible 6,878 px/s projectile; the three cluster charges never counted as a use and left his
+fuse face on for good; seventeen items' mass nodes read by nothing; animals' body-checks billed at
+×1.0 past the "Sharper Sting" the player bought; a mine he stood on went off for 0 damage; and two
+test-side faults (the jobs badge asserting the calendar, the capture tools selecting items across
+drawers). Open, and the audit's first three are high:
+
+- **D7 has a hole.** `get_contact_impulse()` carries the previous step's impulse, zero on the frame
+  two bodies first touch, so a collision that throws them apart within one step is never billed.
+  Measured on the fist: it launched him at 1,653 px/s and billed nothing. Every melee weapon
+  passes because the drag joint keeps it pressed on him for a second frame.
+
+  ```
+  f11  fist v(782,31)   him v(0,0)       contacts: floor 25, floor 25
+  f12  fist v(891,-204) him v(405,-283)  contacts: FistBody 0
+  f13  fist v(1102,-147) him v(1031,39)  contacts: FistBody 0
+  f17  him v(1653,376)                   contacts: FistBody 0
+  ```
+
+- **D54's 18 px impact inset** put five of eight turrets' shots under the 350 damage floor. They fire
+  and draw and shove, and have paid nothing since 2026-09-07.
+- **The gorilla cannot walk** — its steering force is a third of the floor friction the NPC seeder
+  gave it on purpose — and the raccoon crawls at 4 px/s.
+
+*Consequence:* a new class is a new row in `DRIVERS`; a new item of an existing class is covered the
+day it lands. The run takes about six and a half minutes; `-- --only=<ids>` and `-- --trace` (every
+tenth frame, where he and it are and what has been billed) are for working on one. Run it before any
+commit touching `Scripts/Bodies/`, `Scripts/World/npc_*`, `Buddy._integrate_forces` or `_attribute`,
+or an item's scene. The table cannot rot: fix an F-finding and the suite fails until its `KNOWN`
+lines go.
+
 ## D61 — The authored colliders are the picture too (2026-09-25)
 
 **Decision.** Every hand-authored body is re-authored against the sprite it actually has:

@@ -86,6 +86,7 @@ func _ready() -> void:
 	await _the_strip_opens_the_panels()
 	await _the_card_is_one_size()
 	await _shop_tiles_are_clickable()
+	await _the_shop_describes_what_is_listed()
 	await _every_visible_button_is_reachable()
 	await _the_capstone_levels_and_switches()
 	await _the_settings_page_works()
@@ -203,6 +204,38 @@ func _the_card_is_one_size() -> void:
 	var same := sizes.all(func(s: Vector2) -> bool: return s.is_equal_approx(first))
 	_check("every page gets the same card (%s)" % first, same,
 		"" if same else str(sizes))
+	panels.call("close")
+	await _settle()
+
+## The detail pane describes a row of the list on screen, never an item from another drawer.
+##
+## `ui_shots` 03-toys-kind came back with the Care tab lit over a pane describing the Boombox:
+## the tool asked for Care and then selected an item M3.7-B had moved to Mood. The shop was
+## right — the one production caller, `PanelLayer._on_show_item`, opens the item's own drawer
+## first — so this pins that path for one item in each kind drawer, and the capture tools'
+## own staging, which now reads the drawer off the item's data.
+func _the_shop_describes_what_is_listed() -> void:
+	_suite("shop drawers")
+	var panels := _find(_main, "PanelLayer")
+	var shop := _find(_main, "ShopPanel")
+	if panels == null or shop == null:
+		_check("the shop is there to ask", false)
+		return
+	for id in [&"boombox", &"pizza", &"baseball", &"sponge", &"beanbag"]:
+		var item := ItemDB.get_item(id)
+		if item == null:
+			continue
+		EventBus.ui_show_item.emit(id)
+		await _settle()
+		_check("asked for the %s, the shop opens its own drawer and selects it in the list" % id,
+			shop.get("_category") == item.category and shop.get("_selected") == id
+				and (shop.get("_rows") as Dictionary).has(id),
+			"drawer %s, selected %s" % [shop.get("_category"), shop.get("_selected")])
+	shop.call("show_category", ItemDB.get_item(&"boombox").category)
+	shop.call("select", &"boombox")
+	await _settle()
+	_check("the capture tools' staging lists what it selects",
+		(shop.get("_rows") as Dictionary).has(shop.get("_selected")))
 	panels.call("close")
 	await _settle()
 
@@ -910,11 +943,23 @@ func _the_jobs_tab_wears_a_badge() -> void:
 	if contract == null:
 		_check("a damage contract exists to finish", false)
 		return
-	if not Progression._active_contracts.has(contract.id):
-		Progression._active_contracts.append(contract.id)
+	# **The board is the day's draw, so it holds exactly the contract under test.** The draw is
+	# seeded by the date (`Progression._roll`) and ten contracts count `deal_damage`. On a day
+	# that also drew one with a lower target, the single emit below finished both: the badge
+	# read "2", and claiming one left it lit. That is how this passed on 2026-09-07 and failed
+	# on 2026-09-25 with no code change. The badge is the subject here, not the draw.
+	var drawn := Progression._active_contracts.duplicate()
+	var rivals := PackedStringArray()
+	for id in drawn:
+		var other := ItemDB.get_contract(id)
+		if id != contract.id and other != null and other.goal_key == contract.goal_key:
+			rivals.append(String(id))
+	Progression._active_contracts.clear()
+	Progression._active_contracts.append(contract.id)
 	EventBus.contract_board_changed.emit()
 	await _settle()
-	_check("with nothing claimable it is hidden", not badge.visible)
+	_check("with nothing claimable it is hidden (today's draw also counts damage on: %s)"
+		% ("nothing" if rivals.is_empty() else ", ".join(rivals)), not badge.visible)
 	EventBus.contract_event.emit(&"deal_damage", contract.target)
 	await _settle()
 	_check("a finished contract shows a count", badge.visible
@@ -922,6 +967,9 @@ func _the_jobs_tab_wears_a_badge() -> void:
 	_check("claiming it clears the badge", Progression.claim_contract(contract.id))
 	await _settle()
 	_check("(badge hidden again)", not badge.visible)
+	Progression._active_contracts.assign(drawn)
+	EventBus.contract_board_changed.emit()
+	await _settle()
 
 ## The wardrobe is the one thing in the Arcade that is not a gamble, and the Dollars sink the
 ## design owed the currency: a row per finish, and the button buys, wears or says worn.

@@ -64,6 +64,7 @@ func explode() -> void:
 		EventBus.contract_event.emit(&"use:%s" % item_id, 1)
 	# Before the blast, so a flinch at the bang is not overwritten by the hit a frame later.
 	EventBus.threat_changed.emit(&"fuse", global_position, 0.0)
+	_retire()
 	if explosion_area:
 		for hit in ExplosionUtil.apply_blast(explosion_area, global_position, max_force):
 			var body: Node = hit["body"]
@@ -78,5 +79,38 @@ func explode() -> void:
 	EventBus.item_despawned.emit(self)
 	get_tree().create_timer(0.5).timeout.connect(queue_free)
 
+## What is left of the charge stops being a body, before its own blast goes off.
+##
+## The blast area masks the item layer — it has to, to throw the rest of the desk about — so
+## it reports the charge that owns it. At zero distance `ExplosionUtil` falls back to straight
+## up at the undiminished `max_force`, and the hidden casing then spent the half second before
+## it freed itself as an invisible projectile, still colliding: 6,878 px/s measured on a grenade,
+## and 18,571 by the same arithmetic on the concussion charge — faster per frame than a wall is
+## thick (D59).
+## Frozen, it takes no impulse; with no layers it touches nothing on the way out; and with no
+## pickable grab region it cannot be picked up, binned or stand in a power's way while hidden.
+func _retire() -> void:
+	if dragging:
+		_end_drag()
+	freeze = true
+	set_deferred(&"collision_layer", 0)
+	set_deferred(&"collision_mask", 0)
+	if drag_area:
+		drag_area.set_deferred(&"input_pickable", false)
+
 func effective_damage_mult() -> float:
 	return Progression.damage_mult_for(item_id, damage_mult)
+
+## The blast area's real radius, found by *what it is* rather than by name — the same rule
+## ExplosionUtil documents and for the same reason: the item scenes renamed that shape once
+## already, and every explosion in the game silently stopped applying any force at all.
+## Shared by the well that pulls to it and the mine that waits for him inside it.
+func _blast_reach() -> float:
+	if explosion_area == null:
+		return 0.0
+	for child in explosion_area.get_children():
+		var cs := child as CollisionShape2D
+		if cs and cs.shape is CircleShape2D:
+			return ExplosionUtil.blast_radius((cs.shape as CircleShape2D).radius,
+				cs.global_scale.x)
+	return 0.0

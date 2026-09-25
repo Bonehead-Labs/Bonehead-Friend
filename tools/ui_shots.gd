@@ -66,7 +66,12 @@ func _ready() -> void:
 	shop.call("show_category", ItemData.CATEGORY_GUN)
 	shop.call("select", &"revolver")
 	await _shot("02b-toys-guns")
-	shop.call("show_category", ItemData.CATEGORY_FRIENDLY)
+	# The boombox's own drawer, read off its data. This asked for Care and then selected the
+	# boombox, which M3.7-B had moved to Mood — so the shot showed the Care tab lit over a
+	# detail pane describing an item that is not in the Care list. The shop was right: the one
+	# production caller, `PanelLayer._on_show_item`, opens the item's drawer first. The tool was
+	# describing a catalog that no longer existed.
+	shop.call("show_category", ItemDB.get_item(&"boombox").category)
 	shop.call("select", &"boombox")
 	await _shot("03-toys-kind")
 

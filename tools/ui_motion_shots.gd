@@ -51,7 +51,10 @@ func _ready() -> void:
 
 	# --- a key under the cursor, not pressed ---
 	panels.call("show_panel", &"shop")
-	shop.call("show_category", ItemData.CATEGORY_FRIENDLY)
+	# Every item this sequence clicks is opened in its own drawer first, read off its data: they
+	# were all in Care when this was written, and M3.7-B spread them over Mood, Food and Play,
+	# which left `_button()` finding nothing to click (see ui_shots, 03-toys-kind).
+	_open_drawer(shop, &"boombox")
 	shop.call("select", &"boombox")
 	await _idle(30)
 	var action := _find(shop, "_detail_action") as Button
@@ -66,6 +69,8 @@ func _ready() -> void:
 
 	# --- picking something out of the list ---
 	await _idle(20)
+	_open_drawer(shop, &"pizza")
+	await _idle(10)
 	_begin("select")
 	await _record(4)
 	await _click(_centre(_button("Pizza", shop)))
@@ -73,6 +78,8 @@ func _ready() -> void:
 
 	# --- paying for it ---
 	await _idle(20)
+	_open_drawer(shop, &"baseball")
+	await _idle(10)
 	await _click(_centre(_button("Baseball", shop)))
 	await _idle(20)
 	action = _action_button(shop)
@@ -86,6 +93,8 @@ func _ready() -> void:
 
 	# --- being refused ---
 	await _idle(20)
+	_open_drawer(shop, &"boombox")
+	await _idle(10)
 	await _click(_centre(_button("Boombox", shop)))
 	await _idle(20)
 	action = _action_button(shop)
@@ -167,6 +176,12 @@ func _click(point: Vector2) -> void:
 	_press(point, true)
 	await _idle(2)
 	_press(point, false)
+
+## The drawer an item is filed in, opened the way the HUD's next-up row opens it.
+func _open_drawer(shop: Node, item_id: StringName) -> void:
+	var item := ItemDB.get_item(item_id)
+	if item:
+		shop.call("show_category", item.category)
 
 ## The shop's one action button — the big key at the bottom of the detail pane. It is
 ## whichever visible Button carries the item glyph and is not a list row or a tab, which is

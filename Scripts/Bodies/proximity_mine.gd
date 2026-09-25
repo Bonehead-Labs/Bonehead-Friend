@@ -15,6 +15,16 @@ extends ThrowableBase
 @export var arm_speed: float = 40.0
 @export var arm_seconds: float = 0.5
 
+## How far inside the blast he has to be before it goes, as a fraction of its radius.
+##
+## It used to go the moment any part of him overlapped the blast area — and the blast falls
+## off from its centre to *his* centre, so a mine he walked or was shoved onto triggered on
+## the rim of his collider with his centre at or past the radius, and handed him an impulse of
+## almost exactly nothing (D59: a mine he was put down on went off for 0 damage, measured).
+## Seven tenths: standing on it or against it puts his centre inside that, and from there in
+## the blast carries at least a tenth of its force, more the deeper he is.
+@export var trigger_fraction: float = 0.7
+
 var _settled := 0.0
 var _armed := false
 
@@ -55,8 +65,9 @@ func _physics_process(delta: float) -> void:
 
 	if explosion_area == null:
 		return
+	var trigger := _blast_reach() * trigger_fraction
 	for body in explosion_area.get_overlapping_bodies():
-		if body is Buddy:
+		if body is Buddy and global_position.distance_to((body as Buddy).global_position) <= trigger:
 			is_primed = true
 			explode()
 			return

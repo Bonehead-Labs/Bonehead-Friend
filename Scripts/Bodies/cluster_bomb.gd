@@ -38,6 +38,15 @@ func explode() -> void:
 	if _burst:
 		return
 	_burst = true
+	# The two things every charge says as it goes, which `ThrowableBase.explode` says and this
+	# override — replacing it rather than extending it — did not (D59). A detonation is the
+	# family's `use:`, so the nail bomb, the cluster bomb and the napalm charge were the three
+	# explosives no contract could ever count. And the fuse he has been watching is out: without
+	# that, `fuse_lit` is a hold with no refresh and nothing ever released it, so a primed
+	# cluster bomb left him staring at a charge that had already gone off.
+	if item_id != &"":
+		EventBus.contract_event.emit(&"use:%s" % item_id, 1)
+	EventBus.threat_changed.emit(&"fuse", global_position, 0.0)
 
 	if explosion_area:
 		_report(ExplosionUtil.apply_blast(explosion_area, global_position, max_force),
