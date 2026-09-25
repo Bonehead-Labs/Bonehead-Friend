@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_qlorm"]
+
+[resource]
+script = ExtResource("1_qlorm")
+id = &"bubble_blaster_payout"
+item_id = &"bubble_blaster"
+display_name = "Pop Rewards"
+effect_key = &"payout_mult"
+effect_per_level = 1.12
+cost_base = 123
+currency = 1
+sort_order = 1

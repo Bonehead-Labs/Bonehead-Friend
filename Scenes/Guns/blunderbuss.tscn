@@ -1,0 +1,88 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Bodies/held_gun.gd" id="1_1hrx1"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/blunderbuss.png" id="2_dkbkp"]
+[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_oa2eu"]
+[ext_resource type="Script" path="res://Scripts/Components/effects_player.gd" id="4_qocjs"]
+
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_1hrx1"]
+friction = 0.9
+bounce = 0.15
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_dkbkp"]
+size = Vector2(32, 14)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_oa2eu"]
+size = Vector2(36, 12)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_qocjs"]
+size = Vector2(16, 18)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_b1l5s"]
+size = Vector2(84, 34)
+
+[node name="_Blunderbuss" type="RigidBody2D" unique_id=464694320 node_paths=PackedStringArray("drag_area", "handle", "sprite", "collider", "Effects_Player")]
+collision_layer = 4
+collision_mask = 7
+mass = 4.2
+physics_material_override = SubResource("PhysicsMaterial_1hrx1")
+center_of_mass_mode = 1
+center_of_mass = Vector2(26, -5)
+contact_monitor = true
+max_contacts_reported = 4
+script = ExtResource("1_1hrx1")
+aim_frequency = 13.5
+aim_max_accel = 170.0
+muzzle = Vector2(66, -6)
+ejects = false
+fire_interval = 1.8
+pellets = 9
+spread_degrees = 20.0
+shot_force = 1300.0
+shot_mult = 1.2
+shot_range = 320.0
+shake_pixels = 5.0
+recoil_kick = 7900.0
+recoil_climb = 23000.0
+fire_sound = &"explode_small"
+fire_pitch = 1.25
+fire_volume_db = -4.0
+damage_mult = 0.6
+item_id = &"blunderbuss"
+drag_area = NodePath("DraggableArea")
+handle = NodePath("Handle")
+sprite = NodePath("Sprite")
+collider = NodePath("CollisionShape2D")
+Effects_Player = NodePath("EffectsPlayer")
+
+[node name="Sprite" type="Sprite2D" parent="." unique_id=1884432495]
+position = Vector2(24, -2)
+scale = Vector2(2, 2)
+texture = ExtResource("2_dkbkp")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1028561019]
+position = Vector2(-2, 1)
+shape = SubResource("RectangleShape2D_dkbkp")
+
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="." unique_id=1161432449]
+position = Vector2(32, -4)
+shape = SubResource("RectangleShape2D_oa2eu")
+
+[node name="CollisionShape2D3" type="CollisionShape2D" parent="." unique_id=809866326]
+position = Vector2(58, -7)
+shape = SubResource("RectangleShape2D_qocjs")
+
+[node name="DraggableArea" type="Area2D" parent="." unique_id=590169797]
+script = ExtResource("3_oa2eu")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=523625258]
+position = Vector2(24, -3)
+shape = SubResource("RectangleShape2D_b1l5s")
+
+[node name="Handle" type="StaticBody2D" parent="." unique_id=98050718]
+visible = false
+collision_layer = 0
+collision_mask = 0
+
+[node name="EffectsPlayer" type="Node" parent="." unique_id=637785737]
+script = ExtResource("4_qocjs")

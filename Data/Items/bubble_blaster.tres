@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/bubble_blaster.png" id="1_mbm8v"]
+[ext_resource type="PackedScene" path="res://Scenes/Guns/bubble_blaster.tscn" id="2_ygfp2"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_qsa31"]
+
+[resource]
+script = ExtResource("3_qsa31")
+id = &"bubble_blaster"
+display_name = "Bubble Blaster"
+description = "Blows slow bubbles that drift over and pop on him. Every one is a little kindness."
+category = 3
+cost = 2400
+currency = 1
+scene = ExtResource("2_ygfp2")
+icon = ExtResource("1_mbm8v")
+requires = Array[StringName]([&"water_pistol"])
+sort_order = 50
+controls = "Hold · Hold right to blow bubbles"

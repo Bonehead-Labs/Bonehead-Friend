@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_hlk7l"]
+
+[resource]
+script = ExtResource("1_hlk7l")
+id = &"hunting_rifle_steady"
+item_id = &"hunting_rifle"
+display_name = "Bipod"
+effect_key = &"recoil_mult"
+effect_per_level = 0.92
+cost_base = 721
+cost_growth = 1.09
+sort_order = 4

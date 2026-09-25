@@ -1,0 +1,84 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Bodies/held_gun.gd" id="1_dtc5s"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/revolver.png" id="2_xvwto"]
+[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_0jv1a"]
+[ext_resource type="Script" path="res://Scripts/Components/effects_player.gd" id="4_081w6"]
+
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_dtc5s"]
+friction = 0.9
+bounce = 0.15
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_xvwto"]
+size = Vector2(20, 16)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_0jv1a"]
+size = Vector2(26, 8)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_081w6"]
+size = Vector2(12, 14)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ejp2l"]
+size = Vector2(56, 34)
+
+[node name="_Revolver" type="RigidBody2D" unique_id=786243237 node_paths=PackedStringArray("drag_area", "handle", "sprite", "collider", "Effects_Player")]
+collision_layer = 4
+collision_mask = 7
+mass = 1.6
+physics_material_override = SubResource("PhysicsMaterial_dtc5s")
+center_of_mass_mode = 1
+center_of_mass = Vector2(12, -12)
+contact_monitor = true
+max_contacts_reported = 4
+script = ExtResource("1_dtc5s")
+aim_max_accel = 260.0
+muzzle = Vector2(44, -13)
+ejects = false
+fire_interval = 0.42
+spread_degrees = 0.8
+shot_force = 3200.0
+shot_mult = 1.1
+shot_range = 800.0
+recoil_kick = 720.0
+recoil_climb = 3200.0
+fire_pitch = 0.75
+fire_volume_db = -4.0
+damage_mult = 0.5
+item_id = &"revolver"
+drag_area = NodePath("DraggableArea")
+handle = NodePath("Handle")
+sprite = NodePath("Sprite")
+collider = NodePath("CollisionShape2D")
+Effects_Player = NodePath("EffectsPlayer")
+
+[node name="Sprite" type="Sprite2D" parent="." unique_id=1281916764]
+position = Vector2(16, -6)
+scale = Vector2(2, 2)
+texture = ExtResource("2_xvwto")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1301368172]
+position = Vector2(8, -12)
+shape = SubResource("RectangleShape2D_xvwto")
+
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="." unique_id=1776892923]
+position = Vector2(31, -13)
+shape = SubResource("RectangleShape2D_0jv1a")
+
+[node name="CollisionShape2D3" type="CollisionShape2D" parent="." unique_id=194239473]
+position = Vector2(-2, 2)
+shape = SubResource("RectangleShape2D_081w6")
+
+[node name="DraggableArea" type="Area2D" parent="." unique_id=1571953555]
+script = ExtResource("3_0jv1a")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=1801364942]
+position = Vector2(16, -6)
+shape = SubResource("RectangleShape2D_ejp2l")
+
+[node name="Handle" type="StaticBody2D" parent="." unique_id=1046509073]
+visible = false
+collision_layer = 0
+collision_mask = 0
+
+[node name="EffectsPlayer" type="Node" parent="." unique_id=1516272800]
+script = ExtResource("4_081w6")

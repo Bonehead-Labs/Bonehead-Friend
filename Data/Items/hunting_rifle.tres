@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/hunting_rifle.png" id="1_rcg2t"]
+[ext_resource type="PackedScene" path="res://Scenes/Guns/hunting_rifle.tscn" id="2_hp7ft"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_455dy"]
+
+[resource]
+script = ExtResource("3_455dy")
+id = &"hunting_rifle"
+display_name = "Hunting Rifle"
+description = "One slow, perfect shot that picks him up and puts him somewhere else."
+category = 10
+cost = 28000
+scene = ExtResource("2_hp7ft")
+icon = ExtResource("1_rcg2t")
+requires = Array[StringName]([&"pump_shotgun"])
+sort_order = 40
+controls = "Hold · Right-click to fire"

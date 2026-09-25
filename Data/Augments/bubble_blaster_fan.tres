@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_qji42"]
+
+[resource]
+script = ExtResource("1_qji42")
+id = &"bubble_blaster_fan"
+item_id = &"bubble_blaster"
+display_name = "Bubble Fan"
+description = "A fan and a dish of mixture. Bubbles, forever, at nobody's effort."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 2000
+currency = 1
+is_automation = true
+automation_rate = 2.1
+device_mount = &"pedestal"
+requires_mastery = 25

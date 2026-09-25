@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/smg.png" id="1_rsysc"]
+[ext_resource type="PackedScene" path="res://Scenes/Guns/smg.tscn" id="2_duls2"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_4l5ym"]
+
+[resource]
+script = ExtResource("3_4l5ym")
+id = &"smg"
+display_name = "SMG"
+description = "Holds a lot, fires all of it, and climbs off him if you keep the trigger down."
+category = 10
+cost = 5000
+scene = ExtResource("2_duls2")
+icon = ExtResource("1_rsysc")
+requires = Array[StringName]([&"revolver"])
+sort_order = 20
+controls = "Hold · Hold right to fire"

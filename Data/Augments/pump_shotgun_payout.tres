@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_u7svx"]
+
+[resource]
+script = ExtResource("1_u7svx")
+id = &"pump_shotgun_payout"
+item_id = &"pump_shotgun"
+display_name = "Clean-Up Rates"
+effect_key = &"payout_mult"
+effect_per_level = 1.12
+cost_base = 460
+sort_order = 1

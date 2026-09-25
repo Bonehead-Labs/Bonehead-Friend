@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_x7elf"]
+
+[resource]
+script = ExtResource("1_x7elf")
+id = &"water_pistol_sprinkler"
+item_id = &"water_pistol"
+display_name = "Garden Sprinkler"
+description = "A sprinkler turned on him. He pretends to mind."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 975
+currency = 1
+is_automation = true
+automation_rate = 0.73
+device_mount = &"pedestal"
+requires_mastery = 25

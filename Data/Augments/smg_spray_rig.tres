@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_7w1fp"]
+
+[resource]
+script = ExtResource("1_7w1fp")
+id = &"smg_spray_rig"
+item_id = &"smg"
+display_name = "Spray Rig"
+description = "Bolted to a bench and pointed at him. The trigger is taped down."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 2800
+currency = 1
+is_automation = true
+automation_rate = 11.0
+device_mount = &"tripod"
+requires_mastery = 25
