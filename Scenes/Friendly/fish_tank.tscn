@@ -1,41 +1,104 @@
 [gd_scene format=3]
 
-[ext_resource type="Script" path="res://Scripts/Bodies/friendly_base.gd" id="1_jnq3n"]
-[ext_resource type="Texture2D" path="res://Assets/sprites/items/fish_tank.png" id="2_b2sjp"]
-[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_qyfpt"]
+[ext_resource type="Script" path="res://Scripts/Bodies/friendly_base.gd" id="1_qyfpt"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/fish_tank.png" id="2_3w50r"]
+[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_33mi8"]
+[ext_resource type="Script" path="res://Scripts/Bodies/gesture_zones.gd" id="4_pxdic"]
+[ext_resource type="Script" path="res://Scripts/Bodies/item_verbs.gd" id="5_hxboe"]
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_3w50r"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_mj8rd"]
 size = Vector2(92, 88)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_33mi8"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_0emk4"]
 size = Vector2(104, 100)
 
-[node name="FishTank" type="RigidBody2D" unique_id=1665705118 node_paths=PackedStringArray("drag_area", "handle", "collider")]
+[node name="FishTank" type="RigidBody2D" unique_id=1583272430 node_paths=PackedStringArray("drag_area", "handle", "sprite", "collider")]
 collision_layer = 4
 collision_mask = 7
 mass = 6.0
 contact_monitor = true
 max_contacts_reported = 4
-script = ExtResource("1_jnq3n")
+script = ExtResource("1_qyfpt")
 hearts_per_second_placed = 7.5
 drag_area = NodePath("DraggableArea")
 handle = NodePath("Handle")
+sprite = NodePath("Sprite")
 collider = NodePath("CollisionShape2D")
 
-[node name="Sprite" type="Sprite2D" parent="." unique_id=1788572278]
+[node name="Sprite" type="Sprite2D" parent="." unique_id=519630301]
 scale = Vector2(2, 2)
-texture = ExtResource("2_b2sjp")
+texture = ExtResource("2_3w50r")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1137193958]
-shape = SubResource("RectangleShape2D_3w50r")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=566183887]
+shape = SubResource("RectangleShape2D_mj8rd")
 
-[node name="DraggableArea" type="Area2D" parent="." unique_id=681512663]
-script = ExtResource("3_qyfpt")
+[node name="DraggableArea" type="Area2D" parent="." unique_id=1452213253]
+script = ExtResource("3_33mi8")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=2009101988]
-shape = SubResource("RectangleShape2D_33mi8")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=92604124]
+shape = SubResource("RectangleShape2D_0emk4")
 
-[node name="Handle" type="StaticBody2D" parent="." unique_id=2087734443]
+[node name="Handle" type="StaticBody2D" parent="." unique_id=2108637592]
 visible = false
 collision_layer = 0
 collision_mask = 0
+
+[node name="GestureZones" type="Node" parent="." unique_id=474404372]
+script = ExtResource("4_pxdic")
+zones = [{
+"at": Vector2(0, -19),
+"id": &"lid",
+"rect": Vector2(40, 6),
+"right": "tap"
+}]
+
+[node name="ItemVerbs" type="Node" parent="." unique_id=1171259851]
+script = ExtResource("5_hxboe")
+verbs = [{
+"cooldown": 15.0,
+"effects": [{
+"amount": 10,
+"at": Vector2(0, -16),
+"box": Vector2(14, 1),
+"colour": Color(1, 0.8117647, 0.41960785, 1),
+"gravity": Vector2(0, 4),
+"kind": "surge",
+"lifetime": 1.8,
+"scale": Vector2(0.8, 1.2),
+"seconds": 0.6,
+"spread": 20.0,
+"velocity": Vector2(0, 10)
+}, {
+"amount": 4,
+"at": Vector2(0, -3),
+"box": Vector2(14, 3),
+"colour": Color(0.9490196, 0.54901963, 0.15686275, 1),
+"damping": 24.0,
+"delay": 0.3,
+"kind": "surge",
+"lifetime": 1.0,
+"scale": Vector2(1.4, 1.8),
+"seconds": 0.5,
+"spread": 8.0,
+"velocity": Vector2(0, -24)
+}, {
+"amount": 10,
+"at": Vector2(0, 0),
+"box": Vector2(16, 1),
+"colour": Color(0.7490196, 0.9019608, 1, 1),
+"kind": "surge",
+"lifetime": 1.3,
+"scale": Vector2(0.8, 1.3),
+"seconds": 2.0,
+"spread": 10.0,
+"velocity": Vector2(0, -14)
+}],
+"id": &"feed",
+"on": "tap",
+"pitch": 1.6,
+"react": &"show",
+"sound": &"pop",
+"value": 12.0,
+"volume": -12.0,
+"zone": &"lid"
+}]

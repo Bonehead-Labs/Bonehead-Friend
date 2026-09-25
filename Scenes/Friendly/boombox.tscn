@@ -1,41 +1,82 @@
 [gd_scene format=3]
 
-[ext_resource type="Script" path="res://Scripts/Bodies/friendly_base.gd" id="1_nu30q"]
-[ext_resource type="Texture2D" path="res://Assets/sprites/items/boombox.png" id="2_gt0u1"]
-[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_bgqm6"]
+[ext_resource type="Script" path="res://Scripts/Bodies/friendly_base.gd" id="1_bgqm6"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/boombox.png" id="2_1so4p"]
+[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_jcdi2"]
+[ext_resource type="Script" path="res://Scripts/Bodies/gesture_zones.gd" id="4_huq0l"]
+[ext_resource type="Script" path="res://Scripts/Bodies/item_verbs.gd" id="5_dv5ds"]
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_1so4p"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_iu5ey"]
 size = Vector2(92, 80)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_jcdi2"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_x7r63"]
 size = Vector2(104, 92)
 
-[node name="Boombox" type="RigidBody2D" unique_id=1645188289 node_paths=PackedStringArray("drag_area", "handle", "collider")]
+[node name="Boombox" type="RigidBody2D" unique_id=630413000 node_paths=PackedStringArray("drag_area", "handle", "sprite", "collider")]
 collision_layer = 4
 collision_mask = 7
 mass = 4.0
 contact_monitor = true
 max_contacts_reported = 4
-script = ExtResource("1_nu30q")
+script = ExtResource("1_bgqm6")
 hearts_per_second_placed = 1.5
 drag_area = NodePath("DraggableArea")
 handle = NodePath("Handle")
+sprite = NodePath("Sprite")
 collider = NodePath("CollisionShape2D")
 
-[node name="Sprite" type="Sprite2D" parent="." unique_id=962160539]
+[node name="Sprite" type="Sprite2D" parent="." unique_id=1013745325]
 scale = Vector2(2, 2)
-texture = ExtResource("2_gt0u1")
+texture = ExtResource("2_1so4p")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=360231418]
-shape = SubResource("RectangleShape2D_1so4p")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=974518826]
+shape = SubResource("RectangleShape2D_iu5ey")
 
-[node name="DraggableArea" type="Area2D" parent="." unique_id=770751867]
-script = ExtResource("3_bgqm6")
+[node name="DraggableArea" type="Area2D" parent="." unique_id=552552916]
+script = ExtResource("3_jcdi2")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=1351735263]
-shape = SubResource("RectangleShape2D_jcdi2")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=1434753766]
+shape = SubResource("RectangleShape2D_x7r63")
 
-[node name="Handle" type="StaticBody2D" parent="." unique_id=1015508067]
+[node name="Handle" type="StaticBody2D" parent="." unique_id=561005046]
 visible = false
 collision_layer = 0
 collision_mask = 0
+
+[node name="GestureZones" type="Node" parent="." unique_id=1297670765]
+script = ExtResource("4_huq0l")
+zones = [{
+"at": Vector2(0, -6),
+"id": &"deck",
+"rect": Vector2(40, 8),
+"right": "tap"
+}]
+
+[node name="ItemVerbs" type="Node" parent="." unique_id=254933421]
+script = ExtResource("5_dv5ds")
+verbs = [{
+"bursts": [[&"chip", "cycle", 8, 140.0]],
+"colours": [Color(0.18431373, 0.70980394, 0.6901961, 1), Color(1, 0.37254903, 0.61960787, 1), Color(1, 0.7607843, 0.2784314, 1), Color(0.8509804, 0.627451, 1, 1)],
+"cooldown": 4.0,
+"cycle": 4,
+"effects": [{
+"ambient": "set",
+"kind": "tint"
+}, {
+"kind": "tempo",
+"speeds": [1.0, 1.6, 0.7, 1.3]
+}, {
+"anchor": Vector2(0, 20),
+"kind": "squash",
+"scale": Vector2(1.06, 0.94),
+"seconds": 0.2
+}],
+"id": &"next_track",
+"notes": [0, 5, 7, 12],
+"on": "tap",
+"react": &"music",
+"sound": &"plink",
+"value": 4.0,
+"volume": -6.0,
+"zone": &"deck"
+}]

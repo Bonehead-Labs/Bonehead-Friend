@@ -15,3 +15,4 @@ currency = 1
 scene = ExtResource("1_y8bhy")
 icon = ExtResource("1_cg7vy")
 sort_order = 60
+controls = "Right-drag circles on the fan to blow a flurry"

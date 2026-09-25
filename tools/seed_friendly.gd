@@ -28,6 +28,9 @@ const ItemDataScript := preload("res://Scripts/Data/item_data.gd")
 const FriendlyBaseScript := preload("res://Scripts/Bodies/friendly_base.gd")
 const DraggableAreaScript := preload("res://Scripts/Bodies/draggable_area.gd")
 const OpenHandScript := preload("res://Scripts/Bodies/Powers/open_hand_power.gd")
+## The verbs on everyday things (D67): zones and verbs for the bodies that have them, and the
+## line each one is taught by.
+const VerbTable := preload("res://tools/verb_table.gd")
 
 const ITEMS_DIR := "res://Data/Items"
 const SCENES_DIR := "res://Scenes/Friendly"
@@ -247,7 +250,12 @@ func _build_friendly(node_name: String, item_id: StringName, colour: Color, exte
 	for key in properties:
 		root.set(StringName(key), properties[key])
 
-	root.add_child(_visual_for(item_id, colour, extent))
+	var visual := _visual_for(item_id, colour, extent)
+	root.add_child(visual)
+	# Wired, as every other seeder wires it. Until D67 this file left `sprite` empty, so no kind
+	# item it built wore its upgrade (D41's glow reads the export), popped on landing, or sat its
+	# ambient life on its own top edge rather than on a guessed 32px square.
+	root.set(&"sprite", visual)
 
 	var solid := _collider_extent(item_id, extent)
 	var shape := RectangleShape2D.new()
@@ -283,6 +291,7 @@ func _build_friendly(node_name: String, item_id: StringName, colour: Color, exte
 	root.set(&"drag_area", drag_area)
 	root.set(&"handle", handle)
 	root.set(&"collider", collider)
+	VerbTable.attach(root, item_id)
 	return root
 
 ## A box with its corners cut off. Not art — just enough silhouette that four placeholder
@@ -411,6 +420,7 @@ func _item(id: StringName, display_name: String, description: String, cost: int,
 	item.scene = _require(scene_path)
 	item.sort_order = sort_order
 	item.equips_as_cursor_power = as_power
+	item.controls = VerbTable.controls(id)
 	_save(item, path)
 
 # --- io --------------------------------------------------------------------

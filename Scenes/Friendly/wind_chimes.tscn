@@ -1,41 +1,90 @@
 [gd_scene format=3]
 
-[ext_resource type="Script" path="res://Scripts/Bodies/friendly_base.gd" id="1_uv8ms"]
-[ext_resource type="Texture2D" path="res://Assets/sprites/items/wind_chimes.png" id="2_2b2q1"]
-[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_t8bdc"]
+[ext_resource type="Script" path="res://Scripts/Bodies/friendly_base.gd" id="1_t8bdc"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/wind_chimes.png" id="2_v0ch2"]
+[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_crulf"]
+[ext_resource type="Script" path="res://Scripts/Bodies/gesture_zones.gd" id="4_mayul"]
+[ext_resource type="Script" path="res://Scripts/Bodies/item_verbs.gd" id="5_5wt4q"]
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_v0ch2"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_1pax5"]
 size = Vector2(28, 80)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_crulf"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_v28sb"]
 size = Vector2(40, 92)
 
-[node name="WindChimes" type="RigidBody2D" unique_id=995967252 node_paths=PackedStringArray("drag_area", "handle", "collider")]
+[node name="WindChimes" type="RigidBody2D" unique_id=1284499692 node_paths=PackedStringArray("drag_area", "handle", "sprite", "collider")]
 collision_layer = 4
 collision_mask = 7
 mass = 0.6
 contact_monitor = true
 max_contacts_reported = 4
-script = ExtResource("1_uv8ms")
+script = ExtResource("1_t8bdc")
 hearts_per_second_placed = 1.3
 drag_area = NodePath("DraggableArea")
 handle = NodePath("Handle")
+sprite = NodePath("Sprite")
 collider = NodePath("CollisionShape2D")
 
-[node name="Sprite" type="Sprite2D" parent="." unique_id=248279731]
+[node name="Sprite" type="Sprite2D" parent="." unique_id=143182527]
 scale = Vector2(2, 2)
-texture = ExtResource("2_2b2q1")
+texture = ExtResource("2_v0ch2")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=42397404]
-shape = SubResource("RectangleShape2D_v0ch2")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=784906791]
+shape = SubResource("RectangleShape2D_1pax5")
 
-[node name="DraggableArea" type="Area2D" parent="." unique_id=1985626874]
-script = ExtResource("3_t8bdc")
+[node name="DraggableArea" type="Area2D" parent="." unique_id=1079916312]
+script = ExtResource("3_crulf")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=1518745221]
-shape = SubResource("RectangleShape2D_crulf")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=533748877]
+shape = SubResource("RectangleShape2D_v28sb")
 
-[node name="Handle" type="StaticBody2D" parent="." unique_id=134336831]
+[node name="Handle" type="StaticBody2D" parent="." unique_id=613535345]
 visible = false
 collision_layer = 0
 collision_mask = 0
+
+[node name="GestureZones" type="Node" parent="." unique_id=82864175]
+script = ExtResource("4_mayul")
+zones = [{
+"at": Vector2(-6, 1),
+"id": &"t0",
+"rect": Vector2(4, 20),
+"right": "claim"
+}, {
+"at": Vector2(-1, 2),
+"id": &"t1",
+"rect": Vector2(4, 22),
+"right": "claim"
+}, {
+"at": Vector2(4, -1),
+"id": &"t2",
+"rect": Vector2(4, 16),
+"right": "claim"
+}, {
+"at": Vector2(-1, 0),
+"backing": true,
+"id": &"chimes",
+"rect": Vector2(18, 36),
+"right": "claim"
+}]
+
+[node name="ItemVerbs" type="Node" parent="." unique_id=1371273973]
+script = ExtResource("5_5wt4q")
+verbs = [{
+"bursts": [[&"star", Color(1, 0.7607843, 0.2784314, 1), 2, 60.0]],
+"cooldown": 3.0,
+"effects": [{
+"degrees": 7.0,
+"kind": "swing",
+"pivot": Vector2(0, -18),
+"seconds": 1.6
+}],
+"id": &"ring",
+"notes": [0, 4, 7],
+"on": ["press", "cross"],
+"react": &"music",
+"sound": &"plink",
+"value": 3.0,
+"volume": -8.0,
+"zones": [&"t0", &"t1", &"t2"]
+}]

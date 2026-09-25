@@ -229,6 +229,11 @@ var _ambient_base_amount := 0
 func ambient_kind() -> StringName:
 	return AMBIENT.get(item_id, &"")
 
+## The ambient emitter, or null for an item with no ambient life. For a verb that changes it —
+## a new track's notes in a new colour, the lights' twinkle in the pattern's (D67).
+func ambient_emitter() -> GPUParticles2D:
+	return _ambient
+
 func _build_ambient() -> void:
 	var kind := ambient_kind()
 	if kind == &"" or _ambient != null:

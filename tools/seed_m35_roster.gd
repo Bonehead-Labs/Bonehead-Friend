@@ -28,6 +28,9 @@ const BeamPowerScript := preload("res://Scripts/Bodies/Powers/beam_power.gd")
 const GunPowerScript := preload("res://Scripts/Bodies/Powers/gun_power.gd")
 const VortexPowerScript := preload("res://Scripts/Bodies/Powers/vortex_power.gd")
 const LightningPowerScript := preload("res://Scripts/Bodies/Powers/lightning_power.gd")
+## The verbs on everyday things (D67): the hot tub's jets and the fan's aim live in the same
+## table as every other kind item's, and come back with the scene when it is rebuilt.
+const VerbTable := preload("res://tools/verb_table.gd")
 
 const ITEMS_DIR := "res://Data/Items"
 const FRIENDLY_DIR := "res://Scenes/Friendly"
@@ -150,6 +153,7 @@ func _build_friendly(node_name: String, item_id: StringName, extent: Vector2,
 	root.set(&"drag_area", root.get_node("DraggableArea"))
 	root.set(&"handle", handle)
 	root.set(&"collider", collider)
+	VerbTable.attach(root, item_id)
 	return root
 
 func _build_trampoline() -> Node:
@@ -240,6 +244,7 @@ func _build_fan() -> Node:
 	root.set(&"handle", handle)
 	root.set(&"collider", collider)
 	root.set(&"wind_area", wind)
+	VerbTable.attach(root, &"desk_fan")
 	return root
 
 ## A cursor power: a bare Node2D with a script, its reticle and its numbers. No body, no
@@ -374,6 +379,7 @@ func _item(id: StringName, display_name: String, description: String, category: 
 	var icon := "res://Assets/sprites/icons/%s.png" % id
 	if ResourceLoader.exists(icon):
 		item.icon = ResourceLoader.load(icon)
+	item.controls = VerbTable.controls(id)
 	_save(item, path)
 
 # --- io --------------------------------------------------------------------

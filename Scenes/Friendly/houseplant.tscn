@@ -1,41 +1,86 @@
 [gd_scene format=3]
 
-[ext_resource type="Script" path="res://Scripts/Bodies/friendly_base.gd" id="1_4bpcv"]
-[ext_resource type="Texture2D" path="res://Assets/sprites/items/houseplant.png" id="2_o1qf1"]
-[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_cn34w"]
+[ext_resource type="Script" path="res://Scripts/Bodies/friendly_base.gd" id="1_cn34w"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/houseplant.png" id="2_8wmj5"]
+[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_nh77n"]
+[ext_resource type="Script" path="res://Scripts/Bodies/gesture_zones.gd" id="4_llug3"]
+[ext_resource type="Script" path="res://Scripts/Bodies/item_verbs.gd" id="5_ea5f6"]
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_8wmj5"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_th05e"]
 size = Vector2(68, 88)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_nh77n"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_slr58"]
 size = Vector2(80, 100)
 
-[node name="Houseplant" type="RigidBody2D" unique_id=1568678487 node_paths=PackedStringArray("drag_area", "handle", "collider")]
+[node name="Houseplant" type="RigidBody2D" unique_id=1381675211 node_paths=PackedStringArray("drag_area", "handle", "sprite", "collider")]
 collision_layer = 4
 collision_mask = 7
 mass = 1.5
 contact_monitor = true
 max_contacts_reported = 4
-script = ExtResource("1_4bpcv")
+script = ExtResource("1_cn34w")
 hearts_per_second_placed = 0.4
 drag_area = NodePath("DraggableArea")
 handle = NodePath("Handle")
+sprite = NodePath("Sprite")
 collider = NodePath("CollisionShape2D")
 
-[node name="Sprite" type="Sprite2D" parent="." unique_id=1555260234]
+[node name="Sprite" type="Sprite2D" parent="." unique_id=456564773]
 scale = Vector2(2, 2)
-texture = ExtResource("2_o1qf1")
+texture = ExtResource("2_8wmj5")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1228868011]
-shape = SubResource("RectangleShape2D_8wmj5")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=903737413]
+shape = SubResource("RectangleShape2D_th05e")
 
-[node name="DraggableArea" type="Area2D" parent="." unique_id=360837363]
-script = ExtResource("3_cn34w")
+[node name="DraggableArea" type="Area2D" parent="." unique_id=2140230991]
+script = ExtResource("3_nh77n")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=1327299831]
-shape = SubResource("RectangleShape2D_nh77n")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=930048955]
+shape = SubResource("RectangleShape2D_slr58")
 
-[node name="Handle" type="StaticBody2D" parent="." unique_id=2058787118]
+[node name="Handle" type="StaticBody2D" parent="." unique_id=1041784198]
 visible = false
 collision_layer = 0
 collision_mask = 0
+
+[node name="GestureZones" type="Node" parent="." unique_id=350707118]
+script = ExtResource("4_llug3")
+zones = [{
+"at": Vector2(0, -8),
+"id": &"leaves",
+"rect": Vector2(32, 22),
+"right": "tap"
+}]
+
+[node name="ItemVerbs" type="Node" parent="." unique_id=473764042]
+script = ExtResource("5_ea5f6")
+verbs = [{
+"cooldown": 20.0,
+"effects": [{
+"amount": 8,
+"at": Vector2(0, -24),
+"box": Vector2(9, 1),
+"colour": Color(0.49803922, 0.78431374, 1, 1),
+"gravity": Vector2(0, 60),
+"kind": "surge",
+"lifetime": 0.45,
+"scale": Vector2(0.8, 1.1),
+"seconds": 0.4,
+"spread": 5.0,
+"velocity": Vector2(0, 40)
+}, {
+"anchor": Vector2(0, 21),
+"delay": 0.35,
+"kind": "squash",
+"scale": Vector2(0.94, 1.12),
+"seconds": 0.5
+}],
+"id": &"water",
+"on": "tap",
+"pitch": 1.4,
+"react": &"amused",
+"sound": &"slosh",
+"value": 6.0,
+"volume": -12.0,
+"zone": &"leaves"
+}]

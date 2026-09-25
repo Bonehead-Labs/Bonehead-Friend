@@ -1,41 +1,88 @@
 [gd_scene format=3]
 
-[ext_resource type="Script" path="res://Scripts/Bodies/friendly_base.gd" id="1_4n43d"]
-[ext_resource type="Texture2D" path="res://Assets/sprites/items/bubble_machine.png" id="2_8gf5k"]
-[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_s0iju"]
+[ext_resource type="Script" path="res://Scripts/Bodies/friendly_base.gd" id="1_s0iju"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/bubble_machine.png" id="2_ry4y5"]
+[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_8fq1y"]
+[ext_resource type="Script" path="res://Scripts/Bodies/gesture_zones.gd" id="4_chuvc"]
+[ext_resource type="Script" path="res://Scripts/Bodies/item_verbs.gd" id="5_dgcg2"]
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_ry4y5"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_j7k5h"]
 size = Vector2(52, 66)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_8fq1y"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_onouj"]
 size = Vector2(64, 78)
 
-[node name="BubbleMachine" type="RigidBody2D" unique_id=94635465 node_paths=PackedStringArray("drag_area", "handle", "collider")]
+[node name="BubbleMachine" type="RigidBody2D" unique_id=1401976133 node_paths=PackedStringArray("drag_area", "handle", "sprite", "collider")]
 collision_layer = 4
 collision_mask = 7
 mass = 2.0
 contact_monitor = true
 max_contacts_reported = 4
-script = ExtResource("1_4n43d")
+script = ExtResource("1_s0iju")
 hearts_per_second_placed = 4.5
 drag_area = NodePath("DraggableArea")
 handle = NodePath("Handle")
+sprite = NodePath("Sprite")
 collider = NodePath("CollisionShape2D")
 
-[node name="Sprite" type="Sprite2D" parent="." unique_id=1231063765]
+[node name="Sprite" type="Sprite2D" parent="." unique_id=1112149038]
 scale = Vector2(2, 2)
-texture = ExtResource("2_8gf5k")
+texture = ExtResource("2_ry4y5")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1336466551]
-shape = SubResource("RectangleShape2D_ry4y5")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1104127380]
+shape = SubResource("RectangleShape2D_j7k5h")
 
-[node name="DraggableArea" type="Area2D" parent="." unique_id=304577978]
-script = ExtResource("3_s0iju")
+[node name="DraggableArea" type="Area2D" parent="." unique_id=199259429]
+script = ExtResource("3_8fq1y")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=1142380064]
-shape = SubResource("RectangleShape2D_8fq1y")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=2134537707]
+shape = SubResource("RectangleShape2D_onouj")
 
-[node name="Handle" type="StaticBody2D" parent="." unique_id=1549599746]
+[node name="Handle" type="StaticBody2D" parent="." unique_id=306623048]
 visible = false
 collision_layer = 0
 collision_mask = 0
+
+[node name="GestureZones" type="Node" parent="." unique_id=131925127]
+script = ExtResource("4_chuvc")
+zones = [{
+"at": Vector2(-2, 7.5),
+"circle": 6.5,
+"id": &"fan",
+"right": "claim"
+}]
+
+[node name="ItemVerbs" type="Node" parent="." unique_id=637533625]
+script = ExtResource("5_dgcg2")
+verbs = [{
+"every": 1.5707963267948966,
+"id": &"wind",
+"on": "crank",
+"sound": &"whirr",
+"volume": -12.0,
+"zone": &"fan"
+}, {
+"cooldown": 4.0,
+"effects": [{
+"amount": 10,
+"at": Vector2(8, -7),
+"box": Vector2(2, 1),
+"colour": Color(0.7490196, 0.9019608, 1, 1),
+"gravity": Vector2(0, 10),
+"kind": "surge",
+"lifetime": 1.6,
+"scale": Vector2(1.2, 2.2),
+"seconds": 0.7,
+"spread": 35.0,
+"velocity": Vector2(6, -40)
+}],
+"every": 6.283185307179586,
+"id": &"flurry",
+"on": "crank",
+"pitch": 1.3,
+"react": &"show",
+"sound": &"pop",
+"value": 5.0,
+"volume": -8.0,
+"zone": &"fan"
+}]
