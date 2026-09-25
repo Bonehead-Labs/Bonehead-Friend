@@ -9,5 +9,5 @@ item_id = &"pump_shotgun"
 display_name = "Clean-Up Rates"
 effect_key = &"payout_mult"
 effect_per_level = 1.12
-cost_base = 460
+cost_base = 276
 sort_order = 1

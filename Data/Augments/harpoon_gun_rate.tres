@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_hdup8"]
+
+[resource]
+script = ExtResource("1_hdup8")
+id = &"harpoon_gun_rate"
+item_id = &"harpoon_gun"
+display_name = "Spare Harpoons"
+effect_key = &"cooldown_mult"
+effect_per_level = 0.94
+cost_base = 842
+cost_growth = 1.09
+sort_order = 2

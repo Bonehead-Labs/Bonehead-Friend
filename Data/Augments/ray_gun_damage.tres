@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_qq67e"]
+
+[resource]
+script = ExtResource("1_qq67e")
+id = &"ray_gun_damage"
+item_id = &"ray_gun"
+display_name = "Overcharged Cells"
+effect_key = &"damage_mult"
+effect_per_level = 1.15
+cost_base = 2460
+cost_growth = 1.12

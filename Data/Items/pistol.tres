@@ -1,16 +1,17 @@
 [gd_resource type="Resource" script_class="ItemData" format=3]
 
 [ext_resource type="Texture2D" path="res://Assets/sprites/icons/pistol.png" id="1_g5xfu"]
-[ext_resource type="PackedScene" path="res://Scenes/Powers/gun_power.tscn" id="2_satg0"]
+[ext_resource type="PackedScene" path="res://Scenes/Guns/pistol.tscn" id="2_g5xfu"]
 [ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_mob6u"]
 
 [resource]
 script = ExtResource("3_mob6u")
 id = &"pistol"
 display_name = "Pistol"
-description = "One shot at the crosshair. Shoves anything nearby."
-category = 2
+description = "Small, quick and honest. The first gun, and the one the rest are measured against."
+category = 10
 cost = 600
-scene = ExtResource("2_satg0")
+scene = ExtResource("2_g5xfu")
 icon = ExtResource("1_g5xfu")
-sort_order = 10
+sort_order = 3
+controls = "Hold · Right-click to fire"

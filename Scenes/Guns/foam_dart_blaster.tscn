@@ -1,0 +1,100 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Bodies/Guns/dart_blaster.gd" id="1_7dhtg"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/foam_dart_blaster_dart.png" id="2_tfwre"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/foam_dart_blaster.png" id="3_fhppi"]
+[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="4_ju5g8"]
+[ext_resource type="Script" path="res://Scripts/Components/effects_player.gd" id="5_2posm"]
+
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_7dhtg"]
+friction = 0.9
+bounce = 0.15
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_tfwre"]
+size = Vector2(56, 12)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_fhppi"]
+size = Vector2(30, 6)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ju5g8"]
+size = Vector2(10, 12)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_2posm"]
+size = Vector2(10, 12)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_2xy4g"]
+size = Vector2(60, 34)
+
+[node name="_FoamDartBlaster" type="RigidBody2D" unique_id=2064012798 node_paths=PackedStringArray("drag_area", "handle", "sprite", "collider", "Effects_Player")]
+collision_layer = 4
+collision_mask = 7
+mass = 0.9
+physics_material_override = SubResource("PhysicsMaterial_7dhtg")
+center_of_mass_mode = 1
+center_of_mass = Vector2(16, -12)
+contact_monitor = true
+max_contacts_reported = 4
+script = ExtResource("1_7dhtg")
+dart_texture = ExtResource("2_tfwre")
+dart_value = 1.1
+aim_frequency = 24.0
+aim_damping = 0.85
+aim_max_accel = 320.0
+muzzle = Vector2(46, -10)
+ejects = false
+fire_interval = 0.25
+shot_force = 40.0
+shot_mult = 0.0
+shot_range = 500.0
+recoil_kick = 20.0
+recoil_climb = 60.0
+magazine = 6
+reload_time = 1.4
+projectile_speed = 780.0
+projectile_gravity = 0.4
+fire_sound = &"pop"
+fire_pitch = 1.4
+fire_volume_db = -12.0
+damage_mult = 0.0
+item_id = &"foam_dart_blaster"
+drag_area = NodePath("DraggableArea")
+handle = NodePath("Handle")
+sprite = NodePath("Sprite")
+collider = NodePath("CollisionShape2D")
+Effects_Player = NodePath("EffectsPlayer")
+
+[node name="Sprite" type="Sprite2D" parent="." unique_id=410164213]
+position = Vector2(16, -6)
+scale = Vector2(2, 2)
+texture = ExtResource("3_fhppi")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1788553936]
+position = Vector2(18, -11)
+shape = SubResource("RectangleShape2D_tfwre")
+
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="." unique_id=824665106]
+position = Vector2(9, -19)
+shape = SubResource("RectangleShape2D_fhppi")
+
+[node name="CollisionShape2D3" type="CollisionShape2D" parent="." unique_id=1092108739]
+position = Vector2(0, 1)
+shape = SubResource("RectangleShape2D_ju5g8")
+
+[node name="CollisionShape2D4" type="CollisionShape2D" parent="." unique_id=866104862]
+position = Vector2(27, 1)
+shape = SubResource("RectangleShape2D_2posm")
+
+[node name="DraggableArea" type="Area2D" parent="." unique_id=2067103665]
+script = ExtResource("4_ju5g8")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=958771221]
+position = Vector2(16, -7)
+shape = SubResource("RectangleShape2D_2xy4g")
+
+[node name="Handle" type="StaticBody2D" parent="." unique_id=941091666]
+visible = false
+collision_layer = 0
+collision_mask = 0
+
+[node name="EffectsPlayer" type="Node" parent="." unique_id=1512695455]
+script = ExtResource("5_2posm")

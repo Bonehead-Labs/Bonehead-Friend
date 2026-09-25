@@ -9,6 +9,6 @@ item_id = &"smg"
 display_name = "Lighter Bolt"
 effect_key = &"cooldown_mult"
 effect_per_level = 0.94
-cost_base = 168
+cost_base = 101
 cost_growth = 1.09
 sort_order = 2

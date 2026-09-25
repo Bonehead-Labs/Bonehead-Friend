@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_3208w"]
+
+[resource]
+script = ExtResource("1_3208w")
+id = &"harpoon_gun_weight"
+item_id = &"harpoon_gun"
+display_name = "Weighted Rail"
+effect_key = &"mass_mult"
+effect_per_level = 1.08
+cost_base = 690
+cost_growth = 1.09
+sort_order = 3

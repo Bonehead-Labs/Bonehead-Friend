@@ -9,5 +9,5 @@ item_id = &"blunderbuss"
 display_name = "Salvage Rights"
 effect_key = &"payout_mult"
 effect_per_level = 1.12
-cost_base = 2321
+cost_base = 1392
 sort_order = 1

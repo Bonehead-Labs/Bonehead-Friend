@@ -9,6 +9,6 @@ item_id = &"water_pistol"
 display_name = "Car Wash Tips"
 effect_key = &"payout_mult"
 effect_per_level = 1.12
-cost_base = 51
+cost_base = 31
 currency = 1
 sort_order = 1

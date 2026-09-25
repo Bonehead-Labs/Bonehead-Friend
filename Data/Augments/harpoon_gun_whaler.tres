@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_j5cja"]
+
+[resource]
+script = ExtResource("1_j5cja")
+id = &"harpoon_gun_whaler"
+item_id = &"harpoon_gun"
+display_name = "Whaler"
+description = "A deck gun and a winch. He is the one that got away, over and over."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 20800
+currency = 1
+is_automation = true
+automation_rate = 101.0
+device_mount = &"tripod"
+requires_mastery = 25

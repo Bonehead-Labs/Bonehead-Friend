@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_ce3rd"]
+
+[resource]
+script = ExtResource("1_ce3rd")
+id = &"harpoon_gun_steady"
+item_id = &"harpoon_gun"
+display_name = "Shock Cord"
+effect_key = &"recoil_mult"
+effect_per_level = 0.92
+cost_base = 759
+cost_growth = 1.09
+sort_order = 4

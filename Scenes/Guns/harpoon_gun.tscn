@@ -1,0 +1,104 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Bodies/Guns/harpoon_gun.gd" id="1_hn8v6"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/harpoon_gun_harpoon.png" id="2_0gfsu"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/harpoon_gun.png" id="3_8almm"]
+[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="4_00xei"]
+[ext_resource type="Script" path="res://Scripts/Components/effects_player.gd" id="5_ld00t"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/harpoon_gun_loaded.png" id="6_eg7kt"]
+
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_hn8v6"]
+friction = 0.9
+bounce = 0.15
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_0gfsu"]
+size = Vector2(82, 12)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_8almm"]
+size = Vector2(12, 10)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_00xei"]
+size = Vector2(10, 10)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ld00t"]
+size = Vector2(18, 8)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_eg7kt"]
+size = Vector2(96, 34)
+
+[node name="_HarpoonGun" type="RigidBody2D" unique_id=1877916677 node_paths=PackedStringArray("loaded_sprite", "drag_area", "handle", "sprite", "collider", "Effects_Player")]
+collision_layer = 4
+collision_mask = 7
+mass = 3.0
+physics_material_override = SubResource("PhysicsMaterial_hn8v6")
+center_of_mass_mode = 1
+center_of_mass = Vector2(25, -7)
+contact_monitor = true
+max_contacts_reported = 4
+script = ExtResource("1_hn8v6")
+harpoon_texture = ExtResource("2_0gfsu")
+loaded_sprite = NodePath("Loaded")
+aim_frequency = 16.0
+aim_max_accel = 200.0
+muzzle = Vector2(73, -13)
+ejects = false
+fire_interval = 0.6
+shot_force = 4000.0
+shot_mult = 0.9
+shove = 0.5
+shot_range = 650.0
+recoil_kick = 1600.0
+recoil_climb = 8800.0
+projectile_speed = 1100.0
+projectile_gravity = 0.25
+fire_sound = &"twang"
+fire_pitch = 0.6
+fire_volume_db = -6.0
+damage_mult = 0.9
+item_id = &"harpoon_gun"
+drag_area = NodePath("DraggableArea")
+handle = NodePath("Handle")
+sprite = NodePath("Sprite")
+collider = NodePath("CollisionShape2D")
+Effects_Player = NodePath("EffectsPlayer")
+
+[node name="Sprite" type="Sprite2D" parent="." unique_id=759175160]
+position = Vector2(33, -3)
+scale = Vector2(2, 2)
+texture = ExtResource("3_8almm")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1232078111]
+position = Vector2(26, -9)
+shape = SubResource("RectangleShape2D_0gfsu")
+
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="." unique_id=1613758814]
+position = Vector2(74, -13)
+shape = SubResource("RectangleShape2D_8almm")
+
+[node name="CollisionShape2D3" type="CollisionShape2D" parent="." unique_id=1660728312]
+position = Vector2(0, 1)
+shape = SubResource("RectangleShape2D_00xei")
+
+[node name="CollisionShape2D4" type="CollisionShape2D" parent="." unique_id=731112569]
+position = Vector2(37, 2)
+shape = SubResource("RectangleShape2D_ld00t")
+
+[node name="DraggableArea" type="Area2D" parent="." unique_id=390192008]
+script = ExtResource("4_00xei")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=2113667527]
+position = Vector2(33, -4)
+shape = SubResource("RectangleShape2D_eg7kt")
+
+[node name="Handle" type="StaticBody2D" parent="." unique_id=716749360]
+visible = false
+collision_layer = 0
+collision_mask = 0
+
+[node name="EffectsPlayer" type="Node" parent="." unique_id=372824597]
+script = ExtResource("5_ld00t")
+
+[node name="Loaded" type="Sprite2D" parent="." unique_id=386980924]
+position = Vector2(33, -3)
+scale = Vector2(2, 2)
+texture = ExtResource("6_eg7kt")

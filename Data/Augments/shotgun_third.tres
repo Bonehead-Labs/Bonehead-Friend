@@ -6,7 +6,7 @@
 script = ExtResource("1_opbn4")
 id = &"shotgun_third"
 item_id = &"shotgun"
-display_name = "Pump Action"
+display_name = "Snap Breech"
 effect_key = &"cooldown_mult"
 effect_per_level = 0.94
 cost_base = 91

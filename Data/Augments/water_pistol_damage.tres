@@ -9,6 +9,6 @@ item_id = &"water_pistol"
 display_name = "Warm Water"
 effect_key = &"damage_mult"
 effect_per_level = 1.15
-cost_base = 66
+cost_base = 39
 cost_growth = 1.12
 currency = 1

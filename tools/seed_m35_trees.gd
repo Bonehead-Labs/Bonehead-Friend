@@ -94,12 +94,17 @@ const TREES := {
 	&"desk_fan": ["Higher Setting", "Wind Tax", "Cast Base"],
 	# --- cursor powers: the third node is fire rate ---
 	&"fist": ["Knuckle Duster", "Bare-Knuckle Purse", "Faster Hands"],
-	&"shotgun": ["Tighter Choke", "Buckshot Bounty", "Pump Action"],
 	&"missile": ["Bigger Warhead", "Salvage Contract", "Quicker Reload"],
 	&"magnifying_glass": ["Sharper Focus", "Sunlight Tax", "Steadier Hand"],
-	&"minigun": ["Heavier Rounds", "Volume Discount", "Spun Up"],
 	&"gravity_vortex": ["Deeper Well", "Event Horizon Fees", "Faster Collapse"],
 	&"lightning": ["Higher Voltage", "Storm Damages", "Shorter Recharge"],
+	# --- held guns since D71, cursor powers before: the third node is still the rate ---
+	# Kept under the ids a player may have bought levels of. `seed_m39_guns` adds their Weight
+	# and Steady. A double barrel has no pump, so "Pump Action" became "Snap Breech" (the
+	# breech is what the rate node now shortens, with the gap between the barrels); the
+	# minigun's "Spun Up" shortens its spin-up as well as its gap, which is what it said.
+	&"shotgun": ["Tighter Choke", "Buckshot Bounty", "Snap Breech"],
+	&"minigun": ["Heavier Rounds", "Volume Discount", "Spun Up"],
 	# --- friendly: damage_mult is the kindness value; the third is how often it lands ---
 	&"pizza": ["Extra Toppings", "Delivery Tip", "Comfort Food"],
 	&"baseball": ["Better Throw", "Catch Bonus", "Quicker Return"],

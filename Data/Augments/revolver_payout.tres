@@ -9,5 +9,5 @@ item_id = &"revolver"
 display_name = "Wanted Posters"
 effect_key = &"payout_mult"
 effect_per_level = 1.12
-cost_base = 92
+cost_base = 55
 sort_order = 1

@@ -9,5 +9,5 @@ item_id = &"pump_shotgun"
 display_name = "Buckshot"
 effect_key = &"damage_mult"
 effect_per_level = 1.15
-cost_base = 590
+cost_base = 354
 cost_growth = 1.12

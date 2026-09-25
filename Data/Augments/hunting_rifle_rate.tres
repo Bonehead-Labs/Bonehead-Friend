@@ -9,6 +9,6 @@ item_id = &"hunting_rifle"
 display_name = "Smooth Bolt"
 effect_key = &"cooldown_mult"
 effect_per_level = 0.94
-cost_base = 799
+cost_base = 479
 cost_growth = 1.09
 sort_order = 2

@@ -9,6 +9,6 @@ item_id = &"bubble_blaster"
 display_name = "Pop Rewards"
 effect_key = &"payout_mult"
 effect_per_level = 1.12
-cost_base = 123
+cost_base = 74
 currency = 1
 sort_order = 1

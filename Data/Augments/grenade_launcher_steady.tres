@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_dyth4"]
+
+[resource]
+script = ExtResource("1_dyth4")
+id = &"grenade_launcher_steady"
+item_id = &"grenade_launcher"
+display_name = "Rubber Butt Pad"
+effect_key = &"recoil_mult"
+effect_per_level = 0.92
+cost_base = 611
+cost_growth = 1.09
+sort_order = 4

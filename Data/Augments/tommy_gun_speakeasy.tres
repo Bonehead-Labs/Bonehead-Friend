@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_1miq0"]
+
+[resource]
+script = ExtResource("1_1miq0")
+id = &"tommy_gun_speakeasy"
+item_id = &"tommy_gun"
+display_name = "Speakeasy"
+description = "A violin case on a hinge. It opens by itself and plays the one tune it knows."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 8000
+currency = 1
+is_automation = true
+automation_rate = 37.0
+device_mount = &"tripod"
+requires_mastery = 25

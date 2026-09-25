@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/flare_gun.png" id="1_w3ym8"]
+[ext_resource type="PackedScene" path="res://Scenes/Guns/flare_gun.tscn" id="2_0xspw"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_r6axh"]
+
+[resource]
+script = ExtResource("3_r6axh")
+id = &"flare_gun"
+display_name = "Flare Gun"
+description = "A slow, bright flare that sticks in him and keeps burning."
+category = 10
+cost = 3500
+scene = ExtResource("2_0xspw")
+icon = ExtResource("1_w3ym8")
+requires = Array[StringName]([&"shotgun"])
+sort_order = 17
+controls = "Hold · Right-click to fire a flare"
