@@ -2360,11 +2360,11 @@ func _critter(id: StringName) -> void:
 	var more := _hits_from(id).size() - n0
 	_measure("%s: %d more hits in 4 s, +%.0f Bones, fastest he was thrown %.0f px/s" % [id, more,
 		Economy.balance_of(Economy.BONES) - bones, fastest])
-	# How hard a blow may throw him is tuning, not a defect: reported against the drag's own
-	# 4,500 px/s backstop (D54) rather than failed on.
+	# No animal throws him harder than the drag joint itself may (D54's 4,500 px/s backstop). It
+	# was a note here until D70: the gorilla's slam threw him at 4,640, and its push is capped now.
 	if maxf(fastest, peak_speed) > npc.max_drag_speed:
-		_note("%s throws him at %.0f px/s, past the %.0f px/s the drag joint is allowed (D54)"
-			% [id, maxf(fastest, peak_speed), npc.max_drag_speed])
+		problems.append("threw him at %.0f px/s, past the %.0f px/s the drag joint is allowed (D54)"
+			% [maxf(fastest, peak_speed), npc.max_drag_speed])
 	# Grabbed mid-swing, the swing is abandoned.
 	if not npc.flying and is_instance_valid(npc):
 		var winding := await _until(func() -> bool: return ref.get_ref() != null and (ref.get_ref() as NpcBase).state == NpcBase.STATE_ATTACK, 300)
