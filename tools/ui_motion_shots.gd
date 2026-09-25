@@ -130,6 +130,14 @@ func _ready() -> void:
 	_move(Vector2(620, 500))
 	await _record(34)
 
+	# --- a toast that is a score: its chips burst out of the card, not across its words (D75) ---
+	if hud and hud.has_method("celebrate_toast"):
+		_move(UIScale.screen_centre(hud_arrow) if hud_arrow else Vector2(120, 200))
+		await _idle(30)
+		_begin("toast")
+		hud.call("celebrate_toast", "Baseball Bat reached mastery 1", UIStyle.BONES, 4.0)
+		await _record(24)
+
 	print("ui_motion: wrote %s" % ProjectSettings.globalize_path(OUT))
 	get_tree().quit()
 

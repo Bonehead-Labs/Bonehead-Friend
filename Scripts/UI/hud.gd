@@ -704,7 +704,7 @@ func _on_clear_pressed() -> void:
 func celebrate_toast(text: String, colour: Color, seconds: float = 7.0) -> void:
 	show_toast(text, seconds)
 	if _toast and _toast.visible:
-		UIMotion.sparkle(_toast, colour, 24, 220.0)
+		UIMotion.sparkle(_toast, colour, 24, 220.0, true)
 
 func show_toast(text: String, seconds: float = 6.0) -> void:
 	if _toast == null:
