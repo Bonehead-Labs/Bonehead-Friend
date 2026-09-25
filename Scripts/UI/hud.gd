@@ -850,6 +850,9 @@ const STREAK_HEAT := Color("ff8c1a")
 ## hardest to read exactly when the streak was worth reading. The bar under it, which is not
 ## text, still runs all the way to the hot orange. 4.99:1 on `UIStyle.PANEL`.
 const STREAK_HEAT_INK := Color("b35000")
+## Room kept either side of the streak figure for its punch: half of the 0.4 a hot punch adds
+## to a four-character figure ("x100") at TITLE size, rounded up.
+const STREAK_PUNCH_ROOM := 10
 
 var _streak_row: HBoxContainer
 var _streak_cells: Dictionary = {}     ## currency -> {"cell", "value", "bar", "fill"}
@@ -872,7 +875,18 @@ func _build_streak_row() -> Control:
 		var value := UIStyle.label("x3", UIStyle.TITLE, colour)
 		value.theme_type_variation = &"Numeral"
 		value.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		cell.add_child(value)
+		# The figure is punched about its centre by up to 1.4x when the streak is hot, and the
+		# growth was nobody's: "x37" drew over its own STREAK label and past the card's left
+		# edge (ui_shots 10c at 1.25x). Reserve it on both sides, so the punch lands in space the
+		# row already owns.
+		var slot := MarginContainer.new()
+		slot.name = "FigureSlot"
+		slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		slot.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		slot.add_theme_constant_override("margin_left", STREAK_PUNCH_ROOM)
+		slot.add_theme_constant_override("margin_right", STREAK_PUNCH_ROOM)
+		slot.add_child(value)
+		cell.add_child(slot)
 		var side := VBoxContainer.new()
 		side.add_theme_constant_override("separation", 2)
 		side.size_flags_horizontal = Control.SIZE_EXPAND_FILL

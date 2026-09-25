@@ -1412,6 +1412,13 @@ func _the_hud_reads_on_any_desk() -> void:
 	if figure:
 		var hot := UIStyle.contrast(figure.get_theme_color("font_color"), _surface_behind(figure))
 		_check("and its figure is still legible at full heat (%.2f:1)" % hot, hot >= 4.5)
+		# The hottest punch (1.4x about its centre) must land in room the row reserved for it:
+		# unreserved, "x37" drew over its STREAK label and past the card's edge at 1.25x.
+		var slot := figure.get_parent() as MarginContainer
+		var needed := figure.size.x * 0.4 * 0.5
+		var room := float(slot.get_theme_constant("margin_right")) if slot else 0.0
+		_check("and its hottest punch has room beside it (%.1f of %.1f px)" % [room, needed],
+			slot != null and room >= needed and float(slot.get_theme_constant("margin_left")) >= needed)
 	Economy._streak_deadline_msec = 0
 
 	# The pin follows the card when the card grows on its own.
