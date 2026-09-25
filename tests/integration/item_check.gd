@@ -97,6 +97,14 @@ const DRIVERS := {
 	&"PullBackCar": &"_drive_car",
 	&"YoYo": &"_drive_yoyo",
 	&"Slingshot": &"_drive_slingshot",
+	# D72: the supernatural powers, harm and kind. Which currency each pays is `HEARTS_CLASSES`.
+	&"TelekinesisPower": &"_drive_telekinesis",
+	&"TimeStopPower": &"_drive_time_stop",
+	&"MeteorShowerPower": &"_drive_meteors",
+	&"SmitePower": &"_drive_smite",
+	&"BlessingPower": &"_drive_blessing",
+	&"LevitationPower": &"_drive_levitation",
+	&"RainbowPower": &"_drive_rainbow",
 }
 
 ## Classes that pay Hearts. Everything else is on the harm side of the pipeline and pays Bones
@@ -104,7 +112,8 @@ const DRIVERS := {
 ## the shop for Bones and earn through damage at the swing floor (Buddy `_min_impulse_for`, D64).
 ## Read through `_pays_hearts`, which adds every `FidgetToy` and the kind `HeldGun`s.
 const HEARTS_CLASSES: Array[StringName] = [&"FriendlyBase", &"OpenHandPower",
-	&"Slinky", &"NewtonsCradle", &"PullBackCar"]
+	&"Slinky", &"NewtonsCradle", &"PullBackCar",
+	&"BlessingPower", &"LevitationPower", &"RainbowPower"]
 
 ## Classes that cannot be aimed, so a run where it missed him is the item working as sold
 ## ("it rewards letting go") rather than a failure. What it earned is reported, not asserted.
@@ -1579,6 +1588,306 @@ func _drive_pet(run: Run) -> void:
 	_release(MOUSE_BUTTON_LEFT)
 	_expect(run, "declines", run.acts.size() == pets, "and pressed anywhere else, it does nothing")
 	await _holster(run)
+
+# --- drivers: the supernatural powers (D72) ----------------------------------------------
+#
+# Seven classes, one driver each, every one worked with the real buttons at real positions. The
+# gaps their `cooldown_mult` shortens are each power's own clock, read straight after the click
+# that set it, so `_cooldown_verdict` compares like with like.
+
+func _click() -> void:
+	_press(MOUSE_BUTTON_LEFT)
+	_release(MOUSE_BUTTON_LEFT)
+
+## Seized from across the desk, carried to the hand, squeezed, then flung into the right-hand
+## wall. The squeeze is a hit; the wall is the hand's doing and billed to it, not to the world.
+func _drive_telekinesis(run: Run) -> void:
+	var start := _centre()
+	var grab := start + Vector2(-300.0, -230.0)
+	_move(grab)
+	await _step(2)
+	var power := await _equip(run) as TelekinesisPower
+	if power == null:
+		return
+	_press(MOUSE_BUTTON_LEFT)
+	await _step(2)
+	_expect(run, "seizes", power.is_gripping(),
+		"pressed on empty space %.0f px from him, it takes hold of him" % start.distance_to(grab))
+	var rose := 0.0
+	for i in 70:
+		_move(grab)
+		await _step()
+		rose = maxf(rose, start.y - _centre().y)
+	var gap := _centre().distance_to(grab)
+	_expect(run, "carries", rose > 120.0 and gap < 90.0,
+		"and carries him up to the hand (%.0f px up, %.0f px from it)" % [rose, gap])
+	var before := run.hits.size()
+	var pressed_at := Time.get_ticks_msec()
+	_press(MOUSE_BUTTON_RIGHT)
+	run.cooldown = float(power._crush_until_msec - pressed_at)
+	_release(MOUSE_BUTTON_RIGHT)
+	await _step(4)
+	_expect(run, "crush", run.hits.size() > before,
+		"right-click while holding him crushes him (%d hits)" % (run.hits.size() - before))
+	# The fling: swept hard at the right wall and let go on the way there.
+	var flung := run.hits.size()
+	var stride := 2600.0 / float(Engine.physics_ticks_per_second)
+	while _mouse.x < 1000.0:
+		_move(_mouse + Vector2(stride, 0.0))
+		await _step()
+	var fastest := _buddy.linear_velocity.length()
+	_release(MOUSE_BUTTON_LEFT)
+	await _step(2)
+	_expect(run, "lets_go", not power.is_gripping(),
+		"let go, the hand lets go of him (at %.0f px/s)" % fastest)
+	await _await(func() -> bool: return run.hits.size() > flung, 90)
+	await _step(30)
+	_expect(run, "fling", run.hits.size() > flung and not run.stray.has("world"),
+		"flung into the wall, the impact is the hand's to be billed for (%d hits, %s to anything else)"
+		% [run.hits.size() - flung, run.stray])
+	await _holster(run)
+	_expect(run, "rests", not power.is_physics_processing(),
+		"and holstered, nothing of it runs")
+
+## Stopped where he stands; four blows banked on his left that do not land; a click off him and
+## all four land at once and throw him right.
+func _drive_time_stop(run: Run) -> void:
+	_move(_centre())
+	await _step(2)
+	var power := await _equip(run) as TimeStopPower
+	if power == null:
+		return
+	# Up off the desk first: stopping him mid-air is the thing only this power does.
+	_buddy.apply_central_impulse(Vector2(0.0, -900.0) * _buddy.mass)
+	await _step(10)
+	_move(_centre())
+	await _step(2)
+	_click()
+	await _step(2)
+	var held := _buddy.global_position
+	_expect(run, "stops", power.is_stopped() and _buddy.freeze,
+		"a click on him stops time around him, mid-air (%.0f px up)" % (HOME.y - held.y))
+	var blows := 0
+	for dy in [-30.0, -10.0, 10.0, 30.0]:
+		_move(_centre() + Vector2(-30.0, dy))
+		await _step(int(ceil(power.blow_gap * 60.0)) + 1)
+		_click()
+		blows += 1
+	await _step(10)
+	_expect(run, "banks", power.banked() == blows and run.hits.is_empty()
+			and _buddy.global_position.distance_to(held) < 0.5,
+		"%d clicks on him bank %d blows and none of them lands; he has not moved (%.2f px)"
+		% [blows, power.banked(), _buddy.global_position.distance_to(held)])
+	var x0 := _buddy.global_position.x
+	_move(_centre() + Vector2(320.0, -120.0))
+	await _step(2)
+	var released_at := Time.get_ticks_msec()
+	_click()
+	run.cooldown = float(power.recharge_until_msec() - released_at)
+	await _step(3)
+	_expect(run, "resumes", not power.is_stopped() and not _buddy.freeze,
+		"a click off him lets time go")
+	await _step(12)
+	_expect(run, "lands", run.hits.size() >= blows,
+		"and every banked blow lands at once (%d hits)" % run.hits.size())
+	_expect(run, "throws", _buddy.global_position.x - x0 > 20.0,
+		"struck on his left, he is thrown right (%.0f px)" % (_buddy.global_position.x - x0))
+	# Straight back on him: still recharging, so the click does nothing to him.
+	await _step(20)
+	_move(_centre())
+	await _step(2)
+	_click()
+	await _step(2)
+	_expect(run, "recharges", not power.is_stopped(),
+		"and it cannot stop time again until it has recharged (%.0f ms)" % run.cooldown)
+	await _step(40)
+	await _holster(run)
+	_expect(run, "rests", not power.is_processing() and _buddy.modulate == Color.WHITE,
+		"and holstered, nothing of it runs and he is his own colour")
+
+## Held on him for a second and a half: meteors come down on him and go off. Let go, and the
+## ones in the air land and no more are called.
+func _drive_meteors(run: Run) -> void:
+	_move(_centre())
+	await _step(2)
+	var power := await _equip(run) as MeteorShowerPower
+	if power == null:
+		return
+	var pressed_at := Time.get_ticks_msec()
+	_press(MOUSE_BUTTON_LEFT)
+	run.cooldown = float(power.next_msec() - pressed_at)
+	for i in (60 if run.upgraded else 90):
+		_move(_centre())
+		await _step()
+	_release(MOUSE_BUTTON_LEFT)
+	var at_release := run.uses()
+	await _await(func() -> bool: return not power.is_live(), 120)
+	var landed := run.uses()
+	_expect(run, "rains", landed >= 3, "held, it brings meteors down on the cursor (%d landed)" % landed)
+	_expect(run, "hits", not run.hits.is_empty(), "and they hurt him (%d hits)" % run.hits.size())
+	_expect(run, "effect", _fx.count("boom") == landed, "each one goes off where it lands (%d booms)"
+		% _fx.count("boom"))
+	_expect(run, "stops", landed - at_release <= power.pool_size and not power.is_physics_processing(),
+		"and let go, only the %d already falling land, and then nothing runs" % (landed - at_release))
+	await _holster(run)
+
+## Called down on him: the light gathers without hurting him, then the pillar strikes, drives him
+## into the desk, and the desk's blow is the pillar's.
+func _drive_smite(run: Run) -> void:
+	_move(_centre())
+	await _step(2)
+	var power := await _equip(run) as SmitePower
+	if power == null:
+		return
+	var pressed_at := Time.get_ticks_msec()
+	var pressed_frame := _frame
+	_click()
+	run.cooldown = float(power.ready_msec() - pressed_at)
+	await _step(4)
+	_expect(run, "charges", power.is_live() and run.hits.is_empty(),
+		"a click calls it down: the light gathers first, and nothing has hit him yet")
+	await _await(func() -> bool: return not run.hits.is_empty(), 90)
+	var delay := (_frame - pressed_frame) / float(Engine.physics_ticks_per_second)
+	_expect(run, "strikes", not run.hits.is_empty() and delay >= power.charge_seconds * 0.9,
+		"then the pillar strikes (%d hits, %.2f s after the click)" % [run.hits.size(), delay])
+	_expect(run, "effect", _fx.bursts.has(&"star"), "in a burst of light at its foot")
+	await _step(40)
+	_expect(run, "claims", not run.stray.has("world"),
+		"driven into the desk, the desk's blow is billed to it (%s to anything else)" % run.stray)
+	await _await(func() -> bool: return not power.is_live(), 60)
+	await _holster(run)
+	_expect(run, "rests", not power.is_processing(), "and holstered, nothing of it runs")
+
+## Clicked on him: one kind act, then a halo that trickles for as long as it stays. Clicked off
+## him, nothing; clicked again inside the gap, nothing.
+func _drive_blessing(run: Run) -> void:
+	_move(_centre())
+	await _step(2)
+	var power := await _equip(run) as BlessingPower
+	if power == null:
+		return
+	_buddy.mood.set_value(-60.0)
+	var mood := _buddy.mood.value
+	var pressed_at := Time.get_ticks_msec()
+	_click()
+	run.cooldown = float(power.recast_msec() - pressed_at)
+	for i in 80:
+		await _step()
+	_expect(run, "blesses", run.acts.size() == 1, "a click on him is one blessing (%d acts)" % run.acts.size())
+	_expect(run, "halo", power.is_live() and power._halo != null and power._halo.visible,
+		"and a halo settles over him")
+	_expect(run, "trickle", run.sustained_events >= 2,
+		"which pays for as long as it stays (%d flushes)" % run.sustained_events)
+	_expect(run, "mood", _buddy.mood.value > mood, "and he cheers up (%.1f to %.1f)" % [mood, _buddy.mood.value])
+	var mult := Progression.damage_mult_for(run.item.id, power.damage_mult)
+	var act_ok := run.acts.all(func(v: float) -> bool: return is_equal_approx(v, power.bless_value * mult))
+	var flush := power.halo_rate * power.flush_seconds * mult
+	run.value_checked = true
+	run.value_ok = act_ok and run.sustained > 0.0 \
+		and is_equal_approx(run.sustained, flush * float(run.sustained_events))
+	_expect(run, "value", run.value_ok, "the blessing is worth %.2f and each flush %.3f" % [power.bless_value * mult, flush])
+	var acts := run.acts.size()
+	_click()
+	await _step(3)
+	_expect(run, "gap", run.acts.size() == acts, "blessed again inside the gap, nothing more is given")
+	_move(_centre() + Vector2(320.0, -40.0))
+	await _step(2)
+	_click()
+	await _step(3)
+	_expect(run, "declines", run.acts.size() == acts, "and clicked off him, it does nothing")
+	await _holster(run)
+	_expect(run, "rests", not power.is_processing() and not power._halo.visible,
+		"holstered, the halo goes and nothing of it runs")
+
+## Held on him: he floats up, is paid while he is up there, and comes down softly when let go —
+## touching down under the world's fall floor, so nothing is ever billed.
+func _drive_levitation(run: Run) -> void:
+	_move(_centre())
+	await _step(2)
+	var power := await _equip(run) as LevitationPower
+	if power == null:
+		return
+	var floor_y := _centre().y
+	_press(MOUSE_BUTTON_LEFT)
+	var rose := 0.0
+	for i in 110:
+		await _step()
+		rose = maxf(rose, floor_y - _centre().y)
+	_expect(run, "lifts", power.is_floating() and rose > 90.0,
+		"held on him, he floats up (%.0f px)" % rose)
+	_expect(run, "acts", run.acts.size() == 1, "and the lift is one kind act (%d)" % run.acts.size())
+	_expect(run, "trickle", run.sustained_events >= 3,
+		"and every half second up there pays (%d flushes)" % run.sustained_events)
+	_release(MOUSE_BUTTON_LEFT)
+	var fastest := 0.0
+	for i in 240:
+		await _step()
+		fastest = maxf(fastest, _buddy.linear_velocity.y)
+		if not power.is_live():
+			break
+	_expect(run, "sinks", not power.is_live() and absf(_centre().y - floor_y) < 6.0,
+		"let go, he drifts back down to the desk (%.0f px off it)" % absf(_centre().y - floor_y))
+	_expect(run, "softly", fastest <= power.sink_speed + 25.0 and run.hits.is_empty() and run.stray.is_empty(),
+		"no faster than %.0f px/s (%.0f), and nothing is billed (%s)" % [power.sink_speed, fastest, run.stray])
+	var mult := Progression.damage_mult_for(run.item.id, power.damage_mult)
+	var flush := power.float_rate * power.flush_seconds * mult
+	run.value_checked = true
+	run.value_ok = run.acts.all(func(v: float) -> bool: return is_equal_approx(v, power.lift_value * mult)) \
+		and is_equal_approx(run.sustained, flush * float(run.sustained_events))
+	_expect(run, "value", run.value_ok, "the lift is worth %.2f and each flush %.3f" % [power.lift_value * mult, flush])
+	await _holster(run)
+	_expect(run, "rests", not power.is_physics_processing(), "and holstered, nothing of it runs")
+
+## Pressed on him and dragged up and over to the right: a rainbow, a ride over the top, and a
+## step off onto the desk where the cursor was let go.
+func _drive_rainbow(run: Run) -> void:
+	_move(_centre())
+	await _step(2)
+	var power := await _equip(run) as RainbowPower
+	if power == null:
+		return
+	var start := _centre()
+	var target := start + Vector2(380.0, -160.0)
+	_press(MOUSE_BUTTON_LEFT)
+	await _mouse_to(target, 900.0)
+	var released_at := Time.get_ticks_msec()
+	_release(MOUSE_BUTTON_LEFT)
+	run.cooldown = float(power.recast_msec() - released_at)
+	await _step(2)
+	_expect(run, "rides", power.is_riding() and run.acts.size() == 1,
+		"let go, a rainbow is drawn and he is on it (%d acts)" % run.acts.size())
+	var peak := 0.0
+	for i in 200:
+		await _step()
+		peak = maxf(peak, start.y - _centre().y)
+		if not power.is_riding():
+			break
+	await _step(30)
+	var off := absf(_centre().x - target.x)
+	_expect(run, "arrives", not power.is_riding() and off < 40.0 and absf(_centre().y - start.y) < 8.0,
+		"he rides it up %.0f px and steps off on the desk under the cursor (%.0f px off)" % [peak, off])
+	_expect(run, "gently", run.hits.is_empty() and run.stray.is_empty(),
+		"and nothing on the way is billed (%s)" % run.stray)
+	_expect(run, "layers", _buddy.collision_layer != 0 and _buddy.collision_mask != 1,
+		"and he is back on his own layers")
+	var mult := Progression.damage_mult_for(run.item.id, power.damage_mult)
+	run.value_checked = true
+	run.value_ok = run.acts.all(func(v: float) -> bool: return is_equal_approx(v, power.ride_value * mult))
+	_expect(run, "value", run.value_ok, "the ride is worth %.2f" % (power.ride_value * mult))
+	var acts := run.acts.size()
+	_move(_centre() + Vector2(-300.0, -60.0))
+	await _step(2)
+	_press(MOUSE_BUTTON_LEFT)
+	await _step(4)
+	_move(_mouse + Vector2(-200.0, 0.0))
+	await _step(2)
+	_release(MOUSE_BUTTON_LEFT)
+	await _step(4)
+	_expect(run, "declines", run.acts.size() == acts and not power.is_riding(),
+		"and pressed off him, no rainbow")
+	await _await(func() -> bool: return not power.is_live(), 60)
+	await _holster(run)
+	_expect(run, "rests", not power.is_physics_processing(), "and holstered, nothing of it runs")
 
 func _drive_friendly(run: Run) -> void:
 	var a := run.authored
