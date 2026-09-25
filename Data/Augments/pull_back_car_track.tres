@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_mkvar"]
+
+[resource]
+script = ExtResource("1_mkvar")
+id = &"pull_back_car_track"
+item_id = &"pull_back_car"
+display_name = "Loop Track"
+description = "A figure-of-eight track. The car goes round, and he goes round on it."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 2300
+currency = 1
+is_automation = true
+automation_rate = 2.5
+device_mount = &"tripod"
+requires_mastery = 25

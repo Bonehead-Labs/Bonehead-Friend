@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/slingshot.png" id="1_r0xwq"]
+[ext_resource type="PackedScene" path="res://Scenes/Fidgets/slingshot.tscn" id="2_wrktj"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_2ihpx"]
+
+[resource]
+script = ExtResource("3_2ihpx")
+id = &"slingshot"
+display_name = "Slingshot"
+description = "Pull back, aim, let go. The one gun in the drawer you aim yourself."
+category = 10
+cost = 1200
+scene = ExtResource("2_wrktj")
+icon = ExtResource("1_r0xwq")
+sort_order = 5
+controls = "Hold · Hold right and pull back to aim · Let go of right to fire"

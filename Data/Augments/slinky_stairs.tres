@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_lwl36"]
+
+[resource]
+script = ExtResource("1_lwl36")
+id = &"slinky_stairs"
+item_id = &"slinky"
+display_name = "Endless Stairs"
+description = "A staircase that goes round in a loop. It walks down it all day."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 975
+currency = 1
+is_automation = true
+automation_rate = 0.73
+device_mount = &"tripod"
+requires_mastery = 25

@@ -91,13 +91,20 @@ const DRIVERS := {
 	&"FidgetSpinner": &"_drive_spinner",
 	&"MagicEightBall": &"_drive_fortune_ball",
 	&"JackInTheBox": &"_drive_jack",
+	# The second five fidget toys (D66).
+	&"Slinky": &"_drive_slinky",
+	&"NewtonsCradle": &"_drive_cradle",
+	&"PullBackCar": &"_drive_car",
+	&"YoYo": &"_drive_yoyo",
+	&"Slingshot": &"_drive_slingshot",
 }
 
 ## Classes that pay Hearts. Everything else is on the harm side of the pipeline and pays Bones
 ## — including the bowling ball, the trampoline and the fan, which are sold on the kind side of
 ## the shop for Bones and earn through damage at the swing floor (Buddy `_min_impulse_for`, D64).
 ## Read through `_pays_hearts`, which adds every `FidgetToy` and the kind `HeldGun`s.
-const HEARTS_CLASSES: Array[StringName] = [&"FriendlyBase", &"OpenHandPower"]
+const HEARTS_CLASSES: Array[StringName] = [&"FriendlyBase", &"OpenHandPower",
+	&"Slinky", &"NewtonsCradle", &"PullBackCar"]
 
 ## Classes that cannot be aimed, so a run where it missed him is the item working as sold
 ## ("it rewards letting go") rather than a failure. What it earned is reported, not asserted.
@@ -2445,6 +2452,163 @@ func _gauge_verdict(plain: Run, upgraded: Run, key: StringName, promised: float)
 	if moved:
 		return "x%.2f (%.2f to %.2f)" % [ratio, float(a), float(b)]
 	return "placebo: %.2f stayed %.2f" % [float(a), float(b)]
+
+# --- drivers: the second five fidget toys (D66) -----------------------------------------
+#
+# Each is worked the way its `controls` line says, with the real buttons at the real zones.
+# Where the thing a node changes is not a gap in time — a stretch, a wind, the swing a clack
+# keeps — `run.cooldown` carries that number instead, so `_cooldown_verdict` still asks whether
+# "time between uses" moved it.
+
+## Picked up, planted with right, stretched, let go: one boing, one act, worth the stretch.
+func _drive_slinky(run: Run) -> void:
+	var body := await _spawn(run, _centre() + Vector2(-240.0, -40.0)) as Slinky
+	if body == null:
+		return
+	await _await_still(body, 90)
+	if not await _grab(run, body):
+		return
+	await _mouse_to(_mouse + Vector2(0.0, -40.0), 400.0)
+	await _steady(body, 40)
+	_press(MOUSE_BUTTON_RIGHT)
+	await _step()
+	_expect(run, "plants", body.stretching() and body.freeze, "right while holding it plants that end")
+	await _mouse_to(_mouse + Vector2(70.0, -150.0), 900.0)
+	var share := clampf(body.stretch() / body._full_stretch(), 0.0, 1.0)
+	var value := body.boing_value * (0.25 + 0.75 * share) * Progression.get_modifier(run.item.id, &"damage_mult")
+	run.cooldown = body._full_stretch()
+	_release(MOUSE_BUTTON_RIGHT)
+	await _step(2)
+	_expect(run, "boing", body.boings == 1 and run.acts.size() == 1,
+		"let go, it boings and pays one act (%d acts, stretched %.0f px)" % [run.acts.size(), share * body._full_stretch()])
+	_expect_values(run, [value])
+	await _await(func() -> bool: return _gone(body) or body.is_compact(), 120)
+	_expect(run, "home", not _gone(body) and body.is_compact(), "and springs back into the hand, a stack again")
+	_release_all()
+	_expect(run, "contract", run.contract("kindness") == run.acts.size(), "each boing a kind act for the board")
+
+## An end ball pulled out on the right button and let go: it clacks until it stops, each clack
+## a trickle, and the whole swing is worth a known geometric series.
+func _drive_cradle(run: Run) -> void:
+	var body := await _spawn(run, _centre() + Vector2(-270.0, -40.0)) as NewtonsCradle
+	if body == null:
+		return
+	await _await_still(body, 90)
+	var ball := body.gestures.zone_world(&"ball_l")
+	_move(ball)
+	await _step()
+	_press(MOUSE_BUTTON_RIGHT)
+	await _mouse_to(ball + Vector2(-34.0, -16.0), 300.0)
+	var pulled := body.ball_angle(0)
+	var kept := body._kept()
+	_release(MOUSE_BUTTON_RIGHT)
+	await _step()
+	_expect(run, "swings", body.is_swinging() and pulled > 0.2, "pulled out and let go, it swings (%.0f deg)"
+		% rad_to_deg(pulled))
+	await _step(60)
+	# The rest of the swing fast-forwarded: half a minute of clacks is not a test.
+	var guard := 0
+	while body.is_swinging() and guard < 2000:
+		body._process(0.05)
+		guard += 1
+	await _step(40)
+	_expect(run, "clacks", body.clacks >= 3, "and clacks until it stops (%d clacks)" % body.clacks)
+	var series := 0.0
+	for n in body.clacks:
+		series += pow(kept, float(n))
+	var value := body.clack_value * (pulled / NewtonsCradle.MAX_PULL) * series \
+		* Progression.get_modifier(run.item.id, &"damage_mult")
+	var got := run.sustained + body._banked
+	var ok := absf(got - value) <= 0.002 * maxf(1.0, value)
+	run.value_checked = true
+	run.value_ok = run.value_ok and ok
+	_expect(run, "rate", ok, "the clacks pay exactly their series (%.4f paid, the data says %.4f)" % [got, value])
+	_expect(run, "not_acts", run.acts.is_empty() and run.contract("kindness") == 0,
+		"a clack is a trickle, never an act")
+	_expect(run, "use", run.uses() == 1, "the pull is one use (%d)" % run.uses())
+	run.cooldown = (1.0 - kept) * 1000.0
+
+## Wound by a right-drag backwards, let go at him: he hops on, and the ride is the act.
+func _drive_car(run: Run) -> void:
+	var body := await _spawn(run, _centre() + Vector2(-300.0, -20.0)) as PullBackCar
+	if body == null:
+		return
+	await _await_still(body, 90)
+	_move(body.global_position)
+	await _step()
+	_press(MOUSE_BUTTON_RIGHT)
+	await _step()
+	_expect(run, "winds", body.is_winding(), "a right-press on it starts the wind")
+	for i in 18:
+		_move(_mouse + Vector2(-10.0, 0.0))
+		await _step()
+	var charge := body.charge
+	run.cooldown = body._full_pull()
+	_expect(run, "wound", body.notches() == PullBackCar.NOTCHES, "dragged back, it winds to full (%d notches)"
+		% body.notches())
+	_release(MOUSE_BUTTON_RIGHT)
+	await _await(func() -> bool: return _gone(body) or body.rides > 0, 240)
+	_expect(run, "ride", not _gone(body) and body.rides == 1, "let go at him, he hops on for a ride")
+	_expect_values(run, [body.ride_value * charge * Progression.get_modifier(run.item.id, &"damage_mult")])
+	await _await(func() -> bool: return _gone(body) or not body.is_riding(), 240)
+	_expect(run, "ride_ends", not _gone(body) and not body.is_riding() and not body.freeze,
+		"and the ride ends with the car a car again")
+	_expect(run, "contract", run.contract("kindness") == run.acts.size(), "the ride is a kind act for the board")
+
+## Held up beside him, thrown out on its string, and swung through him by the hand.
+func _drive_yoyo(run: Run) -> void:
+	var body := await _spawn(run, _centre() + Vector2(-260.0, -60.0)) as YoYo
+	if not await _grab(run, body):
+		return
+	await _mouse_to(_centre() + Vector2(-150.0, -150.0), 700.0)
+	await _steady(body, 60)
+	_press(MOUSE_BUTTON_RIGHT)
+	await _step(30)
+	_expect(run, "out", body.is_out() and is_equal_approx(body.string_out(), body.string_length),
+		"right throws it out to the end of its string")
+	for i in 5:
+		if not run.hits.is_empty() or _buddy.health.down:
+			break
+		await _mouse_to(_centre() + Vector2(150.0, -150.0), 1100.0)
+		await _mouse_to(_centre() + Vector2(-150.0, -150.0), 1100.0)
+	_expect(run, "hits", not run.hits.is_empty(), "swung on its string, it bonks him (%d hits)" % run.hits.size())
+	_expect(run, "effect", _fx.reactions.has(run.item.id), "and the world answers each bonk")
+	run.cooldown = body._trick_needed() * 1000.0
+	_release(MOUSE_BUTTON_RIGHT)
+	await _await(func() -> bool: return _gone(body) or not body.is_out(), 90)
+	_expect(run, "home", not _gone(body) and not body.is_out() and body.mouse_joint != null,
+		"and it climbs back into the hand")
+	_release_all()
+
+## Held at his height, drawn straight back from him to the full draw, let go.
+func _drive_slingshot(run: Run) -> void:
+	var body := await _spawn(run, _centre() + Vector2(-260.0, -40.0)) as Slingshot
+	if not await _grab(run, body):
+		return
+	await _mouse_to(Vector2(_centre().x - 250.0, _centre().y), 600.0)
+	await _steady(body, 60)
+	_press(MOUSE_BUTTON_RIGHT)
+	await _step()
+	_expect(run, "drawn", body.is_drawn(), "right while holding it plants it and draws it")
+	var fork := body.fork_position()
+	await _mouse_to(fork + (fork - _centre()).normalized() * body.max_draw, 400.0)
+	_expect(run, "aimed", body.is_threatening(), "drawn at him, he knows it")
+	run.cooldown = body._reload() * 1000.0
+	_release(MOUSE_BUTTON_RIGHT)
+	await _await(func() -> bool: return not run.hits.is_empty(), 90)
+	_expect(run, "hits", run.hits.size() == 1, "the pellet hits him, once (%d hits)" % run.hits.size())
+	_expect(run, "effect", _fx.reactions.has(run.item.id), "and the world answers the hit")
+	_release_all()
+
+## Every kind act the toy paid, against the values its own numbers say it should have.
+func _expect_values(run: Run, values: Array) -> void:
+	var got: Array = run.acts.duplicate()
+	var ok := got.size() == values.size()
+	for i in mini(got.size(), values.size()):
+		ok = ok and is_equal_approx(float(got[i]), float(values[i]))
+	run.value_checked = true
+	run.value_ok = run.value_ok and ok
+	_expect(run, "act_value", ok, "worth exactly what its numbers say (%s, the data says %s)" % [got, values])
 
 # --- what every item owes -----------------------------------------------------------------
 

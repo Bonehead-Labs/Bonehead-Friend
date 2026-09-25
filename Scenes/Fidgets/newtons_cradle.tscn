@@ -1,0 +1,104 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Bodies/Fidgets/newtons_cradle.gd" id="1_45kme"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/newtons_cradle_frame.png" id="2_5eclh"]
+[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_oxvf2"]
+[ext_resource type="Script" path="res://Scripts/Components/effects_player.gd" id="4_o4tcv"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/newtons_cradle_ball.png" id="5_dw2kd"]
+[ext_resource type="Script" path="res://Scripts/Bodies/gesture_zones.gd" id="6_d3hhd"]
+
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_45kme"]
+friction = 0.9
+bounce = 0.05
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_5eclh"]
+size = Vector2(94, 54)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_oxvf2"]
+size = Vector2(110, 70)
+
+[node name="_NewtonsCradle" type="RigidBody2D" unique_id=168527097 node_paths=PackedStringArray("balls", "gestures", "drag_area", "handle", "sprite", "collider", "Effects_Player")]
+collision_layer = 4
+collision_mask = 7
+mass = 1.6
+physics_material_override = SubResource("PhysicsMaterial_45kme")
+lock_rotation = true
+contact_monitor = true
+max_contacts_reported = 4
+script = ExtResource("1_45kme")
+balls = NodePath("Balls")
+gestures = NodePath("GestureZones")
+item_id = &"newtons_cradle"
+drag_area = NodePath("DraggableArea")
+handle = NodePath("Handle")
+sprite = NodePath("Sprite")
+collider = NodePath("CollisionShape2D")
+Effects_Player = NodePath("EffectsPlayer")
+
+[node name="Sprite" type="Sprite2D" parent="." unique_id=1997131080]
+scale = Vector2(2, 2)
+texture = ExtResource("2_5eclh")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=434390521]
+shape = SubResource("RectangleShape2D_5eclh")
+
+[node name="DraggableArea" type="Area2D" parent="." unique_id=1292646819]
+script = ExtResource("3_oxvf2")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=404095809]
+shape = SubResource("RectangleShape2D_oxvf2")
+
+[node name="Handle" type="StaticBody2D" parent="." unique_id=2096880627]
+visible = false
+collision_layer = 0
+collision_mask = 0
+
+[node name="EffectsPlayer" type="Node" parent="." unique_id=583547254]
+script = ExtResource("4_o4tcv")
+
+[node name="Balls" type="Node2D" parent="." unique_id=1493716531]
+z_index = 1
+
+[node name="Ball0" type="Sprite2D" parent="Balls" unique_id=1902039568]
+position = Vector2(-29, -18)
+scale = Vector2(2, 2)
+texture = ExtResource("5_dw2kd")
+offset = Vector2(0.5, 9)
+
+[node name="Ball1" type="Sprite2D" parent="Balls" unique_id=521701000]
+position = Vector2(-15, -18)
+scale = Vector2(2, 2)
+texture = ExtResource("5_dw2kd")
+offset = Vector2(0.5, 9)
+
+[node name="Ball2" type="Sprite2D" parent="Balls" unique_id=944943662]
+position = Vector2(-1, -18)
+scale = Vector2(2, 2)
+texture = ExtResource("5_dw2kd")
+offset = Vector2(0.5, 9)
+
+[node name="Ball3" type="Sprite2D" parent="Balls" unique_id=914006555]
+position = Vector2(13, -18)
+scale = Vector2(2, 2)
+texture = ExtResource("5_dw2kd")
+offset = Vector2(0.5, 9)
+
+[node name="Ball4" type="Sprite2D" parent="Balls" unique_id=437833416]
+position = Vector2(27, -18)
+scale = Vector2(2, 2)
+texture = ExtResource("5_dw2kd")
+offset = Vector2(0.5, 9)
+
+[node name="GestureZones" type="Node" parent="." unique_id=789511238]
+script = ExtResource("6_d3hhd")
+zones = [{
+"at": Vector2(-14.5, 5.5),
+"circle": 4.5,
+"id": &"ball_l",
+"right": "claim"
+}, {
+"at": Vector2(13.5, 5.5),
+"circle": 4.5,
+"id": &"ball_r",
+"right": "claim"
+}]

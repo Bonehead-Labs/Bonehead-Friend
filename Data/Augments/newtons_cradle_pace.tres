@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_llan7"]
+
+[resource]
+script = ExtResource("1_llan7")
+id = &"newtons_cradle_pace"
+item_id = &"newtons_cradle"
+display_name = "Harder Steel"
+effect_key = &"cooldown_mult"
+effect_per_level = 0.94
+cost_base = 168
+cost_growth = 1.09
+currency = 1
+sort_order = 2

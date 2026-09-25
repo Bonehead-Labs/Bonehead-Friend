@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_wpj4s"]
+
+[resource]
+script = ExtResource("1_wpj4s")
+id = &"pull_back_car_payout"
+item_id = &"pull_back_car"
+display_name = "Ride Fares"
+effect_key = &"payout_mult"
+effect_per_level = 1.12
+cost_base = 144
+currency = 1
+sort_order = 1

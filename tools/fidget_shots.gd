@@ -1,7 +1,7 @@
 extends CaptureWindow
 
-## The fidget toys (D57) as the player sees them: the shop's how-to strip, and all five on the
-## desk beside him, caught mid-use.
+## The fidget toys (D57, D66) as the player sees them: the shop's how-to strip, and both sets of
+## five on the desk beside him, caught mid-use.
 ##
 ##   Godot --path <project> res://tools/fidget_shots.tscn        (NOT --headless: it draws)
 ##
@@ -12,6 +12,8 @@ const SIZE := Vector2i(1180, 760)
 const OUT := "user://fidget_shots"
 const FIDGETS: Array[StringName] = [&"bubble_wrap", &"stress_ball", &"fidget_spinner",
 	&"magic_eight_ball", &"jack_in_the_box"]
+const TOYS2: Array[StringName] = [&"slinky", &"newtons_cradle", &"pull_back_car", &"yo_yo",
+	&"slingshot"]
 
 var _main: Node
 var _had := {}
@@ -88,6 +90,7 @@ func _ready() -> void:
 	await _shot("03-desk")
 	# A moment later: the spinner has moved on, the jack has settled, he has reacted.
 	await _shot("04-desk-later")
+	await _second_five(buddy, idle, floor_y)
 
 	_clear_slot()
 	print("fidget_shots: wrote %s" % ProjectSettings.globalize_path(OUT))
@@ -97,6 +100,62 @@ func _ready() -> void:
 	Settings.focus_intensity = _had["focus"]
 	Settings.save_settings()
 	get_tree().quit()
+
+## The second five (D66): the Guns drawer's how-to strip on the slingshot, then the five on the
+## desk, caught mid-use — a slinky stretched from where it lies, the cradle mid-clack, the car
+## half wound with its notches showing. The yo-yo and the slingshot are only ever worked in the
+## hand, so they are shown at rest; `toys2_check` is what drives those.
+func _second_five(buddy: Buddy, idle: IdleBrain, floor_y: float) -> void:
+	var spawner := get_tree().get_first_node_in_group(&"item_spawner") as ItemSpawner
+	if spawner:
+		spawner.clear_desk()
+	Economy.grant(Economy.BONES, 50000.0)
+	for id in TOYS2:
+		var item := ItemDB.get_item(id)
+		if item:
+			for req in item.requires:
+				Progression.purchase_item(req)
+		Progression.purchase_item(id)
+	var panels := _find(_main, "PanelLayer")
+	var shop := _find(_main, "ShopPanel")
+	panels.call("show_panel", &"shop")
+	shop.call("show_side", ItemData.SIDE_HARM)
+	shop.call("show_category", ItemData.CATEGORY_GUN)
+	shop.call("select", &"slingshot")
+	await _shot("05-shop-howto-slingshot")
+	panels.call("close")
+	await _idle(10)
+	var x := float(SIZE.x) * 0.5 - 380.0
+	var toys := {}
+	for id in TOYS2:
+		EventBus.spawn_requested.emit(id, Vector2(x, floor_y - 40.0))
+		x += 170.0
+		for node in get_tree().get_nodes_in_group(BaseDraggable.GROUP_SPAWNED):
+			if (node as BaseDraggable).item_id == id:
+				toys[id] = node
+	if idle:
+		idle._disturb()
+	await _idle(90)
+	if buddy:
+		buddy.global_position = Vector2(float(SIZE.x) * 0.5 + 60.0, floor_y - 120.0)
+	var slinky := toys.get(&"slinky") as Slinky
+	if slinky:
+		slinky._plant(slinky.global_position)
+		slinky._pull_to(slinky.global_position + Vector2(60.0, -130.0))
+	var cradle := toys.get(&"newtons_cradle") as NewtonsCradle
+	if cradle:
+		cradle.release(-1, deg_to_rad(40.0), true)
+	var car := toys.get(&"pull_back_car") as PullBackCar
+	if car:
+		car._start_wind(car.global_position)
+		for i in 9:
+			car._wind_to(car.global_position + Vector2(-10.0 * float(i + 1), 0.0))
+	await _shot("06-desk-toys2")
+	if slinky:
+		slinky._let_go()
+	await _shot("07-desk-toys2-later")
+	if car:
+		car._end_wind()
 
 ## Headless draws nothing, so there a shot is only the staging — which is still worth running,
 ## because it proves the staging itself works before anyone opens a window for it.

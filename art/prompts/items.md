@@ -486,3 +486,21 @@ multi-collider weapons, whose colliders are being re-authored against today's ar
 stream; redraw them after that lands, not before. `hornet` is small in the world but reads as
 a wasp in its icon, and its circle is authored in `seed_m36_npcs`. `warm_towel` is a striped
 slab but a legible one.
+
+## The second five fidget toys, drawn (2026-09-26, D66)
+
+Drawn as text grids like the D62 pass, so the grid is the record. Each file's header says
+which rows and columns are which moving part. They were judged at 6x on a checkerboard and at
+2x beside the bat, the stress ball, the spinner, the jack and the revolver
+(`pixel_sprite.py --sheet`).
+
+| Item | size | parts | leans on |
+|---|---|---|---|
+| slinky | 16x16 | `ring0`..`ring5`, one coil each | rainbow bands with a dark notch at each edge, and the open top ring. A steel one is a grey tin at 1x |
+| newtons_cradle | 47x27 | `frame`, `ball` (one ball on its string, placed five times) | seven-pixel steel balls and one-pixel strings (`outline: off`), one ball pulled out in the shop picture. Its icon is a smaller drawing (`art/pixel/icons/`) |
+| pull_back_car | 32x16 | `wheel` (the rear one, laid over both) | a white stripe and a headlight, so the way it faces reads, and a gold bolt on each hub, so the wheels can be seen turning |
+| yo_yo | 14x14 disc | `disc`, `tail` (the loose string and finger loop) | the string. Without it the disc read as a red ball. The glint and the dark lower rim make a spin visible |
+| slingshot | 16x23 | `frame`, `bands`, `pouch`, `pellet` | a wooden Y with a red grip wrap and amber bands, drawn one pixel wide (`outline: off`) |
+
+One lesson: **a pulled ball over an upright is noise at 32 px.** The cradle's icon hangs all
+five balls still, and only the 2x shop picture pulls one out.
