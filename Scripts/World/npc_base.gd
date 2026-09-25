@@ -539,10 +539,23 @@ func _hurl_loose_item(buddy: Buddy) -> bool:
 	var to_him := buddy.global_position - best.global_position
 	if to_him.length() < 1.0:
 		return false
+	# Out of its own hands. The thing it throws is usually the thing it has just walked into and
+	# shoved ahead of it across the desk, so it is pressed against the animal when it goes — and
+	# the throw spent itself on the thrower: a bowling ball "thrown" at 900 px/s left at 200 and
+	# dropped at its feet (D60). The two ignore each other for the moment of the throw.
+	add_collision_exception_with(best)
+	get_tree().create_timer(THROW_RELEASE_SECONDS).timeout.connect(_release_thrown.bind(best))
 	best.linear_velocity = to_him.normalized() * throw_speed + Vector2.UP * throw_lift
 	best.angular_velocity = randf_range(-8.0, 8.0)
 	_face(to_him.x)
 	return true
+
+## How long a thrown thing passes through the animal that threw it.
+const THROW_RELEASE_SECONDS := 0.4
+
+func _release_thrown(body: PhysicsBody2D) -> void:
+	if is_instance_valid(body):
+		remove_collision_exception_with(body)
 
 ## The hold, paid out as discrete shakes on a fixed clock.
 ##
