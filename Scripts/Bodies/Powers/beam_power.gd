@@ -40,6 +40,9 @@ func _on_deactivated() -> void:
 	set_process(false)
 	_burning = false
 
+func release_hold() -> void:
+	_burning = false
+
 ## Watches every release and every motion, not only the unhandled ones: a release consumed
 ## by a panel still ends the beam, and the aim has to keep up with a drag that leaves him.
 func _input(event: InputEvent) -> void:

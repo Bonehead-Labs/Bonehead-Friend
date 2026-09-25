@@ -90,7 +90,8 @@ func _on_gesture(g: GestureZones.Gesture) -> void:
 				var angle := absf(ball_angle(_end_slot(_pulling)))
 				var side_pulled := _pulling
 				_pulling = 0
-				if angle >= MIN_PULL:
+				# Focus lost with a ball held out is not a let-go (D70): it goes back to the row.
+				if angle >= MIN_PULL and not g.cancelled:
 					release(side_pulled, angle, true)
 				else:
 					_set_end(side_pulled, 0.0)

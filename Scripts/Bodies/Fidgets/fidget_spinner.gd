@@ -73,9 +73,10 @@ func _on_gesture(g: GestureZones.Gesture) -> void:
 		GestureZones.RELEASE:
 			_held = false
 			if is_zero_approx(spin):
-				# No flick: whatever the stroke was doing when it let go, if it was recent.
+				# No flick: whatever the stroke was doing when it let go, if it was recent. A
+				# stroke called off by focus loss was not let go of, so it only settles (D70).
 				var fresh := Time.get_ticks_msec() - _stroke_msec <= GestureZones.FLICK_FRESH_MSEC
-				launch(_stroke_rate if fresh else 0.0, true)
+				launch(_stroke_rate if fresh and not g.cancelled else 0.0, true)
 
 ## Spin from a swipe: the release velocity's component round the hub, over the distance from
 ## it. A stroke straight at the hub spins nothing; one across an arm at its tip spins most.

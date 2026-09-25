@@ -67,6 +67,9 @@ func _on_deactivated() -> void:
 	if _swirl:
 		_swirl.emitting = false
 
+func release_hold() -> void:
+	_pulling = false
+
 func _input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion:
 		_aim = (event as InputEventMouseMotion).position

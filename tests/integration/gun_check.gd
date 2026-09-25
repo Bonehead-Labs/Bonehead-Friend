@@ -479,9 +479,40 @@ func _a_burst_climbs_and_stops_on_any_release() -> void:
 	await _steps(60)
 	_check("and the climb bleeds away (%.1f deg)" % rad_to_deg(gun._climb), gun._climb < 0.01)
 	eater.free()
+	# Alt-tab with the trigger held and the release goes to the other window (D70). The stream
+	# stops when the focus goes, not at the next click after the player comes back.
+	_right(true)
+	await _steps(10)
+	_check("streaming again", gun.trigger_held() and gun.shots_fired > at_release)
+	gun.propagate_notification(NOTIFICATION_APPLICATION_FOCUS_OUT)
+	var at_focus := gun.shots_fired
+	await _steps(30)
+	_check("losing the focus lets the trigger go (%d shots after)" % (gun.shots_fired - at_focus),
+		not gun.trigger_held() and gun.shots_fired == at_focus)
+	_right(false)
 	_drop(gun)
 	gun.free()
 	await _steps(2)
+	await _a_held_power_lets_go_with_the_focus()
+
+## The four held cursor powers (D70): each ends its hold when the game loses focus, because the
+## release it waits for goes to whichever window has the focus. Their hold flags, by id.
+func _a_held_power_lets_go_with_the_focus() -> void:
+	const HOLDS := {
+		&"minigun": "_holding", &"magnifying_glass": "_burning",
+		&"open_hand": "_stroking", &"gravity_vortex": "_pulling",
+	}
+	for id in HOLDS:
+		var item := ItemDB.get_item(id)
+		if item == null or item.scene == null:
+			_check("'%s' is a power" % id, false)
+			continue
+		var power := item.scene.instantiate() as CursorPowerBase
+		_world.add_child(power)
+		power.set(HOLDS[id], true)
+		power.propagate_notification(NOTIFICATION_APPLICATION_FOCUS_OUT)
+		_check("the %s lets go when the focus goes" % id, power.get(HOLDS[id]) == false)
+		power.free()
 
 # --- him ---------------------------------------------------------------------
 

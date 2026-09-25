@@ -37,6 +37,9 @@ func _on_deactivated() -> void:
 	set_process(false)
 	_stroking = false
 
+func release_hold() -> void:
+	_stroking = false
+
 ## Releasing ends the stroke wherever it happens — including over a panel, and including
 ## when the release is consumed by something else, which is why this watches every release
 ## rather than only unhandled ones.

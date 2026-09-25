@@ -137,7 +137,8 @@ func _on_gesture(g: GestureZones.Gesture) -> void:
 		GestureZones.DRAG:
 			_wind_to(g.world)
 		GestureZones.RELEASE:
-			_end_wind()
+			# Focus lost mid-wind is not a let-go (D70): it unwinds where it stands.
+			_end_wind(not g.cancelled)
 
 func _start_wind(at: Vector2) -> void:
 	# In the hand it is being carried, not wound; a ride under way is not interrupted.
@@ -181,13 +182,13 @@ func _wind_to(at: Vector2) -> void:
 	charge = float(_notches) / float(NOTCHES)
 	queue_redraw()
 
-func _end_wind() -> void:
+func _end_wind(let_go: bool = true) -> void:
 	if not _winding:
 		return
 	_winding = false
 	freeze = false
 	queue_redraw()
-	if charge >= MIN_CHARGE:
+	if let_go and charge >= MIN_CHARGE:
 		launch(charge, true)
 	charge = 0.0
 	_notches = 0
