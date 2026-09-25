@@ -98,9 +98,14 @@ const KNOWN := {
 	"fist/use": "F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
 	"fist/earns": "F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
 	"fist/mastery": "F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
-	"fist/aug_damage_mult": "F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
-	"fist/aug_payout_mult": "F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
-	"fist/aug_cooldown_mult": "F7 it has no base cooldown for the node to shorten",
+	# Upgraded, the fist chases 6% faster (D65's "Faster Hands"), and whether its punch is still
+	# pressed on him a step later is contact-geometry luck: in the full run's order it now is.
+	"fist/hits@upgraded": "~F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
+	"fist/use@upgraded": "~F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
+	"fist/earns@upgraded": "~F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
+	"fist/mastery@upgraded": "~F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
+	"fist/aug_damage_mult": "~F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
+	"fist/aug_payout_mult": "~F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
 	"bowling_ball/earns": "F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
 	"bowling_ball/mastery": "F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
 	"bowling_ball/aug_damage_mult": "F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
@@ -114,18 +119,11 @@ const KNOWN := {
 	"trampoline/mastery": "F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
 	"trampoline/aug_damage_mult": "F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
 	"trampoline/aug_payout_mult": "F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
-	"desk_fan/earns": "F5 nothing it does is billed under its own name",
-	"desk_fan/mastery": "F5 nothing it does is billed under its own name",
-	"desk_fan/aug_damage_mult": "F5 nothing it does is billed under its own name",
-	"desk_fan/aug_payout_mult": "F5 nothing it does is billed under its own name",
-	"gravity_vortex/pulls": "F4 the pull is a force smaller than his floor friction",
-	"gravity_vortex/earns": "F5 nothing it does is billed under its own name",
-	"gravity_vortex/mastery": "F5 nothing it does is billed under its own name",
-	"gravity_vortex/aug_damage_mult": "F5 nothing it does is billed under its own name",
-	"gravity_vortex/aug_payout_mult": "F5 nothing it does is billed under its own name",
-	"gravity_vortex/aug_cooldown_mult": "F7 it has no base cooldown for the node to shorten",
-	"black_hole_charge/gathers": "F4 the pull is a force smaller than his floor friction",
-	"implosion_charge/gathers": "F4 the pull is a force smaller than his floor friction",
+	# D65 bills the fan for the landings its wind bends, and "claims" checks that it would be.
+	# This one landing bounces apart inside one step, so F1 bills it to nobody at all.
+	"desk_fan/earns": "~F1 a landing that parts in one physics step is never billed (D65 claims it for the fan)",
+	"desk_fan/mastery": "~F1 a landing that parts in one physics step is never billed (D65 claims it for the fan)",
+	"desk_fan/aug_payout_mult": "~F1 a landing that parts in one physics step is never billed (D65 claims it for the fan)",
 	"pellet_turret/hits": "F2 D54's 18 px impact inset leaves the shot under the damage floor",
 	"pellet_turret/earns": "F2 D54's 18 px impact inset leaves the shot under the damage floor",
 	"pellet_turret/mastery": "F2 D54's 18 px impact inset leaves the shot under the damage floor",
@@ -153,13 +151,6 @@ const KNOWN := {
 	"flamethrower/aug_payout_mult": "~F2 D54's 18 px impact inset leaves the shot under the damage floor",
 	"gorilla/walks": "F3 its steering force is less than the floor friction it walks on",
 	"raccoon/walks": "~F3 its steering force is less than the floor friction it walks on",
-	"party_popper/aug_cooldown_mult": "F8 a consumable is gone before its cooldown can run",
-	"pizza/aug_cooldown_mult": "F8 a consumable is gone before its cooldown can run",
-	"cup_of_tea/aug_cooldown_mult": "F8 a consumable is gone before its cooldown can run",
-	"donut_box/aug_cooldown_mult": "F8 a consumable is gone before its cooldown can run",
-	"ice_cream/aug_cooldown_mult": "F8 a consumable is gone before its cooldown can run",
-	"noodle_bowl/aug_cooldown_mult": "F8 a consumable is gone before its cooldown can run",
-	"birthday_cake/aug_cooldown_mult": "F8 a consumable is gone before its cooldown can run",
 }
 
 var _passed := 0
@@ -331,6 +322,17 @@ class Run:
 	## Whether the kindness value was checked against the data, and whether it held.
 	var value_checked := false
 	var value_ok := true
+	## A field's strength (D65): the acceleration a free, weightless probe took in its first
+	## step inside the vortex's pull or the fan's wind. -1 is unmeasured.
+	var field := -1.0
+	## The fist's top speed chasing a cursor that jumped, in open air. -1 is unmeasured.
+	var speed := -1.0
+	## Each kind act's mood lift, against `MoodMath` with the item's `mood_mult` in it.
+	var mood_before := 0.0
+	var mood_want := 0.0
+	var mood_checked := false
+	var mood_ok := true
+	var mood_bad := ""
 
 	func uses() -> int:
 		return int(contracts.get("use:%s" % item.id, 0))
@@ -503,6 +505,8 @@ func _build_stage() -> void:
 	_buddy.position = HOME
 	_stage.add_child(_buddy)
 	_view.add_child(_stage)
+	# After his components, which connected as he entered the tree.
+	EventBus.kindness_given.connect(_on_kind_act_late)
 	_mouse = Vector2(40, 40)
 	_held = 0
 	_move(_mouse)
@@ -513,6 +517,8 @@ func _build_stage() -> void:
 			break
 
 func _free_stage() -> void:
+	if EventBus.kindness_given.is_connected(_on_kind_act_late):
+		EventBus.kindness_given.disconnect(_on_kind_act_late)
 	if _held != 0:
 		_release_all()
 	if is_instance_valid(_stage):
@@ -575,7 +581,7 @@ func _authored(item: ItemData) -> Dictionary:
 			"contact_cooldown", "min_contact_speed", "consume_on_use", "cleans_grime", "handheld",
 			"max_range", "muzzle", "swarm_count", "throws_loose_items", "pellets", "auto_fire",
 			"value_scale", "pull_seconds", "submunitions", "submunition_interval", "tick_seconds",
-			"flight_seconds", "impulse_per_second"]:
+			"flight_seconds", "impulse_per_second", "servings"]:
 		var value = node.get(key)
 		if value != null:
 			out[key] = value
@@ -675,6 +681,22 @@ func _on_kind_act(source_id: StringName, value: float, _at: Vector2) -> void:
 	# The contact clock the act just started, as the item itself set it.
 	if is_instance_valid(_run.body) and _run.body is FriendlyBase:
 		_run.act_gaps.append((_run.body as FriendlyBase)._next_contact_msec - Time.get_ticks_msec())
+	# The lift his MoodComponent is about to give him, which `_on_kind_act_late` reads back.
+	if is_instance_valid(_buddy) and _buddy.mood:
+		_run.mood_before = _buddy.mood.value
+		_run.mood_want = MoodMath.nudge(_run.mood_before, MoodMath.kindness_mood(value,
+			ItemDB.balance.mood_per_kindness) * Progression.get_modifier(source_id, &"mood_mult"))
+
+## Connected per stage, after his MoodComponent, so it sees the mood the act left him at before
+## anything has decayed it.
+func _on_kind_act_late(source_id: StringName, _value: float, _at: Vector2) -> void:
+	if _run == null or source_id != _run.item.id or not is_instance_valid(_buddy) or _buddy.mood == null:
+		return
+	_run.mood_checked = true
+	var got := _buddy.mood.value
+	if absf(got - _run.mood_want) > 1.0e-4:
+		_run.mood_ok = false
+		_run.mood_bad = "%.2f to %.2f where the data says %.2f" % [_run.mood_before, got, _run.mood_want]
 
 func _on_kind_sustained(source_id: StringName, value: float, _at: Vector2) -> void:
 	if _run == null or source_id != _run.item.id:
@@ -1302,6 +1324,16 @@ func _drive_fist(run: Run) -> void:
 	await _step(20)
 	_expect(run, "hits", not run.hits.is_empty(), "run through him and punched, it hits him (%d hits)" % run.hits.size())
 	_expect(run, "use", run.uses() > 0, "and each landed hit is a use:%s" % run.item.id)
+	# "Faster Hands" is its chase (D65). Measured after the punch, so the approach above is the
+	# one F1 was measured on: the cursor parked in the top-left corner, clear of him, then
+	# jumped 280 px straight down, and the fist's top speed on the way is the number.
+	_move(Vector2(100.0, 120.0))
+	await _step(40)
+	_move(Vector2(100.0, 400.0))
+	run.speed = 0.0
+	for i in 24:
+		await _step()
+		run.speed = maxf(run.speed, fist.linear_velocity.length())
 	await _holster(run)
 
 func _drive_gun(run: Run) -> void:
@@ -1397,19 +1429,46 @@ func _drive_vortex(run: Run) -> void:
 	var power := await _equip(run) as VortexPower
 	if power == null:
 		return
+	# A 0.3 kg thing on the far side of the eye, touching nothing: the pull is an acceleration
+	# now (D65), so it must gather a light prop as calmly as it gathers him — and its first
+	# step, taken at rest, is the pull itself with no friction or drag in it.
+	var probe := _probe(eye + Vector2(150.0, -40.0), 0)
+	var probe_start := probe.global_position.distance_to(eye)
+	var probe_nearest := probe_start
+	var probe_peak := 0.0
 	var start := _centre().distance_to(eye)
 	var nearest := start
-	var pressed_at := Time.get_ticks_msec()
 	_press(MOUSE_BUTTON_LEFT)
-	run.cooldown = float(power._cooldown_until_msec - pressed_at)
 	for i in 90:
 		_move(eye)
 		await _step()
 		nearest = minf(nearest, _centre().distance_to(eye))
-	_release(MOUSE_BUTTON_LEFT)
-	await _step(30)
+		var v := probe.linear_velocity.length()
+		if run.field < 0.0 and v > 0.0:
+			run.field = v * float(Engine.physics_ticks_per_second)
+		probe_peak = maxf(probe_peak, v)
+		probe_nearest = minf(probe_nearest, probe.global_position.distance_to(eye))
+	probe.queue_free()
 	_expect(run, "pulls", nearest < start - 40.0, "held, it drags him toward the eye (%.0f px to %.0f)" % [start, nearest])
+	_expect(run, "light", probe_nearest < probe_start - 40.0 and probe_peak < 1500.0,
+		"and a 0.3 kg prop with him, never faster than 25 px a frame (%.0f px to %.0f, peak %.0f px/s)"
+		% [probe_start, probe_nearest, probe_peak])
 	_expect(run, "effect", _fx.auras.has("Swirl"), "with a swirl at the eye")
+	# Then taken up the desk in it and slammed back down into it, the way a player uses it.
+	# The impact is the vortex's doing, so it is billed to the vortex and not to the world —
+	# and it is a slam rather than a drop because the pull keeps him pressed to the desk, so
+	# the contact outlives the step it was made in (F1 bills nothing that parts in one).
+	await _mouse_to(Vector2(eye.x, 720.0 - 400.0), 400.0)
+	for i in 20:
+		_move(_mouse)
+		await _step()
+	await _mouse_to(Vector2(eye.x, 700.0), 1500.0)
+	await _await(func() -> bool: return not run.hits.is_empty(), 60)
+	_release(MOUSE_BUTTON_LEFT)
+	await _step(10)
+	_expect(run, "claims", not run.hits.is_empty() and not run.stray.has("world"),
+		"slammed into the desk with it, the impact is billed to it (%d hits, %s to anything else)"
+		% [run.hits.size(), run.stray])
 	await _holster(run)
 
 ## The trampoline: he is carried up over it and dropped.
@@ -1444,18 +1503,60 @@ func _drive_wind(run: Run) -> void:
 		return
 	await _await_still(body, 60)
 	var blow := body.blow_direction.normalized().rotated(body.rotation)
+	# The wind's strength, off a weightless probe held in it between the grille and him (D65):
+	# its first step is the push and nothing else. On the item layer, which is what the wind
+	# sees, and gone before he is anywhere near it.
+	var probe := _probe(body.global_position + blow * 110.0 + Vector2(0.0, -20.0), 4)
+	for i in 8:
+		await _step()
+		var v := probe.linear_velocity.length()
+		if v > 0.0:
+			run.field = v * float(Engine.physics_ticks_per_second)
+			break
+	probe.queue_free()
 	if not await _grab(run, _buddy):
 		return
 	await _carry_to(_buddy, Vector2(body.global_position.x + 150.0, 720.0 - 420.0))
 	_release_all()
 	var at_release := _buddy.linear_velocity.dot(blow)
 	var drift := 0.0
+	var claimed := &""
 	for i in 90:
 		await _step()
 		drift = maxf(drift, _buddy.linear_velocity.dot(blow) - at_release)
 		if i > 10 and _buddy.is_grounded():
+			claimed = _buddy.impacts_claimed_by()
 			break
 	_expect(run, "blows", drift > 10.0, "dropped through its wind, he is blown off his line (%.1f px/s)" % drift)
+	# Asked of him rather than read off a hit: this landing bounces apart inside one step, and
+	# F1 bills nothing that does, to the fan or to the world (D65).
+	_expect(run, "claims", claimed == run.item.id and not run.stray.has("world"),
+		"and the landing it bent is its to be billed for, not the world's (claimed by %s)"
+		% (claimed if claimed != &"" else "nobody"))
+	await _step(10)
+
+## A weightless body at `at` on `layer`, colliding with nothing and undamped, in the group
+## every field looks for. What a field does to it in its first step is the field's own
+## strength: no gravity, no friction, no contact and no drag of its own in the number.
+func _probe(at: Vector2, layer: int) -> RigidBody2D:
+	var probe := RigidBody2D.new()
+	probe.name = "Probe"
+	probe.gravity_scale = 0.0
+	probe.collision_layer = layer
+	probe.collision_mask = 0
+	probe.mass = 0.3
+	probe.linear_damp_mode = RigidBody2D.DAMP_MODE_REPLACE
+	probe.linear_damp = 0.0
+	probe.can_sleep = false
+	var shape := CollisionShape2D.new()
+	var circle := CircleShape2D.new()
+	circle.radius = 4.0
+	shape.shape = circle
+	probe.add_child(shape)
+	probe.position = at
+	probe.add_to_group(BaseDraggable.GROUP_INTERACTIVE)
+	_stage.add_child(probe)
+	return probe
 
 # --- drivers: the kind side ---------------------------------------------------------------
 
@@ -1508,22 +1609,31 @@ func _drive_friendly(run: Run) -> void:
 	else:
 		_expect(run, "switch", false, "a FriendlyBase with no paying switch: there is nothing to drive")
 
-## Dropped on his head. Food, mostly: it pays once, and goes if it is eaten.
+## Dropped on his head. Food, mostly: it pays once — or once a helping — and goes if it is eaten.
 func _treat(run: Run) -> void:
+	# From despair, so a treat's mood lift is never lost against the top rail (D65).
+	_buddy.mood.set_value(MoodMath.MIN_MOOD)
 	var body = await _spawn(run, Vector2(_centre().x, _top() - 60.0))
 	await _await(func() -> bool: return not run.acts.is_empty(), 60)
 	_expect(run, "pays", not run.acts.is_empty(), "put on him, he has it (%d acts)" % run.acts.size())
-	_expect_act_value(run)
 	await _step(2)
 	if bool(run.authored.get("consume_on_use", false)):
+		# Every helping, a contact gap apart, and only then gone. A box of donuts is six.
+		var servings := int(run.authored.get("servings", 1))
+		var gap := float(run.authored.get("contact_cooldown", 0.5))
+		await _await_gone(body, int(ceil(float(servings) * gap * 60.0)) + 30)
+		_expect(run, "servings", run.acts.size() == servings,
+			"he has all %d of it, one at a time (%d)" % [servings, run.acts.size()])
 		_expect(run, "consumed", _gone(body), "and it is gone once it has paid")
 	else:
 		await _step(20)
 		_expect(run, "stays", not _gone(body), "and it is still there afterwards, not eaten")
+	_expect_act_value(run)
 	_expect(run, "contract", run.contract("kindness") == run.acts.size(), "each one a kind act for the board")
 
 ## A catch: laid on him it is worth nothing, thrown at him it pays.
 func _catch_it(run: Run) -> void:
+	_buddy.mood.set_value(MoodMath.MIN_MOOD)
 	var body := await _spawn(run, Vector2(_centre().x, _top() - 6.0)) as FriendlyBase
 	if body == null:
 		return
@@ -1647,6 +1757,10 @@ func _expect_act_value(run: Run) -> void:
 	_expect(run, "act_value", ok, "worth exactly %.3f a time (%s)" % [value, run.acts])
 	if not run.act_gaps.is_empty():
 		run.cooldown = float(run.act_gaps[0])
+	if run.mood_checked:
+		_expect(run, "mood_lift", run.mood_ok, "and each one lifts his mood by its worth x %.2f%s"
+			% [Progression.get_modifier(run.item.id, &"mood_mult"),
+				"" if run.mood_ok else ": " + run.mood_bad])
 
 # --- what every item owes -----------------------------------------------------------------
 
@@ -1786,12 +1900,38 @@ func _judge_augments(plain: Run, upgraded: Run) -> Dictionary:
 					verdict = "placebo: mass %.2f, the data says %.2f" % [upgraded.mass, want]
 			&"cooldown_mult":
 				verdict = _cooldown_verdict(plain, upgraded, promised)
+			# D65's four. A field is read off a probe's first step in it, the fist off its top
+			# chase speed, a treat off the mood each helping left him at.
+			&"pull_mult", &"wind_mult":
+				verdict = _ratio_verdict(plain.field, upgraded.field, promised, "px/s² on a free body")
+			&"speed_mult":
+				verdict = _ratio_verdict(plain.speed, upgraded.speed, promised, "px/s chasing")
+			&"mood_mult":
+				if not upgraded.mood_checked:
+					verdict = "unmeasured"
+				elif upgraded.mood_ok:
+					verdict = "x%.2f on his mood" % promised
+				else:
+					verdict = "placebo: his mood went " + upgraded.mood_bad
 			_:
 				verdict = "unknown key"
 		out[key] = verdict
-		_expect(upgraded, "aug_%s" % key, not verdict.begins_with("placebo") and verdict != "unknown key",
+		_expect(upgraded, "aug_%s" % key, not verdict.begins_with("placebo")
+				and not verdict.begins_with("wrong") and verdict != "unknown key",
 			"%s (%s x%.2f) is read by something: %s" % [node.display_name, key, promised, verdict])
 	return out
+
+## A measured number in both runs, and whether it moved by what the node promises.
+func _ratio_verdict(plain: float, upgraded: float, promised: float, unit: String) -> String:
+	if plain <= 0.0 or upgraded <= 0.0:
+		return "unmeasured"
+	var ratio := upgraded / plain
+	if absf(ratio - promised) <= TOLERANCE * promised:
+		return "x%.2f (%.0f to %.0f %s)" % [ratio, plain, upgraded, unit]
+	if absf(ratio - 1.0) <= 0.005:
+		return "placebo: it stayed at %.0f %s" % [plain, unit]
+	return "wrong: x%.3f where the data says x%.2f (%.0f to %.0f %s)" % [ratio, promised, plain,
+		upgraded, unit]
 
 func _damage_verdict(run: Run, promised: float) -> String:
 	if HEARTS_CLASSES.has(run.cls):

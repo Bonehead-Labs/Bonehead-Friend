@@ -1047,9 +1047,10 @@ func _every_toy_is_worth_walking_to() -> void:
 			continue
 		body.item_id = id
 		add_child(body)
-		# The one honest exception. A `WindSource` earns nothing and is not a thing he uses:
-		# it changes every *other* item's arc, so its whole job happens while he plays with
-		# something else. There is nothing to walk over and do to a fan.
+		# The one honest exception. A `WindSource` is not a thing he uses: it changes every
+		# *other* item's arc, and earns only for the landings its wind bends (D65), so its
+		# whole job happens while he plays with something else. There is nothing to walk over
+		# and do to a fan.
 		if body is not WindSource and brain._routine_for(body) == IdleBrain.ROUTINE_NONE:
 			inert.append(String(id))
 		body.queue_free()
