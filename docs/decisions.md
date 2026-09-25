@@ -1833,6 +1833,45 @@ commit touching `Scripts/Bodies/`, `Scripts/World/npc_*`, `Buddy._integrate_forc
 or an item's scene. The table cannot rot: fix an F-finding and the suite fails until its `KNOWN`
 lines go.
 
+**Amended the same day: the held guns and the fidget toys.** D56 and D57 landed twelve items the
+suite could only fail by name — seven "no driver for HeldGun" and one per toy class. Each now has a
+driver, and a new toy is cheaper to cover than these were:
+
+- **One `HeldGun` driver for all seven.** Picked up by the grab region, carried to a stand-off
+  beside him, left to lay its own barrel on him (timed), then the right button: a tap, a second
+  tap at once that the gap must refuse, then another shot or — full-auto — the trigger held for a
+  stream that stops on the release. What a shot is (`bullet`, `water`, `bubble`) is read off the
+  gun and the side it pays on off the item. The kind guns: never a threat, never a hit, the water
+  pistol's pay exact to the squirt (the grime off him says how many landed), every bubble one act
+  of exactly its value. The plain phase ends by throwing it into him — asked of his own contact
+  list, so "a kind gun bills nothing" is never said of a throw that missed — and the upgraded one
+  with Shift+right in the hand.
+- **One driver per toy, built from shared helpers** that work a toy's zones with synthetic events
+  at the zone's real place in the world: `_tap_zone`, `_stroke` (every motion carries its real
+  velocity, which is what a flick is read from), `_crank_zone`, `_hold_right`, `_shake`. His face is
+  part of a toy's claim: `_expect_face` reads the beat his brain chose for each `fidget_event`,
+  through a watcher reconnected per stage so it runs *after* the new buddy's brain.
+- **Which currency an item earns is `_pays_hearts`**: `HEARTS_CLASSES`, plus anything built on
+  `FidgetToy`, plus a `HeldGun` filed on the kind side. **A hit's multiplier is `_hit_multiplier`**:
+  a gun's shot is billed at `shot_mult` and is known by its impulse, which is exactly `shot_force`;
+  the same gun bounced off him is billed at its contact `damage_mult`.
+- **A key the suite's switches cannot see is measured by its driver** into `_gauges` and compared
+  by `_gauge_verdict`. The first is Steady (`recoil_mult`), measured as the angular momentum one
+  shot hands the gun: the change in spin over the step the shot lands in, less the change the aim
+  was already making, times the mass. Mass-normalised on purpose — the Weight node bought in the
+  same phase also takes the kick down, and read in degrees it passed for Steady. It reads x0.92 on
+  all five, as sold (x0.89 on the SMG).
+- **A toy that draws at random when it is made reseeds before a draw it can control.** The
+  jack-in-the-box's first tune is spent differently in the two phases, so its "Shorter Tune" is
+  measured on the *second*: the lid is right-tapped shut with the RNG reseeded immediately before
+  the release, so both phases draw the same length and the node's x0.94 is the only difference.
+
+What it found: **F10**, the fortune ball's "Looser Dice" is a placebo for its first four levels
+(a shake is a whole reversal, and 4 x 0.94^n rounds back up to 4 until level 5); and none of the
+five harm guns thrown into him from the hand is billed — each is in his contact list for exactly
+one frame and gone, which is F1's signature, so they are filed `~F1` and neither fail nor go stale
+when F1 is fixed. Every other claim of all twelve holds, and no item in the catalog is without a
+driver: 118 items in about eight minutes (486 s), 0 failed.
 ## D60 — Every AI mechanic is tested on a desk of its own, by what can be seen (2026-09-25)
 
 **Decision.** `tests/integration/brain_check.tscn` tests each thing that acts on its own — the
@@ -1876,6 +1915,7 @@ trigger. `IdleBrain.paid_value` exists so a test can tell the brain's payment fr
 Focus Off earning nothing from 26 of 33 routine toys, soaking against furniture rather than in it,
 weapon balls that cannot pay, a 4,640 px/s gorilla slam, contact damage from animal bodies, a toy
 outside the window — are in the audit for the owner.
+
 
 ## D61 — The authored colliders are the picture too (2026-09-25)
 

@@ -177,6 +177,40 @@ ball) fits the description.
 - **The nail gun and the flamethrower** barely clear the damage floor at zero distance (420 and 400
   against 350) — see F2.
 
+### F10. The fortune ball's "Looser Dice" does nothing for four levels
+
+**Affects:** the fortune ball's third node (`cooldown_mult`, x0.94 a level), sold as fewer shakes
+before it can be read. Measured at level 1: ready after **4 reversals plain and 4 upgraded**.
+
+**Root cause.** `MagicEightBall._shake_step` counts a shake as one whole reversal and the ball is
+ready at `shakes_needed x 0.94^n` of them. That is 3.76, 3.53, 3.32 and 3.12 for levels 1–4 — all
+still four reversals — then 2.94 at level 5, which is three, and still three at level 10 (2.15).
+Across its ten levels the node takes off one shake, once. Any whole-number threshold moves with a
+6% step only from 17 shakes up.
+
+**Recommendation.** Design. Count a shake continuously (each reversal worth its vigour, so 6% less
+shaking is felt as 6% less), or give the ball a node it has a continuous measure of — a yes a
+little more often, say. Not fixed here: either is a change to how the toy feels.
+
+---
+
+## The held guns and the fidget toys (D56, D57)
+
+Added to the suite on 2026-09-25, after the pass above: until then all twelve failed it by name
+("no driver for HeldGun"). Each is now driven the way the grammar says — left carries, right
+acts, Shift+right bins — and checked twice like everything else.
+
+| Item | Driven | Verdict |
+|---|---|---|
+| Revolver, SMG, pump shotgun, hunting rifle, blunderbuss | grabbed, aims itself (0.25–0.35 s), tap, refused tap, second shot or a held stream | pass. Bones through the pipeline at `shot_mult`; tracer from the muzzle; he cowers; Steady x0.92, measured mass-normalised. Thrown into him, **not billed**: in his contact list one frame and gone (`~F1`) |
+| Water pistol | as above, on a filthy skeleton | pass. Pay exact to the squirt; no threat, no hit, no act; thrown into him, bills nothing |
+| Bubble blaster | as above | pass. Every bubble reaches him as one act of exactly `1.2 x value` |
+| Bubble wrap | left-tap a bubble, right-stroke a run, regrow, dropped on it | pass. 2 a pop, exact; "amused"; regrow x0.94 |
+| Stress ball | hold right to squeeze, throw at him | pass. Squeeze and catch exact; squashed face past 0.6; "catch" |
+| Fidget spinner | right-swipe an arm, watch, run down | pass. Trickle exact to the tick; "entranced"; settles on a third, no frame at rest |
+| Fortune ball | right-tap unshaken, shake, read until yes | pass but **F10** |
+| Jack-in-the-box | right-circle the crank twice, right-tap the lid | pass. Pops at the tune's end, "startled" then "laugh", 30 exact; Shorter Tune x0.94 |
+
 ---
 
 ## What the suite checks, per item
@@ -190,8 +224,9 @@ For every item, on a fresh save and a fresh 1280x720 stage (the game's own `Worl
   bomb thrown at him; powers equipped from the shop and clicked on him (the beam held, the minigun's
   trigger held, the vortex held beside him); kind items dropped on his head, thrown at him, rubbed
   on him, or him carried over and put in them; generators left on the desk; turrets put down in
-  range; critters put down across the desk. Drivers are chosen by **exact script class**; a class
-  with no driver fails by name.
+  range; critters put down across the desk; held guns grabbed, left to aim and fired with the right
+  button; fidget toys worked through their own click zones (tapped, stroked, cranked, squeezed,
+  shaken). Drivers are chosen by **exact script class**; a class with no driver fails by name.
 - **The contract:** its own currency paid, **through the real pipeline** — every payout is checked
   inside Economy's grant against `payout_for(1, id)` times the event's base, so a multiplier that is
   skipped or doubled anywhere shows; none of the other currency; the family's contract event
@@ -199,7 +234,9 @@ For every item, on a fresh save and a fresh 1280x720 stage (the game's own `Worl
   every hit's multiplier read back off the hit; the effect drawn (tracer from the muzzle, bolt,
   beam and heat, the missile's blast on the marked spot, a swirl, hearts off him on entry, ambient
   life); a trickle paid to the frame (`rate × value × time`); what its switches promise (a catch
-  pays nothing laid on him, food is eaten, a duck is not, a fountain runs out).
+  pays nothing laid on him, food is eaten, a duck is not, a fountain runs out); for a toy, the
+  row his face answers each of its fidget events with; for a gun, that he cowers while a harm one
+  is on him.
 - **Safety:** it and he stay inside the arena, no NaN, no speed past a wall's thickness per frame,
   nothing pushed to the error log (a `Logger` catches every `push_error` and `push_warning`), no
   orphaned nodes, nothing of it left once it is gone, Shift+right-click bins it.

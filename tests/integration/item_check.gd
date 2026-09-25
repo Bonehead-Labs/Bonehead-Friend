@@ -18,7 +18,9 @@ extends Node
 ## shop's own path, and then the item used with synthetic input at real positions: a bat is
 ## grabbed by its grab region and swung through him, a grenade is primed by a right-click
 ## while held and dropped beside him, a turret is put down and left, a pizza is dropped on his
-## head, a hot tub has him carried over and put in it. Then everything it claims is asserted
+## head, a hot tub has him carried over and put in it, a held gun is picked up, left to aim
+## itself and fired with the right button, and a fidget toy is worked through its own click
+## zones — a bubble tapped, a crank circled. Then everything it claims is asserted
 ## against what was measured: the right currency through the real pipeline, the contract
 ## event, mastery, the effect, that it stays in the world, that nothing it does goes past the
 ## speed a wall can hold, that it pushes no errors, that Shift+right-click bins it and that
@@ -78,11 +80,23 @@ const DRIVERS := {
 	&"MissilePower": &"_drive_strike",
 	&"VortexPower": &"_drive_vortex",
 	&"OpenHandPower": &"_drive_pet",
+	# D56: all seven held guns, harm and kind. Which of the three things a shot is, and which
+	# side it pays on, the driver reads off the gun and the item.
+	&"HeldGun": &"_drive_held_gun",
+	# D57: one row per toy, each working its own zones through `GestureZones` with the helpers
+	# under "drivers: the fidget layer". A new toy class is a row here and a driver built from
+	# them; its currency is decided by `_pays_hearts`, not by this table.
+	&"BubbleWrap": &"_drive_bubble_wrap",
+	&"StressBall": &"_drive_stress_ball",
+	&"FidgetSpinner": &"_drive_spinner",
+	&"MagicEightBall": &"_drive_fortune_ball",
+	&"JackInTheBox": &"_drive_jack",
 }
 
 ## Classes that pay Hearts. Everything else is on the harm side of the pipeline and pays Bones
 ## — including the Toy-drawer balls, the trampoline and the fan, which are sold on the kind
 ## side of the shop and earn through damage (IdleBrain `ROUTINE_BOP`, Buddy `_min_impulse_for`).
+## Read through `_pays_hearts`, which adds every `FidgetToy` and the kind `HeldGun`s.
 const HEARTS_CLASSES: Array[StringName] = [&"FriendlyBase", &"OpenHandPower"]
 
 ## Classes that cannot be aimed, so a run where it missed him is the item working as sold
@@ -138,6 +152,14 @@ const KNOWN := {
 	"ice_cream/aug_cooldown_mult": "F8 a consumable is gone before its cooldown can run",
 	"noodle_bowl/aug_cooldown_mult": "F8 a consumable is gone before its cooldown can run",
 	"birthday_cake/aug_cooldown_mult": "F8 a consumable is gone before its cooldown can run",
+
+	# The held guns and the fidget toys (D56, D57), added to the suite after it was written.
+	"revolver/thrown": "~F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
+	"smg/thrown": "~F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
+	"pump_shotgun/thrown": "~F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
+	"hunting_rifle/thrown": "~F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
+	"blunderbuss/thrown": "~F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
+	"magic_eight_ball/aug_cooldown_mult": "F10 a shake is a whole reversal: 4 x 0.94^n still rounds up to 4 until level 5",
 }
 
 var _passed := 0
@@ -575,7 +597,7 @@ func _class_of(item: ItemData) -> StringName:
 
 func _category_name(category: int) -> String:
 	return ["Weapon", "Throwable", "CursorPower", "Friendly", "Toy", "Turret", "Critter",
-		"Comfort", "Food", "Ambience"][clampi(category, 0, 9)]
+		"Comfort", "Food", "Ambience", "Gun"][clampi(category, 0, 10)]
 
 # --- probes -----------------------------------------------------------------------------
 #
@@ -639,7 +661,7 @@ func _on_damage(info: HitInfo) -> void:
 	var cap := b.knockout_damage * b.max_hit_fraction
 	if info.amount >= cap - 0.001 or info.raw_impulse <= 0.0:
 		return
-	var want := Progression.damage_mult_for(_run.item.id, float(_run.authored.get("damage_mult", 1.0)))
+	var want := _hit_multiplier(_run, info)
 	var got := info.amount / (info.raw_impulse * b.damage_per_impulse)
 	_run.measured_damage += 1
 	if absf(got - want) > 0.001 * maxf(1.0, want):
@@ -1626,6 +1648,711 @@ func _expect_act_value(run: Run) -> void:
 	if not run.act_gaps.is_empty():
 		run.cooldown = float(run.act_gaps[0])
 
+# --- drivers: held guns (D56) ---------------------------------------------------------------
+
+## Whether a held gun has said it is pointed at him this run (D56's `aim` threat). A listener
+## of its own, connected on first use: the suite's threat probe keeps to fuses.
+var _threatened := false
+
+func _on_aim_threat(kind: StringName, _at: Vector2, level: float) -> void:
+	if _run != null and kind == &"aim" and level > 0.0:
+		_threatened = true
+
+## A gun you hold, used the way D56's grammar says: picked up by its grab region, carried to a
+## stand-off beside him, left to lay its own barrel on him, then the right button — one tap, a
+## second tap at once that its gap must refuse, and then another shot or, full-auto, the
+## trigger held down for a stream. What a shot is (`bullet`, `water`, `bubble`) is read off the
+## gun and which side it pays on off the item, so all seven are this one driver.
+func _drive_held_gun(run: Run) -> void:
+	if not EventBus.threat_changed.is_connected(_on_aim_threat):
+		EventBus.threat_changed.connect(_on_aim_threat)
+	_threatened = false
+	_reseed(run)
+	var body := await _spawn(run, _centre() + Vector2(-300.0, -150.0)) as HeldGun
+	if body == null:
+		return
+	# Off the spawned body rather than `_authored`'s fresh instance — no augment touches either —
+	# because a shot is billed at `shot_mult`, by an impulse of exactly `shot_force`, and a gun
+	# bounced off him at its contact `damage_mult` (`_hit_multiplier`).
+	run.authored["shot_mult"] = body.shot_mult
+	run.authored["shot_force"] = body.shot_force
+	var kind := body.is_kind_gun()
+	run.notes.append("%s every %.2fs%s" % [body.shot_kind, body.fire_interval,
+		", full auto" if body.auto_fire else ""])
+	if body.shot_kind == &"water":
+		# Filthy, so every squirt that lands has grime to take off.
+		_buddy.grime.set_value(1.0)
+		run.grime_start = 1.0
+		run.grime_seen = 1.0
+		run.grime_removed = 0.0
+	await _await_still(body, 60)
+	if not await _grab(run, body):
+		return
+	# Level with his chest and well inside its reach. Bubbles drift at 80 px/s, so the blaster
+	# stands closer, or the run is spent watching them cross the desk.
+	var stand := 150.0 if body.shot_kind == &"bubble" else clampf(body.shot_range * 0.5, 160.0, 260.0)
+	await _mouse_to(_centre() + Vector2(-stand, -30.0), 700.0)
+	var settle := await _aim_settles(body, 90)
+	_expect(run, "aims", settle >= 0, "held beside him, it lays its own barrel on him (%s)"
+		% (("in %.2fs" % (settle / 60.0)) if settle >= 0
+			else "never: %.1f deg off" % rad_to_deg(absf(body.aim_error()))))
+	if not kind:
+		var cowers := await _await(func() -> bool: return _buddy.expression.beat_id() == &"aimed_at", 60)
+		_expect(run, "threat", _threatened and cowers,
+			"pointed at him, it says so, and he cowers (beat '%s')" % _buddy.expression.beat_id())
+
+	# One tap, and at once a second, which the gap must refuse. The gap is read off the gun's
+	# own clock against a time taken before the press; it due-dates the next shot a frame early
+	# to keep a stream's phase (D56), so that frame goes back on.
+	var muzzle := body.muzzle_position()
+	var first_tracer := _fx.tracers.size()
+	await _step()
+	var spin_before := body.angular_velocity
+	await _step()
+	var spin_at := body.angular_velocity
+	var pressed_at := Time.get_ticks_msec()
+	_press(MOUSE_BUTTON_RIGHT)
+	var fired := body.shots_fired
+	if fired == 1:
+		run.cooldown = float(body._next_shot_msec - pressed_at + _frame_msec())
+	_release(MOUSE_BUTTON_RIGHT)
+	_press(MOUSE_BUTTON_RIGHT)
+	_release(MOUSE_BUTTON_RIGHT)
+	_expect(run, "fires", fired == 1 and body.shots_fired == 1,
+		"right-click in the hand fires one shot, and a second click inside its %.2fs gap does not (%d)"
+		% [body._interval(), body.shots_fired])
+	var in_air := _bubbles().size()
+	await _step()
+	# The kick, as the angular momentum the shot handed it: the change in spin over the step it
+	# landed in, less the change the aim was already making, times its mass. Mass-normalised on
+	# purpose — the Weight node turns a heavier gun less for the same impulse, and must not be
+	# able to pass for the Steady one.
+	var kick := absf((body.angular_velocity - spin_at) - (spin_at - spin_before)) * body.mass
+	var peak := 0.0
+	for i in 20:
+		peak = maxf(peak, absf(body.aim_error()))
+		await _step()
+	if not kind:
+		_gauge(run, &"recoil_mult", kick)
+		run.notes.append("kick %.1f deg, %.1f kg rad/s" % [rad_to_deg(peak), kick])
+		_expect(run, "kicks", peak > deg_to_rad(0.5), "and the shot kicks it off him (%.1f deg)" % rad_to_deg(peak))
+
+	# The gap waited out, the aim back on him, and then the rest of the magazine.
+	await _step(int(ceil(body._interval() * 60.0)) + 2)
+	await _aim_settles(body, 60)
+	if body.auto_fire:
+		var before := body.shots_fired
+		_press(MOUSE_BUTTON_RIGHT)
+		await _step(50)
+		_release(MOUSE_BUTTON_RIGHT)
+		var streamed := body.shots_fired - before
+		await _step(10)
+		_expect(run, "stream", streamed >= 3 and body.shots_fired == before + streamed
+			and not body.trigger_held(),
+			"holding right keeps it firing (%d shots in %.2fs), and letting go stops it" % [streamed, 50.0 / 60.0])
+	else:
+		_press(MOUSE_BUTTON_RIGHT)
+		_release(MOUSE_BUTTON_RIGHT)
+		await _step(10)
+		_expect(run, "again", body.shots_fired == 2, "and once the gap has passed it fires again (%d)"
+			% body.shots_fired)
+	var shots := body.shots_fired
+	_expect(run, "use", run.uses() == shots, "each shot is a use:%s for the board (%d of %d)"
+		% [run.item.id, run.uses(), shots])
+	if kind:
+		_expect(run, "no_threat", not _threatened, "a kind gun is never a threat to him")
+		_expect(run, "no_hits", run.hits.is_empty(), "and never bills him a hit (%d)" % run.hits.size())
+	match body.shot_kind:
+		&"water":
+			_expect_tracer(run, muzzle, first_tracer, false)
+			await _expect_squirts(run, body)
+		&"bubble":
+			_expect(run, "blows", in_air >= 1, "a shot is a bubble in the air (%d)" % in_air)
+			await _expect_bubbles(run, body, shots)
+		_:
+			_expect_tracer(run, muzzle, first_tracer, true)
+	if run.upgraded:
+		await _bin_in_the_hand(run, body)
+	else:
+		await _thrown_gun(run, body, kind)
+
+## Frames until the aim holds within two degrees of him for a tenth of a second, or -1.
+func _aim_settles(body: HeldGun, frames: int) -> int:
+	var inside := 0
+	for i in frames:
+		await _step()
+		if _gone(body):
+			return -1
+		inside = inside + 1 if absf(body.aim_error()) < deg_to_rad(2.0) else 0
+		if inside >= 6:
+			return i - 4
+	return -1
+
+## A physics frame in whole milliseconds, as `HeldGun.fire` rounds it.
+func _frame_msec() -> int:
+	return int(1000.0 / float(Engine.physics_ticks_per_second))
+
+## The first shot's tracer leaves from the muzzle, one lands on him, and — for a gun that
+## hurts — the shots are hits through the real pipeline that the world answers.
+func _expect_tracer(run: Run, muzzle: Vector2, first: int, harm: bool) -> void:
+	var from_muzzle := _fx.tracers.size() > first \
+		and (_fx.tracers[first][0] as Vector2).distance_to(muzzle) < 3.0
+	var on_him := false
+	for line in _fx.tracers.slice(first):
+		if (line[1] as Vector2).distance_to(line[2]) < 90.0:
+			on_him = true
+	_expect(run, "tracer", from_muzzle, "the shot leaves from its muzzle (%d tracers)" % (_fx.tracers.size() - first))
+	_expect(run, "aimed", on_him, "and lands on him")
+	if harm:
+		_expect(run, "hits", not run.hits.is_empty(), "and it hurts him (%d hits)" % run.hits.size())
+		_expect(run, "effect", _fx.reactions.has(run.item.id), "and the world answers each hit")
+
+## The water pistol. Every squirt that lands takes `squirt_clean` off a filthy skeleton and
+## banks `(grime x rate + a squirt's worth) x value`. The grime, measured off him frame by
+## frame, says how many landed; the pay must then be exactly that — which it cannot be if the
+## value node were skipped or doubled, or a squirt paid that did not land.
+func _expect_squirts(run: Run, body: HeldGun) -> void:
+	await get_tree().process_frame
+	var removed := run.grime_removed + maxf(0.0, run.grime_seen - _buddy.grime.value)
+	var landed := roundf(removed / body.squirt_clean)
+	_expect(run, "cleans", landed >= 1.0 and absf(removed / body.squirt_clean - landed) < 0.01,
+		"a squirt on him scrubs him: %.3f grime off, %.0f squirts' worth" % [removed, landed])
+	_expect(run, "pays", run.sustained > 0.0, "and pays for it as a trickle (%.2f kindness)" % run.sustained)
+	_expect(run, "not_acts", run.acts.is_empty() and run.contract("kindness") == 0,
+		"which is never an act, so the board is not ticked")
+	if _gone(body):
+		return
+	var value := body.value_multiplier()
+	var expected := value * (removed * ItemDB.balance.hearts_per_grime_cleaned + landed * body.squirt_value)
+	var got := run.sustained + body._banked
+	var ok := absf(got - expected) <= 0.002 * maxf(1.0, expected)
+	run.value_checked = true
+	run.value_ok = run.value_ok and ok
+	_expect(run, "rate", ok, "at exactly (grime x %.0f + %.2f) x %.3f a squirt (%.4f paid, the data says %.4f)"
+		% [ItemDB.balance.hearts_per_grime_cleaned, body.squirt_value, value, got, expected])
+
+## The bubble blaster. Every bubble drifts over and pops on him as one kind act of exactly
+## `bubble_value x value`; any still in the air at the end are aged out, not waited for.
+func _expect_bubbles(run: Run, body: HeldGun, shots: int) -> void:
+	await _await(func() -> bool: return run.acts.size() >= shots, 240)
+	for bubble in _bubbles():
+		bubble.set("_age", HeldGun.Bubble.LIFETIME)
+	await _step(2)
+	_expect(run, "pops", not run.acts.is_empty(), "the bubbles drift to him and pop as kind acts (%d of %d)"
+		% [run.acts.size(), shots])
+	_expect(run, "contract", run.contract("kindness") == run.acts.size(), "each one a kind act for the board")
+	_expect_acts_worth(run, body.bubble_value * body.value_multiplier(), "a bubble that reaches him")
+	_expect(run, "cleared", _bubbles().is_empty(), "and none is left in the air")
+
+func _bubbles() -> Array[Node]:
+	var out: Array[Node] = []
+	if is_instance_valid(_stage):
+		for node in _stage.get_children():
+			if node is HeldGun.Bubble and not node.is_queued_for_deletion():
+				out.append(node)
+	return out
+
+## Let go of mid-swing at him, as a player throws what is in their hand. A harm gun is a lump
+## of metal and may bill its contact multiplier; a kind one bills nothing whatever it hits him
+## with (D56, `HeldGun.effective_damage_mult`).
+func _thrown_gun(run: Run, body: HeldGun, kind: bool) -> void:
+	if _gone(body):
+		return
+	var hits := run.hits.size()
+	var bones := run.bones
+	await _throw_at(_centre(), 1400.0)
+	# Asked of his own contact list, so "it bills nothing" is never said of a throw that missed.
+	# The list reports a contact a step after the step that stopped it, so the speed it arrived
+	# at is a fading peak, as the stress ball keeps one for its catch.
+	var speed := 0.0
+	var touched := -1.0
+	for i in 40:
+		if _gone(body):
+			break
+		speed = maxf(body.linear_velocity.length(), speed * 0.66)
+		if touched < 0.0 and _buddy.get_colliding_bodies().has(body):
+			touched = speed
+		await _step()
+	var landed := run.hits.size() - hits
+	run.notes.append("thrown into him at %.0f px/s: %d contact hit(s)" % [touched, landed] if touched >= 0.0
+		else "thrown, and missed him")
+	if kind:
+		_expect(run, "thrown", touched > 300.0 and landed == 0 and run.bones == bones,
+			"thrown into him (%.0f px/s), a kind gun bills nothing (%d hits)" % [touched, landed])
+	else:
+		_expect(run, "thrown", touched > 300.0 and landed > 0,
+			"thrown into him (%.0f px/s), a harm gun is a lump of metal and bills its contact multiplier (%d hits)"
+			% [touched, landed])
+
+## Shift+right in the hand bins it instead of firing it: D24's override, which no trigger may
+## claim. Asked where the hand is, which is over its grab region.
+func _bin_in_the_hand(run: Run, body: HeldGun) -> void:
+	# Back on him first: a long gun still swinging from its kick has swung out from under the
+	# hand that took it by the middle.
+	await _aim_settles(body, 90)
+	if _gone(body):
+		return
+	if body.drag_area and not body.drag_area.is_hovered:
+		run.notes.append("the hand was not over it for the in-hand bin")
+		return
+	var uses := run.uses()
+	_press(MOUSE_BUTTON_RIGHT, true)
+	_release(MOUSE_BUTTON_RIGHT, true)
+	await _step(2)
+	_expect(run, "bins_held", _gone(body) and run.uses() == uses,
+		"Shift+right in the hand bins it instead of firing")
+
+# --- drivers: the fidget layer (D57) -------------------------------------------------------
+#
+# Every toy on `GestureZones` is worked the same way: synthetic events at a zone's real place
+# in the world, through the viewport, into `BaseDraggable._unhandled_input`, into the zones —
+# never a call on the toy. A new toy class is a row in DRIVERS and a driver built from the
+# helpers here: `_zone_point`, `_tap_zone`, `_stroke`, `_crank_zone`, `_hold_right`, `_shake`,
+# and `_watch_faces` / `_expect_face` for the row his face answers each fidget event with.
+
+## His face on each fidget event the item under test raises: [event, the beat he is in once
+## his brain has answered it]. A member, not a local: a lambda captures locals by value.
+var _faces: Array = []
+## What the spinner owes for its watched trickle, summed tick by tick (see `_drive_spinner`).
+var _spin_owed := 0.0
+
+## Listens *after* his brain, so the beat read is the one it chose — and so reconnected per
+## driver: every stage builds a new buddy whose brain connects when it is born, and a watcher
+## connected for an earlier stage would hear each event before it.
+func _watch_faces() -> void:
+	_faces.clear()
+	_spin_owed = 0.0
+	if EventBus.fidget_event.is_connected(_on_fidget_face):
+		EventBus.fidget_event.disconnect(_on_fidget_face)
+	EventBus.fidget_event.connect(_on_fidget_face)
+
+func _on_fidget_face(item_id: StringName, event: StringName, _at: Vector2) -> void:
+	if _run == null or item_id != _run.item.id or not is_instance_valid(_buddy):
+		return
+	_faces.append([event, _buddy.expression.beat_id()])
+	# The spinner pays its watched trickle and says so in the same breath (`_on_tick`), before
+	# its tick clock is reset — so what that tick banked is known exactly, here.
+	if event == &"spinning" and not _gone(_run.body) and _run.body is FidgetSpinner:
+		var spinner := _run.body as FidgetSpinner
+		_spin_owed += spinner.watch_value * absf(spinner.spin) / spinner.max_spin * spinner._tick \
+			* spinner.value_multiplier()
+
+## The toy raised `event`, and his face answered it with the row `ExpressionBrain.FIDGET_ROWS`
+## gives it — the toy's claim about him, asked of him.
+func _expect_face(run: Run, event: StringName) -> void:
+	var row: StringName = ExpressionBrain.FIDGET_ROWS.get(event, &"")
+	var raised := _faces.filter(func(f: Array) -> bool: return f[0] == event)
+	var shown := raised.any(func(f: Array) -> bool: return f[1] == row)
+	var beats := PackedStringArray()
+	for f in raised:
+		beats.append(String(f[1]))
+	_expect(run, "face_%s" % event, shown, "he answers '%s' with his %s row (%s)"
+		% [event, row, ", ".join(beats) if not beats.is_empty() else "never raised"])
+
+## Where a toy's zone is now, in the view, plus an offset in the toy's own art pixels — so a
+## point on a crank's rim or the edge of a bubble turns and mirrors with the body as the zones
+## do. Through the canvas transform, which carries the screen shake.
+func _zone_point(body: BaseDraggable, zone: StringName, art_offset: Vector2 = Vector2.ZERO) -> Vector2:
+	var zones := body.gesture_zones
+	var world := zones.art_to_world(zones.world_to_art(zones.zone_world(zone)) + art_offset)
+	return body.get_canvas_transform() * world
+
+## A tap on a zone: the cursor over it, pressed for as long as a click takes, let go.
+## `before_release` runs immediately before the release, with nothing in between.
+func _tap_zone(body: BaseDraggable, zone: StringName, button: MouseButton,
+		before_release: Callable = Callable()) -> void:
+	_move(_zone_point(body, zone))
+	await _step()
+	_press(button)
+	await _step(3)
+	if before_release.is_valid():
+		before_release.call()
+	_release(button)
+
+## A motion carrying the velocity it really has. Windows gives every real mouse event one, and
+## a flick is read from it (`GestureZones._velocity_of`).
+func _move_at(to: Vector2, velocity: Vector2) -> void:
+	var e := InputEventMouseMotion.new()
+	e.position = to
+	e.global_position = to
+	e.relative = to - _mouse
+	e.velocity = velocity
+	e.button_mask = _held
+	_mouse = to
+	_view.push_input(e, true)
+
+## A stroke with a button down: pressed at `from`, carried to `to` in `frames` motions a
+## physics frame apart, and let go at the end with no pause — so a fast one is a flick.
+func _stroke(from: Vector2, to: Vector2, button: MouseButton, frames: int) -> void:
+	_move(from)
+	await _step()
+	_press(button)
+	var dt := 1.0 / float(Engine.physics_ticks_per_second)
+	var last := from
+	for i in range(1, frames + 1):
+		var at := from.lerp(to, float(i) / float(frames))
+		_move_at(at, (at - last) / dt)
+		last = at
+		await _step()
+	_release(button)
+
+## Circles round a zone's pivot with a button down — a sixteenth of a turn a motion, two
+## motions a physics frame — until `done` says so or `turns` run out. Returns the turns made.
+func _crank_zone(body: BaseDraggable, zone: StringName, button: MouseButton, turns: float,
+		done: Callable) -> float:
+	var rim := Vector2(10.0, 0.0)
+	_move(_zone_point(body, zone) + rim)
+	await _step()
+	_press(button)
+	var made := 0
+	for i in range(1, int(ceil(turns * 16.0)) + 1):
+		if done.call():
+			break
+		_move(_zone_point(body, zone) + rim.rotated(TAU * float(i) / 16.0))
+		made = i
+		if i % 2 == 0:
+			await _step()
+	_release(button)
+	return float(made) / 16.0
+
+## The item's own verb in the hand (D57's ACTION): right held down for `frames` and let go.
+## `before_release` is asked on the last frame it is still down. Returns how long it was held,
+## by the microsecond clock the zones read.
+func _hold_right(frames: int, before_release: Callable = Callable()) -> float:
+	var began := Time.get_ticks_usec()
+	_press(MOUSE_BUTTON_RIGHT)
+	await _step(frames)
+	if before_release.is_valid():
+		before_release.call()
+	var held := float(Time.get_ticks_usec() - began) / 1.0e6
+	_release(MOUSE_BUTTON_RIGHT)
+	return held
+
+## Carried side to side in the hand, a leg a physics frame, until `ready` says so or `legs`
+## run out. The first leg sets a direction and every later one reverses it. Returns the legs.
+func _shake(legs: int, amplitude: float, ready: Callable) -> int:
+	var home := _mouse
+	for i in legs:
+		if ready.call():
+			return i
+		_move(home + Vector2(amplitude if i % 2 == 0 else -amplitude, 0.0))
+		await _step()
+	return legs
+
+## Bubble wrap: a left tap on a bubble pops it and does not lift the sheet; a right-stroke from
+## there across the row pops the run it passes over and never bins the sheet; a popped bubble
+## grows back and claims its tap again; and he pops one by coming down on it.
+func _drive_bubble_wrap(run: Run) -> void:
+	_watch_faces()
+	var body := await _spawn(run, _centre() + Vector2(-210.0, -30.0)) as BubbleWrap
+	if body == null:
+		return
+	await _await_still(body, 60)
+	var intact := body.intact_count()
+	await _tap_zone(body, &"b0", MOUSE_BUTTON_LEFT)
+	# The gap its third node shortens, as the pop just set it on the sheet's own clock.
+	run.cooldown = body._regrow.wait_time * 1000.0
+	await _step()
+	_expect(run, "pops", body.is_popped(0) and run.acts.size() == 1 and not body.dragging,
+		"a left tap on a bubble pops it for one act, and does not pick the sheet up (%d acts)" % run.acts.size())
+	_expect(run, "spent", not body.gesture_zones.zone_enabled(&"b0"), "and a popped bubble claims nothing")
+	var before := run.acts.size()
+	await _stroke(_zone_point(body, &"b0"), _zone_point(body, &"b3"), MOUSE_BUTTON_RIGHT, 4)
+	await _step(2)
+	var row := body.is_popped(1) and body.is_popped(2) and body.is_popped(3) and not body.is_popped(4)
+	_expect(run, "run", row and run.acts.size() == before + 3 and not _gone(body),
+		"a right-stroke across the sheet pops the run it passes over, and does not bin it (%d more)"
+		% (run.acts.size() - before))
+	_expect_face(run, &"amused")
+	_expect_acts_worth(run, body.pop_value * body.value_multiplier(), "a pop")
+	_expect(run, "contract", run.contract("kindness") == run.acts.size(), "each pop a kind act for the board")
+	if run.upgraded:
+		return
+	# Grows back: its clock wound on, not waited out.
+	run.notes.append("regrow %.1fs" % body.regrow_seconds)
+	body._regrow.start(0.02)
+	await _step(4)
+	_expect(run, "regrows", body.intact_count() == intact - 3 and body.gesture_zones.zone_enabled(&"b0"),
+		"a popped bubble grows back and claims its tap again (%d intact)" % body.intact_count())
+	# He is carried over and put down on it.
+	var flat := body.intact_count()
+	if not await _grab(run, _buddy):
+		return
+	await _carry_to(_buddy, Vector2(body.global_position.x, body.get_interaction_rect().position.y - 110.0))
+	_release_all()
+	var sheet: WeakRef = weakref(body)
+	await _await(func() -> bool: return sheet.get_ref() == null or sheet.get_ref().intact_count() < flat, 90)
+	_expect(run, "landing", not _gone(body) and body.intact_count() < flat,
+		"put down on it, he pops one (%d to %d)" % [flat, body.intact_count() if not _gone(body) else -1])
+
+## Stress ball: held, right held down squeezes it — it swaps to its drawn squashed face past
+## the swap point — and letting go pays by how hard; thrown at him, he catches it and pays,
+## then tosses it back up.
+func _drive_stress_ball(run: Run) -> void:
+	_watch_faces()
+	var body := await _spawn(run, _centre() + Vector2(-220.0, -40.0)) as StressBall
+	if body == null:
+		return
+	await _await_still(body, 60)
+	if not await _grab(run, body):
+		return
+	await _mouse_to(_centre() + Vector2(-220.0, -130.0), 600.0)
+	await _steady(body, 30)
+	var squeeze := [false, false]
+	var held := await _hold_right(45, func() -> void:
+		squeeze[0] = body.is_squeezing()
+		squeeze[1] = body.squeeze_sprite != null and body.squeeze_sprite.visible and not body.sprite.visible)
+	await _step()
+	_expect(run, "squeezes", squeeze[0] and squeeze[1], "held, right held down squeezes it, past %.1f on its squashed face"
+		% StressBall.SWAP_AT)
+	_expect(run, "pays", run.acts.size() == 1 and not body.is_squeezing(),
+		"and letting go of right pays for the squeeze (%d acts, charge %.2f)" % [run.acts.size(), body.charge])
+	# The time to a full squeeze, which its third node shortens: the hold over the charge it made.
+	if body.charge > 0.0 and body.charge < 1.0:
+		run.cooldown = held / body.charge * 1000.0
+	var squeezed := body.squeeze_value * (0.25 + 0.75 * body.charge) * body.value_multiplier()
+	_expect_face(run, &"amused")
+	_release_all()
+	if run.upgraded:
+		_expect_acts_worth(run, squeezed, "a squeeze of %.2f" % body.charge)
+		return
+	await _await_still(body, 60)
+	var caught := false
+	if await _grab(run, body):
+		await _throw_at(_centre(), 1000.0)
+		var ball: WeakRef = weakref(body)
+		caught = await _await(func() -> bool: return ball.get_ref() == null or ball.get_ref().is_caught(), 60)
+		caught = caught and not _gone(body) and body.is_caught()
+	_expect(run, "catches", caught and run.acts.size() == 2, "thrown at him, he catches it, and the catch pays (%d acts)"
+		% run.acts.size())
+	_expect_face(run, &"caught")
+	var worth := run.acts.size() == 2 and is_equal_approx(run.acts[0], squeezed) \
+		and is_equal_approx(run.acts[1], body.catch_value * body.value_multiplier())
+	run.value_checked = true
+	run.value_ok = run.value_ok and worth
+	_expect(run, "act_value", worth, "a squeeze worth exactly %.3f and a catch %.3f (%s)"
+		% [squeezed, body.catch_value * body.value_multiplier(), run.acts])
+	if caught:
+		var held_ball: WeakRef = weakref(body)
+		var tossed := await _await(func() -> bool: return held_ball.get_ref() == null or not held_ball.get_ref().is_caught(), 90)
+		_expect(run, "tossed", tossed and not _gone(body), "then he tosses it back up (after %.1fs)" % body.catch_seconds)
+
+## Fidget spinner: a right-swipe across an arm spins it; while it spins in front of him it pays
+## a watched trickle, exactly what each tick says it is worth, and he stares at it; it runs
+## down, and at rest it settles on a third of a turn and stops running frames.
+func _drive_spinner(run: Run) -> void:
+	_watch_faces()
+	var body := await _spawn(run, _centre() + Vector2(-170.0, -30.0)) as FidgetSpinner
+	if body == null:
+		return
+	await _await_still(body, 60)
+	var hub := body.get_canvas_transform() * body.rotor.global_position
+	await _stroke(hub + Vector2(18.0, 12.0), hub + Vector2(20.0, -8.0), MOUSE_BUTTON_RIGHT, 1)
+	var from := absf(body.spin)
+	var since := Time.get_ticks_usec()
+	_expect(run, "spins", body.is_spinning() and from > body.max_spin * 0.5 and not _gone(body),
+		"a right-swipe across an arm spins it (%.1f of %.0f rad/s), and never bins it" % [from, body.max_spin])
+	await _step(120)
+	if _gone(body):
+		return
+	# How fast it runs down, on its own clock: its third node makes that slower, which is the gap
+	# before it needs another flick getting longer.
+	var seconds := float(Time.get_ticks_usec() - since) / 1.0e6
+	run.cooldown = (from - absf(body.spin)) / seconds * 1000.0
+	run.notes.append("runs down %.2f rad/s a second from %.0f" % [run.cooldown / 1000.0, from])
+	_expect(run, "watched", run.sustained > 0.0, "spinning in front of him, it pays (%.2f kindness)" % run.sustained)
+	_expect_face(run, &"spinning")
+	var got := run.sustained + body._banked
+	var ok := _spin_owed > 0.0 and absf(got - _spin_owed) <= 0.002 * maxf(1.0, _spin_owed)
+	run.value_checked = true
+	run.value_ok = run.value_ok and ok
+	_expect(run, "rate", ok, "exactly what each tick of its spin is worth (%.4f paid, %.4f owed)" % [got, _spin_owed])
+	_expect(run, "not_acts", run.acts.is_empty() and run.contract("kindness") == 0,
+		"a watched spin is a trickle, never an act")
+	if run.upgraded:
+		return
+	# Run down — the last of it skewed, not waited out — and at rest it costs nothing.
+	body.spin = FidgetSpinner.STOP_SPIN * 1.1 * signf(body.spin)
+	var spinner: WeakRef = weakref(body)
+	await _await(func() -> bool: return spinner.get_ref() == null or not spinner.get_ref().is_processing(), 120)
+	if _gone(body):
+		return
+	var third := fposmod(body.rotor.rotation, TAU / 3.0)
+	_expect(run, "rests", not body.is_processing() and minf(third, TAU / 3.0 - third) < 0.01,
+		"run down, it settles on a third of a turn and stops running frames")
+
+## Fortune ball: right-tapped unshaken where it lies, it says to shake it first and pays
+## nothing; picked up and shaken, it is ready after its reversals; right-click reads it — a use
+## each — and a yes pays and cheers him. Read until it says yes, as a player would.
+func _drive_fortune_ball(run: Run) -> void:
+	_watch_faces()
+	_reseed(run)
+	var body := await _spawn(run, _centre() + Vector2(-190.0, -40.0)) as MagicEightBall
+	if body == null:
+		return
+	await _await_still(body, 60)
+	await _tap_zone(body, &"ball", MOUSE_BUTTON_RIGHT)
+	await _step()
+	_expect(run, "unshaken", not _gone(body) and body.last_answer == MagicEightBall.UNSHAKEN
+		and body.answer_showing() and run.acts.is_empty() and run.uses() == 0,
+		"right-tapped unshaken, it says to shake it first, pays nothing, and is not binned")
+	if _gone(body) or not await _grab(run, body):
+		return
+	await _mouse_to(_mouse + Vector2(0.0, -90.0), 500.0)
+	var ball: WeakRef = weakref(body)
+	var tones: Array[StringName] = []
+	var legs := -1
+	for attempt in 8:
+		var took := await _shake(16, 36.0, func() -> bool:
+			return ball.get_ref() == null or ball.get_ref().is_ready_to_read())
+		if legs < 0:
+			legs = took
+		if _gone(body) or not body.is_ready_to_read():
+			break
+		_press(MOUSE_BUTTON_RIGHT)
+		_release(MOUSE_BUTTON_RIGHT)
+		tones.append(body.last_tone)
+		if body.last_tone == &"yes":
+			break
+		await _step(2)
+	# The reversals it took to be ready, which its third node is sold as taking off.
+	if legs > 0:
+		run.cooldown = float(legs - 1)
+	_expect(run, "shaken", legs > 1 and not tones.is_empty(), "shaken in the hand, it is ready after %d reversals"
+		% (legs - 1))
+	_expect(run, "reads", run.uses() == tones.size() and not tones.is_empty(),
+		"right-click reads it, a use:%s each (%d reads: %s)" % [run.item.id, tones.size(), tones])
+	_expect(run, "answer", not _gone(body) and body.answer_showing() and body.answer_text() == body.last_answer,
+		"and the answer shows above it ('%s')" % (body.last_answer if not _gone(body) else ""))
+	_expect(run, "yes_pays", run.acts.size() == tones.count(&"yes"), "a yes pays and nothing else does (%d acts)"
+		% run.acts.size())
+	_expect_acts_worth(run, body.answer_value * body.value_multiplier(), "a yes")
+	var asked := {}
+	for tone in tones:
+		if not asked.has(tone):
+			asked[tone] = true
+			_expect_face(run, StringName("answer_%s" % tone))
+
+## Jack-in-the-box: right-circling the crank winds it, and it pops at the tune's end — a use —
+## and he startles; a beat later he laughs, and the laugh is the pay; a right-tap on the lid
+## puts him back, and it winds and pops again.
+func _drive_jack(run: Run) -> void:
+	_watch_faces()
+	var body := await _spawn(run, _centre() + Vector2(-170.0, -30.0)) as JackInTheBox
+	if body == null:
+		return
+	await _await_still(body, 60)
+	run.notes.append("facing %s" % ("mirrored" if body.facing < 0.0 else "as drawn"))
+	var wound := await _wind_jack(body)
+	_expect(run, "pops", body.is_out() and wound >= body.turns_needed() and wound <= body.turns_needed() + 0.25,
+		"right-circling the crank winds it, and it pops at the end of the tune (%.2f of %.2f turns)"
+		% [wound, body.turns_needed()])
+	_expect(run, "use", run.uses() == 1, "the pop is a use:%s" % run.item.id)
+	_expect_face(run, &"jack_popped")
+	var laughed := await _await(func() -> bool: return not run.acts.is_empty(), 60)
+	_expect(run, "laughs", laughed and run.acts.size() == 1, "a beat later he laughs, and the laugh pays (mood %.0f)"
+		% Economy.mood)
+	_expect_face(run, &"jack_laugh")
+	# The next tune is drawn as the lid shuts. From the same draw in both phases — the first
+	# was spent differently, on the binned copy and the upgraded one's aura — so the third
+	# node's shorter tune is the only difference between the two that follow.
+	await _tap_zone(body, &"lid", MOUSE_BUTTON_RIGHT, func() -> void: _reseed(run))
+	await _step(2)
+	_expect(run, "closes", not _gone(body) and not body.is_out() and is_zero_approx(body.turns_wound()),
+		"a right-tap on the lid puts him back, ready to wind again")
+	if _gone(body):
+		return
+	var again := await _wind_jack(body)
+	run.notes.append("second tune %.2f turns" % again)
+	_expect(run, "again", body.is_out() and run.uses() == 2, "and wound again, it pops again (%.2f turns)" % again)
+	# Milli-turns: the tune its third node shortens, as wound by hand.
+	run.cooldown = again * 1000.0
+	await _await(func() -> bool: return run.acts.size() >= 2, 60)
+	_expect_acts_worth(run, body.laugh_value * body.value_multiplier(), "his laugh")
+
+## Right-circles on the crank until the jack is out. Returns the turns it had wound.
+func _wind_jack(body: JackInTheBox) -> float:
+	var box: WeakRef = weakref(body)
+	await _crank_zone(body, &"crank", MOUSE_BUTTON_RIGHT, body.max_turns + 1.0, func() -> bool:
+		return box.get_ref() == null or box.get_ref().is_out())
+	return body.turns_wound() if not _gone(body) else 0.0
+
+# --- what the drivers above need from the rest of the suite ----------------------------------
+
+## The same random draws in both phases. The plain phase spends its first few on the copy the
+## bin gesture throws away, so a driver whose item draws when it is made (a jack's tune, a
+## fortune, a shot's spread) reseeds before its own.
+func _reseed(run: Run) -> void:
+	seed(hash(String(run.item.id)) + 1)
+
+## Every kind act this item paid was worth exactly `value`: its base times its own value node.
+func _expect_acts_worth(run: Run, value: float, what: String) -> void:
+	var ok := not run.acts.is_empty() and run.acts.all(func(v: float) -> bool: return is_equal_approx(v, value))
+	run.value_checked = true
+	run.value_ok = run.value_ok and ok
+	_expect(run, "act_value", ok, "%s is worth exactly %.3f (%s)" % [what, value, run.acts])
+
+## Which currency an item's own use earns: by exact class as `HEARTS_CLASSES` lists, plus
+## anything built on `FidgetToy` — D57's kind half, so a new toy is on the right side the day it
+## lands — and a `HeldGun` filed on the kind side (D56's water pistol and bubble blaster).
+func _pays_hearts(run: Run) -> bool:
+	if HEARTS_CLASSES.has(run.cls):
+		return true
+	if run.cls == &"HeldGun":
+		return run.item.is_kind()
+	return _lineage(run.item).has(&"FidgetToy")
+
+var _lineages := {}
+
+## Every global class name the item's root script is, from its own up.
+func _lineage(item: ItemData) -> Array:
+	if _lineages.has(item.id):
+		return _lineages[item.id]
+	var out: Array = []
+	if item.scene:
+		var node := item.scene.instantiate()
+		var script := node.get_script() as Script
+		while script:
+			out.append(script.get_global_name())
+			script = script.get_base_script()
+		node.free()
+	_lineages[item.id] = out
+	return out
+
+## The multiplier a hit from this item should carry: its contact multiplier through its damage
+## node — or, for a held gun's shot, `shot_mult` through the same node. A shot is known by its
+## impulse, which is exactly the gun's `shot_force` (D56: a gun swung into him is a lump of
+## metal, and a gunshot is not).
+func _hit_multiplier(run: Run, info: HitInfo) -> float:
+	var base := float(run.authored.get("damage_mult", 1.0))
+	if run.authored.has("shot_force") and is_equal_approx(info.raw_impulse, float(run.authored["shot_force"])):
+		base = float(run.authored["shot_mult"])
+	return Progression.damage_mult_for(run.item.id, base)
+
+## Measurements a driver takes for a key the suite's own switches cannot see: run -> key ->
+## number, compared across the two phases by `_gauge_verdict`. Keyed by the run itself, so
+## nothing else about a run has to know it exists. The recoil node is the first.
+var _gauges := {}
+
+func _gauge(run: Run, key: StringName, value: float) -> void:
+	if not _gauges.has(run):
+		_gauges[run] = {}
+	(_gauges[run] as Dictionary)[key] = value
+
+## A driver-measured key: moved at least two percent the way the node promises, or a placebo.
+func _gauge_verdict(plain: Run, upgraded: Run, key: StringName, promised: float) -> String:
+	var a = (_gauges.get(plain, {}) as Dictionary).get(key)
+	var b = (_gauges.get(upgraded, {}) as Dictionary).get(key)
+	if a == null or b == null:
+		return "unknown key"
+	if float(a) <= 0.0:
+		return "unmeasured"
+	var ratio := float(b) / float(a)
+	var moved := ratio < 1.0 - 0.02 if promised < 1.0 else ratio > 1.0 + 0.02
+	if moved:
+		return "x%.2f (%.2f to %.2f)" % [ratio, float(a), float(b)]
+	return "placebo: %.2f stayed %.2f" % [float(a), float(b)]
+
 # --- what every item owes -----------------------------------------------------------------
 
 ## Shift+right-click bins anything the spawner put down, whatever else right-click means to it
@@ -1666,7 +2393,7 @@ func _expect_aura(run: Run, body: BaseDraggable) -> void:
 		"ranked to 50 it wears its tier (%d) and an aura" % body.juice_tier)
 
 func _judge(run: Run) -> void:
-	var hearts_side := HEARTS_CLASSES.has(run.cls)
+	var hearts_side := _pays_hearts(run)
 	var mine := run.hearts if hearts_side else run.bones
 	var other := run.bones if hearts_side else run.hearts
 	var missed := UNAIMED.has(run.cls) and run.hits.is_empty()
@@ -1765,14 +2492,14 @@ func _judge_augments(plain: Run, upgraded: Run) -> Dictionary:
 			&"cooldown_mult":
 				verdict = _cooldown_verdict(plain, upgraded, promised)
 			_:
-				verdict = "unknown key"
+				verdict = _gauge_verdict(plain, upgraded, key, promised)
 		out[key] = verdict
 		_expect(upgraded, "aug_%s" % key, not verdict.begins_with("placebo") and verdict != "unknown key",
 			"%s (%s x%.2f) is read by something: %s" % [node.display_name, key, promised, verdict])
 	return out
 
 func _damage_verdict(run: Run, promised: float) -> String:
-	if HEARTS_CLASSES.has(run.cls):
+	if _pays_hearts(run):
 		# The kindness value: every act and every trickle is scaled by it, or it is decoration.
 		if not run.value_checked:
 			return "unmeasured"
