@@ -246,6 +246,17 @@ const ROWS := {
 	# A lit blade in him: a hot-foot hop every burn, so a sabre held in him keeps him jumping.
 	&"scorched": {"face": &"shocked", "tag": &"flinch", "fallback": &"hurt", "motion": &"hop",
 		"seconds": 0.3, "priority": HEAVY, "gate": GATE_REACTIVE},
+	# The flail's chain round him: on the end of it, wide-eyed and trembling, for as long as it
+	# keeps telling him. A fling ends it as a launch.
+	&"wrapped": {"face": &"shocked", "tag": &"flinch", "fallback": &"hurt", "motion": &"shiver",
+		"seconds": 0.6, "priority": HEAVY, "gate": GATE_REACTIVE, "hold": true, "refresh": 0.6},
+	# The halberd's hook in him and the spike coming: hauled in, leaning away from the point.
+	&"hooked": {"face": &"shocked", "tag": &"flinch", "fallback": &"hurt", "motion": &"lean_away",
+		"seconds": 0.6, "priority": HEAVY, "gate": GATE_REACTIVE, "hold": true, "refresh": 0.6,
+		"sound": &"gasp"},
+	# A crowbar under him and his feet leaving the desk: cross, and squirming.
+	&"pried": {"face": &"angry", "tag": &"flinch", "fallback": &"", "motion": &"wiggle",
+		"seconds": 0.6, "priority": HEAVY, "gate": GATE_REACTIVE, "hold": true, "refresh": 0.6},
 	# The Home Run landed: thrown, and dizzy on the way down.
 	&"launched": {"face": &"shocked", "tag": &"hurt", "tail_face": &"dizzy",
 		"motion": &"impact_wobble", "seconds": 0.5, "tail": 0.9, "priority": HEAVY,
@@ -298,6 +309,11 @@ const FIDGET_ROWS := {
 const ABILITY_ROWS := {
 	&"crushed": &"crushed",
 	&"scorched": &"scorched",
+	&"wrapped": &"wrapped",
+	&"flung": &"launched",
+	&"hooked": &"hooked",
+	&"skewered": &"launched",
+	&"pried": &"pried",
 	&"home_run": &"launched",
 	&"dazed": &"dazed",
 	&"sliced": &"sliced",

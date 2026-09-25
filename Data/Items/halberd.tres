@@ -14,3 +14,4 @@ scene = ExtResource("2_phvgl")
 icon = ExtResource("1_hd3n1")
 requires = Array[StringName]([&"scythe"])
 sort_order = 82
+controls = "Hold · Right: Hook and Spike — tap: the hook flies at him and reels him onto the spike"

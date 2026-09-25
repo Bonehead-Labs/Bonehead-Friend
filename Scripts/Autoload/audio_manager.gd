@@ -301,12 +301,15 @@ func _build_streams() -> void:
 	# --- held weapons that change, hook him and bite (D74: transform, tether, clamp) ---
 	#
 	# A heart of lead beating in a mace, a blade catching light and the hum it keeps while lit,
-	# the sizzle of it in him. Short, because each repeats: the hum every third of a second, the
-	# sizzle five times a second.
+	# the sizzle of it in him; a chain wrapping, a bar levering, a punch going through and a pair
+	# of shears closing. Short, because each repeats: the hum every third of a second, the
+	# sizzle five times a second, the creak a notch at a time.
 	_streams[&"heartbeat"] = _wav(_heartbeat_samples())
 	_streams[&"ignite"] = _wav(_ignite_samples())
 	_streams[&"hum"] = _wav(_hum_samples())
 	_streams[&"sizzle"] = _wav(_sizzle_samples())
+	_streams[&"chain"] = _wav(_chain_samples())
+	_streams[&"creak"] = _wav(_creak_samples())
 	# --- held weapons' abilities (D74) ---
 	#
 	# One voice each for the moments a CC0 recording does not cover: the air a swing moves, a bat
@@ -554,6 +557,46 @@ func _sizzle_samples() -> PackedFloat32Array:
 		last = noise
 		var pop := rng.randf_range(-1.0, 1.0) * 0.7 if rng.randf() < 0.004 else 0.0
 		out[i] = clampf((hiss + pop) * exp(-t * 9.0) * minf(t * 300.0, 1.0), -1.0, 1.0)
+	return out
+
+## A chain wrapping round something: four links clinking, not quite together.
+func _chain_samples() -> PackedFloat32Array:
+	var duration := 0.32
+	var count := int(MIX_RATE * duration)
+	var out := PackedFloat32Array()
+	out.resize(count)
+	var links := [[0.0, 2150.0, 1.0], [0.05, 2600.0, 0.8], [0.11, 1900.0, 0.9], [0.19, 2400.0, 0.6]]
+	for i in count:
+		var t := float(i) / float(MIX_RATE)
+		var value := 0.0
+		for link in links:
+			var u := t - float(link[0])
+			if u < 0.0:
+				continue
+			var f := float(link[1])
+			value += (sin(TAU * f * u) * 0.3 + sin(TAU * f * 1.53 * u) * 0.15) 				* float(link[2]) * exp(-u * 70.0)
+		out[i] = clampf(value, -1.0, 1.0)
+	return out
+
+## A bar under load: stick-slip, a ragged train of clicks each ringing a low resonance.
+func _creak_samples() -> PackedFloat32Array:
+	var duration := 0.3
+	var count := int(MIX_RATE * duration)
+	var out := PackedFloat32Array()
+	out.resize(count)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 20260932
+	var next_slip := 0.0
+	var since := 1.0
+	for i in count:
+		var t := float(i) / float(MIX_RATE)
+		if t >= next_slip:
+			next_slip = t + rng.randf_range(0.018, 0.034)
+			since = 0.0
+		since += 1.0 / float(MIX_RATE)
+		var ring := sin(TAU * 310.0 * since) * exp(-since * 90.0) + sin(TAU * 145.0 * since) * 0.6 * exp(-since * 50.0)
+		var envelope := minf(t * 30.0, 1.0) * minf((duration - t) * 12.0, 1.0)
+		out[i] = clampf(ring * 0.45 * envelope, -1.0, 1.0)
 	return out
 
 ## A woodblock tick: one decaying sine with a noise transient on the front. The transient

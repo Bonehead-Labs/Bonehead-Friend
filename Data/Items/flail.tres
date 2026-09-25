@@ -14,3 +14,4 @@ scene = ExtResource("2_n7r1h")
 icon = ExtResource("1_jxrfr")
 requires = Array[StringName]([&"morning_star"])
 sort_order = 54
+controls = "Hold · Right: Wrap — hit him with right held, swing him round, let go to fling"

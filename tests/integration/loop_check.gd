@@ -494,8 +494,8 @@ func _state_box(theme: Theme, state: String, type_name: String) -> StyleBox:
 ## reproducing — so the list cannot go stale, and when it is empty every weapon in the drawer
 ## does something no other one does.
 const ABILITY_STILL_TO_DO: Array[StringName] = [
-	&"boxcutter", &"cleaver", &"cricket_bat", &"crowbar", &"flail",
-	&"greatsword", &"halberd", &"hole_punch", &"katar", &"letter_opener", &"machete",
+	&"boxcutter", &"cleaver", &"cricket_bat",
+	&"greatsword", &"hole_punch", &"katar", &"letter_opener", &"machete",
 	&"mechanical_keyboard", &"monitor", &"morning_star", &"office_mug", &"pipe_wrench",
 	&"rapier", &"rolling_pin", &"scythe", &"shears", &"sickle", &"stapler", &"tyre_iron",
 	&"war_pick",

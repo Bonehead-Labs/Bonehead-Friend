@@ -79,6 +79,43 @@ const ABILITIES := {
 		"ember_gravity": -40.0, "sound_on": &"ignite", "sound_off": &"hum", "hum": &"hum",
 		"hum_seconds": 0.3, "tell": &"scorched",
 	},
+	# Hit him with right held and the chain wraps round him; while right stays down he is the ball
+	# on 70 px of chain — he hangs from it, and whirls at 2,400 px/s when the hand goes round — and
+	# letting go flings him the way he was going. The payoff is what he is swung into and where he
+	# lands, which are the flail's: 1.8 to 2.4 ordinary flail hits a use.
+	&"flail": {
+		"id": &"wrap", "name": "Wrap", "archetype": &"tether",
+		"controls": "Hold · Right: Wrap — hit him with right held, swing him round, let go to fling",
+		"cooldown": 6.0, "busy": 2.5, "worth": 2.4,
+		"armed_seconds": 1.5, "catch_mult": 1.0, "hold_seconds": 2.5, "rope": 70.0, "stiffness": 14.0,
+		"max_accel": 40000.0, "leash": 420.0, "reaction": 0.5, "fling_mult": 1.8, "fling_min": 800.0,
+		"fling_max": 1800.0, "slam_mult": 1.0, "claim_seconds": 2.0,
+		"tell": &"wrapped",
+	},
+	# A tap and the hook flies from the spike at him, up to 220 px; it catches and reels him in at
+	# 900 px/s, and the spike meets him at x1.5 and throws him back off it. Reach, not swing. The
+	# spike and the landing it throws him into measured 1.6 to 3.7 ordinary halberd hits.
+	&"halberd": {
+		"id": &"hook_and_spike", "name": "Hook and Spike", "archetype": &"tether",
+		"script": "res://Scripts/Bodies/Abilities/hook_tether.gd",
+		"controls": "Hold · Right: Hook and Spike — tap: the hook flies at him and reels him onto the spike",
+		"cooldown": 5.0, "busy": 0.8, "worth": 2.5,
+		"reach": 220.0, "hook_speed": 1400.0, "reel_speed": 900.0, "reel_seconds": 0.8,
+		"max_accel": 12000.0, "reaction": 0.4, "leash": 400.0, "spike_force": 2400.0,
+		"spike_mult": 1.5, "shove": 0.8, "claim_seconds": 1.5,
+	},
+	# The claw against him, right held, and the hand pulled *down* levers him *up*: 1.2 px a pixel,
+	# to 90 px, tipping him away from the bar. Let go and he pops up and over, spinning. The pry at
+	# x1.3 and where he lands: 1.6 to 2.3 ordinary crowbar hits.
+	&"crowbar": {
+		"id": &"pry", "name": "Pry", "archetype": &"tether",
+		"script": "res://Scripts/Bodies/Abilities/pry_tether.gd",
+		"controls": "Hold · Right: Pry — claw against him, hold and pull down to lever him up and over",
+		"cooldown": 5.0, "busy": 1.2, "worth": 2.3,
+		"reach": 40.0, "lever_ratio": 1.2, "max_lift": 90.0, "lift_speed": 260.0, "tilt_degrees": 30.0,
+		"hold_seconds": 2.5, "stiffness": 16.0, "max_accel": 9000.0, "reaction": 0.3,
+		"pop": 950.0, "spin": 9.0, "pry_force": 2000.0, "pry_mult": 1.3, "claim_seconds": 2.0,
+	},
 	# The starter. A full wind-up is 0.9 s; the hit it arms is x2.5 and adds 850 px/s at 38 degrees
 	# — he leaves at about 1,400 with the swing, a home run and not a launch into orbit. Where he
 	# lands is the bat's for two seconds. One use measured at 1.4 ordinary bat hits' worth.
