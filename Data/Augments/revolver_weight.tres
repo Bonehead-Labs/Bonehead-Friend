@@ -9,6 +9,6 @@ item_id = &"revolver"
 display_name = "Heavy Frame"
 effect_key = &"mass_mult"
 effect_per_level = 1.08
-cost_base = 59
+cost_base = 35
 cost_growth = 1.09
 sort_order = 3

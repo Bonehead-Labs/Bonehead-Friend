@@ -11,7 +11,8 @@ extends CursorPowerBase
 ##
 ## It still reports damage through `Buddy.take_impulse`, because that is the one door into
 ## the payout pipeline. What it hands over is a notional impulse per tick rather than a
-## measured collision — the same trick `GunPower` uses, minus the shove.
+## measured collision — the same trick the cursor guns used before D71 made them held guns,
+## minus the shove.
 
 ## Notional impulse per second of contact, before augments. Read as damage: the receiver
 ## converts it with `damage_per_impulse` exactly as it does a bat.

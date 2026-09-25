@@ -1,0 +1,31 @@
+# Grenade launcher (D71). A break-action thumper, faces right: a wooden stock, the steel hinge
+# and trigger, and a fat olive barrel with a leaf sight and the bore dark at the muzzle. The fat
+# barrel is the picture — three times the width of any other barrel in the drawer.
+# 36 x 13 art px.
+#
+# `grenade` is the round it fires: an olive shell on a brass case.
+id: grenade_launcher
+cell: 64
+
+--- main
+......................KK............
+.....................KGGK...........
+..............KKKKKKKKKKKKKKKKKKKKKK
+..............KEEEEEEEEEEEEEEEEEEEEK
+KKKKKKKKKKKKKKKeeeeeeeeeeeeeeeeeeekK
+KBBBBBBBBBBBBGKeeeeeeeeeeeeeeeeeeekK
+KbbbbbbbbbbbbGKeeeeeeeeeeeeeeeeeeekK
+KbbbbbbbbbbbhHKqqqqqqqqqqqqqqqqqqqqK
+KbbbbbbnnKKKKKKKKKKKKKKKKKKKKKKKKKKK
+KbbbnnnK.KhKh.K.....................
+KbbnnnK..KKKKKK.....................
+KbnnnK..............................
+KKKKK...............................
+
+--- grenade
+.KKKK..
+KeEEeK.
+KeeeeKK
+KeeeeYK
+KqqqqYK
+.KKKKK.

@@ -9,6 +9,6 @@ item_id = &"bubble_blaster"
 display_name = "Rainbow Mixture"
 effect_key = &"damage_mult"
 effect_per_level = 1.15
-cost_base = 158
+cost_base = 95
 cost_growth = 1.12
 currency = 1

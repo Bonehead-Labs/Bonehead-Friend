@@ -9,6 +9,6 @@ item_id = &"hunting_rifle"
 display_name = "Bipod"
 effect_key = &"recoil_mult"
 effect_per_level = 0.92
-cost_base = 721
+cost_base = 432
 cost_growth = 1.09
 sort_order = 4

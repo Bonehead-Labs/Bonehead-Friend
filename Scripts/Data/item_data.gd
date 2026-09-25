@@ -94,7 +94,7 @@ const CURRENCY_HEARTS := 1
 ## Equips as a cursor power even though it is filed elsewhere in the shop. The open hand
 ## is mechanically a cursor power and catalogued under Friendly, and a player looking for
 ## the kindness half of the game must find it next to the sponge rather than filed with
-## the pistol. Shop grouping and equip behaviour are two different questions, so this is
+## the missile. Shop grouping and equip behaviour are two different questions, so this is
 ## the second one — as a data field, so it never becomes a per-item branch in a script.
 @export var equips_as_cursor_power: bool = false
 

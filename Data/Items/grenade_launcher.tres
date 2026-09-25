@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/grenade_launcher.png" id="1_pg35a"]
+[ext_resource type="PackedScene" path="res://Scenes/Guns/grenade_launcher.tscn" id="2_x3srj"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_mikrw"]
+
+[resource]
+script = ExtResource("3_mikrw")
+id = &"grenade_launcher"
+display_name = "Grenade Launcher"
+description = "Lobs a grenade that bounces and goes off. Point it at him and it works out the arc."
+category = 10
+cost = 40000
+scene = ExtResource("2_x3srj")
+icon = ExtResource("1_pg35a")
+requires = Array[StringName]([&"hunting_rifle"])
+sort_order = 43
+controls = "Hold · Right-click to lob a grenade"

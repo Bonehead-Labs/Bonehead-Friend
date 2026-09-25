@@ -9,6 +9,6 @@ item_id = &"blunderbuss"
 display_name = "Braced Stock"
 effect_key = &"recoil_mult"
 effect_per_level = 0.92
-cost_base = 1636
+cost_base = 982
 cost_growth = 1.09
 sort_order = 4

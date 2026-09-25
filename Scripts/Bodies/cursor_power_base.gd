@@ -1,7 +1,8 @@
 class_name CursorPowerBase
 extends Node2D
 
-## A power the cursor becomes: fist, pistol, shotgun, magnifying glass, lightning.
+## A power the cursor becomes: fist, missile strike, magnifying glass, vortex, lightning. Never a
+## gun — every gun is one you hold (D71).
 ##
 ## Replaces three copy-pasted activation implementations in the prototype, along with the
 ## three-way `if` chain in item_menu.gd that toggled them. Every power listens to
@@ -122,7 +123,7 @@ func _cooldown_ready() -> bool:
 	if now < _cooldown_until_msec:
 		return false
 	# Cooldown augments scale the gap between shots, so the effect_key reads the same way
-	# for a pistol as it does for a mace's swing rate.
+	# for a missile as it does for a mace's swing rate.
 	var gap := cooldown_seconds * Progression.get_modifier(item_id, &"cooldown_mult")
 	_cooldown_until_msec = now + int(gap * 1000.0)
 	return true

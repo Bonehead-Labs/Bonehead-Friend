@@ -9,6 +9,6 @@ item_id = &"smg"
 display_name = "Weighted Stock"
 effect_key = &"mass_mult"
 effect_per_level = 1.08
-cost_base = 138
+cost_base = 83
 cost_growth = 1.09
 sort_order = 3

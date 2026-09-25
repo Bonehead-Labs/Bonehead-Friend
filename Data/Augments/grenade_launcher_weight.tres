@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_rvlmv"]
+
+[resource]
+script = ExtResource("1_rvlmv")
+id = &"grenade_launcher_weight"
+item_id = &"grenade_launcher"
+display_name = "Steel Barrel"
+effect_key = &"mass_mult"
+effect_per_level = 1.08
+cost_base = 555
+cost_growth = 1.09
+sort_order = 3

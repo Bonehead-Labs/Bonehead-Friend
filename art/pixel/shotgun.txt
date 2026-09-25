@@ -1,0 +1,21 @@
+# Shotgun (D71): a sawn-off double barrel, the cursor shotgun's id kept (a save key). Faces
+# right: two steel barrels stacked, each with its bore dark at the muzzle, a short wooden
+# fore-end under them, the action with its two hammers, and the stock cut down to a pistol
+# grip. 32 x 12 art px. Two barrels and no pump is what tells it from the pump shotgun, which
+# is half again as long.
+id: shotgun
+cell: 64
+
+--- main
+.......KK..KKKKKKKKKKKKKKKKKKKKK
+......KhhK.KGGGGGGGGGGGGGGGGGGGK
+......KKhKKKgggggggggggggggggggK
+.......KGGGKhhhhhhhhhhhhhhhhhhkK
+...KKKKGgggKKKKKKKKKKKKKKKKKKKKK
+..KBBBBGgggKGGGGGGGGGGGGGGGGGGGK
+.KBbbbbGhhhKhhhhhhhhhhhhhhhhhhkK
+.KbbbbbKKKKKBBBBBBBBBBBBKKKKKKKK
+KBbbbbK.h.K.KbbbbbbbbbnnK.......
+KbbbbnK..KK..KKKKKKKKKKK........
+KbbnnK..........................
+KKKKK...........................

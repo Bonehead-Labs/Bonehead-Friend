@@ -1,0 +1,114 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Bodies/held_gun.gd" id="1_33p3k"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/minigun.png" id="2_8nedx"]
+[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_jdb7g"]
+[ext_resource type="Script" path="res://Scripts/Components/effects_player.gd" id="4_6spmd"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/minigun_spin.png" id="5_5vif2"]
+
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_33p3k"]
+friction = 0.9
+bounce = 0.15
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_8nedx"]
+size = Vector2(54, 20)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_jdb7g"]
+size = Vector2(52, 16)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_6spmd"]
+size = Vector2(24, 6)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_5vif2"]
+size = Vector2(30, 12)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_nns50"]
+size = Vector2(10, 12)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_0366j"]
+size = Vector2(108, 38)
+
+[node name="_Minigun" type="RigidBody2D" unique_id=831398018 node_paths=PackedStringArray("spin_sprite", "drag_area", "handle", "sprite", "collider", "Effects_Player")]
+collision_layer = 4
+collision_mask = 7
+mass = 5.5
+physics_material_override = SubResource("PhysicsMaterial_33p3k")
+center_of_mass_mode = 1
+center_of_mass = Vector2(37, -13)
+contact_monitor = true
+max_contacts_reported = 4
+script = ExtResource("1_33p3k")
+aim_frequency = 13.0
+aim_damping = 0.85
+aim_max_accel = 170.0
+muzzle = Vector2(101, -12)
+ejector = Vector2(41, -4)
+fire_interval = 0.05
+auto_fire = true
+spread_degrees = 4.0
+shot_force = 900.0
+shove = 0.45
+recoil_kick = 1000.0
+recoil_climb = 3800.0
+climb_per_shot = 0.025
+climb_max = 0.7
+climb_recovery = 1.6
+spin_up = 0.7
+spin_down = 0.9
+spin_shudder = 35.0
+spin_sprite = NodePath("Spin")
+fire_pitch = 1.5
+fire_volume_db = -14.0
+damage_mult = 0.6
+item_id = &"minigun"
+drag_area = NodePath("DraggableArea")
+handle = NodePath("Handle")
+sprite = NodePath("Sprite")
+collider = NodePath("CollisionShape2D")
+Effects_Player = NodePath("EffectsPlayer")
+
+[node name="Sprite" type="Sprite2D" parent="." unique_id=184816874]
+position = Vector2(47, -9)
+scale = Vector2(2, 2)
+texture = ExtResource("2_8nedx")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=2058182244]
+position = Vector2(22, -14)
+shape = SubResource("RectangleShape2D_8nedx")
+
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="." unique_id=1725916266]
+position = Vector2(74, -12)
+shape = SubResource("RectangleShape2D_jdb7g")
+
+[node name="CollisionShape2D3" type="CollisionShape2D" parent="." unique_id=1283081371]
+position = Vector2(25, -26)
+shape = SubResource("RectangleShape2D_6spmd")
+
+[node name="CollisionShape2D4" type="CollisionShape2D" parent="." unique_id=1355477338]
+position = Vector2(46, 2)
+shape = SubResource("RectangleShape2D_5vif2")
+
+[node name="CollisionShape2D5" type="CollisionShape2D" parent="." unique_id=133114340]
+position = Vector2(0, 2)
+shape = SubResource("RectangleShape2D_nns50")
+
+[node name="DraggableArea" type="Area2D" parent="." unique_id=306152522]
+script = ExtResource("3_jdb7g")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=147675489]
+position = Vector2(47, -10)
+shape = SubResource("RectangleShape2D_0366j")
+
+[node name="Handle" type="StaticBody2D" parent="." unique_id=59526825]
+visible = false
+collision_layer = 0
+collision_mask = 0
+
+[node name="EffectsPlayer" type="Node" parent="." unique_id=913958827]
+script = ExtResource("4_6spmd")
+
+[node name="Spin" type="Sprite2D" parent="." unique_id=781846363]
+visible = false
+position = Vector2(47, -9)
+scale = Vector2(2, 2)
+texture = ExtResource("5_5vif2")

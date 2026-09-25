@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/tommy_gun.png" id="1_h1hpk"]
+[ext_resource type="PackedScene" path="res://Scenes/Guns/tommy_gun.tscn" id="2_c4q7e"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_bop7t"]
+
+[resource]
+script = ExtResource("3_bop7t")
+id = &"tommy_gun"
+display_name = "Tommy Gun"
+description = "Fifty in the drum and all of them on their way up. A burst stays on him; a spray does not."
+category = 10
+cost = 18000
+scene = ExtResource("2_c4q7e")
+icon = ExtResource("1_h1hpk")
+requires = Array[StringName]([&"pump_shotgun"])
+sort_order = 35
+controls = "Hold · Hold right to fire"

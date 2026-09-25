@@ -8,8 +8,10 @@ be identical in every build, and read on a white IDE and a black terminal alike.
 same argument `make_ui_glyphs.py` makes for the UI symbols, and it applies twice over here:
 generating a crosshair costs money to get something that is off-grid and unrepeatable.
 
-Each power's reticle says what the shot does, because the shape is the only tuition the
-player gets before they fire it: the pistol is a single point, the shotgun is a spread.
+Each power's reticle says what the power does, because the shape is the only tuition the
+player gets before they use it: the glass dwells, the vortex turns, the lightning arrives.
+The shotgun's four brackets and the minigun's rate bars went with the cursor guns (D71):
+every gun is one you hold now, and it shows where it is pointing by pointing.
 
 64x64 canvas, hotspot dead centre at (32, 32) — `CursorPowerBase.cursor_hotspot` must match
 or the effect lands somewhere other than where the player aimed.
@@ -52,34 +54,6 @@ def outline(im):
 	return im
 
 
-def shotgun() -> Image.Image:
-	"""Four corner brackets and a centre dot: this shot covers an area.
-
-	A cross cannot say that, and the shotgun's whole identity is that it does *not* go
-	exactly where you point it. Laid out by mirrored constants rather than by signed
-	arithmetic — the signed version came out three pixels wider on the left than the right,
-	which on a cursor is the kind of wrongness you feel before you can name it.
-	"""
-	NEAR, FAR = 12, 49   # a 3px arm spans 12..14 and its mirror spans 49..51
-	ARM = 10
-	THICK = 3
-
-	im = Image.new("RGBA", (CANVAS, CANVAS), (0, 0, 0, 0))
-	px = im.load()
-	for x, y, hx, vy in (
-			(NEAR, NEAR, NEAR, NEAR),                            # top-left
-			(FAR + THICK - ARM, NEAR, FAR, NEAR),                # top-right
-			(NEAR, FAR, NEAR, FAR + THICK - ARM),                # bottom-left
-			(FAR + THICK - ARM, FAR, FAR, FAR + THICK - ARM)):   # bottom-right
-		rect(px, x, y, ARM, THICK)      # the arm along the edge
-		rect(px, hx, vy, THICK, ARM)    # and the one turning in from it
-
-	# The centre dot is the only thing that says where the cursor actually is. Without it
-	# the four brackets frame empty space and the player aims at nothing.
-	rect(px, CENTRE - 1, CENTRE - 1, 3, 3)
-	return outline(im)
-
-
 def ring(px, radius, thickness=3):
 	"""A circle of `thickness` drawn by distance, not by trigonometry — a plotted ring has
 	to be symmetric about both axes to the pixel, and rounding points off a parametric
@@ -100,19 +74,6 @@ def magnifying_glass() -> Image.Image:
 	im = Image.new("RGBA", (CANVAS, CANVAS), (0, 0, 0, 0))
 	px = im.load()
 	ring(px, 15, 3)
-	rect(px, CENTRE - 1, CENTRE - 1, 3, 3)
-	return outline(im)
-
-
-def minigun() -> Image.Image:
-	"""Stacked bars either side, like a rate meter. Three rungs of a stream against the
-	shotgun's four corners of an area and the pistol's single point."""
-	im = Image.new("RGBA", (CANVAS, CANVAS), (0, 0, 0, 0))
-	px = im.load()
-	for i, width in enumerate((12, 9, 6)):
-		row = CENTRE - 9 + i * 9
-		rect(px, CENTRE - 20, row, width, 3)
-		rect(px, CENTRE + 20 - width, row, width, 3)
 	rect(px, CENTRE - 1, CENTRE - 1, 3, 3)
 	return outline(im)
 
@@ -145,9 +106,7 @@ def lightning() -> Image.Image:
 
 
 RETICLES = {
-	"shotgun": shotgun,
 	"magnifying_glass": magnifying_glass,
-	"minigun": minigun,
 	"gravity_vortex": gravity_vortex,
 	"lightning": lightning,
 }

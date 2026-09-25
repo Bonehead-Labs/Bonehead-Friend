@@ -1,0 +1,101 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Bodies/held_gun.gd" id="1_jlp3g"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/ray_gun.png" id="2_ej7in"]
+[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_lfrtm"]
+[ext_resource type="Script" path="res://Scripts/Components/effects_player.gd" id="4_r41t5"]
+
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_jlp3g"]
+friction = 0.9
+bounce = 0.15
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ej7in"]
+size = Vector2(48, 14)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_lfrtm"]
+size = Vector2(8, 10)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_r41t5"]
+size = Vector2(14, 6)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_3j02m"]
+size = Vector2(10, 14)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_2kje5"]
+size = Vector2(56, 34)
+
+[node name="_RayGun" type="RigidBody2D" unique_id=35003760 node_paths=PackedStringArray("drag_area", "handle", "sprite", "collider", "Effects_Player")]
+collision_layer = 4
+collision_mask = 7
+mass = 1.3
+physics_material_override = SubResource("PhysicsMaterial_jlp3g")
+center_of_mass_mode = 1
+center_of_mass = Vector2(14, -12)
+contact_monitor = true
+max_contacts_reported = 4
+script = ExtResource("1_jlp3g")
+aim_frequency = 22.0
+aim_damping = 0.85
+aim_max_accel = 300.0
+muzzle = Vector2(46, -12)
+ejects = false
+fire_interval = 0.06
+auto_fire = true
+spread_degrees = 0.5
+shot_force = 800.0
+shove = 0.25
+shot_range = 750.0
+recoil_kick = 110.0
+recoil_climb = 480.0
+heat_per_shot = 0.065
+heat_cooling = 0.55
+overheat_lock = 1.6
+tracer_colour = Color(0.62352943, 0.92156863, 0.76862746, 1)
+tracer_width = 7.0
+tracer_time = 0.07
+fire_sound = &"impact_electric"
+fire_pitch = 1.6
+fire_volume_db = -18.0
+damage_mult = 0.4
+item_id = &"ray_gun"
+drag_area = NodePath("DraggableArea")
+handle = NodePath("Handle")
+sprite = NodePath("Sprite")
+collider = NodePath("CollisionShape2D")
+Effects_Player = NodePath("EffectsPlayer")
+
+[node name="Sprite" type="Sprite2D" parent="." unique_id=1294558007]
+position = Vector2(18, -6)
+scale = Vector2(2, 2)
+texture = ExtResource("2_ej7in")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1018395736]
+position = Vector2(14, -12)
+shape = SubResource("RectangleShape2D_ej7in")
+
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="." unique_id=1202180636]
+position = Vector2(42, -12)
+shape = SubResource("RectangleShape2D_lfrtm")
+
+[node name="CollisionShape2D3" type="CollisionShape2D" parent="." unique_id=603371469]
+position = Vector2(7, -21)
+shape = SubResource("RectangleShape2D_r41t5")
+
+[node name="CollisionShape2D4" type="CollisionShape2D" parent="." unique_id=1170926803]
+position = Vector2(0, 1)
+shape = SubResource("RectangleShape2D_3j02m")
+
+[node name="DraggableArea" type="Area2D" parent="." unique_id=1716210608]
+script = ExtResource("3_lfrtm")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=899285388]
+position = Vector2(18, -7)
+shape = SubResource("RectangleShape2D_2kje5")
+
+[node name="Handle" type="StaticBody2D" parent="." unique_id=1766859010]
+visible = false
+collision_layer = 0
+collision_mask = 0
+
+[node name="EffectsPlayer" type="Node" parent="." unique_id=597831709]
+script = ExtResource("4_r41t5")

@@ -13,5 +13,5 @@ category = 2
 cost = 4000
 scene = ExtResource("2_gl3nf")
 icon = ExtResource("1_t2ler")
-requires = Array[StringName]([&"shotgun"])
+requires = Array[StringName]([&"missile"])
 sort_order = 25

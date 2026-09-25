@@ -9,6 +9,6 @@ item_id = &"blunderbuss"
 display_name = "Brass Ballast"
 effect_key = &"mass_mult"
 effect_per_level = 1.08
-cost_base = 1488
+cost_base = 893
 cost_growth = 1.09
 sort_order = 3

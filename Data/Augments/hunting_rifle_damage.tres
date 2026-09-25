@@ -9,5 +9,5 @@ item_id = &"hunting_rifle"
 display_name = "Big Game Rounds"
 effect_key = &"damage_mult"
 effect_per_level = 1.15
-cost_base = 1310
+cost_base = 786
 cost_growth = 1.12

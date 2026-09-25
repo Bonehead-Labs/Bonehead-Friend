@@ -9,5 +9,5 @@ item_id = &"hunting_rifle"
 display_name = "Trophy Fees"
 effect_key = &"payout_mult"
 effect_per_level = 1.12
-cost_base = 1022
+cost_base = 613
 sort_order = 1

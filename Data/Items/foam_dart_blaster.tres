@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/foam_dart_blaster.png" id="1_lq5u7"]
+[ext_resource type="PackedScene" path="res://Scenes/Guns/foam_dart_blaster.tscn" id="2_1u6ea"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_1et2b"]
+
+[resource]
+script = ExtResource("3_1et2b")
+id = &"foam_dart_blaster"
+display_name = "Dart Blaster"
+description = "Foam darts with suction cups. Every one that sticks to him is a round of tag he loses happily."
+category = 3
+cost = 1100
+currency = 1
+scene = ExtResource("2_1u6ea")
+icon = ExtResource("1_lq5u7")
+requires = Array[StringName]([&"water_pistol"])
+sort_order = 45
+controls = "Hold · Right-click to fire a dart"

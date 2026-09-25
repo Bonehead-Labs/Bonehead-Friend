@@ -131,14 +131,17 @@ const MATERIAL_VOICES := {
 ## would need editing for every new toy — which is the D8 violation this avoids — and the
 ## families here are the ones the synthesiser actually has voices for.
 const MATERIAL_HINTS := [
-	[&"electric", ["tesla", "laser", "energy", "rail", "lightning", "shock", "plasma", "taser"]],
+	[&"electric", ["tesla", "laser", "energy", "rail", "lightning", "shock", "plasma", "taser",
+		"ray_gun"]],
 	[&"metal", ["sword", "katana", "blade", "machete", "cleaver", "axe", "halberd", "scythe",
 		"rapier", "sickle", "pick", "crowbar", "wrench", "hammer", "flail", "mace", "anvil",
 		"pan", "skillet", "iron", "wrench", "scissors", "knife", "saw", "spanner", "girder",
-		"revolver", "rifle", "shotgun", "smg", "blunderbuss"]],
+		"revolver", "rifle", "shotgun", "smg", "blunderbuss", "pistol", "minigun", "tommy",
+		"harpoon", "grenade_launcher"]],
 	[&"plastic", ["keyboard", "stapler", "mouse", "monitor", "lamp", "tape", "punch", "mug",
 		"ruler", "bottle", "toy", "ball"]],
-	[&"soft", ["pillow", "cushion", "plush", "sponge", "glove", "boxing", "bag", "fish"]],
+	[&"soft", ["pillow", "cushion", "plush", "sponge", "glove", "boxing", "bag", "fish",
+		"flare_gun"]],
 ]
 
 func impact_voice(source_id: StringName) -> StringName:

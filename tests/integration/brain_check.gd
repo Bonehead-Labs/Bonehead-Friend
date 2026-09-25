@@ -475,7 +475,8 @@ func _expression_triggers() -> void:
 	_focus(Settings.Intensity.NORMAL)
 	_buddy.mood.set_value(40.0)
 	await _frames(2)
-	for id in [BAT, MACE, &"pistol", &"open_hand", &"pizza", &"tennis_ball", &"grenade", &"beanbag"]:
+	for id in [BAT, MACE, &"missile", &"magnifying_glass", &"open_hand", &"pizza", &"tennis_ball",
+			&"grenade", &"beanbag"]:
 		Progression._unlock(id)
 
 	# A — being hit, through his own door and his own physics tick.
@@ -499,8 +500,9 @@ func _expression_triggers() -> void:
 	_prove(&"timeout")
 	await _settle_hit()
 	_brain._hits.clear()
-	await _hit(6000.0, &"pistol")
-	await _hit(6000.0, &"pistol")
+	# The glass, the cursor power that really does tick (the pistol was one until D71).
+	await _hit(6000.0, &"magnifying_glass")
+	await _hit(6000.0, &"magnifying_glass")
 	_fired(&"cooking", "a cursor power ticking twice inside 0.4 s")
 	await _settle_hit()
 	# A one-shot ends when its tag does, whatever the deadline says: push the deadline a minute
@@ -575,10 +577,10 @@ func _expression_triggers() -> void:
 	_check("and then he settles into watching", _brain.beat_id() == &"watched")
 	await _hover(false)
 	_brain.clear()
-	EventBus.spawn_requested.emit(&"pistol", Vector2.ZERO)
-	_fired(&"harm_equipped", "equipping the pistol")
+	EventBus.spawn_requested.emit(&"missile", Vector2.ZERO)
+	_fired(&"harm_equipped", "equipping the missile strike")
 	_prove(&"cursor_power_changed")
-	EventBus.spawn_requested.emit(&"pistol", Vector2.ZERO)
+	EventBus.spawn_requested.emit(&"missile", Vector2.ZERO)
 	_brain.clear()
 	EventBus.spawn_requested.emit(&"open_hand", Vector2.ZERO)
 	_fired(&"kind_equipped", "equipping the open hand")

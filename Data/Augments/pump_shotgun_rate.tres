@@ -9,6 +9,6 @@ item_id = &"pump_shotgun"
 display_name = "Slick Pump"
 effect_key = &"cooldown_mult"
 effect_per_level = 0.94
-cost_base = 360
+cost_base = 216
 cost_growth = 1.09
 sort_order = 2

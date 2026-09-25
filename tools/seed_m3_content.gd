@@ -18,7 +18,6 @@ const ContractDataScript := preload("res://Scripts/Data/contract_data.gd")
 const PersonalityDataScript := preload("res://Scripts/Data/personality_data.gd")
 const WeaponBaseScript := preload("res://Scripts/Bodies/weapon_base.gd")
 const FriendlyBaseScript := preload("res://Scripts/Bodies/friendly_base.gd")
-const GunPowerScript := preload("res://Scripts/Bodies/Powers/gun_power.gd")
 const DraggableAreaScript := preload("res://Scripts/Bodies/draggable_area.gd")
 
 const ITEMS_DIR := "res://Data/Items"
@@ -166,27 +165,8 @@ func _seed_scenes() -> void:
 		{"hearts_per_contact": 6.0, "contact_cooldown": 0.35, "min_contact_speed": 420.0},
 		0.55), "%s/baseball.tscn" % PROPS_DIR)
 
-	# The shotgun is a GunPower with pellets. Same class as the pistol, different numbers —
-	# which is the point of having a class at all.
-	var shotgun := Node2D.new()
-	shotgun.name = "ShotgunPower"
-	shotgun.set_script(GunPowerScript)
-	shotgun.set(&"item_id", &"shotgun")
-	shotgun.set(&"blast_radius", 40.0)
-	shotgun.set(&"blast_force", 2200.0)
-	shotgun.set(&"pellets", 5)
-	shotgun.set(&"spread", 64.0)
-	shotgun.set(&"cooldown_seconds", 0.75)
-	# Its own reticle, and not the pistol's: four brackets around an area rather than a
-	# point on one (art/tools/make_crosshairs.py). Equipping it used to leave the ordinary
-	# arrow on screen, so the one cursor power whose shot does *not* land where you point
-	# was also the one with no aiming affordance at all. The hotspot is the reticle's centre
-	# dot; get it wrong and every pellet spread is offset from where the player aimed.
-	var reticle := "res://Assets/sprites/cursors/shotgun.png"
-	if ResourceLoader.exists(reticle):
-		shotgun.set(&"cursor_texture", ResourceLoader.load(reticle))
-		shotgun.set(&"cursor_hotspot", Vector2(32, 32))
-	_save_scene(shotgun, "%s/shotgun_power.tscn" % POWERS_DIR)
+	# The shotgun was a cursor power built here until D71 made every gun one you hold. It is a
+	# sawn-off double barrel under the same id now, and `tools/seed_m39_guns.gd` owns it.
 
 ## One draggable body with a placeholder shape, a grab region and a drag handle — the same
 ## skeleton every item scene in the project has.
@@ -346,9 +326,6 @@ func _seed_items() -> void:
 	_item(&"frying_pan", "Frying Pan", "A tremendous flat clang. Sends him further than it hurts him.",
 		ItemDataScript.CATEGORY_WEAPON, 250, ItemDataScript.CURRENCY_BONES,
 		"%s/frying_pan.tscn" % PROPS_DIR, 5)
-	_item(&"shotgun", "Shotgun", "Five pellets in a spread. Close range is the whole idea.",
-		ItemDataScript.CATEGORY_CURSOR_POWER, 2200, ItemDataScript.CURRENCY_BONES,
-		"%s/shotgun_power.tscn" % POWERS_DIR, 15)
 	_item(&"bowling_ball", "Bowling Ball", "Fourteen kilos of bad news. Drop it from height.",
 		ItemDataScript.CATEGORY_TOY, 700, ItemDataScript.CURRENCY_BONES,
 		"%s/bowling_ball.tscn" % PROPS_DIR, 10)
@@ -386,6 +363,8 @@ func _item(id: StringName, display_name: String, description: String, category: 
 ## a new weapon's tree is three .tres files (docs/economy.md).
 func _seed_augments() -> void:
 	_tier1(&"mace", "Crushing Blow", "Bone Tax", "Denser Head", 90, 70, 55)
+	# A held gun since D71 (`seed_m39_guns` writes its Weight and Steady); these three ids are
+	# the ones a player may have bought levels of, and their keys mean the same on it.
 	_tier1(&"pistol", "Hollow Point", "Bounty", "Quick Draw", 110, 85, 70, &"cooldown_mult", 0.94)
 	_tier1(&"grenade", "Bigger Bang", "Shrapnel Salvage", "Heavier Casing", 80, 65, 50)
 	_tier1(&"frying_pan", "Cast Iron", "Clang Collector", "Thicker Base", 70, 55, 45)

@@ -9,5 +9,5 @@ item_id = &"smg"
 display_name = "Hollow Points"
 effect_key = &"damage_mult"
 effect_per_level = 1.15
-cost_base = 275
+cost_base = 165
 cost_growth = 1.12

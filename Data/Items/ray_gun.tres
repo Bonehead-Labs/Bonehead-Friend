@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/ray_gun.png" id="1_c5rby"]
+[ext_resource type="PackedScene" path="res://Scenes/Guns/ray_gun.tscn" id="2_sxop7"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_85jfr"]
+
+[resource]
+script = ExtResource("3_85jfr")
+id = &"ray_gun"
+display_name = "Ray Gun"
+description = "A beam that hurts for as long as it touches him, until the gun needs a rest."
+category = 10
+cost = 90000
+scene = ExtResource("2_sxop7")
+icon = ExtResource("1_c5rby")
+requires = Array[StringName]([&"blunderbuss"])
+sort_order = 60
+controls = "Hold · Hold right to fire the beam"

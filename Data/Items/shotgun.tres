@@ -1,16 +1,18 @@
 [gd_resource type="Resource" script_class="ItemData" format=3]
 
-[ext_resource type="PackedScene" path="res://Scenes/Powers/shotgun_power.tscn" id="1_img40"]
 [ext_resource type="Texture2D" path="res://Assets/sprites/icons/shotgun.png" id="1_vn65t"]
 [ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="2_vn65t"]
+[ext_resource type="PackedScene" path="res://Scenes/Guns/shotgun.tscn" id="2_wg8gk"]
 
 [resource]
 script = ExtResource("2_vn65t")
 id = &"shotgun"
-display_name = "Shotgun"
-description = "Five pellets in a spread. Close range is the whole idea."
-category = 2
+display_name = "Sawn-Off"
+description = "Two barrels, two booms, then it breaks open for two more. Get close."
+category = 10
 cost = 2200
-scene = ExtResource("1_img40")
+scene = ExtResource("2_wg8gk")
 icon = ExtResource("1_vn65t")
+requires = Array[StringName]([&"revolver"])
 sort_order = 15
+controls = "Hold · Right-click to fire, twice, then it reloads"

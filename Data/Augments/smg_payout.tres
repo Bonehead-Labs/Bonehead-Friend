@@ -9,5 +9,5 @@ item_id = &"smg"
 display_name = "Spray Fees"
 effect_key = &"payout_mult"
 effect_per_level = 1.12
-cost_base = 215
+cost_base = 129
 sort_order = 1

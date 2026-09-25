@@ -1,14 +1,25 @@
 extends Node
 
-## Writes the held guns (docs/decisions.md D56): seven guns you pick up with the left button
+## Writes the held guns (docs/decisions.md D56, D71): every gun you pick up with the left button
 ## and fire with the right, their scenes, their trees and their Hearts-priced capstones.
 ##
-##   Godot --headless --path <project> res://tools/seed_m39_guns.tscn [-- --force]
+##   Godot --headless --path <project> res://tools/seed_m39_guns.tscn [-- --force] [--only=id,id] [--trees]
 ##
-## Five hurt him and are bought with Bones, in their own shop drawer (`CATEGORY_GUN`). Two are
-## kind — the water pistol and the bubble blaster — and are bought with Hearts and filed under
-## Care beside the sponge, because they are something you do to him with your own hands and
-## nothing he walks over and uses (IdleBrain has no routine for them, and needs none).
+## `--force` rewrites what exists; `--only` limits a run to some ids (with `--force`, how one
+## gun is re-seeded without churning the unique ids of the other fifteen); `--trees` writes the
+## tier-1 nodes alone.
+##
+## Thirteen hurt him and are bought with Bones, in their own shop drawer (`CATEGORY_GUN`). Three
+## are kind — the water pistol, the foam dart blaster and the bubble blaster — and are bought
+## with Hearts and filed under Care beside the sponge, because they are something you do to him
+## with your own hands and nothing he walks over and uses (IdleBrain has no routine for them).
+##
+## **Three rows are kept ids** (D71): `pistol`, `shotgun` and `minigun` were cursor powers, and
+## became held guns under the same ids so ownership, mastery and bought augment levels all carry
+## over. Their first three nodes (`_damage`, `_payout`, `_third`) and their capstones were
+## written by the seeders that made them (`seed_m3_content`, `seed_m35_trees`,
+## `seed_m35_engine`) and are left to those: a node id is a save key, and this tool's rate node
+## is `_rate`, not `_third`. What a gun adds — Weight and Steady — is written here.
 ##
 ## Same rules as every other seed tool: scenes are packed from script because hand-editing a
 ## `.tscn` is banned, only files that do not already exist are written, and the numbers that
@@ -36,10 +47,22 @@ extends Node
 ##   long heavy gun swings round slowly and is hard to stop.
 ## - `grab` covers the whole gun: you can pick it up by the barrel. The joint still pins at the
 ##   grip, so it hangs from your hand however you took it.
+## - `textures` names the parts of the grid a gun fires (`grenade_texture: "grenade"` is
+##   `<id>_grenade.png`); `overlays` the parts drawn over the gun on the same cell — the
+##   minigun's second barrel frame, the harpoon lying on its rail — each a `Sprite2D` beside the
+##   main one, so they move and mirror with it.
+##
+## Each harm row names what it `requires`. The ladder used to be the table's order; it is written
+## out now because D71 put four guns into it and none of the five existing rungs may move: a
+## player who could buy the SMG yesterday can buy it today.
 
 const ItemDataScript := preload("res://Scripts/Data/item_data.gd")
 const AugmentNodeScript := preload("res://Scripts/Data/augment_node.gd")
 const HeldGunScript := preload("res://Scripts/Bodies/held_gun.gd")
+const GrenadeLauncherScript := preload("res://Scripts/Bodies/Guns/grenade_launcher.gd")
+const HarpoonGunScript := preload("res://Scripts/Bodies/Guns/harpoon_gun.gd")
+const FlareGunScript := preload("res://Scripts/Bodies/Guns/flare_gun.gd")
+const DartBlasterScript := preload("res://Scripts/Bodies/Guns/dart_blaster.gd")
 
 const ITEMS_DIR := "res://Data/Items"
 const AUGMENTS_DIR := "res://Data/Augments"
@@ -50,14 +73,23 @@ const SPRITES_DIR := "res://Assets/sprites/items"
 const CELL := 64
 const ART_SCALE := 2.0
 
-## Tier-1 pricing, identical to `tools/seed_m35_trees.gd`: base = 50 + price x 0.045, the payout
-## node at 0.78 of that and the rate node at 0.61. The two gun-only nodes sit between.
+## Tier-1 pricing, from `tools/seed_m35_trees.gd`'s rule: base = 50 + price x 0.045, the payout
+## node at 0.78 of that and the rate node at 0.61. The two gun-only nodes sit between. Then the
+## whole tree at `GUN_TREE_SHARE` of it (D71).
 const TREE_FLOOR := 50.0
 const TREE_SLOPE := 0.045
 const PAYOUT_FRACTION := 0.78
 const RATE_FRACTION := 0.61
 const WEIGHT_FRACTION := 0.5
 const STEADY_FRACTION := 0.55
+## A gun's tree costs three fifths of the rule, node for node, so the five nodes a harm gun has
+## cost what three do anywhere else — and, one rule for the drawer, the kind guns' three with
+## them. At the rule's full price the Guns drawer, sixteen trees and eleven of them five deep,
+## was the dearest family of trees in the game to finish, and the pacing simulator said so: the
+## first Reincarnation at 10:21 with D71's guns in, 9:51 at three fifths, and 9:50 with the six
+## new guns taken out altogether. The cost was the trees, not the guns — pricing the guns
+## themselves anywhere from half to three times over moved it by nothing (D71).
+const GUN_TREE_SHARE := 0.6
 
 ## Capstones by `tools/seed_m35_engine.gd`'s two rules, charged in Hearts whatever they make.
 const CAPSTONE_RATE := {&"bones": [1.0, 1.0 / 500.0], &"hearts": [0.5, 1.0 / 1500.0]}
@@ -66,12 +98,311 @@ const CAPSTONE_FLOOR := 800.0
 const CAPSTONE_LEVELS := 30
 const CAPSTONE_GROWTH := 1.10
 
-## The harm guns hang off the cursor pistol, as the turrets do: shoot him by hand first.
-const LADDER_ROOT := &"pistol"
-
 const GUNS := {
+	# --- D71: the three cursor guns, kept ids -------------------------------------------------
+	&"pistol": {
+		"node": "_Pistol", "name": "Pistol", "cost": 600, "sort": 3, "kept": true,
+		"description": "Small, quick and honest. The first gun, and the one the rest are measured against.",
+		"controls": "Hold · Right-click to fire",
+		"grid": Vector2(24, 15),
+		"body": {
+			"mass": 1.0,
+			"grip": Vector2(4.5, 10), "com": Vector2(11, 3.5),
+			"muzzle": Vector2(24, 2.5), "ejector": Vector2(13, 0.5),
+			"shapes": [
+				{"rect": Vector2(22, 6), "at": Vector2(12, 3)},
+				{"rect": Vector2(14, 2), "at": Vector2(10, 6.5)},
+				{"rect": Vector2(6, 8), "at": Vector2(3.5, 10.5)},
+			],
+			"grab": {"size": Vector2(24, 15), "at": Vector2(12, 7.5)},
+		},
+		# The starter. Lighter than the revolver and quicker to fire, so it kicks less far and
+		# comes back sooner: a tapped rhythm rather than one big shot.
+		"gun": {
+			"damage_mult": 0.45, "shot_mult": 1.0, "shot_force": 2000.0, "shove": 0.9,
+			"fire_interval": 0.28, "auto_fire": false, "pellets": 1, "spread_degrees": 1.2,
+			"shot_range": 650.0,
+			"aim_frequency": 24.0, "aim_damping": 0.8, "aim_max_accel": 320.0,
+			"recoil_kick": 330.0, "recoil_climb": 1300.0,
+			"fire_sound": &"turret_fire", "fire_pitch": 1.05, "fire_volume_db": -8.0,
+		},
+		"tree": ["", "", "", "Steel Slide", "Two Hands"],
+	},
+	&"shotgun": {
+		"node": "_Shotgun", "name": "Sawn-Off", "cost": 2200, "sort": 15, "kept": true,
+		"requires": &"revolver",
+		"description": "Two barrels, two booms, then it breaks open for two more. Get close.",
+		"controls": "Hold · Right-click to fire, twice, then it reloads",
+		"grid": Vector2(32, 12),
+		"body": {
+			"mass": 2.4,
+			"grip": Vector2(4, 8), "com": Vector2(15, 4.5),
+			"muzzle": Vector2(32, 4.5), "ejector": Vector2(10, 2.5),
+			"shapes": [
+				{"rect": Vector2(21, 7), "at": Vector2(21.5, 3.5)},
+				{"rect": Vector2(5, 6), "at": Vector2(9, 4)},
+				{"rect": Vector2(13, 3), "at": Vector2(18, 8)},
+				{"rect": Vector2(6, 7), "at": Vector2(3.5, 8.5)},
+			],
+			"grab": {"size": Vector2(32, 12), "at": Vector2(16, 6)},
+		},
+		# Two barrels, then the break. The second can follow the first almost at once, and goes
+		# where the first one's kick left the barrels; then both cases come out together.
+		"gun": {
+			"damage_mult": 0.5, "shot_mult": 1.0, "shot_force": 1400.0, "shove": 0.6,
+			"fire_interval": 0.18, "auto_fire": false, "pellets": 6, "spread_degrees": 9.0,
+			"shot_range": 380.0, "shake_pixels": 2.5, "ejects": false,
+			"magazine": 2, "reload_time": 1.3, "eject_on_reload": true,
+			"aim_frequency": 17.0, "aim_damping": 0.8, "aim_max_accel": 220.0,
+			"recoil_kick": 2000.0, "recoil_climb": 9000.0,
+			"fire_sound": &"turret_fire", "fire_pitch": 0.55, "fire_volume_db": -2.0,
+		},
+		"tree": ["", "", "", "Heavy Barrels", "Grip Wrap"],
+	},
+	&"minigun": {
+		"node": "_Minigun", "name": "Minigun", "cost": 9000, "sort": 25, "kept": true,
+		"requires": &"smg",
+		"description": "Hold right and it spins up; keep holding and it will not stop. It climbs, so let go now and then.",
+		"controls": "Hold · Hold right to spin up and fire",
+		"grid": Vector2(54, 19),
+		"body": {
+			"mass": 5.5,
+			"grip": Vector2(3.5, 14.5), "com": Vector2(22, 8),
+			"muzzle": Vector2(54, 8.5), "ejector": Vector2(24, 12.5),
+			"shapes": [
+				{"rect": Vector2(27, 10), "at": Vector2(14.5, 7.5)},
+				{"rect": Vector2(26, 8), "at": Vector2(40.5, 8.5)},
+				{"rect": Vector2(12, 3), "at": Vector2(16, 1.5)},
+				{"rect": Vector2(15, 6), "at": Vector2(26.5, 15.5)},
+				{"rect": Vector2(5, 6), "at": Vector2(3.5, 15.5)},
+			],
+			"grab": {"size": Vector2(54, 19), "at": Vector2(27, 9.5)},
+		},
+		# The one you fight. Nothing for most of a second while the barrels wind up, then a
+		# stream as fast as the drawer allows that climbs a little with every round and a long
+		# way over a second; the only answer is to let go and press again before it spins down.
+		# Heavy, so it swings round slowly and shudders in the hand while it turns.
+		"gun": {
+			"damage_mult": 0.6, "shot_mult": 1.0, "shot_force": 900.0, "shove": 0.45,
+			"fire_interval": 0.05, "auto_fire": true, "pellets": 1, "spread_degrees": 4.0,
+			"shot_range": 700.0,
+			"spin_up": 0.7, "spin_down": 0.9, "spin_shudder": 35.0,
+			"aim_frequency": 13.0, "aim_damping": 0.85, "aim_max_accel": 170.0,
+			"recoil_kick": 1000.0, "recoil_climb": 3800.0,
+			"climb_per_shot": 0.025, "climb_max": 0.7, "climb_recovery": 1.6,
+			"fire_sound": &"turret_fire", "fire_pitch": 1.5, "fire_volume_db": -14.0,
+		},
+		"overlays": {"spin_sprite": "spin"},
+		"tree": ["", "", "", "Heavy Mount", "Recoil Buffer"],
+	},
+	# --- D71: the new guns ----------------------------------------------------------------
+	&"flare_gun": {
+		"node": "_FlareGun", "name": "Flare Gun", "cost": 3500, "sort": 17,
+		"requires": &"shotgun", "script": FlareGunScript,
+		"description": "A slow, bright flare that sticks in him and keeps burning.",
+		"controls": "Hold · Right-click to fire a flare",
+		"grid": Vector2(24, 15),
+		"body": {
+			"mass": 0.9,
+			"grip": Vector2(3.5, 10), "com": Vector2(11, 3),
+			"muzzle": Vector2(24, 2.5), "ejector": Vector2.ZERO,
+			"shapes": [
+				{"rect": Vector2(19, 6), "at": Vector2(14, 2.5)},
+				{"rect": Vector2(11, 2), "at": Vector2(8.5, 6)},
+				{"rect": Vector2(6, 8), "at": Vector2(3, 10.5)},
+			],
+			"grab": {"size": Vector2(24, 15), "at": Vector2(12, 7.5)},
+		},
+		# One slow shot, and then it keeps paying: a flare in him is eight small hits over four
+		# seconds, and a second flare burns alongside the first.
+		"gun": {
+			"damage_mult": 0.4, "shot_mult": 1.0, "shot_force": 1200.0, "shove": 0.6,
+			"fire_interval": 1.2, "auto_fire": false, "shot_range": 700.0, "ejects": false,
+			"projectile_speed": 560.0, "projectile_gravity": 0.5,
+			"burn_time": 4.0, "burn_every": 0.5, "burn_force": 900.0,
+			"aim_frequency": 22.0, "aim_damping": 0.8, "aim_max_accel": 300.0,
+			"recoil_kick": 480.0, "recoil_climb": 2000.0,
+			"fire_sound": &"pop", "fire_pitch": 0.7, "fire_volume_db": -6.0,
+		},
+		"textures": {"flare_texture": "flare"},
+		"tree": ["Magnesium Flares", "Signal Fees", "Quick Loader", "Brass Frame", "Soft Grip"],
+		"device": [&"flare_gun_beacon", "Signal Beacon",
+			"Fires a flare every so often, in case anyone is looking for him."],
+	},
+	&"tommy_gun": {
+		"node": "_TommyGun", "name": "Tommy Gun", "cost": 18000, "sort": 35,
+		"requires": &"pump_shotgun",
+		"description": "Fifty in the drum and all of them on their way up. A burst stays on him; a spray does not.",
+		"controls": "Hold · Hold right to fire",
+		"grid": Vector2(46, 16),
+		"body": {
+			"mass": 4.8,
+			"grip": Vector2(11, 9), "com": Vector2(20, 6),
+			"muzzle": Vector2(46, 4), "ejector": Vector2(18, 2),
+			"shapes": [
+				{"rect": Vector2(10, 8), "at": Vector2(5, 5)},
+				{"rect": Vector2(36, 4), "at": Vector2(28, 3.5)},
+				{"circle": 4.0, "at": Vector2(18, 11)},
+				{"rect": Vector2(4, 7), "at": Vector2(11.5, 9.5)},
+				{"rect": Vector2(5, 6), "at": Vector2(33.5, 8.5)},
+			],
+			"grab": {"size": Vector2(46, 16), "at": Vector2(23, 8)},
+		},
+		# The SMG's big brother: heavier, slower to swing, and a drum that climbs far further
+		# than the SMG's box before it runs dry — then the drum comes off and a new one goes on.
+		"gun": {
+			"damage_mult": 0.5, "shot_mult": 1.0, "shot_force": 1300.0, "shove": 0.5,
+			"fire_interval": 0.07, "auto_fire": true, "pellets": 1, "spread_degrees": 5.0,
+			"shot_range": 600.0, "magazine": 50, "reload_time": 2.2,
+			"aim_frequency": 18.0, "aim_damping": 0.75, "aim_max_accel": 220.0,
+			"recoil_kick": 580.0, "recoil_climb": 2100.0,
+			"climb_per_shot": 0.05, "climb_max": 0.8, "climb_recovery": 1.2,
+			"fire_sound": &"turret_fire", "fire_pitch": 1.1, "fire_volume_db": -10.0,
+		},
+		"tree": ["Hot Loads", "Protection Money", "Oiled Bolt", "Heavy Drum", "Compensator"],
+		"device": [&"tommy_gun_speakeasy", "Speakeasy",
+			"A violin case on a hinge. It opens by itself and plays the one tune it knows."],
+	},
+	&"grenade_launcher": {
+		"node": "_GrenadeLauncher", "name": "Grenade Launcher", "cost": 40000, "sort": 43,
+		"requires": &"hunting_rifle", "script": GrenadeLauncherScript,
+		"description": "Lobs a grenade that bounces and goes off. Point it at him and it works out the arc.",
+		"controls": "Hold · Right-click to lob a grenade",
+		"grid": Vector2(36, 13),
+		"body": {
+			"mass": 3.4,
+			"grip": Vector2(11, 7.5), "com": Vector2(20, 5),
+			"muzzle": Vector2(36, 5.5), "ejector": Vector2(14, 2.5),
+			"shapes": [
+				{"rect": Vector2(22, 6), "at": Vector2(25, 5)},
+				{"rect": Vector2(14, 5), "at": Vector2(7, 6.5)},
+				{"rect": Vector2(7, 4), "at": Vector2(3.5, 10.5)},
+			],
+			"grab": {"size": Vector2(36, 13), "at": Vector2(18, 6.5)},
+		},
+		# Indirect fire: the grenade falls, so the gun lays the arc on him (HeldGun._lob_angle),
+		# and a short one bounces the rest of the way. A break-action, one at a time.
+		"gun": {
+			"damage_mult": 0.6, "shot_mult": 1.0, "shot_force": 14000.0, "shove": 1.0,
+			"fire_interval": 1.1, "auto_fire": false, "shot_range": 600.0, "pump_delay": 0.55,
+			"projectile_speed": 640.0, "projectile_gravity": 1.0,
+			"fuse": 1.6, "blast_radius": 110.0, "grenade_bounce": 0.5,
+			"aim_frequency": 14.0, "aim_damping": 0.8, "aim_max_accel": 180.0,
+			"recoil_kick": 1800.0, "recoil_climb": 11500.0,
+			"fire_sound": &"turret_fire", "fire_pitch": 0.4, "fire_volume_db": -4.0,
+		},
+		"textures": {"grenade_texture": "grenade"},
+		"tree": ["Bigger Charges", "Demolition Fees", "Quick Breech", "Steel Barrel", "Rubber Butt Pad"],
+		"device": [&"grenade_launcher_mortar_pit", "Mortar Pit",
+			"Sandbags, a spotter's flag and a steady supply of things that go thoomp."],
+	},
+	&"harpoon_gun": {
+		"node": "_HarpoonGun", "name": "Harpoon Gun", "cost": 50000, "sort": 46,
+		"requires": &"grenade_launcher", "script": HarpoonGunScript,
+		"description": "Fires a harpoon on a line. Hold right to reel him in; walk away and he comes too.",
+		"controls": "Hold · Right-click to fire · Hold right to reel in",
+		"grid": Vector2(48, 13),
+		"body": {
+			"mass": 3.0,
+			"grip": Vector2(7.5, 8.5), "com": Vector2(20, 5),
+			"muzzle": Vector2(44, 2), "ejector": Vector2.ZERO,
+			# The harpoon lying on the rail is part of the picture while it is loaded, and of the
+			# body: the rail and shaft together, then the barbed head past the muzzle.
+			"shapes": [
+				{"rect": Vector2(41, 6), "at": Vector2(20.5, 4)},
+				{"rect": Vector2(6, 5), "at": Vector2(44.5, 2)},
+				{"rect": Vector2(5, 5), "at": Vector2(7.5, 9)},
+				{"rect": Vector2(9, 4), "at": Vector2(26, 9.5)},
+			],
+			"grab": {"size": Vector2(48, 13), "at": Vector2(24, 6.5)},
+		},
+		# One harpoon, on a line. The contact multiplier equals the shot's on purpose: the reel
+		# brings him to the gun, and whatever part of it he meets is billed as the harpoon.
+		"gun": {
+			"damage_mult": 0.9, "shot_mult": 0.9, "shot_force": 4000.0, "shove": 0.5,
+			"fire_interval": 0.6, "auto_fire": false, "shot_range": 650.0, "ejects": false,
+			"projectile_speed": 1100.0, "projectile_gravity": 0.25,
+			"reel_speed": 380.0, "reel_min": 70.0, "line_pull": 240.0, "line_stiffness": 9.0,
+			"aim_frequency": 16.0, "aim_damping": 0.8, "aim_max_accel": 200.0,
+			"recoil_kick": 1600.0, "recoil_climb": 8800.0,
+			"fire_sound": &"twang", "fire_pitch": 0.6, "fire_volume_db": -6.0,
+		},
+		"textures": {"harpoon_texture": "harpoon"},
+		"overlays": {"loaded_sprite": "loaded"},
+		"tree": ["Barbed Heads", "Catch of the Day", "Spare Harpoons", "Weighted Rail", "Shock Cord"],
+		"device": [&"harpoon_gun_whaler", "Whaler",
+			"A deck gun and a winch. He is the one that got away, over and over."],
+	},
+	&"ray_gun": {
+		"node": "_RayGun", "name": "Ray Gun", "cost": 90000, "sort": 60,
+		"requires": &"blunderbuss",
+		"description": "A beam that hurts for as long as it touches him, until the gun needs a rest.",
+		"controls": "Hold · Hold right to fire the beam",
+		"grid": Vector2(28, 17),
+		"body": {
+			"mass": 1.3,
+			"grip": Vector2(5, 12), "com": Vector2(12, 6),
+			"muzzle": Vector2(28, 6), "ejector": Vector2.ZERO,
+			"shapes": [
+				{"rect": Vector2(24, 7), "at": Vector2(12, 6)},
+				{"rect": Vector2(4, 5), "at": Vector2(26, 6)},
+				{"rect": Vector2(7, 3), "at": Vector2(8.5, 1.5)},
+				{"rect": Vector2(5, 7), "at": Vector2(5, 12.5)},
+			],
+			"grab": {"size": Vector2(28, 17), "at": Vector2(14, 8.5)},
+		},
+		# A beam, as a stream of short green tracers that bill every tick they touch him, and a
+		# gauge: two seconds of it and the gun locks for a second and a half while it cools.
+		"gun": {
+			"damage_mult": 0.4, "shot_mult": 1.0, "shot_force": 800.0, "shove": 0.25,
+			"fire_interval": 0.06, "auto_fire": true, "pellets": 1, "spread_degrees": 0.5,
+			"shot_range": 750.0, "ejects": false,
+			"heat_per_shot": 0.065, "heat_cooling": 0.55, "overheat_lock": 1.6,
+			"tracer_colour": Color("9febc4"), "tracer_width": 7.0, "tracer_time": 0.07,
+			"aim_frequency": 22.0, "aim_damping": 0.85, "aim_max_accel": 300.0,
+			"recoil_kick": 110.0, "recoil_climb": 480.0,
+			"fire_sound": &"impact_electric", "fire_pitch": 1.6, "fire_volume_db": -18.0,
+		},
+		"tree": ["Overcharged Cells", "Research Grant", "Rapid Pulse", "Lead Lining", "Gyro Sight"],
+		"device": [&"ray_gun_saucer", "Flying Saucer",
+			"It hovers over the desk and does what saucers do."],
+	},
+	&"foam_dart_blaster": {
+		"node": "_FoamDartBlaster", "name": "Dart Blaster", "cost": 1100, "sort": 45,
+		"kind": true, "requires": &"water_pistol", "script": DartBlasterScript,
+		"description": "Foam darts with suction cups. Every one that sticks to him is a round of tag he loses happily.",
+		"controls": "Hold · Right-click to fire a dart",
+		"grid": Vector2(30, 15),
+		"body": {
+			"mass": 0.9,
+			"grip": Vector2(7, 11), "com": Vector2(15, 5),
+			"muzzle": Vector2(30, 6), "ejector": Vector2.ZERO,
+			"shapes": [
+				{"rect": Vector2(28, 6), "at": Vector2(16, 5.5)},
+				{"rect": Vector2(15, 3), "at": Vector2(11.5, 1.5)},
+				{"rect": Vector2(5, 6), "at": Vector2(7, 11.5)},
+				{"rect": Vector2(5, 6), "at": Vector2(20.5, 11.5)},
+			],
+			"grab": {"size": Vector2(30, 15), "at": Vector2(15, 7.5)},
+		},
+		"gun": {
+			"damage_mult": 0.0, "shot_mult": 0.0, "shot_force": 40.0, "shove": 1.0,
+			"fire_interval": 0.25, "auto_fire": false, "shot_range": 500.0, "ejects": false,
+			"magazine": 6, "reload_time": 1.4,
+			"projectile_speed": 780.0, "projectile_gravity": 0.4,
+			"dart_value": 1.1, "stick_seconds": 6.0,
+			"aim_frequency": 24.0, "aim_damping": 0.85, "aim_max_accel": 320.0,
+			"recoil_kick": 20.0, "recoil_climb": 60.0,
+			"fire_sound": &"pop", "fire_pitch": 1.4, "fire_volume_db": -12.0,
+		},
+		"textures": {"dart_texture": "dart"},
+		"tree": ["Softer Foam", "Tag Rules", "Quick Pump"],
+		"device": [&"foam_dart_blaster_sentry", "Dart Sentry",
+			"A foam turret on a lazy sweep. Nobody is losing this game of tag."],
+	},
+	# --- D56 --------------------------------------------------------------------------------
 	&"revolver": {
-		"node": "_Revolver", "name": "Revolver", "cost": 1500, "sort": 10,
+		"node": "_Revolver", "name": "Revolver", "cost": 1500, "sort": 10, "requires": &"pistol",
 		"description": "Six chambers, one skeleton. It kicks like a mule, and so does he.",
 		"controls": "Hold · Right-click to fire",
 		"grid": Vector2(28, 16),
@@ -100,7 +431,7 @@ const GUNS := {
 			"A spring holster that draws, fires and holsters again, all afternoon."],
 	},
 	&"smg": {
-		"node": "_SMG", "name": "SMG", "cost": 5000, "sort": 20,
+		"node": "_SMG", "name": "SMG", "cost": 5000, "sort": 20, "requires": &"revolver",
 		"description": "Holds a lot, fires all of it, and climbs off him if you keep the trigger down.",
 		"controls": "Hold · Hold right to fire",
 		"grid": Vector2(30, 16),
@@ -133,7 +464,7 @@ const GUNS := {
 			"Bolted to a bench and pointed at him. The trigger is taped down."],
 	},
 	&"pump_shotgun": {
-		"node": "_PumpShotgun", "name": "Pump Shotgun", "cost": 12000, "sort": 30,
+		"node": "_PumpShotgun", "name": "Pump Shotgun", "cost": 12000, "sort": 30, "requires": &"smg",
 		"description": "Six pellets, then the pump, then six more. Get close.",
 		"controls": "Hold · Right-click to fire",
 		"grid": Vector2(46, 11),
@@ -164,6 +495,7 @@ const GUNS := {
 	},
 	&"hunting_rifle": {
 		"node": "_HuntingRifle", "name": "Hunting Rifle", "cost": 28000, "sort": 40,
+		"requires": &"pump_shotgun",
 		"description": "One slow, perfect shot that picks him up and puts him somewhere else.",
 		"controls": "Hold · Right-click to fire",
 		"grid": Vector2(56, 13),
@@ -195,6 +527,7 @@ const GUNS := {
 	},
 	&"blunderbuss": {
 		"node": "_Blunderbuss", "name": "Blunderbuss", "cost": 65000, "sort": 50,
+		"requires": &"hunting_rifle",
 		"description": "A brass bell full of whatever was in the drawer. Hold on tight.",
 		"controls": "Hold · Right-click to fire",
 		"grid": Vector2(42, 13),
@@ -289,19 +622,39 @@ const GUNS := {
 }
 
 var _force := false
+## `--only=id,id`: the ids this run may touch. Empty is all of them.
+var _only := PackedStringArray()
+## `--trees`: the tier-1 nodes and nothing else — how a tree is re-priced without re-packing a
+## scene, which rewrites every node's unique id.
+var _trees_only := false
 var _written := 0
 var _skipped := 0
 
 func _ready() -> void:
-	_force = OS.get_cmdline_user_args().has("--force")
+	var args := OS.get_cmdline_user_args()
+	_force = args.has("--force")
+	_trees_only = args.has("--trees")
+	for arg in args:
+		if String(arg).begins_with("--only="):
+			_only = String(arg).trim_prefix("--only=").split(",", false)
 	for dir in [ITEMS_DIR, AUGMENTS_DIR, GUNS_DIR]:
 		DirAccess.make_dir_recursive_absolute(dir)
-	_seed_scenes()
-	_seed_items()
+	if not _trees_only:
+		_seed_scenes()
+		_seed_items()
 	_seed_trees()
-	_seed_capstones()
+	if not _trees_only:
+		_seed_capstones()
 	print("seed_m39_guns: %d written, %d already present" % [_written, _skipped])
 	get_tree().quit()
+
+## The rows this run is about.
+func _ids() -> Array:
+	var out := []
+	for id in GUNS:
+		if _only.is_empty() or _only.has(String(id)):
+			out.append(id)
+	return out
 
 # --- geometry ----------------------------------------------------------------
 
@@ -314,7 +667,7 @@ static func _art(point: Vector2, grid: Vector2) -> Vector2:
 # --- scenes ------------------------------------------------------------------
 
 func _seed_scenes() -> void:
-	for id in GUNS:
+	for id in _ids():
 		var path := "%s/%s.tscn" % [GUNS_DIR, id]
 		# Before the build: `save_scene` frees what it is handed, and a root built for a file
 		# we then decline to write would leak.
@@ -324,6 +677,7 @@ func _seed_scenes() -> void:
 		var root := ItemBodyBuilder.build(_spec(id, row))
 		if root == null:
 			continue
+		_add_overlays(root, id, row)
 		_origin_at_grip(root, row)
 		if ItemBodyBuilder.save_scene(root, path):
 			_written += 1
@@ -348,10 +702,16 @@ func _spec(id: StringName, row: Dictionary) -> Dictionary:
 		var bubble := "%s/%s_bubble.png" % [SPRITES_DIR, id]
 		if ResourceLoader.exists(bubble):
 			properties["bubble_texture"] = ResourceLoader.load(bubble)
+	# What it fires, drawn as parts of its own grid.
+	var textures: Dictionary = row.get("textures", {})
+	for key in textures:
+		var part := _part(id, textures[key])
+		if part:
+			properties[key] = part
 	return {
 		"name": row["node"],
 		"id": id,
-		"script": HeldGunScript,
+		"script": row.get("script", HeldGunScript),
 		"mass": body["mass"],
 		# Metal and plastic on a desk: a little bounce, a lot of friction, so a dropped gun
 		# lands and stays rather than skating off.
@@ -363,6 +723,34 @@ func _spec(id: StringName, row: Dictionary) -> Dictionary:
 		"grab": {"size": grab["size"], "at": _art(grab["at"], grid)},
 		"properties": properties,
 	}
+
+func _part(id: StringName, part: String) -> Texture2D:
+	var path := "%s/%s_%s.png" % [SPRITES_DIR, id, part]
+	if not ResourceLoader.exists(path):
+		push_error("seed_m39_guns: no %s — draw the part and run the editor pass" % path)
+		return null
+	return ResourceLoader.load(path) as Texture2D
+
+## A part drawn over the gun on the same cell: a `Sprite2D` exactly where the main one is, so
+## it moves with it and `HeldGun` mirrors it with the rest. Added before the shift to the grip,
+## which then moves it with everything else.
+func _add_overlays(root: Node, id: StringName, row: Dictionary) -> void:
+	var overlays: Dictionary = row.get("overlays", {})
+	var main := root.get_node("Sprite") as Sprite2D
+	for key in overlays:
+		var texture := _part(id, overlays[key])
+		if texture == null:
+			continue
+		var over := Sprite2D.new()
+		over.name = String(overlays[key]).capitalize().replace(" ", "")
+		over.texture = texture
+		over.position = main.position
+		over.scale = main.scale
+		# The minigun's second frame is shown only while the barrels turn; the harpoon on its
+		# rail is there until it is fired.
+		over.visible = key != "spin_sprite"
+		root.add_child(over)
+		root.set(StringName(key), over)
 
 ## Moves everything so the grip is the body's origin (see the header). The grab region's
 ## shape moves, not the Area2D, because `HeldGun` mirrors the shapes it finds under it.
@@ -383,15 +771,9 @@ func _origin_at_grip(root: Node, row: Dictionary) -> void:
 # --- items -------------------------------------------------------------------
 
 func _seed_items() -> void:
-	var previous := LADDER_ROOT
-	for id in GUNS:
+	for id in _ids():
 		var row: Dictionary = GUNS[id]
-		var kind := bool(row.get("kind", false))
-		var requires: StringName = row.get("requires", &"")
-		if not kind:
-			requires = previous
-			previous = StringName(id)
-		_item(id, row, kind, requires)
+		_item(id, row, bool(row.get("kind", false)), row.get("requires", &""))
 
 func _item(id: StringName, row: Dictionary, kind: bool, requires: StringName) -> void:
 	var path := "%s/%s.tres" % [ITEMS_DIR, id]
@@ -426,18 +808,23 @@ func _item(id: StringName, row: Dictionary, kind: bool, requires: StringName) ->
 ## recoil, because the recoil is an impulse), and `recoil_mult` by `HeldGun._recoil`, which
 ## scales the kick, the climb and a burst's drift. An augment nothing reads is a placebo, and
 ## two have shipped in this project already; the gun suite measures both.
+##
+## A kept row (D71) writes only those two: its first three already exist under the ids its
+## cursor-power seeder gave them, and their keys — damage, payout, rate — mean on a held gun
+## what they meant on the cursor. Its empty names say so.
 func _seed_trees() -> void:
-	for id in GUNS:
+	for id in _ids():
 		var row: Dictionary = GUNS[id]
 		var names: Array = row["tree"]
 		var kind := bool(row.get("kind", false))
 		var currency := AugmentNodeScript.CURRENCY_HEARTS if kind else AugmentNodeScript.CURRENCY_BONES
-		var base := TREE_FLOOR + float(row["cost"]) * TREE_SLOPE
-		_tier_one("%s_damage" % id, id, names[0], &"damage_mult", 1.15, base, 1.12, 0, currency)
-		_tier_one("%s_payout" % id, id, names[1], &"payout_mult", 1.12,
-			base * PAYOUT_FRACTION, 1.10, 1, currency)
-		_tier_one("%s_rate" % id, id, names[2], &"cooldown_mult", 0.94,
-			base * RATE_FRACTION, 1.09, 2, currency)
+		var base := (TREE_FLOOR + float(row["cost"]) * TREE_SLOPE) * GUN_TREE_SHARE
+		if not row.get("kept", false):
+			_tier_one("%s_damage" % id, id, names[0], &"damage_mult", 1.15, base, 1.12, 0, currency)
+			_tier_one("%s_payout" % id, id, names[1], &"payout_mult", 1.12,
+				base * PAYOUT_FRACTION, 1.10, 1, currency)
+			_tier_one("%s_rate" % id, id, names[2], &"cooldown_mult", 0.94,
+				base * RATE_FRACTION, 1.09, 2, currency)
 		if kind:
 			continue
 		_tier_one("%s_weight" % id, id, names[3], &"mass_mult", 1.08,
@@ -464,10 +851,14 @@ func _tier_one(node_id: String, item_id: StringName, display_name: String,
 # --- capstones ---------------------------------------------------------------
 
 ## One levelled device per gun, priced in Hearts by the engine's rule. A harm gun's device
-## stands on the tripod, a kind one's on the pedestal, like the rest of the roster.
+## stands on the tripod, a kind one's on the pedestal, like the rest of the roster. A kept row
+## has none here: `seed_m35_engine` owns the pistol's Turret Mount, the shotgun's Trap Bench
+## and the minigun's Sentry Gun, and rewrites every capstone it owns on every run.
 func _seed_capstones() -> void:
-	for id in GUNS:
+	for id in _ids():
 		var row: Dictionary = GUNS[id]
+		if not row.has("device"):
+			continue
 		var device: Array = row["device"]
 		var path := "%s/%s.tres" % [AUGMENTS_DIR, device[0]]
 		if not _should_write(path):

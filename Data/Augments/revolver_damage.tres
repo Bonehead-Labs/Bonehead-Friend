@@ -9,5 +9,5 @@ item_id = &"revolver"
 display_name = "Magnum Loads"
 effect_key = &"damage_mult"
 effect_per_level = 1.15
-cost_base = 118
+cost_base = 71
 cost_growth = 1.12

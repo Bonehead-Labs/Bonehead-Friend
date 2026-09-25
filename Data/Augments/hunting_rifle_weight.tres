@@ -9,6 +9,6 @@ item_id = &"hunting_rifle"
 display_name = "Heavy Barrel"
 effect_key = &"mass_mult"
 effect_per_level = 1.08
-cost_base = 655
+cost_base = 393
 cost_growth = 1.09
 sort_order = 3

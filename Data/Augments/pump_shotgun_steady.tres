@@ -9,6 +9,6 @@ item_id = &"pump_shotgun"
 display_name = "Recoil Pad"
 effect_key = &"recoil_mult"
 effect_per_level = 0.92
-cost_base = 325
+cost_base = 195
 cost_growth = 1.09
 sort_order = 4

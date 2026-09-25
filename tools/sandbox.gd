@@ -66,7 +66,7 @@ const SHOWCASE: Array[StringName] = [
 const SHOWCASE_GRIME := 0.65
 
 ## The power `--show` equips, so the D47 rules can be tried without going to find one.
-const SHOWCASE_POWER := &"pistol"
+const SHOWCASE_POWER := &"missile"
 
 var _main: Node
 
