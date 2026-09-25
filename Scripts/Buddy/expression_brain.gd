@@ -207,6 +207,19 @@ const ROWS := {
 		"motion": &"duck", "seconds": 1.2, "priority": REACTION, "gate": GATE_REACTIVE},
 	&"answer_maybe": {"face": &"neutral", "tag": &"",
 		"motion": &"wobble", "seconds": 0.9, "priority": REACTION, "gate": GATE_REACTIVE},
+	# --- I: the second five (D66) ---
+	# A Newton's cradle clacking in front of him: he settles and watches, refreshed by each
+	# clack, and lets go when it stops. Subtle-gated like the spinner's stare.
+	&"calmed": {"face": &"blissful", "tag": &"relax", "fallback": &"idle_happy",
+		"motion": &"slow_bob", "seconds": 1.0, "priority": ATTENTION, "gate": GATE_SUBTLE,
+		"hold": true, "refresh": 1.2, "speed": 0.6},
+	# A yo-yo slept and brought back: a double take, then delight.
+	&"impressed": {"face": &"shocked", "tag": &"", "tail_face": &"happy",
+		"motion": &"hop", "seconds": 0.35, "tail": 0.6, "priority": REACTION, "gate": GATE_REACTIVE},
+	# Landed on the pull-back car's roof and carried off.
+	&"riding": {"face": &"blissful", "tag": &"happy",
+		"motion": &"wiggle", "seconds": 1.2, "priority": REACTION, "gate": GATE_REACTIVE,
+		"sound": &"giggle"},
 	# --- H: ambient ---
 	&"blink": {"face": &"asleep", "tag": &"",
 		"motion": &"", "seconds": 0.12, "priority": AMBIENT, "gate": GATE_SUBTLE},
@@ -225,6 +238,11 @@ const FIDGET_ROWS := {
 	&"answer_yes": &"answer_yes",
 	&"answer_no": &"answer_no",
 	&"answer_maybe": &"answer_maybe",
+	# The second five (D66). A boing is the same small pleasure as a pop.
+	&"boing": &"amused",
+	&"clacking": &"calmed",
+	&"yoyo_trick": &"impressed",
+	&"ride": &"riding",
 }
 
 ## The face he pulls when hit, by what hit him — keyed on category, not id, so ten entries

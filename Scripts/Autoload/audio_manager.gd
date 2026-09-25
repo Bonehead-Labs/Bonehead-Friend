@@ -281,6 +281,86 @@ func _build_streams() -> void:
 	_streams[&"slosh"] = _wav(_splash_samples())
 	_streams[&"giggle"] = _wav(_giggle_samples())
 
+	# --- the second five (D66) ---
+	#
+	# The same rule: short, because each repeats. A boing is a falling spring with a wobble in
+	# it; a clack is two steel partials with almost no body, so a cradle clacking for half a
+	# minute is a tick and not a drone; the ratchet is a notch per click of a wind; the zoom is a
+	# rising buzz; the twang is a band let go; the zip is a string winding past a finger.
+	_streams[&"boing"] = _wav(_boing_samples())
+	_streams[&"clack"] = _wav(_steel_clack_samples())
+	_streams[&"ratchet"] = _wav(_tick_samples(0.022, 1900.0, 0.9))
+	_streams[&"zoom"] = _wav(_zoom_samples())
+	_streams[&"twang"] = _wav(_twang_samples())
+	_streams[&"zip"] = _wav(_sweep_samples(0.11, 700.0, 1500.0))
+
+## A spring let go: a tone that falls from high to low with a fast wobble riding on it, which is
+## the whole difference between a boing and a slide whistle.
+func _boing_samples() -> PackedFloat32Array:
+	var duration := 0.34
+	var count := int(MIX_RATE * duration)
+	var out := PackedFloat32Array()
+	out.resize(count)
+	var phase := 0.0
+	for i in count:
+		var t := float(i) / float(MIX_RATE)
+		var progress := t / duration
+		var pitch := lerpf(520.0, 170.0, sqrt(progress)) * (1.0 + 0.08 * sin(TAU * 17.0 * t))
+		phase += TAU * pitch / float(MIX_RATE)
+		var envelope := minf(t * 300.0, 1.0) * exp(-t * 7.0)
+		out[i] = clampf(sin(phase) * 0.45 * envelope, -1.0, 1.0)
+	return out
+
+## Steel on steel: two bright partials that are not a chord, gone in a few hundredths of a
+## second, with a click of noise on the front.
+func _steel_clack_samples() -> PackedFloat32Array:
+	var count := int(MIX_RATE * 0.06)
+	var out := PackedFloat32Array()
+	out.resize(count)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 20260925
+	for i in count:
+		var t := float(i) / float(MIX_RATE)
+		var ring := sin(TAU * 2950.0 * t) * 0.35 * exp(-t * 90.0) \
+			+ sin(TAU * 4630.0 * t) * 0.2 * exp(-t * 140.0)
+		var click := rng.randf_range(-1.0, 1.0) * 0.5 * exp(-t * 1400.0)
+		out[i] = clampf(ring + click, -1.0, 1.0)
+	return out
+
+## A little motor getting away: a buzz whose pitch climbs, under a soft envelope.
+func _zoom_samples() -> PackedFloat32Array:
+	var duration := 0.38
+	var count := int(MIX_RATE * duration)
+	var out := PackedFloat32Array()
+	out.resize(count)
+	var phase := 0.0
+	for i in count:
+		var t := float(i) / float(MIX_RATE)
+		var progress := t / duration
+		phase += TAU * lerpf(150.0, 520.0, progress) / float(MIX_RATE)
+		# A square softened by its own sine: buzz without the harshness of a bare square.
+		var buzz := signf(sin(phase)) * 0.18 + sin(phase) * 0.22
+		var envelope := minf(progress * 10.0, 1.0) * (1.0 - progress)
+		out[i] = clampf(buzz * envelope, -1.0, 1.0)
+	return out
+
+## A rubber band let go: a low tone that drops a little as it decays, and a slap on the front.
+func _twang_samples() -> PackedFloat32Array:
+	var duration := 0.22
+	var count := int(MIX_RATE * duration)
+	var out := PackedFloat32Array()
+	out.resize(count)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 20260926
+	var phase := 0.0
+	for i in count:
+		var t := float(i) / float(MIX_RATE)
+		phase += TAU * lerpf(210.0, 150.0, t / duration) / float(MIX_RATE)
+		var tone := (sin(phase) * 0.45 + sin(phase * 2.0) * 0.15) * exp(-t * 18.0)
+		var slap := rng.randf_range(-1.0, 1.0) * 0.45 * exp(-t * 600.0)
+		out[i] = clampf(tone + slap, -1.0, 1.0)
+	return out
+
 ## A woodblock tick: one decaying sine with a noise transient on the front. The transient
 ## is what makes it read as a physical contact rather than as a beep.
 func _tick_samples(duration: float, pitch: float, noise: float) -> PackedFloat32Array:
