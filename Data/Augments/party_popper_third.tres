@@ -6,9 +6,9 @@
 script = ExtResource("1_8682i")
 id = &"party_popper_third"
 item_id = &"party_popper"
-display_name = "Shorter Fuse"
-effect_key = &"cooldown_mult"
-effect_per_level = 0.94
+display_name = "Best Day Ever"
+effect_key = &"mood_mult"
+effect_per_level = 1.1
 cost_base = 52
 cost_growth = 1.09
 currency = 1

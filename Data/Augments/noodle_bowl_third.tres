@@ -6,9 +6,9 @@
 script = ExtResource("1_ia8cv")
 id = &"noodle_bowl_third"
 item_id = &"noodle_bowl"
-display_name = "Quicker Service"
-effect_key = &"cooldown_mult"
-effect_per_level = 0.94
+display_name = "Family Recipe"
+effect_key = &"mood_mult"
+effect_per_level = 1.1
 cost_base = 129
 cost_growth = 1.09
 currency = 1

@@ -6,9 +6,9 @@
 script = ExtResource("1_dqwy2")
 id = &"donut_box_third"
 item_id = &"donut_box"
-display_name = "Quicker Boxing"
-effect_key = &"cooldown_mult"
-effect_per_level = 0.94
+display_name = "Sugar Rush"
+effect_key = &"mood_mult"
+effect_per_level = 1.1
 cost_base = 40
 cost_growth = 1.09
 currency = 1

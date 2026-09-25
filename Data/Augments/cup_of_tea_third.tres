@@ -6,9 +6,9 @@
 script = ExtResource("1_aekm2")
 id = &"cup_of_tea_third"
 item_id = &"cup_of_tea"
-display_name = "Faster Steeping"
-effect_key = &"cooldown_mult"
-effect_per_level = 0.94
+display_name = "Calming Blend"
+effect_key = &"mood_mult"
+effect_per_level = 1.1
 cost_base = 35
 cost_growth = 1.09
 currency = 1

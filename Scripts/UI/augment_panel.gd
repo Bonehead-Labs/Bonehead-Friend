@@ -18,6 +18,10 @@ const EFFECT_WORDS := {
 	&"payout_mult": "Bones earned",
 	&"mass_mult": "weight",
 	&"cooldown_mult": "time between uses",
+	&"pull_mult": "pull",
+	&"wind_mult": "wind",
+	&"speed_mult": "speed",
+	&"mood_mult": "mood lift",
 }
 
 ## The same keys, worded for the kindness half of the roster. A Hearts item's `damage_mult`

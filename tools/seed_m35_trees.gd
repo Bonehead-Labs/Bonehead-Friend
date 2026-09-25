@@ -2,7 +2,12 @@ extends Node
 
 ## Writes the tier-1 augment tree for every item that has none.
 ##
-##   Godot --headless --path <project> res://tools/seed_m35_trees.tscn
+##   Godot --headless --path <project> res://tools/seed_m35_trees.tscn [-- --only node_id,node_id]
+##
+## `--only` rewrites those nodes and nothing else, existing or not — the way to re-seed a node
+## whose key, name or number changed here (D65 retargeted ten). Node ids, not item ids: a
+## whole tree rewritten would churn the two nodes that did not change, and an id is a save key
+## that must survive the rewrite exactly as it was.
 ##
 ## M3 shipped trees for six items out of sixteen, so nine of them were a shop row and
 ## nothing else: bought once, used, and never improved again. A tree is the reason to keep
@@ -31,8 +36,45 @@ const THIRD_FRACTION := 0.61
 ## The three shapes a tier-1 node comes in, matching what the item's own class actually
 ## reads. A node whose effect_key nothing reads is a placebo, and this milestone exists
 ## partly because two of those shipped (`open_hand_damage`, `open_hand_third`).
+const KEY_DAMAGE := &"damage_mult"
+const KEY_PAYOUT := &"payout_mult"
 const KEY_MASS := &"mass_mult"
 const KEY_COOLDOWN := &"cooldown_mult"
+## D65's four. A field item's lever is its field; a fist's is how fast it chases; a treat's is
+## how much it lifts his mood.
+const KEY_PULL := &"pull_mult"
+const KEY_WIND := &"wind_mult"
+const KEY_SPEED := &"speed_mult"
+const KEY_MOOD := &"mood_mult"
+
+## Effect per level, by key. One number per lever rather than per node, so a retune is a line.
+const EFFECT := {
+	KEY_DAMAGE: 1.15, KEY_PAYOUT: 1.12, KEY_MASS: 1.08, KEY_COOLDOWN: 0.94,
+	KEY_PULL: 1.10, KEY_WIND: 1.10, KEY_SPEED: 1.06, KEY_MOOD: 1.10,
+}
+
+## Items whose tree does not follow the damage / payout / rate-or-weight rule, as
+## `[first, second, third]` keys. Each one is a node that used to be a placebo (D65):
+##
+##   desk_fan        "Higher Setting" is wind strength, as its name always said; a damage key
+##                   on a thing that never hits him was the wrong key
+##   gravity_vortex  "Faster Collapse" is the pull. It shortened a cooldown of 0
+##   fist            "Faster Hands" is how fast it chases the cursor. Same cooldown of 0
+const KEYS := {
+	&"desk_fan": [KEY_WIND, KEY_PAYOUT, KEY_MASS],
+	&"gravity_vortex": [KEY_DAMAGE, KEY_PAYOUT, KEY_PULL],
+	&"fist": [KEY_DAMAGE, KEY_PAYOUT, KEY_SPEED],
+}
+
+## Eaten, drunk or popped on first contact, so the gap a rate node would shorten never runs —
+## seven of them sold one. Their third lever is how much a helping lifts his mood instead:
+## what food is *for*, and a real number in the pipeline, since mood is the U-curve every
+## payout is multiplied by. A box of donuts is six helpings now and could have kept its
+## rate, but one rule for the drawer is one sentence to learn.
+const CONSUMED := {
+	&"pizza": true, &"cup_of_tea": true, &"donut_box": true, &"ice_cream": true,
+	&"noodle_bowl": true, &"birthday_cake": true, &"party_popper": true,
+}
 
 ## `item id: [damage name, payout name, third name or ""]`.
 ##
@@ -59,7 +101,7 @@ const TREES := {
 	&"gravity_vortex": ["Deeper Well", "Event Horizon Fees", "Faster Collapse"],
 	&"lightning": ["Higher Voltage", "Storm Damages", "Shorter Recharge"],
 	# --- friendly: damage_mult is the kindness value; the third is how often it lands ---
-	&"pizza": ["Extra Toppings", "Delivery Tip", "Faster Service"],
+	&"pizza": ["Extra Toppings", "Delivery Tip", "Comfort Food"],
 	&"baseball": ["Better Throw", "Catch Bonus", "Quicker Return"],
 	&"massage_chair": ["Deeper Kneading", "Spa Rates", "Shorter Cycle"],
 	&"sponge": ["Coarser Pad", "Valet Rates", ""],
@@ -79,11 +121,11 @@ const TREES := {
 	&"heated_blanket": ["Higher Setting", "Tog Rating", ""],
 	&"recliner": ["Deeper Recline", "Upholstery Rates", ""],
 
-	&"cup_of_tea": ["Stronger Brew", "Service Charge", "Faster Steeping"],
-	&"donut_box": ["Extra Glaze", "Baker's Dozen", "Quicker Boxing"],
-	&"ice_cream": ["More Scoops", "Parlour Rates", "Faster Churn"],
-	&"noodle_bowl": ["Richer Broth", "House Special", "Quicker Service"],
-	&"birthday_cake": ["More Candles", "Party Rates", "Faster Baking"],
+	&"cup_of_tea": ["Stronger Brew", "Service Charge", "Calming Blend"],
+	&"donut_box": ["Extra Glaze", "Baker's Dozen", "Sugar Rush"],
+	&"ice_cream": ["More Scoops", "Parlour Rates", "Extra Sprinkles"],
+	&"noodle_bowl": ["Richer Broth", "House Special", "Family Recipe"],
+	&"birthday_cake": ["More Candles", "Party Rates", "Surprise Party"],
 
 	&"houseplant": ["Better Soil", "Nursery Rates", ""],
 	&"fairy_lights": ["Warmer Bulbs", "Festive Rates", ""],
@@ -103,7 +145,7 @@ const TREES := {
 	&"soft_brush": ["Softer Bristles", "Grooming Rates", "Quicker Strokes"],
 	&"warm_towel": ["Fluffier Weave", "Turndown Rates", ""],
 	&"tennis_ball": ["Fresher Felt", "Fetch Bonus", "Quicker Return"],
-	&"party_popper": ["More Confetti", "Party Rates", "Shorter Fuse"],
+	&"party_popper": ["More Confetti", "Party Rates", "Best Day Ever"],
 	&"kite": ["Longer Tail", "Fair Weather Rates", "Faster Reel"],
 }
 
@@ -122,11 +164,17 @@ const WEIGHTED := {
 
 var _written := 0
 var _skipped := 0
+## `--only node_id,node_id`: rewrite exactly these, whether or not they exist.
+var _only := PackedStringArray()
 
 func _ready() -> void:
+	var args := OS.get_cmdline_user_args()
+	var only_at := args.find("--only")
+	if only_at >= 0 and only_at + 1 < args.size():
+		_only = args[only_at + 1].split(",", false)
 	DirAccess.make_dir_recursive_absolute(AUGMENTS_DIR)
 	for item in ItemDB.all_items():
-		if not _has_tier_one(item.id):
+		if not _only.is_empty() or not _has_tier_one(item.id):
 			_tree_for(item)
 	print("seed_m35_trees: %d written, %d already present" % [_written, _skipped])
 	get_tree().quit()
@@ -140,6 +188,8 @@ func _has_tier_one(item_id: StringName) -> bool:
 
 func _tree_for(item: ItemData) -> void:
 	if not TREES.has(item.id):
+		if not _only.is_empty():
+			return
 		# Loudly, and without inventing a name: an item with no tree is an item nobody has a
 		# reason to keep using, which is invisible in play and obvious six weeks later.
 		push_error("seed_m35_trees: no tier-1 tree authored for '%s'" % item.id)
@@ -148,28 +198,33 @@ func _tree_for(item: ItemData) -> void:
 	var currency := AugmentNodeScript.CURRENCY_HEARTS if item.currency == ItemData.CURRENCY_HEARTS \
 		else AugmentNodeScript.CURRENCY_BONES
 	var base := COST_FLOOR + float(item.cost) * COST_SLOPE
+	var keys: Array = KEYS.get(item.id, [KEY_DAMAGE, KEY_PAYOUT, _third_key(item)])
 
-	_node("%s_damage" % item.id, item, names[0], &"damage_mult", 1.15,
+	_node("%s_damage" % item.id, item, names[0], keys[0], EFFECT[keys[0]],
 		int(round(base)), 1.12, 0, currency)
-	_node("%s_payout" % item.id, item, names[1], &"payout_mult", 1.12,
+	_node("%s_payout" % item.id, item, names[1], keys[1], EFFECT[keys[1]],
 		int(round(base * PAYOUT_FRACTION)), 1.10, 1, currency)
 	if String(names[2]).is_empty():
 		return
-	var third_key := KEY_COOLDOWN if _wants_rate(item) else KEY_MASS
-	var third_effect := 0.94 if third_key == KEY_COOLDOWN else 1.08
-	_node("%s_third" % item.id, item, names[2], third_key, third_effect,
+	_node("%s_third" % item.id, item, names[2], keys[2], EFFECT[keys[2]],
 		int(round(base * THIRD_FRACTION)), 1.09, 2, currency)
 
-## Whether the item's third lever is a rate rather than a weight. A cursor power has no mass
-## at all, and anything that pays on contact has a cooldown between helpings.
-func _wants_rate(item: ItemData) -> bool:
-	return not WEIGHTED.has(item.id)
+## The third lever, when the item is not in `KEYS`: mood for a treat that is gone on first
+## contact, weight for the named heavy things, and a rate for everything else — a cursor power
+## has no mass at all, and anything that pays on contact has a cooldown between helpings.
+func _third_key(item: ItemData) -> StringName:
+	if CONSUMED.has(item.id):
+		return KEY_MOOD
+	return KEY_MASS if WEIGHTED.has(item.id) else KEY_COOLDOWN
 
 func _node(id: String, item: ItemData, display_name: String, effect_key: StringName,
 		effect_per_level: float, cost_base: int, cost_growth: float, sort_order: int,
 		currency: int) -> void:
 	var path := "%s/%s.tres" % [AUGMENTS_DIR, id]
-	if ResourceLoader.exists(path):
+	if not _only.is_empty():
+		if not _only.has(id):
+			return
+	elif ResourceLoader.exists(path):
 		return
 	var node := AugmentNodeScript.new()
 	node.id = StringName(id)
