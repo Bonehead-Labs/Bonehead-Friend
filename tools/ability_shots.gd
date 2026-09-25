@@ -266,6 +266,29 @@ func _stage_morning_star(id: StringName, ability: BristleAbility, centre: Vector
 			break
 	await _shot("%s-regrowing" % id)
 
+func _stage_cricket_bat(id: StringName, ability: MiddleItAbility, centre: Vector2, _floor_y: float) -> void:
+	await _carry(centre + Vector2(-360.0, -110.0), 40)
+	await _carry(_hand, 60)
+	ability.press()
+	ability.release()
+	await _shot("%s-lit" % id, 6)
+	# ability_check's sweep: a run-up at an unhurried 450 px/s, then the middle aimed at his middle
+	# at the height it rides below the moving hand.
+	for attempt in 2:
+		if ability.sixes > 0 or not ability.is_active():
+			break
+		var him := _buddy.get_interaction_rect().get_center()
+		await _carry(Vector2(him.x - 360.0, him.y - 110.0), 10)
+		while _hand.x < him.x - 230.0:
+			await _carry(_hand + Vector2(450.0 / 60.0, 0.0), 1)
+		var line := him.y - (ability.middle_world().y - _hand.y)
+		while _hand.x < him.x + 200.0 and ability.sixes == 0 and ability.is_active():
+			await _carry(Vector2(_hand.x + 450.0 / 60.0, move_toward(_hand.y, line, 4.0)), 1)
+		print("    sweep %d: met the blade at %.2f, %d six" % [attempt, ability.last_blade_t, ability.sixes])
+	await _shot("%s-six" % id, 1)
+	await _shot("%s-up" % id, 14)
+	await _shot("%s-top" % id, 30)
+
 func _stage_stapler(id: StringName, ability: StapleGunAbility, centre: Vector2, _floor_y: float) -> void:
 	await _carry(centre + Vector2(-260.0, -40.0), 40)
 	ability.press()
@@ -273,6 +296,24 @@ func _stage_stapler(id: StringName, ability: StapleGunAbility, centre: Vector2, 
 	await _carry(_hand, 50)
 	await _shot("%s-stapled" % id)
 	ability.release()
+
+func _stage_war_pick(id: StringName, ability: PinpointAbility, centre: Vector2, _floor_y: float) -> void:
+	await _carry(centre + Vector2(-130.0, -60.0), 40)
+	ability.press()
+	await _shot("%s-aiming" % id, 18)
+	for i in 60:
+		await _carry(_hand, 1)
+		if ability.is_locked_on():
+			break
+	await _shot("%s-locked" % id, 6)
+	ability.release()
+	for i in 40:
+		await _carry(_hand, 1)
+		if ability.last_pick > 0.0 or not ability.is_driving():
+			break
+	print("    the beak came within %.0f px of the spot; the pick %.0f" % [ability.last_miss, ability.last_pick])
+	await _shot("%s-struck" % id, 1)
+	await _shot("%s-after" % id, 12)
 
 func _stage_mechanical_keyboard(id: StringName, ability: KeycapBarrageAbility, centre: Vector2, _floor_y: float) -> void:
 	await _carry(centre + Vector2(-260.0, -60.0), 40)

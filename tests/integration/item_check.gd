@@ -980,6 +980,14 @@ const ABILITY_STANDOFF := {
 	&"spin": Vector2(-95, -40), &"throw": Vector2(-250, -80),
 }
 
+## A weapon whose ability wants a different hand from its archetype's (D74, second pass): where
+## the hand starts relative to his middle, where it goes while the ability works, and how fast. A
+## cricket bat's middle meets him when the hand goes over his head unhurried, the way
+## ability_check found it.
+const ABILITY_HAND := {
+	&"cricket_bat": [Vector2(-200, -105), Vector2(200, -105), 450.0],
+}
+
 ## A weapon with an ability (D74) uses it once, the way its line says — right pressed, held for as
 ## long as the archetype fills, let go, and the hand following through him — and it has to do
 ## something to him. `ability_check` is where each one is measured; this is where every weapon's
@@ -1002,11 +1010,20 @@ func _use_ability(run: Run, body: WeaponBase) -> void:
 	if not body.dragging and not await _grab(run, body):
 		return
 	var kind := ability.archetype()
-	var off: Vector2 = ABILITY_STANDOFF.get(kind, Vector2(-150, -30))
+	var hand: Array = ABILITY_HAND.get(body.item_id, [])
+	var off: Vector2 = hand[0] if not hand.is_empty() else ABILITY_STANDOFF.get(kind, Vector2(-150, -30))
 	var at := _centre() + off
 	if kind == &"shockwave":
 		at = Vector2(_centre().x + off.x, _buddy.get_interaction_rect().end.y + off.y)
 	await _mouse_to(at, 700.0)
+	if not hand.is_empty():
+		# Shaken off its balance and left to hang: a bat stood exactly upright on its grip stays
+		# there, and a real hand never holds one that still.
+		for dip in [Vector2(40, 60), Vector2(-40, 30), Vector2.ZERO]:
+			await _mouse_to(at + dip, 900.0)
+		for i in 60:
+			_move(_mouse)
+			await _step()
 	await _steady(body, 40)
 	var before := ability.uses
 	var hold := 0.0
@@ -1017,7 +1034,9 @@ func _use_ability(run: Run, body: WeaponBase) -> void:
 			hold = 1.0
 	_press(MOUSE_BUTTON_RIGHT)
 	for i in maxi(1, int(hold * 60.0)):
-		if kind == &"sustain":
+		if kind == &"sustain" and not hand.is_empty():
+			_move(_mouse.move_toward(_centre() + hand[1], float(hand[2]) / 60.0))
+		elif kind == &"sustain":
 			_move(_centre() + off + Vector2(20.0 * sin(float(i) * 0.2), 0.0))
 		await _step()
 	_release(MOUSE_BUTTON_RIGHT)
@@ -1026,6 +1045,10 @@ func _use_ability(run: Run, body: WeaponBase) -> void:
 		for i in 3:
 			if ability.payoffs > 0:
 				break
+			if not hand.is_empty():
+				await _mouse_to(_centre() + hand[1], float(hand[2]))
+				await _mouse_to(_centre() + hand[0], 1200.0)
+				continue
 			await _mouse_to(_centre() + Vector2(160.0, -30.0), 1300.0)
 			await _mouse_to(_centre() + Vector2(-160.0, -30.0), 1000.0)
 	# A whirl knocks him on with every blow; the hand follows him, as a player's would.

@@ -494,10 +494,9 @@ func _state_box(theme: Theme, state: String, type_name: String) -> StyleBox:
 ## reproducing — so the list cannot go stale, and when it is empty every weapon in the drawer
 ## does something no other one does.
 const ABILITY_STILL_TO_DO: Array[StringName] = [
-	&"boxcutter", &"cleaver", &"cricket_bat", &"crowbar", &"energy_sabre", &"flail", &"greatsword",
-	&"halberd", &"hole_punch", &"katar", &"letter_opener", &"mace", &"machete", &"monitor",
-	&"pipe_wrench", &"rapier", &"rolling_pin", &"scythe", &"shears", &"sickle", &"tyre_iron",
-	&"war_pick",
+	&"boxcutter", &"cleaver", &"crowbar", &"energy_sabre", &"flail", &"greatsword", &"halberd",
+	&"hole_punch", &"katar", &"letter_opener", &"mace", &"machete", &"monitor", &"pipe_wrench",
+	&"rapier", &"rolling_pin", &"scythe", &"shears", &"sickle", &"tyre_iron",
 ]
 
 ## Every melee weapon has an ability (D74): a row in `AbilityTable`, or a right-while-holding

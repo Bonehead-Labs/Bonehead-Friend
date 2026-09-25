@@ -141,6 +141,18 @@ const ABILITIES := {
 		"spikes": 5, "fan_degrees": 20.0, "spike_speed": 1500.0, "spike_force": 1400.0,
 		"spike_mult": 1.0, "shove": 0.35,
 	},
+	# A tap lights the middle third of the face for 2 s; a hit with it on him is x2.5 and a six,
+	# straight up. Off the edge it is an ordinary hit and the light stays on: it is aimed, not armed.
+	# The middle meets him when the face comes through him; a fast flat sweep leads with the
+	# handle, and a hand held high grazes his skull with the toe.
+	&"cricket_bat": {
+		"id": &"middle_it", "name": "Middle It", "archetype": &"stun",
+		"script": "res://Scripts/Bodies/Abilities/middle_it_ability.gd",
+		"controls": "Hold · Right: Middle It — then hit him off the glowing middle for six",
+		"cooldown": 5.0, "busy": 1.5, "worth": 1.5,
+		"armed_seconds": 2.0, "middle_band": 0.34, "middle_mult": 2.5, "six_speed": 950.0,
+		"keep_sideways": 0.3, "claim_seconds": 2.5,
+	},
 	# Held: five staples a second, dead straight at him, twenty to a strip; the strip running out
 	# is the reload. The only melee ability you hold down to keep firing. A staple is x0.3 of the
 	# stapler's own blow: at full weight one strip was fourteen ordinary hits.
@@ -151,6 +163,18 @@ const ABILITIES := {
 		"cooldown": 6.0, "busy": 4.0, "worth": 4.0,
 		"rate": 5.0, "strip": 20, "staple_speed": 1400.0, "staple_force": 420.0,
 		"staple_mult": 0.3, "shove": 0.15, "pause": 0.4,
+	},
+	# Held: a crosshair walks from the beak onto his skull and locks; let go and the beak goes into
+	# that one spot, x2.5 with almost no shove. Let go early and the spot is wherever it had got to.
+	&"war_pick": {
+		"id": &"pinpoint", "name": "Pinpoint", "archetype": &"charge",
+		"script": "res://Scripts/Bodies/Abilities/pinpoint_ability.gd",
+		"controls": "Hold · Right: Pinpoint — hold till it locks on him, let go to strike",
+		"cooldown": 5.0, "busy": 1.4, "worth": 2.7,
+		"charge_seconds": 0.8, "cock_degrees": 70.0, "cock_frequency": 12.0, "cock_accel": 220.0,
+		"raise_px": 36.0, "drive_seconds": 0.09, "hold_seconds": 0.16, "return_seconds": 0.2,
+		"reach": 260.0, "pin_radius": 32.0, "pick_force": 1800.0, "pick_speed": 1300.0,
+		"pick_mult": 2.5, "shove": 0.15, "settle_seconds": 0.8,
 	},
 	# A tap: eight caps pop off in a fountain, come down on his head one after another, and fly
 	# home to their keys with a clack. Light hits; the fun is the rain.

@@ -14,3 +14,4 @@ scene = ExtResource("2_m0s63")
 icon = ExtResource("1_uswxp")
 requires = Array[StringName]([&"energy_sabre"])
 sort_order = 72
+controls = "Hold · Right: Pinpoint — hold till it locks on him, let go to strike"
