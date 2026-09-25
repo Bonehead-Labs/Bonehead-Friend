@@ -178,7 +178,32 @@ func _fit() -> void:
 	if _root:
 		UIScale.apply(self, _root)
 	if _drawer:
-		_drawer.set_home(Vector2(MARGIN, MARGIN))
+		_drawer.set_home(_home())
+
+## Where the page tabs sit, in screen pixels, pushed by `PanelLayer` whenever it fits (D68).
+var _tabs_rect := Rect2()
+
+## The page tabs are right-aligned and as wide as the card, and the card is as wide as the
+## window allows — so on a narrow window, or at 2x on most of them, the strip reached across
+## the top of the window into this corner and the first tab sat on the purse, a layer above it.
+## Moving the tabs would move the navigation; this steps the status card down under them, only
+## when they would meet. Called by the panel layer, so whichever of the two fits last, the card
+## ends up in the right place.
+func keep_clear_of_tabs(tabs: Rect2) -> void:
+	_tabs_rect = tabs
+	if _drawer:
+		_drawer.set_home(_home())
+
+func _home() -> Vector2:
+	var home := Vector2(MARGIN, MARGIN)
+	var factor := scale.x
+	if _tabs_rect.size.x <= 0.0 or factor <= 0.0:
+		return home
+	var tabs := Rect2(_tabs_rect.position / factor, _tabs_rect.size / factor)
+	var wide := maxf(WIDTH, _box.size.x if _box else 0.0)
+	if tabs.position.x < home.x + wide + MARGIN and tabs.position.y < home.y + 1.0:
+		home.y = tabs.end.y + MARGIN
+	return home
 
 ## Onboarding pins the card open so a first-time player can see there is a game here. Goes
 ## through the drawer's own setter, so it is remembered exactly as a click on the pin is.

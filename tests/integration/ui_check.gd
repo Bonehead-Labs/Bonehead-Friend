@@ -1772,10 +1772,15 @@ func _keys_hold_their_size(panels: Node) -> void:
 ## The shell at the sizes it is actually used at (D68). Every other suite runs at 1x in a
 ## 960x640 window; the owner plays at Menu size 1.25x on a 1440x960 play area, 2x is one step
 ## away in Settings, 1180x760 is the play area a new player starts in, and 480x360 is the
-## smallest the window goes.
+## smallest the window goes. Four things were wrong at those sizes and right at 1x:
 ##
-## At 1.25x a 3px rule is 3.75 screen pixels and draws as 3 or 4 by where it sits, so a box was
-## heavier on top than underneath. Rules are 4 at a fractional factor.
+## - **rules landed uneven.** A 3px rule at 1.25x is 3.75 screen pixels and draws as 3 or 4 by
+##   position, so a box was heavier on top than underneath. Rules are 4 at a fractional factor.
+## - **captions were clipped** — "Upgrad", "The Whee" — because a tab's width is the card's
+##   shared out and the card is narrower at 2x while the words are not.
+## - **pages were wider than the card**: seven backdrop keys in one row put Chroma past the
+##   card's right edge at 2x, and every Arcade room was wider than the 480x360 card.
+## - **the shop scrolled the whole card** at 2x, and took its buy key below the fold.
 const MENU_SIZES := [
 	[Vector2i(960, 640), 1.0],
 	[Vector2i(1440, 960), 1.25],
@@ -1788,9 +1793,11 @@ const MENU_SIZES := [
 func _the_shell_at_every_menu_size() -> void:
 	_suite("menu sizes")
 	var panels := _find(_main, "PanelLayer")
-	if panels == null:
+	var arcade := _find(_main, "ArcadePanel")
+	if panels == null or arcade == null:
 		_check("the panels are present to test", false)
 		return
+	var host := panels.get("_host") as ScrollContainer
 	var rebuilds_before := UITheme.rebuilds
 	for entry in MENU_SIZES:
 		var view_size: Vector2i = entry[0]
@@ -1804,6 +1811,53 @@ func _the_shell_at_every_menu_size() -> void:
 		_check("%s: the shell is drawn at the size asked for" % at,
 			is_equal_approx(factor, asked) and is_equal_approx((panels as CanvasLayer).scale.x, asked))
 		_rules_land_whole(factor, at)
+		var widths: Array[String] = []
+		var clipped: Array[String] = []
+		var shop_scrolls := ""
+		for page_id in [&"shop", &"tree", &"contracts", &"deeds", &"arcade", &"settings"]:
+			panels.call("show_panel", page_id)
+			await _settle()
+			var page := _pages_page(panels, page_id)
+			if page == null:
+				continue
+			var room := host.size.x
+			if host.get_v_scroll_bar().visible:
+				room -= host.get_v_scroll_bar().size.x
+			var wide := page.get_combined_minimum_size().x
+			if wide > room + 0.5:
+				widths.append("%s %.0f in %.0f" % [page_id, wide, room])
+			if page_id == &"shop" and page.get_combined_minimum_size().y > host.size.y + 0.5:
+				shop_scrolls = "%.0f of page in %.0f of card" % [page.get_combined_minimum_size().y,
+					host.size.y]
+			if page_id == &"arcade":
+				for id in arcade.call("room_ids"):
+					arcade.call("show_room", id)
+					await _settle()
+					var room_wide: float = (arcade as Control).get_combined_minimum_size().x
+					if room_wide > room + 0.5:
+						widths.append("arcade/%s %.0f in %.0f" % [id, room_wide, room])
+					var key := (arcade.get("_rooms") as Dictionary)[id]["tab"] as Button
+					var fits := _caption_fits(key)
+					if fits != "":
+						clipped.append(fits)
+		for tab in (panels.get("_buttons") as Dictionary).values():
+			var fits := _caption_fits(tab as Button)
+			if fits != "":
+				clipped.append(fits)
+		_check("%s: no page is wider than the card" % at, widths.is_empty(), ", ".join(widths))
+		_check("%s: every tab's caption fits its tab, page and room" % at, clipped.is_empty(),
+			", ".join(clipped))
+		_check("%s: the shop fits the card rather than scrolling it" % at, shop_scrolls == "",
+			shop_scrolls)
+		panels.call("close")
+		await _settle()
+		# The tabs are right-aligned and as wide as the card, so on a narrow window they reached
+		# across into the status card's corner and the first tab sat on the purse.
+		var hud := get_tree().get_first_node_in_group(HUD.GROUP_HUD)
+		var tabs: Rect2 = panels.call("shell_rect")
+		var status: Rect2 = hud.call("shell_rect") if hud else Rect2()
+		_check("%s: the page tabs never sit on the status card" % at,
+			status.size.x > 0.0 and not tabs.intersects(status), "tabs %s, status %s" % [tabs, status])
 
 	# Rebuilding the theme is paid when the rule width changes and at no other time: the steps
 	# above crossed between whole and fractional factors, and a resize at the same factor
@@ -1872,6 +1926,21 @@ func _rules_land_whole(factor: float, at: String) -> void:
 			off.append("lamp at %.0f" % panel.offset_top)
 	_check("%s: the card, %d cell rules and every lamp are drawn at %dpx" % [at, lines, rule],
 		drawn == rule and lines > 0 and off.is_empty(), "card %d, %s" % [drawn, ", ".join(off)])
+
+## "" if a button's caption fits the width it was given, else what it needed. Measured on the
+## realised button — its own face, its own box, its own icon — not on what `UIStyle` decided.
+func _caption_fits(button: Button) -> String:
+	if button == null or button.text == "":
+		return ""
+	var font := button.get_theme_font("font")
+	var box := button.get_theme_stylebox("normal")
+	var need := font.get_string_size(button.text, HORIZONTAL_ALIGNMENT_LEFT, -1,
+		button.get_theme_font_size("font_size")).x + box.get_margin(SIDE_LEFT) + box.get_margin(SIDE_RIGHT)
+	if button.icon:
+		need += float(button.icon.get_width() + button.get_theme_constant("h_separation"))
+	if need > button.size.x + 0.5:
+		return "\"%s\" needs %.0f of %.0f" % [button.text, need, button.size.x]
+	return ""
 
 ## No page may be left flagged visible under a shut card. That gap is what made every
 ## page's `if visible:` guard a no-op and left five pages doing full refreshes per hit,

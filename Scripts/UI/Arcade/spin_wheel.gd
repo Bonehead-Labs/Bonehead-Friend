@@ -65,6 +65,9 @@ const GARNISH_SHARE := 0.55
 ## UI pixels, before `UIScale`. `body_height` matches it exactly, so the cabinet is the same
 ## height spinning as it is idle and the page never moves under the cursor mid-spin.
 const FACE := 262
+## The narrowest the face is drawn, on a card too narrow for the wheel and its legend side by
+## side at `FACE` (`_fit_stage`).
+const FACE_FLOOR := 200
 ## Room above the rim for the pointer.
 const POINTER_REACH := 12.0
 ## Hub radius, and where in the band a wedge's mark sits (0 at the hub, 1 at the rim).
@@ -258,6 +261,23 @@ func _nothing(weight: float) -> Wedge:
 	return wedge
 
 # --- the cabinet -----------------------------------------------------------
+
+## The wheel is drawn from its own rect, so on a card too narrow for it and its legend side by
+## side it is simply drawn smaller (D68). Only the width gives: the stage keeps its height in
+## every room, so the deck and its key never move. At the smallest play area the room was 20px
+## wider than the card and the legend's right edge was cut off.
+func _fit_stage(width: float) -> void:
+	if _face == null:
+		return
+	var row := _face.get_parent() as HBoxContainer
+	if row == null:
+		return
+	var room := width
+	for child in row.get_children():
+		var control := child as Control
+		if control and control.visible and control != _face:
+			room -= control.get_combined_minimum_size().x + float(row.get_theme_constant("separation"))
+	_face.custom_minimum_size.x = clampf(floorf(room), float(FACE_FLOOR), float(FACE))
 
 func _build_body(host: VBoxContainer) -> void:
 	var row := HBoxContainer.new()

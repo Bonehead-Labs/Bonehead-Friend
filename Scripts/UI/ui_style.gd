@@ -230,6 +230,73 @@ static func sprite(texture: Texture2D, box: int = 44) -> TextureRect:
 static func set_icon(button: Button, texture: Texture2D, box: int = GLYPH) -> void:
 	button.icon = boxed(texture, box) if texture else null
 
+## How a key in a strip of equal keys shows itself, from `fit_captions()`.
+const CAPTION_FULL := 0   ## its mark and its word
+const CAPTION_WORD := 1   ## its word alone
+const CAPTION_MARK := 2   ## its mark alone, and the word in its tooltip
+
+## A key that says what it is twice — a mark and a word — and may have to give one of them up
+## when its strip is narrow (`fit_captions`). Keeps both, so the strip can take them back.
+static func caption_key(button: Button, caption: String, mark: Texture2D) -> void:
+	button.set_meta(&"caption", caption)
+	button.set_meta(&"mark", mark)
+	_show_caption(button, CAPTION_FULL)
+
+## Fits a strip of keys that share one width (D68): mark and word if every key has room for
+## both, the word alone if that is what fits, and the mark alone with the word in its tooltip if
+## not even that. **The whole strip changes together** — two keys that have lost their word
+## beside four that have not reads as broken rather than as tight.
+##
+## A caption used to be clipped at the key's edge, so at 2x the strip read "Upgrad" and the
+## Arcade's read "The Whee": the width a tab gets is the card's divided by six, and the card is
+## smaller at 2x while the words are not. Nothing measured whether the words fit in it.
+static func fit_captions(keys: Array, width: float) -> int:
+	var full := 0.0
+	var word := 0.0
+	for key in keys:
+		var button := key as Button
+		if button == null or not button.has_meta(&"caption"):
+			continue
+		var needs := caption_needs(button)
+		full = maxf(full, needs.x)
+		word = maxf(word, needs.y)
+	var mode := CAPTION_FULL
+	if full > width:
+		mode = CAPTION_WORD if word <= width else CAPTION_MARK
+	for key in keys:
+		var button := key as Button
+		if button and button.has_meta(&"caption"):
+			_show_caption(button, mode)
+	return mode
+
+## The width a caption key needs with its mark (x) and with its word alone (y): the widest
+## box's margins, the word in the key's own face, and a glyph and its gap.
+static func caption_needs(button: Button) -> Vector2:
+	var caption := String(button.get_meta(&"caption", ""))
+	var font := button.get_theme_font("font")
+	var word := 0.0
+	if font:
+		word = font.get_string_size(caption, HORIZONTAL_ALIGNMENT_LEFT, -1,
+			button.get_theme_font_size("font_size")).x
+	var chrome := 0.0
+	for state in ["normal", "hover", "pressed", "hover_pressed", "disabled"]:
+		var box := button.get_theme_stylebox(state)
+		if box:
+			chrome = maxf(chrome, box.get_margin(SIDE_LEFT) + box.get_margin(SIDE_RIGHT))
+	var mark := float(GLYPH + button.get_theme_constant("h_separation"))
+	return Vector2(ceilf(chrome + word + mark), ceilf(chrome + word))
+
+static func _show_caption(button: Button, mode: int) -> void:
+	var caption := String(button.get_meta(&"caption", ""))
+	var mark: Texture2D = null
+	if button.has_meta(&"mark"):
+		mark = button.get_meta(&"mark") as Texture2D
+	var text := "" if mode == CAPTION_MARK else caption
+	if button.text != text:
+		button.text = text
+	set_icon(button, null if mode == CAPTION_WORD else mark)
+	button.tooltip_text = caption if mode == CAPTION_MARK else ""
+
 static func set_sprite(rect: TextureRect, texture: Texture2D) -> void:
 	if rect == null:
 		return

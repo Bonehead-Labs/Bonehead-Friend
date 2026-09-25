@@ -41,7 +41,7 @@ func _build_page() -> void:
 	add_child(_column)
 
 	_section("WINDOW")
-	var mode_row := _row()
+	var mode_row := _choices()
 	_choice(mode_row, "Overlay", &"mode_overlay", func() -> void:
 		OverlayManager.set_window_mode(WindowLayout.Mode.FULLSCREEN_OVERLAY))
 	_choice(mode_row, "Play area", &"mode_play", func() -> void:
@@ -55,7 +55,7 @@ func _build_page() -> void:
 	# The four corners are a tidy-up, not the only places it can go (D49/D52). Dragging the
 	# grip moves the window and clears whichever of these was set, which is why none of them
 	# is lit by default any more.
-	var corner_row := _row()
+	var corner_row := _choices()
 	for i in CORNER_NAMES.size():
 		var corner := i + 1  # 0 is FREE; the buttons offer the four snapped corners.
 		_choice(corner_row, CORNER_NAMES[i], StringName("corner_%d" % corner), func() -> void:
@@ -76,7 +76,7 @@ func _build_page() -> void:
 
 	_section("FOCUS MODE")
 	_column.add_child(_note("How loud the game is allowed to be while you work. Off still earns."))
-	var focus_row := _row()
+	var focus_row := _choices()
 	for level in FOCUS_NAMES.size():
 		_choice(focus_row, FOCUS_NAMES[level], StringName("focus_%d" % level), func() -> void:
 			Settings.set_focus_intensity(level))
@@ -94,7 +94,7 @@ func _build_page() -> void:
 	# Two rows: flat colours, then scenes. Desktop is the transparent default. Every choice
 	# is a `Backdrop` entry; the panel adds nothing of its own, so a new backdrop is a row in
 	# that table and appears here by itself.
-	var backdrop_rows := [_row(), _row()]
+	var backdrop_rows := [_choices(), _choices()]
 	for entry in Backdrop.CHOICES:
 		var id: StringName = entry["id"]
 		_choice(backdrop_rows[int(entry["row"])], entry["name"], StringName("backdrop_%s" % id),
@@ -202,6 +202,17 @@ func _row() -> HBoxContainer:
 	_column.add_child(row)
 	return row
 
+## A row of choices that wraps rather than widens. Seven backdrops at 84px are 624px of keys,
+## and at 2x on the default play area the card is 525px inside — so Chroma, the last of them
+## and the one a streamer wants, was past the card's right edge with nothing to say it was
+## there (D68). A row of choices has no business setting the card's width.
+func _choices() -> HFlowContainer:
+	var row := HFlowContainer.new()
+	row.add_theme_constant_override("h_separation", 6)
+	row.add_theme_constant_override("v_separation", 6)
+	_column.add_child(row)
+	return row
+
 ## A caption and its current value, as one expanding cell so the buttons after it line up
 ## down the column whatever the value's width.
 func _stat(row: HBoxContainer, caption: String, value: String) -> Label:
@@ -217,7 +228,7 @@ func _stat(row: HBoxContainer, caption: String, value: String) -> Label:
 ## card, so which option is selected is a shape and not only a colour. `_refresh()` is
 ## authoritative — setting `button_pressed` from code emits `toggled`, not `pressed`, so
 ## there is no loop back into the action.
-func _choice(row: HBoxContainer, caption: String, key: StringName, action: Callable) -> void:
+func _choice(row: Container, caption: String, key: StringName, action: Callable) -> void:
 	var button := UIStyle.button(caption, UIStyle.MICRO)
 	button.toggle_mode = true
 	button.custom_minimum_size = Vector2(84, 30)

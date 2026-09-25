@@ -337,14 +337,33 @@ func select(item_id: StringName) -> void:
 
 # --- the detail pane -------------------------------------------------------
 
+## Everything in the pane scrolls inside it but the key. The pane is the one part of the page
+## whose height was its content's, and at 2x the content is taller than the card — so the whole
+## page scrolled, the card grew a scrollbar, and the key that buys the thing went below the
+## fold (D68). One card size means the page fits and what is long scrolls where it is; the
+## key stays where the hand is.
 func _detail_pane() -> Control:
 	var pane := VBoxContainer.new()
+	pane.name = "Detail"
 	pane.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	pane.add_theme_constant_override("separation", 8)
 
+	var scroll := ScrollContainer.new()
+	scroll.name = "DetailScroll"
+	# SHOW_NEVER, not DISABLED, for the reason the list's is (D22).
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	pane.add_child(scroll)
+	var words := VBoxContainer.new()
+	words.name = "Words"
+	words.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	words.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	words.add_theme_constant_override("separation", 8)
+	scroll.add_child(words)
+
 	var top := HBoxContainer.new()
 	top.add_theme_constant_override("separation", 12)
-	pane.add_child(top)
+	words.add_child(top)
 
 	var well := PanelContainer.new()
 	well.theme_type_variation = &"Sunk"
@@ -371,7 +390,7 @@ func _detail_pane() -> Control:
 	# entire point of moving it off the list.
 	_detail_body = UIStyle.body("", UIStyle.NAME)
 	_detail_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	pane.add_child(_detail_body)
+	words.add_child(_detail_body)
 
 	# How to work it (D57). A toy with gestures of its own says so here, before a Heart is
 	# spent on it — a zone nobody knows about is a zone nobody uses — and an item with none
@@ -381,7 +400,7 @@ func _detail_pane() -> Control:
 	_detail_how.theme_type_variation = &"HowTo"
 	_detail_how.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_detail_how.visible = false
-	pane.add_child(_detail_how)
+	words.add_child(_detail_how)
 	var how_row := HBoxContainer.new()
 	how_row.add_theme_constant_override("separation", 8)
 	how_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -403,7 +422,7 @@ func _detail_pane() -> Control:
 	_mastery_box = PanelContainer.new()
 	_mastery_box.theme_type_variation = &"Sunk"
 	_mastery_box.visible = false
-	pane.add_child(_mastery_box)
+	words.add_child(_mastery_box)
 
 	var mastery_column := VBoxContainer.new()
 	mastery_column.add_theme_constant_override("separation", 5)
@@ -426,14 +445,16 @@ func _detail_pane() -> Control:
 	_mastery_bar.add_theme_stylebox_override("fill", UIStyle.meter_fill(UIStyle.BONES))
 	mastery_column.add_child(_mastery_bar)
 
+	# Holds the note down against the key whenever everything fits, which is where it always
+	# sat: the scroll only moves on a card too short for the pane.
 	var gap := Control.new()
 	gap.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	gap.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	pane.add_child(gap)
+	words.add_child(gap)
 
 	_detail_note = UIStyle.label("", UIStyle.MICRO, UIStyle.TEXT_DIM)
 	_detail_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	pane.add_child(_detail_note)
+	words.add_child(_detail_note)
 
 	_detail_action = UIStyle.button("", UIStyle.LABEL)
 	_detail_action.theme_type_variation = &"BuyButton"
