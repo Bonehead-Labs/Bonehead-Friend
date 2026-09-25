@@ -333,6 +333,8 @@ func _ready() -> void:
 	SaveManager.slot_name = TEST_SLOT
 	_clear_slot()
 	SaveManager.load_game()
+	# Contact time is counted on every physics tick, not only the ones the driver awaits (D70).
+	get_tree().physics_frame.connect(_count_touch)
 
 	_catch = Catch.new()
 	OS.add_logger(_catch)
@@ -744,7 +746,18 @@ func _sample() -> void:
 	if _run.grime_seen >= 0.0 and grime < _run.grime_seen:
 		_run.grime_removed += _run.grime_seen - grime
 	_run.grime_seen = grime
-	# Contact time, counted the way the item counts it: the same call on the same frame.
+	# Contact time is `_count_touch`'s, on every tick.
+
+## Contact time, counted the way the item counts it: the same call on the same tick. On every
+## physics tick, from the tree's own signal, and not from `_step`: a driver waiting on anything
+## else — the one process frame `_expect_trickle` waits for the item to bank the tick it is in —
+## could see the main loop run two physics ticks when a frame ran long, and the item banked a
+## tick of touch the suite never counted. "At exactly its rate" failed that way about one run in
+## five on a busy machine (D70). Fired before any node's `_physics_process` in the tick, from the
+## contacts of the step before, which is exactly what the item is about to read.
+func _count_touch() -> void:
+	if _run == null:
+		return
 	var friendly: FriendlyBase = _run.body if not _gone(_run.body) and _run.body is FriendlyBase else null
 	if friendly and friendly._touching_buddy() != null:
 		_run.touch_seconds += 1.0 / float(Engine.physics_ticks_per_second)

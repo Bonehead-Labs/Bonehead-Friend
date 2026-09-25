@@ -208,9 +208,11 @@ an animal's reach to his nearest edge rather than his middle would change every 
 
 **J. Timing flakes seen while running the suites (info).** The personalities' "moves his mood by
 the same amount" reads real-time mood decay across the hit and failed once at a 0.23 spread
-against a 0.1 tolerance; the raccoon's tell once read 0.50 s under load. item_check's trickle
-"at exactly its rate" fails intermittently when a subset of the kind items is run by `--only`
-(1 run in 5 at 208a8d1, never in a full run seen). None of D70 touches them.
+against a 0.1 tolerance; the raccoon's tell once read 0.50 s under load. Neither is D70's. A third
+was the suites' own and is fixed: item_check's trickle "at exactly its rate" failed about one run
+in five (a beanbag +0.031 on 0.782) because contact time was counted only on the ticks a driver
+awaited, and a long frame runs two physics ticks inside the one process frame `_expect_trickle`
+waits; it is counted on every tick now, and held through three runs under double load.
 
 ---
 
