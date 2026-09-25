@@ -82,13 +82,13 @@ const LEISURE := [
 		120000, 60, "comfort", Color(0.44, 0.30, 0.26), Vector2(52, 44), 5.0,
 		{"hearts_per_second_touching": 45.0, "entry_sound": &"impact_soft"}],
 
-	# --- food: one bite, then gone -----------------------------------------
+	# --- food: a bite, then gone (a box of donuts is six bites, D65) ------------
 	[&"cup_of_tea", "Cup of Tea", "It goes straight through him. He drinks it anyway.",
 		150, 10, "food", Color(0.86, 0.80, 0.68), Vector2(20, 22), 0.4,
 		{"hearts_per_contact": 18.0, "contact_cooldown": 0.5, "consume_on_use": true}],
 	[&"donut_box", "Box of Donuts", "Six. He is going to have all six.",
 		350, 20, "food", Color(0.88, 0.60, 0.70), Vector2(34, 18), 0.5,
-		{"hearts_per_contact": 30.0, "contact_cooldown": 0.5, "consume_on_use": true}],
+		{"hearts_per_contact": 5.0, "contact_cooldown": 0.5, "consume_on_use": true, "servings": 6}],
 	[&"ice_cream", "Ice Cream", "Melting faster than he can eat it, which is part of the fun.",
 		1000, 30, "food", Color(0.92, 0.84, 0.90), Vector2(20, 30), 0.3,
 		{"hearts_per_contact": 60.0, "contact_cooldown": 0.5, "consume_on_use": true}],

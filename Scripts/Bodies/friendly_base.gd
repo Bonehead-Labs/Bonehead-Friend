@@ -31,6 +31,12 @@ extends BaseDraggable
 ## Vanishes once it has paid out. Food.
 @export var consume_on_use: bool = false
 
+## How many helpings a consumable is: one per contact, `contact_cooldown` apart, and gone after
+## the last. A box of donuts is six, and says so (D65) — it was eaten whole on the first touch.
+## Ignored unless `consume_on_use`.
+@export var servings: int = 1
+var _eaten := 0
+
 ## Minimum closing speed for `hearts_per_contact` to pay. The baseball's catch mechanic:
 ## he catches a *throw*, so resting a ball against him — or dropping it from one pixel up —
 ## must be worth nothing. Zero disables the check, which is what the pizza wants.
@@ -126,9 +132,11 @@ func _physics_process(delta: float) -> void:
 				_next_contact_msec = now + int(gap * 1000.0)
 				_pay_event(hearts_per_contact * value, buddy.global_position)
 				if consume_on_use:
-					_flush()
-					_despawn()
-					return
+					_eaten += 1
+					if _eaten >= servings:
+						_flush()
+						_despawn()
+						return
 
 	_previous_speed = linear_velocity.length()
 	_since_flush += delta

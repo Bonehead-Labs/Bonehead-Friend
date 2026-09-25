@@ -54,8 +54,12 @@ func _on_damage_dealt(info: HitInfo) -> void:
 ## Both kindness signals land here: a rate-paid sponge should lift his mood exactly as
 ## much per Heart as a pet does, or the sustained items would be economically pointless on
 ## the multiplier that matters most.
-func _on_kindness_given(_source_id: StringName, kindness: float, _world_pos: Vector2) -> void:
-	nudge(MoodMath.kindness_mood(kindness, ItemDB.balance.mood_per_kindness))
+##
+## A treat's third node (`mood_mult`, D65) scales the lift on top: food is the thing you reach
+## for to push him toward bliss, and a consumable had nothing else for that node to mean.
+func _on_kindness_given(source_id: StringName, kindness: float, _world_pos: Vector2) -> void:
+	nudge(MoodMath.kindness_mood(kindness, ItemDB.balance.mood_per_kindness)
+		* Progression.get_modifier(source_id, &"mood_mult"))
 
 func _emit() -> void:
 	_last_emitted = value

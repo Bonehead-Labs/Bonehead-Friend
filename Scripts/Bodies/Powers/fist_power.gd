@@ -65,9 +65,14 @@ func _physics_process(delta: float) -> void:
 	# `fire()` earlier in the same frame, because a velocity assignment discards a prior
 	# impulse. The fist's damage augment was therefore a placebo, on the starter power, which
 	# is the first thing a new player touches.
+	#
+	# "Faster Hands" is how fast it chases (D65). It used to shorten `cooldown_seconds`, which
+	# is 0 on the fist, so it multiplied nothing; a faster fist also lands harder, because
+	# the punch is measured on the receiver.
+	var hands := Progression.get_modifier(item_id, &"speed_mult")
 	var to_mouse := mouse - body.global_position
-	var wanted := to_mouse.normalized() * follow_speed if to_mouse.length() > leeway_radius else Vector2.ZERO
-	body.linear_velocity = body.linear_velocity.move_toward(wanted, follow_accel * delta)
+	var wanted := to_mouse.normalized() * follow_speed * hands if to_mouse.length() > leeway_radius else Vector2.ZERO
+	body.linear_velocity = body.linear_velocity.move_toward(wanted, follow_accel * hands * delta)
 
 	if _previous_mouse.distance_to(mouse) > leeway_radius:
 		_last_rotation = (mouse - _previous_mouse).angle() + PI / 2.0
