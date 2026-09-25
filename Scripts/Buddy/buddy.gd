@@ -639,6 +639,13 @@ func _min_impulse_for(src: Object, b: BalanceData) -> float:
 	if body == null:
 		# A scriptless StaticBody2D: the walls, the test floor. The world never swings.
 		harm_side = false
+	elif body is NpcBase:
+		# **An animal's blow is telegraphed; its body is not a weapon** (D70, AI audit E). Every
+		# animal strikes through `take_impulse` a wind-up after its tell, and its body brushing
+		# him on the way in was billed like a swung bat as well — a goose arriving, a hornet
+		# buzzing past — with no tell at all. So its body faces the fall floor: a bump is free,
+		# and an animal the player throws at him still lands.
+		harm_side = false
 	else:
 		var item := ItemDB.get_item(body.item_id)
 		if item != null and item.is_kind() and item.currency == ItemData.CURRENCY_HEARTS:

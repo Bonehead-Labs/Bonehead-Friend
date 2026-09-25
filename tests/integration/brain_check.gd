@@ -2357,6 +2357,10 @@ func _critter(id: StringName) -> void:
 			% [id, approach, npc.move_speed, tell, npc.windup_seconds,
 			("threw the bowling ball" if thrown else ("%.1f damage from %.0f impulse" % [blow.amount, blow.raw_impulse] if blow else "missed")),
 			peak_speed, spin_after, bumps])
+	# Every blow is telegraphed (D70, AI audit E): its body brushing him on the way in is a bump,
+	# not a hit. The goose's arrival was billed with no tell at all.
+	if bumps > 0:
+		problems.append("its body hurt him %d times before any tell" % bumps)
 	if not npc.flying and approach < npc.move_speed * 0.5:
 		problems.append("walked at %.0f px/s, under half its %.0f" % [approach, npc.move_speed])
 	if not _seen_now(&"threatened") and not _seen_now(&"hit_light"):
@@ -2365,6 +2369,7 @@ func _critter(id: StringName) -> void:
 	# Four more seconds of it: grapples, repeats, what it costs.
 	var bones := Economy.balance_of(Economy.BONES)
 	var n0 := _hits_from(id).size()
+	var t_window := _threats.size()
 	var fastest := 0.0
 	for f in 240:
 		await get_tree().physics_frame
@@ -2372,8 +2377,10 @@ func _critter(id: StringName) -> void:
 		if _buddy.health.down:
 			await _until(func() -> bool: return not _buddy.health.down, 240)
 	var more := _hits_from(id).size() - n0
-	_measure("%s: %d more hits in 4 s, +%.0f Bones, fastest he was thrown %.0f px/s" % [id, more,
-		Economy.balance_of(Economy.BONES) - bones, fastest])
+	var swings := _threats.slice(t_window).filter(func(t: Array) -> bool:
+		return t[0] == &"windup" and float(t[2]) > 0.0).size()
+	_measure("%s: %d more hits in 4 s from %d wind-ups, +%.0f Bones, fastest he was thrown %.0f px/s"
+		% [id, more, swings, Economy.balance_of(Economy.BONES) - bones, fastest])
 	# No animal throws him harder than the drag joint itself may (D54's 4,500 px/s backstop). It
 	# was a note here until D70: the gorilla's slam threw him at 4,640, and its push is capped now.
 	if maxf(fastest, peak_speed) > npc.max_drag_speed:
@@ -2434,6 +2441,8 @@ func _critter(id: StringName) -> void:
 	if left and took >= NpcBase.LEAVE_TIMEOUT - 0.5:
 		problems.append("never reached an edge; the %.0f s timeout removed it" % NpcBase.LEAVE_TIMEOUT)
 	_measure("%s: left in %.1f s; %d contact hits on the way out" % [id, took, _hits_from(id).size()])
+	if not _hits_from(id).is_empty():
+		problems.append("its body hurt him %d times on its way out, where it swings at nothing" % _hits_from(id).size())
 	_check("%s%s" % [id, "" if problems.is_empty() else ": " + "; ".join(problems)], problems.is_empty())
 
 # =====================================================================================
