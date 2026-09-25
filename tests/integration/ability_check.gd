@@ -239,6 +239,8 @@ func _check_ability(id: StringName) -> void:
 			measured = await _drive_transform(body, ability as TransformAbility)
 		&"tether":
 			measured = await _drive_tether(body, ability as TetherAbility)
+		&"clamp":
+			measured = await _drive_clamp(body, ability as ClampAbility)
 		_:
 			# A new archetype arrives with its driver here, or this fails by name — the same
 			# rule item_check keeps for a class with no row in DRIVERS.
@@ -724,6 +726,132 @@ func _drive_pry(body: WeaponBase, ability: PryTether) -> Dictionary:
 	return {"lift": ability.last_lift, "rise": rise, "pop": ability.last_pop, "pull": ability.last_pull,
 		"peak": peak, "hits": _hits.size()}
 
+## The three clamps: the jaws brought to him the way a player brings them, a tap, and what the bite
+## does — a hole and confetti, his headphones off and back on, or a crank as the hand goes round.
+func _drive_clamp(body: WeaponBase, ability: ClampAbility) -> Dictionary:
+	var head := bool(ability.row.get("snip_head", false))
+	await _jaws_to_him(body, ability, head)
+	_check("the jaws are on him (%s, him %s)" % [ability.jaw_world().round(),
+		_buddy.get_interaction_rect()], ability.in_jaws())
+	_press(MOUSE_BUTTON_RIGHT)
+	await _step()
+	_release(MOUSE_BUTTON_RIGHT)
+	var bites := int(ability.num("bites", 1.0))
+	await _await_cond(func() -> bool: return ability.bites_closed >= bites, 60)
+	var decided := func() -> bool: return ability._phase != ClampAbility.BITING or not ability.is_active()
+	await _await_cond(decided, 30)
+	await _step(2)
+	_check("a tap closes the jaws %d times (%d)" % [bites, ability.bites_closed], ability.bites_closed == bites)
+	_check("and they land on him (%d)" % ability.bites_landed, ability.bites_landed >= 1)
+	_check("each bite billed as its own impulse at x%.2f" % ability.num("bite_mult", 1.0),
+		_hits_with_impulse(ability.last_bite) == ability.bites_landed)
+	var measured := {"bites": ability.bites_landed, "bite": ability.last_bite}
+	if ability.num("hole_seconds", 0.0) > 0.0:
+		var hole := _buddy.get_node_or_null("PunchedHole")
+		_check("it leaves a hole in him", hole != null)
+		await _expect_face(&"punched", &"punched")
+		await _step(int(ability.num("hole_seconds", 3.0) * 60.0) + 10)
+		_check("and the hole closes when its time is up", not is_instance_valid(hole)
+			or hole.is_queued_for_deletion())
+	if head:
+		_check("a snip at his head takes his headphones off", ability.snipped)
+		_check("his own are hidden while they are off", _phones_off())
+		var phones: Node = null
+		for node in _stage.get_children():
+			if node is ClampAbility.Headphones:
+				phones = node
+		_check("and they are on the desk", phones != null)
+		await _expect_face(&"snipped", &"snipped")
+		# Glum for as long as they are off, once the gasp and the glare have had their second.
+		var glum := func() -> bool: return _faces.any(func(pair: Array) -> bool:
+			return pair[0] == &"bareheaded" and pair[1] == &"bareheaded")
+		await _await_cond(glum, 150)
+		await _expect_face(&"bareheaded", &"bareheaded")
+		# Their return is checked where anything left behind is (`_leftovers`): it outlasts the
+		# cooldown, and the shears are binned before it — which is the point, since the headphones
+		# have to find their own way home.
+	if ability.num("hold_seconds", 0.0) > 0.0:
+		_check("the first bite clamps on", ability.is_clamped())
+		_check("and they do not collide while it is on", body.get_collision_exceptions().has(_buddy))
+		# The hand goes round him: he turns like a nut.
+		var start := _buddy.global_rotation
+		var centre := _centre()
+		var radius := maxf(_mouse.distance_to(centre), 110.0)
+		var a0 := (_mouse - centre).angle()
+		for i in 130:
+			if not ability.is_clamped():
+				break
+			var a := a0 + TAU * 1.4 * float(i) / 120.0
+			_move(_centre() + Vector2(cos(a), sin(a)) * radius)
+			await _step()
+		_check("circling the hand turns him (%.1f turns)" % ability.turns, ability.turns >= 0.75)
+		_check("every half turn a crank (%d)" % ability.cranks, ability.cranks >= 1)
+		_check("each billed as its own impulse at x%.2f" % ability.num("crank_mult", 1.0),
+			_hits_with_impulse(ability.num("crank_force", 1500.0)) == ability.cranks)
+		await _expect_face(&"cranked", &"cranked")
+		await _await_cond(func() -> bool: return not ability.is_active(), 180)
+		_check("it lets go when its time is up", not ability.is_clamped())
+		_check("the hand is its own again", body.hand_offset == Vector2.ZERO)
+		_check("the exception comes off once they are clear", not body.get_collision_exceptions().has(_buddy))
+		measured["turns"] = ability.turns
+		measured["cranks"] = ability.cranks
+		measured["rotated"] = rad_to_deg(_buddy.global_rotation - start)
+	measured["hits"] = _hits.size()
+	return measured
+
+## The jaws brought to him the way a player brings them: the weapon hanging still from the hand,
+## the hand at the height that puts the jaws level with the point — the side of his head for shears
+## after his headphones, his side otherwise — and then across to him, slowly as it nears, until he
+## is between them. Across and not along a feedback on the jaws: a weapon pushed at him pushes him
+## along the desk ahead of it, and the jaws chase him into the wall.
+func _jaws_to_him(body: WeaponBase, ability: ClampAbility, head: bool) -> void:
+	for i in 120:
+		if _buddy.is_grounded() and _buddy.linear_velocity.length() < 5.0:
+			break
+		await _step()
+	# Lifted clear first, so it hangs freely from the hand; then the hand put where that hang sets
+	# the jaws level with the point and well clear of him; then across to him, level and slowly,
+	# until he is between them. A weapon resting on the desk does not follow a hand that goes down,
+	# and one pushed at him pushes him along the desk ahead of it. The point is his head for shears
+	# after his headphones — wherever his head is: after a few swings he is as likely lying on his
+	# side, head to one side, as standing — and his middle otherwise.
+	var rect := _buddy.get_interaction_rect()
+	var aim := _buddy.to_global(Vector2(0.0, -40.0)) if head else _centre() + Vector2(0.0, 10.0)
+	var along := aim.x - _centre().x
+	var side := signf(along) if absf(along) > 20.0 else (-1.0 if _centre().x > float(VIEW_SIZE.x) * 0.5 else 1.0)
+	var clear := Vector2(aim.x + side * 150.0, rect.position.y - 90.0)
+	await _mouse_to(clear, 600.0)
+	await _hang_still(body)
+	var hang := ability.jaw_world() - ability.hand_world()
+	var point := Vector2(aim.x + side * 110.0, aim.y)
+	await _mouse_to((point - hang).clamp(Vector2(10, 10), Vector2(VIEW_SIZE) - Vector2(10, 10)), 400.0)
+	await _hang_still(body)
+	for i in 400:
+		if ability.in_jaws():
+			break
+		_move(_mouse + Vector2(-side * 1.5, 0.0))
+		await _step()
+
+## Until it hangs still from the hand: slow in both speed and spin for a sixth of a second. A
+## pendulum is slow at the end of every swing, so a speed alone catches it mid-swing.
+func _hang_still(body: RigidBody2D) -> void:
+	var calm := 0
+	for i in 240:
+		_move(_mouse)
+		await _step()
+		calm = calm + 1 if body.linear_velocity.length() < 12.0 and absf(body.angular_velocity) < 0.4 else 0
+		if calm >= 10:
+			return
+
+func _phones_off() -> bool:
+	if not is_instance_valid(_buddy) or _buddy.art == null or _buddy.art.body == null:
+		return false
+	var material := _buddy.art.body.material as ShaderMaterial
+	if material == null:
+		return false
+	var value = material.get_shader_parameter(&"phones_off")
+	return value != null and float(value) > 0.5
+
 # --- what each hit carried -------------------------------------------------------------------
 
 func _on_payout(currency: StringName, amount: float, _at: Vector2, source_id: StringName) -> void:
@@ -1078,6 +1206,13 @@ func _leftovers() -> String:
 			return "a golf ball"
 	if not _buddy.get_collision_exceptions().is_empty():
 		return "an exception on him"
+	for node in _stage.get_children():
+		if node is ClampAbility.Headphones and not node.is_queued_for_deletion():
+			return "his headphones still on the desk"
+	if _phones_off():
+		return "his headphones still hidden"
+	if _buddy.get_node_or_null("PunchedHole") != null:
+		return "a hole still in him"
 	return ""
 
 func _clear_slot() -> void:

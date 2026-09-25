@@ -255,12 +255,62 @@ func _stage(id: StringName) -> void:
 				await _shot("%s-quake" % id, 5)
 		&"tether":
 			await _stage_tether(id, ability as TetherAbility, centre)
+		&"clamp":
+			await _stage_clamp(id, ability as ClampAbility)
 		_:
 			print("    no staging for the %s archetype yet — add a branch here" % ability.archetype())
 	await _idle(30)
 	if is_instance_valid(_weapon):
 		_weapon.bin_myself()
 	await _idle(10)
+
+## The three clamps: the jaws brought to him, the bite, and what it leaves — a hole, his headphones
+## on the desk and his head bare, or him turned in the jaws as the hand goes round.
+func _stage_clamp(id: StringName, clamp: ClampAbility) -> void:
+	var head := bool(clamp.row.get("snip_head", false))
+	# Lifted clear so it hangs freely, the jaws set level with the point clear of him — his head for
+	# the shears — then across to him slowly until he is between them.
+	var rect := _buddy.get_interaction_rect()
+	var aim := _buddy.to_global(Vector2(0.0, -40.0)) if head else rect.get_center() + Vector2(0.0, 10.0)
+	await _carry(Vector2(aim.x - 150.0, rect.position.y - 90.0), 30)
+	await _carry(_hand, 60)
+	var hang := clamp.jaw_world() - clamp.hand_world()
+	await _carry(Vector2(aim.x - 110.0, aim.y) - hang, 30)
+	await _carry(_hand, 60)
+	for i in 400:
+		if clamp.in_jaws():
+			break
+		await _carry(_hand + Vector2(1.5, 0.0), 1)
+	await _shot("%s-jaws" % id, 2)
+	clamp.press()
+	clamp.release()
+	await _shot("%s-bite" % id, 2)
+	for i in 30:
+		if clamp._phase != ClampAbility.BITING or not clamp.is_active():
+			break
+		await _carry(_hand, 1)
+	if head:
+		await _shot("%s-snipped" % id, 16)
+		await _shot("%s-bareheaded" % id, 60)
+		await _shot("%s-back" % id, int(clamp.num("phones_seconds", 4.0) * 60.0) - 20)
+		return
+	if clamp.num("hold_seconds", 0.0) > 0.0:
+		var centre := _buddy.get_interaction_rect().get_center()
+		var radius := maxf(_hand.distance_to(centre), 110.0)
+		var a0 := (_hand - centre).angle()
+		for i in 110:
+			if not clamp.is_clamped():
+				break
+			var a := a0 + TAU * 1.4 * float(i) / 120.0
+			await _carry(_buddy.get_interaction_rect().get_center() + Vector2(cos(a), sin(a)) * radius, 1)
+			if i == 40:
+				await _shot("%s-cranking" % id)
+			if i == 80:
+				await _shot("%s-cranked" % id)
+		if OS.get_cmdline_user_args().has("--trace"):
+			print("      let go: %s after %d cranks, %.2f turns" % [clamp.let_go_reason, clamp.cranks, clamp.turns])
+		return
+	await _shot("%s-hole" % id, 20)
 
 ## The three tethers: the chain round him and swung, the hook out and reeling, the lever.
 func _stage_tether(id: StringName, tether: TetherAbility, centre: Vector2) -> void:

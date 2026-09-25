@@ -978,7 +978,7 @@ const ABILITY_STANDOFF := {
 	&"charge": Vector2(-120, -30), &"dash": Vector2(-200, -20), &"stun": Vector2(-150, -30),
 	&"sustain": Vector2(-70, 0), &"shockwave": Vector2(-100, -150), &"projectile": Vector2(-320, -40),
 	&"spin": Vector2(-95, -40), &"throw": Vector2(-250, -80),
-	&"transform": Vector2(-150, -30), &"tether": Vector2(-150, -30),
+	&"transform": Vector2(-150, -30), &"tether": Vector2(-150, -30), &"clamp": Vector2(-150, -30),
 }
 
 ## A weapon with an ability (D74) uses it once, the way its line says — right pressed, held for as
@@ -1017,9 +1017,12 @@ func _use_ability(run: Run, body: WeaponBase) -> void:
 		&"sustain":
 			hold = 1.0
 	# A tether is pressed its own way: the Wrap keeps right down through the swing that catches him,
-	# the hook is a tap from range, and the crowbar's claw has to be against him first.
+	# the hook is a tap from range, and the crowbar's claw has to be against him first. A clamp's
+	# jaws have to be on him.
 	if ability is TetherAbility:
 		await _use_tether(ability as TetherAbility)
+	elif ability is ClampAbility:
+		await _use_clamp(ability as ClampAbility)
 	else:
 		_press(MOUSE_BUTTON_RIGHT)
 		for i in maxi(1, int(hold * 60.0)):
@@ -1066,6 +1069,60 @@ func _use_ability(run: Run, body: WeaponBase) -> void:
 			_centre().round()]
 	run.notes.append("%s: %d uses, %d landed%s" % [ability.ability_name(), ability.uses,
 		ability.payoffs, impact])
+
+## A clamp: its jaws brought onto him — slowly, by where the jaws are, since a weapon hanging from
+## the hand swings — a tap, and for one that clamps on, the hand going round him.
+func _use_clamp(clamp: ClampAbility) -> void:
+	for i in 240:
+		if _buddy.is_grounded() and _buddy.linear_velocity.length() < 5.0:
+			break
+		await _step()
+	# Lifted clear so it hangs freely, the hand put where that hang sets the jaws level with his
+	# middle and clear of him, then across to him slowly. A weapon resting on the desk does not
+	# follow a hand going down, and one pushed at him pushes him along ahead of it. Placed twice,
+	# because the lift can nudge him.
+	for attempt in 2:
+		var side := -1.0 if _centre().x > float(VIEW_SIZE.x) * 0.5 else 1.0
+		var rect := _buddy.get_interaction_rect()
+		await _mouse_to(Vector2(rect.get_center().x + side * 150.0, rect.position.y - 90.0), 600.0)
+		await _hang_still(clamp.body)
+		var hang := clamp.jaw_world() - clamp.hand_world()
+		var point := _centre() + Vector2(side * 110.0, 10.0)
+		await _mouse_to((point - hang).clamp(Vector2(10, 10), Vector2(VIEW_SIZE) - Vector2(10, 10)), 400.0)
+		await _hang_still(clamp.body)
+		if signf(clamp.jaw_world().x - _centre().x) != side:
+			continue
+		for i in 400:
+			if clamp.in_jaws():
+				break
+			_move(_mouse + Vector2(-side * 1.5, 0.0))
+			await _step()
+		if clamp.in_jaws():
+			break
+	_press(MOUSE_BUTTON_RIGHT)
+	await _step()
+	_release(MOUSE_BUTTON_RIGHT)
+	await _step(20)
+	var centre := _centre()
+	var radius := maxf(_mouse.distance_to(centre), 110.0)
+	var a0 := (_mouse - centre).angle()
+	for i in 130:
+		if not clamp.is_clamped():
+			break
+		var a := a0 + TAU * 1.4 * float(i) / 120.0
+		_move(_centre() + Vector2(cos(a), sin(a)) * radius)
+		await _step()
+
+## Until it hangs still from the hand: slow in both speed and spin for a sixth of a second. A
+## pendulum is slow at the end of every swing, so a speed alone catches it mid-swing.
+func _hang_still(body: RigidBody2D) -> void:
+	var calm := 0
+	for i in 240:
+		_move(_mouse)
+		await _step()
+		calm = calm + 1 if body.linear_velocity.length() < 12.0 and absf(body.angular_velocity) < 0.4 else 0
+		if calm >= 10:
+			return
 
 ## A tether, used the way its line says, from the stand-off `_use_ability` carried it to.
 func _use_tether(tether: TetherAbility) -> void:

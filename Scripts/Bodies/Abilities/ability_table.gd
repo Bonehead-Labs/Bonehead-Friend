@@ -49,6 +49,7 @@ const ARCHETYPES := {
 	&"throw": "res://Scripts/Bodies/Abilities/throw_ability.gd",
 	&"transform": "res://Scripts/Bodies/Abilities/transform_ability.gd",
 	&"tether": "res://Scripts/Bodies/Abilities/tether_ability.gd",
+	&"clamp": "res://Scripts/Bodies/Abilities/clamp_ability.gd",
 }
 
 const ABILITIES := {
