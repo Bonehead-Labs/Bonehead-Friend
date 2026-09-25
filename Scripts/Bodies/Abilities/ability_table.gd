@@ -16,7 +16,8 @@ extends RefCounted
 ##
 ##   id         the ability's own name, `snake_case` — the key its sounds and his rows use
 ##   name       what the shop calls it
-##   archetype  `charge`, `dash`, `stun`, `sustain`, `shockwave`, `projectile`, `spin`, `throw`
+##   archetype  `charge`, `dash`, `stun`, `sustain`, `shockwave`, `projectile`, `spin`, `throw`,
+##              `transform`, `tether`, `clamp`
 ##   script     optional: a subclass of the archetype, for a weapon whose ability needs a hook
 ##              its archetype lacks. The row still names the archetype it builds on
 ##   controls   the line `ItemData.controls` carries — written onto the item by
@@ -46,6 +47,7 @@ const ARCHETYPES := {
 	&"projectile": "res://Scripts/Bodies/Abilities/projectile_ability.gd",
 	&"spin": "res://Scripts/Bodies/Abilities/spin_ability.gd",
 	&"throw": "res://Scripts/Bodies/Abilities/throw_ability.gd",
+	&"transform": "res://Scripts/Bodies/Abilities/transform_ability.gd",
 }
 
 const ABILITIES := {

@@ -234,6 +234,8 @@ func _check_ability(id: StringName) -> void:
 			measured = await _drive_spin(body, ability as SpinAbility)
 		&"throw":
 			measured = await _drive_throw(body, ability as ThrowAbility)
+		&"transform":
+			measured = await _drive_transform(body, ability as TransformAbility)
 		_:
 			# A new archetype arrives with its driver here, or this fails by name — the same
 			# rule item_check keeps for a class with no row in DRIVERS.
@@ -519,6 +521,66 @@ func _drive_throw(body: WeaponBase, ability: ThrowAbility) -> Dictionary:
 	_check("at the hand", ability.grip_world().distance_to(hand) <= 120.0)
 	return {"speed": ability.last_throw_speed, "hits": ability.throw_hits, "trip": ability.last_trip}
 
+# --- the transforms, tethers and clamps --------------------------------------------------------
+
+## Lead Heart and Ignite: one tap changes it for its seconds. Then the hand works on him as a
+## player's would — a heavy one swung through him, one that passes through him drawn slowly back
+## and forth inside him — and it changes back when its time is up, weight and all.
+func _drive_transform(body: WeaponBase, ability: TransformAbility) -> Dictionary:
+	var mass := body.mass
+	_press(MOUSE_BUTTON_RIGHT)
+	await _step()
+	_release(MOUSE_BUTTON_RIGHT)
+	await _step()
+	_check("a tap changes it (%.1f s left)" % ability.time_left(), ability.is_changed())
+	var weight := ability.num("mass_mult", 1.0)
+	_check("it weighs %.1fx what it did (%.1f -> %.1f kg)" % [weight, mass, body.mass],
+		is_equal_approx(body.mass, mass * weight))
+	var light := ability.sprite().get_node_or_null("AbilityLight") as CanvasItem if ability.sprite() else null
+	_check("and it glows", light != null and light.visible)
+	var contact := 0
+	if ability.is_phased():
+		_check("it goes through him", body.get_collision_exceptions().has(_buddy))
+		var him := _centre()
+		var side := -1.0
+		for i in 8:
+			if not ability.is_changed():
+				break
+			him = _centre()
+			await _mouse_to(Vector2(him.x + 70.0 * side, him.y + 10.0), 260.0)
+			side = -side
+		for info in _hits:
+			var own := false
+			for impulse in ability.struck:
+				own = own or absf(info.raw_impulse - impulse) <= 0.5
+			if not own:
+				contact += 1
+		_check("drawn through him it burns him (%d burns, %.2f s inside)"
+			% [ability.burns, ability.inside_seconds], ability.burns >= 3)
+		_check("each burn billed as its own impulse at x%.2f" % ability.num("burn_mult", 1.0),
+			_hits_with_impulse(ability.num("burn_force", 700.0)) >= 3)
+		_check("and the blade never touched him (%d contact hits)" % contact, contact == 0)
+		await _expect_face(&"scorched", &"scorched")
+	else:
+		var swings := 0
+		while ability.is_changed() and swings < 4 and ability.blows < 2:
+			await _sweep_through(900.0, 1300.0)
+			swings += 1
+		await _step(3)
+		_check("its blows land (%d)" % ability.blows, ability.blows >= 1)
+		_check("billed at x%.2f on top of its own" % ability.num("hit_mult", 1.0),
+			_boosted_hits(body, ability.num("hit_mult", 1.0)) >= 1)
+		await _expect_face(&"crushed", &"crushed")
+	await _await_cond(func() -> bool: return not ability.is_changed(), 360)
+	_check("it changes back when its time is up", not ability.is_changed())
+	_check("and its weight with it (%.1f kg)" % body.mass, is_equal_approx(body.mass, mass))
+	_check("the light goes out", light == null or not light.visible)
+	await _await_cond(func() -> bool: return not ability.is_active(), 90)
+	_check("the exception comes off once it is clear of him",
+		not body.get_collision_exceptions().has(_buddy))
+	return {"blows": ability.blows, "burns": ability.burns, "inside": ability.inside_seconds,
+		"kg": ability.peak_mass, "hits": _hits.size()}
+
 # --- what each hit carried -------------------------------------------------------------------
 
 func _on_payout(currency: StringName, amount: float, _at: Vector2, source_id: StringName) -> void:
@@ -607,6 +669,19 @@ func _extra_damage(body: WeaponBase, archetype: StringName, ordinary: float) -> 
 			plain += info.amount
 	if archetype == &"spin":
 		extra += maxf(plain - ordinary, 0.0)
+	if archetype == &"transform":
+		extra += _heavier(body, ordinary)
+	return extra
+
+## What a weapon made heavier added beyond its multiplier: each boosted blow, unboosted, less an
+## ordinary hit. The weight is in the swing, so it is in the impulse he measured, not in a number.
+func _heavier(body: WeaponBase, ordinary: float) -> float:
+	var base := Progression.damage_mult_for(_id, body.damage_mult)
+	var extra := 0.0
+	for info in _hits:
+		var m := _mult_of(info) / base
+		if m > 1.0005 and not _capped(info):
+			extra += maxf(info.amount / m - ordinary, 0.0)
 	return extra
 
 func _hit_with_impulse(impulse: float) -> HitInfo:

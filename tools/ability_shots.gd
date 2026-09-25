@@ -21,6 +21,8 @@ extends CaptureWindow
 
 const SIZE := Vector2i(1180, 700)
 const OUT := "user://ability_shots"
+## The crop each shot is also written as, at 3x, into `zoom/`.
+const ZOOM_BOX := Vector2i(360, 240)
 
 var _main: Node
 var _had := {}
@@ -33,7 +35,7 @@ func _ready() -> void:
 	_use_capture_slot()
 	_had = {"hud": Settings.hud_pinned, "tabs": Settings.tabs_pinned, "scale": Settings.ui_scale,
 		"focus": Settings.focus_intensity}
-	DirAccess.make_dir_recursive_absolute(OUT)
+	DirAccess.make_dir_recursive_absolute(OUT + "/zoom")
 	Settings.focus_intensity = Settings.Intensity.NORMAL
 	Settings.ui_scale = 0
 	Settings.hud_pinned = true
@@ -228,6 +230,29 @@ func _stage(id: StringName) -> void:
 			(ability as ThrowAbility)._left_down = false
 			await _shot("%s-returning" % id, 12)
 			_hand = hand
+		&"transform":
+			var change := ability as TransformAbility
+			await _carry(centre + Vector2(-170.0, -30.0), 30)
+			ability.press()
+			ability.release()
+			await _shot("%s-changed" % id, 10)
+			if change.is_phased():
+				# Drawn slowly through him and held in him, the way a lit blade is used.
+				for i in 90:
+					await _carry(_hand.move_toward(centre + Vector2(40.0, 0.0), 4.0), 1)
+					if change.burns > 0:
+						break
+				await _shot("%s-inside" % id, 1)
+				for i in 30:
+					await _carry(_hand.move_toward(centre + Vector2(-60.0, 10.0), 4.0), 1)
+				await _shot("%s-burning" % id)
+			else:
+				for i in 40:
+					await _carry(_hand.move_toward(centre + Vector2(170.0, -30.0), 22.0), 1)
+					if change.blows > 0:
+						break
+				await _shot("%s-blow" % id, 1)
+				await _shot("%s-quake" % id, 5)
 		_:
 			print("    no staging for the %s archetype yet — add a branch here" % ability.archetype())
 	await _idle(30)
@@ -279,7 +304,18 @@ func _shot(name: String, after: int = 0) -> void:
 		print("    %s (staged; headless draws nothing)" % name)
 		return
 	await RenderingServer.frame_post_draw
-	_grab().save_png("%s/%s.png" % [OUT, name])
+	var frame := _grab()
+	frame.save_png("%s/%s.png" % [OUT, name])
+	# And the part that matters at 3x, nearest-neighbour: a 1x frame of a whole desk is too small
+	# to judge a two-pixel glow or a hole in him by. Centred between the weapon and him.
+	if is_instance_valid(_weapon) and is_instance_valid(_buddy):
+		var mid := (_weapon.global_position + _buddy.get_interaction_rect().get_center()) * 0.5
+		var box := Rect2i(Vector2i(mid - Vector2(ZOOM_BOX) * 0.5), ZOOM_BOX)
+		box = box.intersection(Rect2i(Vector2i.ZERO, frame.get_size()))
+		if box.size.x > 8 and box.size.y > 8:
+			var crop := frame.get_region(box)
+			crop.resize(box.size.x * 3, box.size.y * 3, Image.INTERPOLATE_NEAREST)
+			crop.save_png("%s/zoom/%s.png" % [OUT, name])
 	print("    %s" % name)
 	if OS.get_cmdline_user_args().has("--trace") and is_instance_valid(_weapon):
 		print("      hand %s handle %s grip %s him %s" % [_hand.round(), _weapon.handle.global_position.round(),

@@ -978,6 +978,7 @@ const ABILITY_STANDOFF := {
 	&"charge": Vector2(-120, -30), &"dash": Vector2(-200, -20), &"stun": Vector2(-150, -30),
 	&"sustain": Vector2(-70, 0), &"shockwave": Vector2(-100, -150), &"projectile": Vector2(-320, -40),
 	&"spin": Vector2(-95, -40), &"throw": Vector2(-250, -80),
+	&"transform": Vector2(-150, -30),
 }
 
 ## A weapon with an ability (D74) uses it once, the way its line says — right pressed, held for as
@@ -1028,6 +1029,19 @@ func _use_ability(run: Run, body: WeaponBase) -> void:
 				break
 			await _mouse_to(_centre() + Vector2(160.0, -30.0), 1300.0)
 			await _mouse_to(_centre() + Vector2(-160.0, -30.0), 1000.0)
+	# A weapon changed for a while is then used: swung through him, or — one that passes through
+	# him — drawn slowly back and forth inside him.
+	if ability is TransformAbility:
+		var change := ability as TransformAbility
+		for i in 6:
+			if ability.payoffs > 0 or not change.is_changed():
+				break
+			if change.is_phased():
+				await _mouse_to(_centre() + Vector2(70.0, 10.0), 260.0)
+				await _mouse_to(_centre() + Vector2(-70.0, 10.0), 260.0)
+			else:
+				await _mouse_to(_centre() + Vector2(160.0, -30.0), 1300.0)
+				await _mouse_to(_centre() + Vector2(-160.0, -30.0), 1000.0)
 	# A whirl knocks him on with every blow; the hand follows him, as a player's would.
 	for i in 300:
 		if not ability.is_active():
