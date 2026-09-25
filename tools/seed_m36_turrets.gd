@@ -149,17 +149,21 @@ const TURRETS := {
 		"turret": {
 			"fire_interval": 1.6, "blast_radius": 64.0, "blast_force": 2400.0,
 			"damage_mult": 1.35, "pellets": 1, "spread": 0.0, "max_range": 300.0,
-			"aim_lean_degrees": 5.0, "muzzle": Vector2(-1, -21), "faces": 1.0, "flips": false, "recoil_pixels": 1.0,
+			"aim_lean_degrees": 5.0, "muzzle": Vector2(-2.5, -22), "faces": 1.0, "flips": false, "recoil_pixels": 1.0,
 		},
+		# Toroid, copper column, the primary's spiral and the base (D69). The spark drawn off the
+		# rim is light, like the lattice's beams, and is not solid; it is also why the column
+		# sits two and a half pixels left of the picture's centre.
 		"body": {
 			"mass": 14.0,
 			"shapes": [
-				{"rect": Vector2(26, 15), "at": Vector2(-1, 14)},
-				{"rect": Vector2(9, 16), "at": Vector2(-1.5, -1)},
-				{"capsule": Vector2(14, 21), "at": Vector2(-1.5, -15.5), "rot": 90.0},
+				{"rect": Vector2(27, 14), "at": Vector2(-2.5, 15)},
+				{"rect": Vector2(23, 4), "at": Vector2(-2.5, 6)},
+				{"rect": Vector2(11, 13), "at": Vector2(-2.5, -2.5)},
+				{"capsule": Vector2(12, 27), "at": Vector2(-2.5, -15.5), "rot": 90.0},
 			],
-			"com": Vector2(0, 15), "grip": Vector2(0, -16),
-			"grab": {"size": Vector2(30, 48), "at": Vector2(0, 0)},
+			"com": Vector2(-2.5, 15), "grip": Vector2(-2.5, -16),
+			"grab": {"size": Vector2(30, 48), "at": Vector2(-1.5, -1)},
 		},
 		"tree": ["More Windings", "Shock Damages", "Shorter Charge"],
 		"device": [&"tesla_coil_grid_tap", "Grid Tap",
@@ -231,17 +235,18 @@ const TURRETS := {
 		"turret": {
 			"fire_interval": 3.6, "blast_radius": 110.0, "blast_force": 9000.0,
 			"damage_mult": 2.6, "pellets": 1, "spread": 0.0, "max_range": 700.0,
-			"aim_lean_degrees": 25.0, "muzzle": Vector2(11, -20), "faces": 1.0, "flips": true, "recoil_pixels": 7.0,
+			"aim_lean_degrees": 25.0, "muzzle": Vector2(9, -18), "faces": 1.0, "flips": true, "recoil_pixels": 7.0,
 		},
+		# Drawn nearly upright in D69, so the part of it that is there in both facings is the
+		# base plate and the foot of the tube where it crosses the middle; the rest of the tube
+		# and the bipod lean one way and are not solid. The pin is at the top of that column.
 		"body": {
 			"mass": 18.0,
 			"shapes": [
-				{"rect": Vector2(30, 6), "at": Vector2(0, -10.5)},
-				{"rect": Vector2(14, 3), "at": Vector2(0, -15)},
-				{"rect": Vector2(6, 11), "at": Vector2(0, -0.5)},
-				{"rect": Vector2(26, 9), "at": Vector2(0, 14)},
+				{"rect": Vector2(30, 7), "at": Vector2(0, 15.5)},
+				{"rect": Vector2(6, 13), "at": Vector2(0, 4.5)},
 			],
-			"com": Vector2(0, 13), "grip": Vector2(0, -12),
+			"com": Vector2(0, 13), "grip": Vector2(0, -3),
 			"grab": {"size": Vector2(34, 44), "at": Vector2(0, 0)},
 		},
 		"tree": ["Bigger Shell", "Bombardment Rates", "Faster Crew"],
