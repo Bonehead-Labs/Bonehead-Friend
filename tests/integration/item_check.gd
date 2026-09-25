@@ -1259,7 +1259,16 @@ func _drive_fist(run: Run) -> void:
 	_move(_centre() + Vector2(-70.0, -20.0))
 	await _step(8)
 	var pressed_at := Time.get_ticks_msec()
+	# The shove the click hands the fist, read off the server either side of the press: the punch
+	# is applied inside the click, before any step can add to it.
+	var before: Vector2 = PhysicsServer2D.body_get_state(fist.get_rid(), PhysicsServer2D.BODY_STATE_LINEAR_VELOCITY)
 	_press(MOUSE_BUTTON_LEFT)
+	var after: Vector2 = PhysicsServer2D.body_get_state(fist.get_rid(), PhysicsServer2D.BODY_STATE_LINEAR_VELOCITY)
+	var shove := (after - before).length() * fist.mass
+	# D64: the damage node is read once, on him, as every weapon's is. Scaling the shove by it as
+	# well made one level of it x1.32 on a punch.
+	_expect(run, "punch", absf(shove - power.punch_impulse) <= power.punch_impulse * 0.01,
+		"the punch is the same shove at every level (%.0f, authored %.0f)" % [shove, power.punch_impulse])
 	run.cooldown = float(power._cooldown_until_msec - pressed_at)
 	_release(MOUSE_BUTTON_LEFT)
 	await _step(20)
