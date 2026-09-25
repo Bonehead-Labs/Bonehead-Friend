@@ -101,6 +101,7 @@ func _ready() -> void:
 	await _the_purse_can_count_high()
 	await _the_payouts_are_visible()
 	await _the_big_numbers_dodge_the_hud()
+	await _the_numbers_keep_apart()
 	await _the_power_leaves_your_hands_free()
 	await _the_world_has_juice()
 	await _the_sounds_are_recorded()
@@ -1060,6 +1061,10 @@ func _the_big_numbers_dodge_the_hud() -> void:
 	fx.call("spawn_number", "KNOCKOUT  +999", keep.get_center(), FXLayer.BONES_RAMP[0], 1.6,
 		FXLayer.TIER_SIZE.size() - 1)
 	await _settle()
+	# Measured once its punch has settled. A 1.6x headline at the top of its punch is 780px
+	# wide, which does not fit beside this HUD in a 960px window: the number steps aside for its
+	# settled size and the punch overhangs the card for the fifth of a second it lasts.
+	await get_tree().create_timer(FXLayer.PUNCH_TIME + 0.05).timeout
 
 	var checked := 0
 	var clear := true
@@ -1068,12 +1073,142 @@ func _the_big_numbers_dodge_the_hud() -> void:
 		if label == null or not label.visible:
 			continue
 		checked += 1
-		if keep.intersects(Rect2(label.position, label.size * label.scale)):
+		# The rect as drawn. `Rect2(position, size * scale)` is the box a top-left pivot would
+		# give; the numbers pivot on their centre, so that rect is off by a fifth of the width.
+		if keep.intersects(_drawn_rect(label)):
 			clear = false
 	_check("a number aimed at the HUD is drawn somewhere else", checked > 0 and clear,
 		"%d number(s) placed, keep-out %s" % [checked, keep])
 
 	Settings.focus_intensity = saved
+
+## Two floating texts are never drawn over each other (fx_layer.gd, "keeping the numbers apart").
+##
+## `ui_shots` 16-juice printed "BASEBALE BATNRANK 43": two rank-ups on one frame at one point,
+## one printed behind the other. In the same shot a streak tag sat on its own payout number, and
+## twelve hits in a frame piled twelve numbers on one pixel. Asserted the way it failed —
+## everything at once, at one point, on one frame — and then again later in their lives,
+## because they rise on an ease-out and a young number catches an old one up.
+func _the_numbers_keep_apart() -> void:
+	_suite("numbers keep apart")
+	var fx := _find(_main, "FXLayer")
+	if fx == null:
+		_check("the FX layer is present to test", false)
+		return
+	var saved := Settings.focus_intensity
+	Settings.focus_intensity = Settings.Intensity.NORMAL
+	await _quiet_numbers(fx)
+
+	var buddy := get_tree().get_first_node_in_group(&"buddy") as Node2D
+	var spot := (buddy.global_position if buddy else Vector2(VIEW_SIZE) * 0.5) + Vector2(0, -78)
+	# The capture's frame, and then some: two different toys ranking at once, and a big and a
+	# small payout aimed at the very spot the rank lines print.
+	EventBus.mastery_rank_up.emit(&"mace", 4)
+	EventBus.mastery_rank_up.emit(&"baseball_bat", 43)
+	EventBus.payout.emit(Economy.BONES, 4800.0, spot, &"baseball_bat")
+	EventBus.payout.emit(Economy.BONES, 4.0, spot, &"baseball_bat")
+	await get_tree().process_frame
+	_check("two rank-ups on one frame both print",
+		_visible_tag(fx, "MACE  RANK 4") and _visible_tag(fx, "BASEBALL BAT  RANK 43"))
+	_check("and a big and a small payout at the same spot both print",
+		_visible_tag(fx, "+%s" % fx.call("_format", 4800.0))
+		and _visible_tag(fx, "+%s" % fx.call("_format", 4.0)))
+	await _apart_for_life(fx, "rank lines and payouts at one point")
+
+	# The burst: twelve hits in one frame, exactly as `ui_shots` stages it.
+	await _quiet_numbers(fx)
+	Economy._streak_deadline_msec = 0
+	var hit := Vector2(VIEW_SIZE) * 0.5 + Vector2(60, 40)
+	for i in 12:
+		EventBus.damage_dealt.emit(HitInfo.new(30.0, &"baseball_bat", hit, 1000.0))
+	await get_tree().process_frame
+	var payouts := 0
+	var tags := 0
+	for child in fx.get_children():
+		var label := child as Label
+		if label and label.visible:
+			if label.text.begins_with("+"):
+				payouts += 1
+			elif label.text.begins_with("x"):
+				tags += 1
+	_check("a burst of twelve still reads as a burst (%d numbers drawn)" % payouts, payouts >= 5)
+	_check("with one streak tag, not one per hit (%d)" % tags, tags == 1)
+	await _apart_for_life(fx, "a burst of twelve hits")
+
+	# The knockout: a record round's banner over the headline, and a fountain of coins that is a
+	# spray by design and so passes *behind* the words rather than through them.
+	await _quiet_numbers(fx)
+	var had_round := Economy.last_round
+	Economy.last_round = {"record": true, "number": 3}
+	fx.call("_on_knockout_payout", 12345.0)
+	fx.call("_on_buddy_state_changed", &"pile")
+	Economy.last_round = had_round
+	await get_tree().process_frame
+	var headline := _visible_label(fx, "KNOCKOUT")
+	var banner := _visible_label(fx, "NEW BEST ROUND")
+	_check("a record knockout prints its banner over the headline", headline != null
+		and banner != null and _drawn_rect(banner).end.y <= _drawn_rect(headline).position.y + 0.5)
+	var coins_behind := true
+	for child in fx.get_children():
+		var coin := child as Label
+		if coin and coin.visible and coin.text.begins_with("+") and headline \
+				and coin.z_index >= headline.z_index:
+			coins_behind = false
+	_check("and the fountain's coins draw behind the lines", coins_behind)
+	await _apart_for_life(fx, "the knockout's lines")
+
+	Settings.focus_intensity = saved
+	await _quiet_numbers(fx)
+
+func _visible_label(fx: Node, prefix: String) -> Label:
+	for child in fx.get_children():
+		var label := child as Label
+		if label and label.visible and label.text.begins_with(prefix):
+			return label
+	return null
+
+## Asserts no two visible floating labels overlap, now and at four points later in their lives.
+func _apart_for_life(fx: Node, what: String) -> void:
+	var clashes: Array[String] = []
+	var elapsed := 0.0
+	for at in [0.0, 0.12, 0.3, 0.55, 0.8]:
+		if at > elapsed:
+			await get_tree().create_timer(at - elapsed).timeout
+			elapsed = at
+		var clash := _overlapping_labels(fx)
+		if clash != "":
+			clashes.append("t+%.2f: %s" % [at, clash])
+	_check("%s never overlap, at any point in their rise" % what, clashes.is_empty(),
+		"; ".join(clashes))
+
+## The first pair of visible rising labels whose drawn ink overlaps, or "". The fountain's
+## coins are left out: they are thrown from one point on purpose.
+func _overlapping_labels(fx: Node) -> String:
+	var labels: Array[Label] = []
+	for child in fx.get_children():
+		var label := child as Label
+		if label and label.visible and label.z_index != FXLayer.Z_COIN:
+			labels.append(label)
+	for i in labels.size():
+		for j in range(i + 1, labels.size()):
+			if _drawn_rect(labels[i]).intersects(_drawn_rect(labels[j])):
+				return "\"%s\" over \"%s\"" % [labels[i].text, labels[j].text]
+	return ""
+
+## Where a floating label's ink actually is: scaled about its pivot, with the outline that is
+## drawn outside the glyphs.
+func _drawn_rect(label: Label) -> Rect2:
+	var top_left := label.position + label.pivot_offset * (Vector2.ONE - label.scale)
+	var ink := float(label.get_theme_constant("outline_size")) * 0.5 * label.scale.x
+	return Rect2(top_left, label.size * label.scale).grow_individual(ink, 0.0, ink, 0.0)
+
+## Lets every number on screen finish, so a check starts on an empty desk.
+func _quiet_numbers(fx: Node) -> void:
+	await get_tree().create_timer(FXLayer.LIFETIME + 0.15).timeout
+	await _settle()
+	for child in fx.get_children():
+		if child is Label:
+			(child as Label).visible = false
 
 ## Being armed no longer takes your hands away, and putting the power down is one click (D47).
 ##
