@@ -86,6 +86,7 @@ func _ready() -> void:
 	await _the_strip_opens_the_panels()
 	await _the_card_is_one_size()
 	await _shop_tiles_are_clickable()
+	await _the_shop_describes_what_is_listed()
 	await _every_visible_button_is_reachable()
 	await _the_capstone_levels_and_switches()
 	await _the_settings_page_works()
@@ -200,6 +201,38 @@ func _the_card_is_one_size() -> void:
 	var same := sizes.all(func(s: Vector2) -> bool: return s.is_equal_approx(first))
 	_check("every page gets the same card (%s)" % first, same,
 		"" if same else str(sizes))
+	panels.call("close")
+	await _settle()
+
+## The detail pane describes a row of the list on screen, never an item from another drawer.
+##
+## `ui_shots` 03-toys-kind came back with the Care tab lit over a pane describing the Boombox:
+## the tool asked for Care and then selected an item M3.7-B had moved to Mood. The shop was
+## right — the one production caller, `PanelLayer._on_show_item`, opens the item's own drawer
+## first — so this pins that path for one item in each kind drawer, and the capture tools'
+## own staging, which now reads the drawer off the item's data.
+func _the_shop_describes_what_is_listed() -> void:
+	_suite("shop drawers")
+	var panels := _find(_main, "PanelLayer")
+	var shop := _find(_main, "ShopPanel")
+	if panels == null or shop == null:
+		_check("the shop is there to ask", false)
+		return
+	for id in [&"boombox", &"pizza", &"baseball", &"sponge", &"beanbag"]:
+		var item := ItemDB.get_item(id)
+		if item == null:
+			continue
+		EventBus.ui_show_item.emit(id)
+		await _settle()
+		_check("asked for the %s, the shop opens its own drawer and selects it in the list" % id,
+			shop.get("_category") == item.category and shop.get("_selected") == id
+				and (shop.get("_rows") as Dictionary).has(id),
+			"drawer %s, selected %s" % [shop.get("_category"), shop.get("_selected")])
+	shop.call("show_category", ItemDB.get_item(&"boombox").category)
+	shop.call("select", &"boombox")
+	await _settle()
+	_check("the capture tools' staging lists what it selects",
+		(shop.get("_rows") as Dictionary).has(shop.get("_selected")))
 	panels.call("close")
 	await _settle()
 
