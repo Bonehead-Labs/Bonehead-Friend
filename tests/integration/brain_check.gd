@@ -2363,10 +2363,15 @@ func _turret(id: StringName) -> void:
 	Progression._unlock(id)
 	var probe := ItemDB.get_item(id).scene.instantiate() as TurretBase
 	var reach := probe.max_range
+	var turret_half := _half_width(probe)
 	probe.free()
-	var gap := minf(reach * 0.6, 260.0)
 	_place(Vector2(HOME.x, HOME.y))
 	await _frames(10)
+	# Never inside him. The sides below are set by teleport, and a teleport into an overlap is
+	# resolved by a shove at whatever part overlaps — at the end of a flamethrower's 108 px tank
+	# (D61: the collider is the whole picture) that shove tipped it onto its side and put its
+	# muzzle straight up. So the gap clears both bodies' own colliders as well as sitting in reach.
+	var gap := maxf(minf(reach * 0.6, 260.0), turret_half + _half_width(_buddy) + 8.0)
 	EventBus.spawn_requested.emit(id, Vector2(HOME.x - gap, FLOOR_Y - 60.0))
 	var turret := _last_spawned(id) as TurretBase
 	if turret == null:
@@ -2585,6 +2590,18 @@ func _focus_name() -> String:
 func _clear_desk() -> void:
 	if is_instance_valid(_spawner):
 		_spawner.clear_desk()
+
+## How far a body's solid shapes reach either side of its origin, in its own pixels — read off
+## the shapes, so a collider re-authored to its picture moves the answer with it.
+func _half_width(body: Node) -> float:
+	var reach := 0.0
+	for child in body.get_children():
+		var piece := child as CollisionShape2D
+		if piece == null or piece.shape == null:
+			continue
+		var box := piece.transform * piece.shape.get_rect()
+		reach = maxf(reach, maxf(absf(box.position.x), absf(box.end.x)))
+	return reach
 
 func _last_spawned(id: StringName) -> Node:
 	if not is_instance_valid(_spawner):
