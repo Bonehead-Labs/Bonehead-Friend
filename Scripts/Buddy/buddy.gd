@@ -44,6 +44,60 @@ var state: StringName = &"idle"
 ## which a per-item-id cooldown would not.
 var _cooldowns: Dictionary = {}
 
+## **The half of a hit the engine never reports** (docs/decisions.md D64). A contact carries the
+## impulse of the step *before* the one it is reported in, and only when the solver recognised
+## it as the same contact — within one pixel on both bodies. So a hit that parts them inside one
+## step, or slides across him as it lands, reports zero and then nothing. That was the fist, every
+## thrown ball and the trampoline's landing. His own momentum says what the step did to him, and
+## the engine's report one step later says how much of that it knows about; the rest was a
+## contact it will never report, and it is billed to that contact.
+##
+## His velocity as the step about to run begins — read after every script has had its say, by
+## `StepStart`, so a blast or a hop applied this frame is not mistaken for something that hit him.
+var _step_v := Vector2.ZERO
+var _step_v_fresh := false
+## **Asleep, he is not told about the step that wakes him.** Godot calls back only a body that was
+## awake when the step began, so a ball thrown at him while he dozes is solved in a step he never
+## hears about, and by the next read his velocity already has the hit in it. So while he sleeps
+## the read stands still — `_span_asleep` — and the first callback after he wakes covers both
+## steps; `_span_woke` says the contacts it reports belong to that span too.
+var _span_asleep := false
+var _span_woke := false
+## The last solved step, held until the engine has had its one chance to report it: the impulse
+## his contacts handed him (his momentum change, less gravity and damping), and which colliders
+## were touching him, where, and from which side. `_ledger_known` is what the engine has already
+## reported of it, when the span began in a step he slept through.
+var _ledger_known := Vector2.ZERO
+var _ledger_dp := Vector2.ZERO
+var _ledger_count := 0
+var _ledger_src := PackedInt64Array()
+var _ledger_normal := PackedVector2Array()
+var _ledger_at := PackedVector2Array()
+var _ledger_share := PackedFloat32Array()
+var _ledger_cap := PackedFloat32Array()
+## A reported impulse under this is the engine saying "a new contact", not a measurement.
+const REPORTED_EPSILON := 1.0
+## The most a contact can hand him per unit of its normal impulse: friction caps the tangential
+## part at `friction x normal`, and his friction is 1.0 (Godot combines by the minimum), so
+## sqrt(1 + 1). A residual outside that cone is not something this contact could have done.
+const FRICTION_CONE := 1.4142135
+## The largest impulse a collision can make, per unit of the mass behind it and of closing
+## speed: `(1 + e)` at a restitution of 1, times the friction cone. Anything past it was pushed
+## in by something else — him squeezed against the floor by a bat — and the part the engine did
+## not report of *that* is not a hit anything threw.
+const APPROACH_CAP := 2.0 * FRICTION_CONE
+## Runs last among every node's `_physics_process`, so what it reads is what the step starts from.
+const STEP_START_PRIORITY := 1 << 30
+
+## The last word before the physics step. A node of its own rather than a priority on him: his
+## own `_physics_process` dispatches hits, and moving that to the end of the frame would move the
+## whole payout pipeline with it.
+class StepStart extends Node:
+	var buddy: Buddy
+
+	func _physics_process(_delta: float) -> void:
+		buddy._note_step_start()
+
 ## Hits are collected inside _integrate_forces and dispatched from _physics_process.
 ## Emitting from inside the physics step would run the whole payout pipeline — including
 ## nodes being added to the tree for floating numbers — while the physics server is
@@ -85,6 +139,16 @@ func _ready() -> void:
 
 	contact_monitor = true
 	max_contacts_reported = MAX_CONTACTS
+	_ledger_src.resize(MAX_CONTACTS)
+	_ledger_normal.resize(MAX_CONTACTS)
+	_ledger_at.resize(MAX_CONTACTS)
+	_ledger_share.resize(MAX_CONTACTS)
+	_ledger_cap.resize(MAX_CONTACTS)
+	var watch := StepStart.new()
+	watch.name = "StepStart"
+	watch.buddy = self
+	watch.process_physics_priority = STEP_START_PRIORITY
+	add_child(watch)
 
 	_ensure_components()
 	if health:
@@ -248,6 +312,10 @@ func _integrate_forces(state_: PhysicsDirectBodyState2D) -> void:
 			_grounded = true
 			break
 	if health == null or health.down:
+		_ledger_count = 0
+		_step_v_fresh = false
+		_span_asleep = false
+		_span_woke = false
 		return
 	var b := ItemDB.balance
 	for i in contacts:
@@ -283,6 +351,162 @@ func _integrate_forces(state_: PhysicsDirectBodyState2D) -> void:
 		# get_contact_local_position is global despite the name: "local" distinguishes
 		# this body's contact point from the collider's, not the coordinate space.
 		_queue_hit(impulse, attribution[0], attribution[1], state_.get_contact_local_position(i))
+	# The step before this one, now that the engine has said all it will about it; then this
+	# step, held for the same question next time. After a sleep the one still held is from
+	# before it, and what this callback reports is the step that woke him, not that one.
+	if _span_woke:
+		_ledger_count = 0
+	_settle_ledger(state_, b)
+	_open_ledger(state_)
+
+func _note_step_start() -> void:
+	var rid := get_rid()
+	var asleep: bool = PhysicsServer2D.body_get_state(rid, PhysicsServer2D.BODY_STATE_SLEEPING)
+	if _step_v_fresh and _span_asleep:
+		# Asleep at the last read and no callback since: the span stays open from there.
+		_span_woke = _span_woke or not asleep
+		_span_asleep = asleep
+		return
+	_step_v = PhysicsServer2D.body_get_state(rid, PhysicsServer2D.BODY_STATE_LINEAR_VELOCITY)
+	_step_v_fresh = true
+	_span_asleep = asleep
+	_span_woke = false
+
+## The impulse a contact reports, as he received it. The sign of a reported impulse depends on
+## which body the solver paired first; a contact only ever pushes, so the one he received points
+## out of the collider, along his contact normal.
+func _received(state_: PhysicsDirectBodyState2D, i: int) -> Vector2:
+	var impulse := state_.get_contact_impulse(i)
+	return impulse if impulse.dot(state_.get_contact_local_normal(i)) >= 0.0 else -impulse
+
+## Holds the step just solved: what his contacts handed him, and who was touching him.
+##
+## `v_end - v_start` is everything that changed his velocity inside the step. Gravity and
+## damping are taken off exactly as Godot applies them (`v * (1 - damp dt) + g dt`, damping
+## first); the drag joint cannot be, so nothing is held while he is held. What is left is the
+## sum of his contacts' impulses — including the ones the engine will report next step, which
+## `_settle_ledger` takes back out. Woken inside the span, it is two steps long, and what this
+## callback reports is the first of them.
+func _open_ledger(state_: PhysicsDirectBodyState2D) -> void:
+	_ledger_count = 0
+	var fresh := _step_v_fresh
+	var woke := _span_woke
+	_step_v_fresh = false
+	_span_asleep = false
+	_span_woke = false
+	if not fresh or dragging or freeze:
+		return
+	var dt := state_.step
+	var expected := _step_v * maxf(0.0, 1.0 - dt * state_.total_linear_damp) + state_.total_gravity * dt
+	_ledger_dp = (state_.linear_velocity - expected) * mass
+	_ledger_known = Vector2.ZERO
+	if woke:
+		for i in state_.get_contact_count():
+			if state_.get_contact_impulse(i).length() >= REPORTED_EPSILON:
+				_ledger_known += _received(state_, i)
+	for i in state_.get_contact_count():
+		var id := state_.get_contact_collider_id(i)
+		var slot := -1
+		for s in _ledger_count:
+			if _ledger_src[s] == id:
+				slot = s
+				break
+		if slot < 0:
+			slot = _ledger_count
+			_ledger_count += 1
+			_ledger_src[slot] = id
+			_ledger_normal[slot] = Vector2.ZERO
+			_ledger_at[slot] = state_.get_contact_local_position(i)
+			_ledger_cap[slot] = 0.0
+		var normal := state_.get_contact_local_normal(i)
+		_ledger_normal[slot] += normal
+		# Both velocities are the ones the solver started from, before this contact was solved.
+		var closing := (state_.get_contact_collider_velocity_at_position(i)
+			- state_.get_contact_local_velocity_at_position(i)).dot(normal)
+		if closing > 0.0:
+			# The mass behind the blow. For a free body, its own: that is the most it can hand
+			# him, and it hands him all of it when he is standing on the desk and cannot give.
+			# For the world, his: the desk does not move, so all a wall can return is what he
+			# brought — a bat pressing him into it is the bat's hit, not the floor's.
+			var other := state_.get_contact_collider_object(i) as RigidBody2D
+			var behind := other.mass if other and not other.freeze else mass
+			_ledger_cap[slot] = maxf(_ledger_cap[slot], APPROACH_CAP * behind * closing)
+	for s in _ledger_count:
+		_ledger_normal[s] = _ledger_normal[s].normalized()
+
+## Bills what the engine did not report of the step `_open_ledger` held (D64).
+##
+## Every contact the engine recognised this step carries last step's impulse, and that part of
+## the momentum is already accounted for — the loop above bills it, so it is subtracted here and
+## never billed twice. What is left belongs to the colliders that touched him then and report
+## nothing now: they parted, or slid, or were replaced by a new contact. One such collider takes
+## the lot, as long as it could have delivered it — pushing him away from itself, and inside the
+## friction cone (his friction is 1.0, so tangential no larger than normal). Several split it by
+## their normals, solved non-negative, the normal part only. No share is larger than the
+## collision its approach could have made (`APPROACH_CAP`), which is what keeps the floor under
+## a bat pressing him into it from being billed as a fall. Then the same floor, the same
+## per-source cooldown and the same attribution as a reported contact.
+func _settle_ledger(state_: PhysicsDirectBodyState2D, b: BalanceData) -> void:
+	var count := _ledger_count
+	_ledger_count = 0
+	if count == 0:
+		return
+	var contacts := state_.get_contact_count()
+	var known := _ledger_known
+	for s in count:
+		_ledger_share[s] = 0.0
+	for i in contacts:
+		if state_.get_contact_impulse(i).length() < REPORTED_EPSILON:
+			continue
+		known += _received(state_, i)
+		var id := state_.get_contact_collider_id(i)
+		for s in count:
+			if _ledger_src[s] == id:
+				_ledger_share[s] = -1.0
+	var unknown := 0
+	for s in count:
+		if _ledger_share[s] >= 0.0:
+			unknown += 1
+	if unknown == 0:
+		return
+	var residual := _ledger_dp - known
+	var size := residual.length()
+	# Cheapest reject first, as above.
+	if size < b.min_damage_impulse:
+		return
+	if unknown == 1:
+		for s in count:
+			if _ledger_share[s] < 0.0:
+				continue
+			var normal_part := residual.dot(_ledger_normal[s])
+			if normal_part > 0.0 and size <= normal_part * FRICTION_CONE + REPORTED_EPSILON:
+				_ledger_share[s] = size
+	else:
+		# Projected Gauss-Seidel on `residual = sum(a_s n_s)`, a_s >= 0. Eight contacts at most
+		# and eight sweeps: exact for two, and a floor and a prop is the case that matters.
+		for sweep in 8:
+			for s in count:
+				if _ledger_share[s] < 0.0:
+					continue
+				var left := residual
+				for k in count:
+					if _ledger_share[k] > 0.0:
+						left -= _ledger_normal[k] * _ledger_share[k]
+				_ledger_share[s] = maxf(0.0, _ledger_share[s] + left.dot(_ledger_normal[s]))
+	for s in count:
+		var share := minf(_ledger_share[s], _ledger_cap[s])
+		if share < b.min_damage_impulse:
+			continue
+		var src := instance_from_id(_ledger_src[s])
+		# Freed since: a charge that went off, a pizza that was eaten. Nothing left to bill.
+		if src == null:
+			continue
+		if share < _min_impulse_for(src, b):
+			continue
+		if not _cooldown_ready(src, b.damage_cooldown):
+			continue
+		var attribution := _attribute(src)
+		_queue_hit(share, attribution[0], attribution[1], _ledger_at[s])
 
 ## Damage from a source that is not a contact — an explosion's blast, a gunshot. Fed the
 ## same kind of impulse the contact solver produces so there is one damage model, not two.

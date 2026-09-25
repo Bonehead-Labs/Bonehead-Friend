@@ -8,7 +8,8 @@ extends BaseDraggable
 ## was given is a floor. This adds energy on the way up, which is the difference between a
 ## surface and a toy.
 ##
-## It pays nothing and damages nothing directly. The Bones come from where he lands.
+## It pays nothing by itself. His landing on it is a contact like any other, billed to the mat at
+## the swing floor (D64), which is where the Bones in bouncing come from.
 
 ## Upward impulse per unit of downward speed, and the least it will ever give — so a
 ## skeleton laid gently on it still leaves.
@@ -30,6 +31,13 @@ func _ready() -> void:
 	super._ready()
 	contact_monitor = true
 	max_contacts_reported = maxi(max_contacts_reported, 6)
+
+## What his landing on the mat is billed at. The landing is a contact like any other and pays at
+## the swing floor (`Buddy._min_impulse_for`), but until D64 it was never billed at all, so nothing
+## noticed that "Tighter Springs" sold a damage node the hit could not see — `Buddy._attribute`
+## reads this method off anything that has it, as it does off an animal or a turret.
+func effective_damage_mult() -> float:
+	return Progression.damage_mult_for(item_id, 1.0)
 
 func _physics_process(delta: float) -> void:
 	super._physics_process(delta)
