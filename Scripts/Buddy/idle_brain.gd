@@ -203,6 +203,10 @@ const WANDER_MARGIN := 120.0
 ## kindness ladder must never collapse into "put a trampoline down and leave".
 const PLAY_VALUE_PER_SECOND := 0.4
 
+## What a weapon-side ball is worth as a destination: above nothing, and below every toy at
+## the same distance that pays (see `_appeal`).
+const WEAPON_BALL_APPEAL := 0.01
+
 # --- routines --------------------------------------------------------------
 
 ## Plain ints rather than an enum, following `ItemData`: an enum used as a parameter type is
@@ -655,7 +659,14 @@ func _appeal(body: BaseDraggable, routine: int) -> float:
 		return PLAY_VALUE_PER_SECOND
 	var friendly := body as FriendlyBase
 	if friendly == null:
-		return 0.0
+		# A weapon-side ball — the beach ball, the bowling ball. It was quoted as zero, and
+		# `_choose_toy` skips anything worth zero, so the two balls `_routine_for` exists to
+		# bring into play were never once walked to (D60). Measured, a bop does not pay for them
+		# either: it lifts the ball a hand's height beside him rather than dropping it on him,
+		# and a toy has to land at the 1,500 fall floor to count. So he plays with one for its
+		# own sake — the least appealing thing on the desk, which anything within `TIE_BAND` of
+		# it that pays him beats.
+		return WEAPON_BALL_APPEAL if routine == ROUTINE_BOP else 0.0
 	if routine == ROUTINE_SOAK:
 		return friendly.hearts_per_second_touching
 	if routine == ROUTINE_SCRUB:
