@@ -228,6 +228,8 @@ func _stage(id: StringName) -> void:
 			(ability as ThrowAbility)._left_down = false
 			await _shot("%s-returning" % id, 12)
 			_hand = hand
+		_:
+			print("    no staging for the %s archetype yet — add a branch here" % ability.archetype())
 	await _idle(30)
 	if is_instance_valid(_weapon):
 		_weapon.bin_myself()
