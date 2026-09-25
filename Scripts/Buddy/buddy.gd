@@ -539,23 +539,25 @@ func _deal(info: HitInfo) -> void:
 	health.apply_damage(info.amount)
 
 ## The floor this contact has to clear, by what he touched (docs/plan-movement-hitboxes.md).
-## The world and kind-side items need a fall; harm-side items need a swing. Asked of the data
-## (`ItemData.is_kind`), so a new comfort item is classified by the seed tool that wrote it
-## and never by an edit here. Two deliberate exceptions: a `Trampoline` is kind-side data but
-## its launch is external energy and the idle brain's Bones engine is tuned around it, so the
-## mat pays at the swing floor; and an unknown or empty id is treated as harm — conservative.
-## This is the seam the per-part floor plugs into when the multi-hitbox lands (plan §5).
+## The world and kind items need a fall; harm-side items need a swing. Asked of the data, so a
+## new comfort item is classified by the seed tool that wrote it and never by an edit here.
+##
+## **Kind means kind and bought with Hearts** (D64). The Play drawer is on the kind side of the
+## shop and sells three things bought with Bones that earn Bones — the bowling ball, the
+## trampoline and the desk fan — and the drawer was asking a thrown bowling ball for the fall
+## floor, as if it were a beanbag he climbed on to. The currency is what says whose side a
+## thing is on; it used to take a `Trampoline` special case here to say the same of the mat.
+## An unknown or empty id is treated as harm — conservative. This is the seam the per-part
+## floor plugs into when the multi-hitbox lands (plan §5).
 func _min_impulse_for(src: Object, b: BalanceData) -> float:
 	var body := src as BaseDraggable
 	var harm_side := true
 	if body == null:
 		# A scriptless StaticBody2D: the walls, the test floor. The world never swings.
 		harm_side = false
-	elif body is Trampoline:
-		harm_side = true
 	else:
 		var item := ItemDB.get_item(body.item_id)
-		if item != null and item.is_kind():
+		if item != null and item.is_kind() and item.currency == ItemData.CURRENCY_HEARTS:
 			harm_side = false
 	return EconomyMath.contact_floor(harm_side, b.min_damage_impulse, b.min_fall_impulse)
 

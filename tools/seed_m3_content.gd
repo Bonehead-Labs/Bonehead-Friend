@@ -3,7 +3,7 @@ extends Node
 ## Writes M3's progression content: personalities, the contract board, the remaining item
 ## roster, and the augment trees and automation capstones that go with them.
 ##
-##   Godot --headless --path <project> res://tools/seed_m3_content.tscn [-- --force]
+##   Godot --headless --path <project> res://tools/seed_m3_content.tscn [-- --force | --only id,id]
 ##
 ## Same rules as the other seed tools: scenes are packed from script because hand-editing
 ## .tscn is banned (CLAUDE.md), and only files that do not already exist are written, so
@@ -32,11 +32,18 @@ const LAYER_ITEM := 4
 const ITEM_MASK := 1 | 2 | 4  # world | buddy | item
 
 var _force := false
+## `--only id,id`: rewrite those ids' scenes and items and nothing else (D61, D64). The way to
+## re-seed one row after it changes — `--force` would also rewrite every personality, contract
+## and tree this tool owns, including the ones later milestones refined.
+var _only := PackedStringArray()
 var _written := 0
 var _skipped := 0
 
 func _ready() -> void:
 	_force = OS.get_cmdline_user_args().has("--force")
+	var only_at := OS.get_cmdline_user_args().find("--only")
+	if only_at >= 0 and only_at + 1 < OS.get_cmdline_user_args().size():
+		_only = OS.get_cmdline_user_args()[only_at + 1].split(",", false)
 	for dir in [ITEMS_DIR, AUGMENTS_DIR, CONTRACTS_DIR, PERSONALITIES_DIR, PROPS_DIR]:
 		DirAccess.make_dir_recursive_absolute(dir)
 
@@ -142,8 +149,13 @@ func _seed_scenes() -> void:
 	_save_scene(_build_prop("BowlingBall", &"bowling_ball", WeaponBaseScript, Color(0.16, 0.14, 0.22),
 		Vector2(34, 34), 14.0, {"damage_mult": 1.0}, 0.15),
 		"%s/bowling_ball.tscn" % PROPS_DIR)
-	_save_scene(_build_prop("BeachBall", &"beach_ball", WeaponBaseScript, Color(0.95, 0.45, 0.45),
-		Vector2(40, 40), 0.4, {"damage_mult": 0.4}, 0.7),
+	# The beach ball is a catch, like the baseball, and not a weapon (D64). It was a WeaponBase
+	# in the Play drawer, so the receiver asked a 0.4 kg ball for the 1,500 fall floor — about
+	# 2,200 px/s — and it never paid anything, while its description said "it hurts nobody".
+	# Cheaper per catch and easier to catch than the baseball: a gentle toss, or him heading it.
+	_save_scene(_build_prop("BeachBall", &"beach_ball", FriendlyBaseScript, Color(0.95, 0.45, 0.45),
+		Vector2(40, 40), 0.4,
+		{"hearts_per_contact": 4.0, "contact_cooldown": 0.5, "min_contact_speed": 200.0}, 0.7),
 		"%s/beach_ball.tscn" % PROPS_DIR)
 
 	# The baseball is the Interactive Buddy homage: throw it at him and he catches it. It is
@@ -340,8 +352,10 @@ func _seed_items() -> void:
 	_item(&"bowling_ball", "Bowling Ball", "Fourteen kilos of bad news. Drop it from height.",
 		ItemDataScript.CATEGORY_TOY, 700, ItemDataScript.CURRENCY_BONES,
 		"%s/bowling_ball.tscn" % PROPS_DIR, 10)
+	# Hearts, like every other kind toy in the Play drawer (D64): it is a catch, and a toy you
+	# are nice to him with is bought with kindness.
 	_item(&"beach_ball", "Beach Ball", "Almost weightless and absurdly bouncy. He loves it and it hurts nobody.",
-		ItemDataScript.CATEGORY_TOY, 100, ItemDataScript.CURRENCY_BONES,
+		ItemDataScript.CATEGORY_TOY, 100, ItemDataScript.CURRENCY_HEARTS,
 		"%s/beach_ball.tscn" % PROPS_DIR, 0)
 	_item(&"baseball", "Baseball", "Throw it and he catches it without moving. Harder throws are worth more.",
 		ItemDataScript.CATEGORY_TOY, 120, ItemDataScript.CURRENCY_HEARTS,
@@ -475,6 +489,8 @@ func _capstone(id: StringName, item_id: StringName, display_name: String, descri
 # --- io --------------------------------------------------------------------
 
 func _should_write(path: String) -> bool:
+	if not _only.is_empty():
+		return _only.has(path.get_file().get_basename())
 	if _force or not ResourceLoader.exists(path):
 		return true
 	_skipped += 1

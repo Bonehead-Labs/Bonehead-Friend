@@ -636,11 +636,11 @@ func _routine_for(body: BaseDraggable) -> int:
 		return ROUTINE_FIDGET
 	var friendly := body as FriendlyBase
 	if friendly == null:
-		# A ball that is not a kind item is still a ball. The beach ball and the bowling ball
-		# sit in the Play tab and are `WeaponBase`, so they pay **Bones** off the contact
-		# impulse rather than Hearts — which is a payout, and knocking one about is the most
-		# obvious thing in the world to do with it. He is a skeleton; a bowling ball landing
-		# on him is the game.
+		# A ball that is not a kind item is still a ball. The bowling ball sits in the Play tab
+		# and is a `WeaponBase`, so it pays **Bones** off the contact impulse rather than Hearts
+		# (the beach ball was one too, until D64 made it a catch) — which is a payout, and
+		# knocking one about is the most obvious thing in the world to do with it. He is a
+		# skeleton; a bowling ball landing on him is the game.
 		var toy := ItemDB.get_item(body.item_id)
 		if body is WeaponBase and toy and toy.category == ItemData.CATEGORY_TOY:
 			return ROUTINE_BOP
@@ -688,13 +688,12 @@ func _appeal(body: BaseDraggable, routine: int) -> float:
 		return float(body.call(&"idle_appeal"))
 	var friendly := body as FriendlyBase
 	if friendly == null:
-		# A weapon-side ball — the beach ball, the bowling ball. It was quoted as zero, and
-		# `_choose_toy` skips anything worth zero, so the two balls `_routine_for` exists to
-		# bring into play were never once walked to (D60). Measured, a bop does not pay for them
-		# either: it lifts the ball a hand's height beside him rather than dropping it on him,
-		# and a toy has to land at the 1,500 fall floor to count. So he plays with one for its
-		# own sake — the least appealing thing on the desk, which anything within `TIE_BAND` of
-		# it that pays him beats.
+		# A weapon-side ball — the bowling ball, and the beach ball until D64. It was quoted as
+		# zero, and `_choose_toy` skips anything worth zero, so the two balls `_routine_for` exists
+		# to bring into play were never once walked to (D60). Measured, a bop does not pay for them
+		# either: it lifts the ball a hand's height beside him rather than dropping it on him. So
+		# he plays with one for its own sake — the least appealing thing on the desk, which
+		# anything within `TIE_BAND` of it that pays him beats.
 		return WEAPON_BALL_APPEAL if routine == ROUTINE_BOP else 0.0
 	if routine == ROUTINE_SOAK:
 		return friendly.hearts_per_second_touching

@@ -11,5 +11,6 @@ display_name = "Beach Ball"
 description = "Almost weightless and absurdly bouncy. He loves it and it hurts nobody."
 category = 4
 cost = 100
+currency = 1
 scene = ExtResource("1_j5xtt")
 icon = ExtResource("1_jmyer")

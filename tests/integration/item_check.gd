@@ -81,8 +81,8 @@ const DRIVERS := {
 }
 
 ## Classes that pay Hearts. Everything else is on the harm side of the pipeline and pays Bones
-## — including the Toy-drawer balls, the trampoline and the fan, which are sold on the kind
-## side of the shop and earn through damage (IdleBrain `ROUTINE_BOP`, Buddy `_min_impulse_for`).
+## — including the bowling ball, the trampoline and the fan, which are sold on the kind side of
+## the shop for Bones and earn through damage at the swing floor (Buddy `_min_impulse_for`, D64).
 const HEARTS_CLASSES: Array[StringName] = [&"FriendlyBase", &"OpenHandPower"]
 
 ## Classes that cannot be aimed, so a run where it missed him is the item working as sold
@@ -95,10 +95,6 @@ const UNAIMED: Array[StringName] = [&"Firework"]
 ## stale: fix the item, delete its line.
 const KNOWN := {
 	"fist/aug_cooldown_mult": "F7 it has no base cooldown for the node to shorten",
-	"beach_ball/earns": "F9 a 0.4 kg ball on the kind side needs a 1,500 fall-floor impulse",
-	"beach_ball/mastery": "F9 a 0.4 kg ball on the kind side needs a 1,500 fall-floor impulse",
-	"beach_ball/aug_damage_mult": "F9 a 0.4 kg ball on the kind side needs a 1,500 fall-floor impulse",
-	"beach_ball/aug_payout_mult": "F9 a 0.4 kg ball on the kind side needs a 1,500 fall-floor impulse",
 	"desk_fan/earns": "F5 nothing it does is billed under its own name",
 	"desk_fan/mastery": "F5 nothing it does is billed under its own name",
 	"desk_fan/aug_damage_mult": "F5 nothing it does is billed under its own name",

@@ -2,7 +2,7 @@ extends Node
 
 ## Writes the tier-1 augment tree for every item that has none.
 ##
-##   Godot --headless --path <project> res://tools/seed_m35_trees.tscn
+##   Godot --headless --path <project> res://tools/seed_m35_trees.tscn [-- --only id,id]
 ##
 ## M3 shipped trees for six items out of sixteen, so nine of them were a shop row and
 ## nothing else: bought once, used, and never improved again. A tree is the reason to keep
@@ -47,7 +47,6 @@ const TREES := {
 	&"mine": ["Wider Charge", "Scrap Rights", "Deeper Dish"],
 	&"firework": ["More Powder", "Crowd Pleaser", "Heavier Head"],
 	&"bowling_ball": ["Drilled Grip", "Strike Bonus", "Lead Core"],
-	&"beach_ball": ["Firmer Inflation", "Party Rates", "Sand Filled"],
 	&"trampoline": ["Tighter Springs", "Trick Bonus", "Steel Frame"],
 	&"desk_fan": ["Higher Setting", "Wind Tax", "Cast Base"],
 	# --- cursor powers: the third node is fire rate ---
@@ -102,6 +101,9 @@ const TREES := {
 	&"feather_duster": ["Fuller Plume", "Housekeeping Rates", ""],
 	&"soft_brush": ["Softer Bristles", "Grooming Rates", "Quicker Strokes"],
 	&"warm_towel": ["Fluffier Weave", "Turndown Rates", ""],
+	# The beach ball was a weapon with a weight node ("Sand Filled") until D64 made it a catch; a
+	# catch's third lever is how soon it pays again, the same as the tennis ball's.
+	&"beach_ball": ["Firmer Inflation", "Party Rates", "Quicker Rallies"],
 	&"tennis_ball": ["Fresher Felt", "Fetch Bonus", "Quicker Return"],
 	&"party_popper": ["More Confetti", "Party Rates", "Shorter Fuse"],
 	&"kite": ["Longer Tail", "Fair Weather Rates", "Faster Reel"],
@@ -117,16 +119,25 @@ const TREES := {
 ## rule that contradicts them is wrong however tidy it looks.
 const WEIGHTED := {
 	&"dynamite": true, &"katana": true, &"mine": true, &"firework": true,
-	&"bowling_ball": true, &"beach_ball": true, &"trampoline": true, &"desk_fan": true,
+	&"bowling_ball": true, &"trampoline": true, &"desk_fan": true,
 }
 
 var _written := 0
 var _skipped := 0
+## `--only id,id`: rewrite those items' tier-1 trees whether or not they exist, and nothing else
+## (D64) — how a tree is re-derived after its item changes currency or price.
+var _only := PackedStringArray()
 
 func _ready() -> void:
 	DirAccess.make_dir_recursive_absolute(AUGMENTS_DIR)
+	var only_at := OS.get_cmdline_user_args().find("--only")
+	if only_at >= 0 and only_at + 1 < OS.get_cmdline_user_args().size():
+		_only = OS.get_cmdline_user_args()[only_at + 1].split(",", false)
 	for item in ItemDB.all_items():
-		if not _has_tier_one(item.id):
+		if not _only.is_empty():
+			if _only.has(String(item.id)):
+				_tree_for(item)
+		elif not _has_tier_one(item.id):
 			_tree_for(item)
 	print("seed_m35_trees: %d written, %d already present" % [_written, _skipped])
 	get_tree().quit()
@@ -169,7 +180,7 @@ func _node(id: String, item: ItemData, display_name: String, effect_key: StringN
 		effect_per_level: float, cost_base: int, cost_growth: float, sort_order: int,
 		currency: int) -> void:
 	var path := "%s/%s.tres" % [AUGMENTS_DIR, id]
-	if ResourceLoader.exists(path):
+	if ResourceLoader.exists(path) and not _only.has(String(item.id)):
 		return
 	var node := AugmentNodeScript.new()
 	node.id = StringName(id)
