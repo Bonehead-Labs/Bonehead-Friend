@@ -225,7 +225,7 @@ func _shop_tiles_are_clickable() -> void:
 		_check("shop offers the '%s' side" % side_caption,
 			_button_labelled(side_caption, shop) != null)
 
-	for pair in [["Harm", ["Melee", "Boom", "Cursor", "Turret", "Critters"]],
+	for pair in [["Harm", ["Melee", "Boom", "Cursor", "Turret", "Critters", "Guns"]],
 			["Kind", ["Care", "Play", "Comfort", "Food", "Mood"]]]:
 		var side_tile := _button_labelled(String(pair[0]), shop)
 		if side_tile == null:

@@ -1499,6 +1499,109 @@ around both, and that geometry is D25. They became D61. The mine was corrected b
 two-line size edit, because the seeder could only rewrite it with `--force`, which rewrites 63
 files including augment data that later milestones refined. D61 added `--only` for that.
 
+## D56 — Guns you hold: left carries, right fires, and the gun aims itself (2026-09-25)
+
+**Decision.** A new kind of thing on the desk: a gun you pick up with the left button and
+fire with the right, which points itself at him — `HeldGun`, built on `WeaponBase`, in a new
+harm drawer, `ItemData.CATEGORY_GUN` ("Guns"). Five hurt him and cost Bones (revolver, SMG,
+pump shotgun, hunting rifle, blunderbuss); two are kind, cost Hearts and sit under Care beside
+the sponge (water pistol, bubble blaster). The cursor pistol, shotgun and minigun stay: they
+are a mode the cursor becomes, and these are objects.
+
+**The input grammar, shared by every stream that adds a toy:**
+
+- **Left = hold / carry.** Unchanged.
+- **Right while holding = the item's action** — fire, squirt, prime, pull, squeeze.
+  Explosives already worked this way, so this names a rule rather than inventing one.
+- **Shift+Right = bin**, never claimed by anything (`BaseDraggable.click_would_bin`).
+- Every item with a non-default gesture fills `ItemData.controls` with one short line
+  ("Hold · Right-click to fire", "Hold · Hold right to fire").
+
+**Why.** The owner, after a session spent mostly on the cursor guns: "it would be cool to have
+guns not only as cursor powers but actual weapons in the game, they would probably have to
+always auto aim at the character, but be affected by recoil and be shot with right click when
+held with left click, stabilised automatically but with physics a bit so it has weight". Each
+clause is a mechanism:
+
+- *Auto aim, with weight.* A PD controller on **torque** about the grip — never on `rotation`
+  and never by overwriting `angular_velocity`, which is how D54's fist erased its own punch.
+  The gains are scaled by the moment of inertia about the grip, so every gun has the natural
+  frequency it was authored with whatever it weighs; the correction is capped at an authored
+  angular acceleration, which is the weight — below the cap the aim is a spring, above it the
+  gun swings and has to be caught. Gravity about the grip is cancelled on top. It lays the
+  **barrel line** on his centre of mass, not the grip: the barrel sits above the hand.
+- *Affected by recoil.* A shot fires along the barrel's **actual** direction, so a gun still
+  swinging back onto him shoots where it points. The kick is an impulse backwards at the muzzle
+  plus a climb; a full-auto burst also accumulates an aim offset, so a long one sprays and a
+  tapped one stays on him.
+- *Right click when held.* `right_click_is_mine()`; the release is read in `_input`, enabled
+  only while the trigger is down, so a release a panel consumes still stops the stream.
+- *Never upside down.* Aimed left it mirrors — about the **barrel's own axis through the
+  grip**. Any other mirror moves either the joint's anchor (a yank, D54 again) or the barrel (a
+  jump in the aim). The scenes are built with the body's origin *at* the grip, which makes the
+  mirror a sign flip on every child's y.
+- *He notices.* A harm gun on him emits `threat_changed(&"aim", ...)` on the edges and every
+  half second while it holds; the expression brain's `aimed_at` row has him cower, shocked and
+  shivering, until it comes off. A kind gun is no threat. The Nervous personality flinches once
+  per aim, not once per refresh.
+
+**Measured,** in the new `gun_check` suite on a stepped rig — settle from a quarter turn off /
+kick of one shot / back on him:
+
+| | settle | kick | back | |
+|---|---|---|---|---|
+| Revolver | 0.25 s | 22° | 0.27 s | semi, 0.42 s |
+| SMG | 0.23 s | 2° | 0.07 s | 85 ms, a burst climbs to 23° |
+| Pump shotgun | 0.30 s | 26° | 0.33 s | 6 pellets, pump at 0.4 s |
+| Hunting rifle | 0.35 s | 33° | 0.42 s | flings him, bolt at 0.55 s |
+| Blunderbuss | 0.35 s | 67° | 0.47 s | 9 pellets over 40° |
+| Water pistol | 0.23 s | | | squirts, scrubs 0.12 grime/s |
+| Bubble blaster | 0.25 s | | | a bubble every 0.4 s |
+
+Every gun is back on him well inside its own fire interval, so a player who waits for the gun
+hits, and one who does not shoots where the kick left it — which is the feature.
+
+**What it turned up.** The first recoil measurement was **exactly 0.0°**. D54 added a
+`max_drag_speed` / `max_drag_spin` backstop that wrote `linear_velocity` and `angular_velocity`
+on every frame a body was held — and the getters return what the server reported after the
+*previous* step, so the write replaced the body's real velocity with a stale copy and erased
+any impulse applied since. A click runs before the frame's `_physics_process`, so every
+semi-automatic shot's kick vanished, while a full-auto one fired after the backstop and
+survived. It is the fist's bug arriving through the backstop added in the same commit, and it
+also meant an explosion could not knock a bat out of your hand. The backstop now writes only
+when the ceiling is exceeded, which it never is in play. Rule: **never write a physics body's
+velocity back unconditionally; the getter is a copy from the last step.**
+
+A second, smaller one: a stream that scheduled its next shot from the frame that fired rounded
+every gap up to whole physics frames, so an 85 ms gun fired every 100 ms. It keeps its phase
+now (next = last *due* + gap, within a frame so an idle trigger banks nothing).
+
+**Kind guns pay no Bones.** A kind gun's contact multiplier is zero, so Bonehead's
+`_queue_hit` drops the hit — a water pistol bounced off his skull is a toy landing on him. The
+suite throws a revolver and a water pistol at him the same way: the first is a hit, the second
+is not.
+
+**The trees.** Damage, payout and fire rate (`cooldown_mult`) on all seven; the harm guns add
+Weight (`mass_mult`, read by `WeaponBase`: a heavier gun is kicked less by the same impulse)
+and Steady (`recoil_mult`, read by `HeldGun._recoil` and nowhere else). Both are measured
+rather than trusted — ten levels of Steady take the revolver from 22.4° to 6.7° — because an
+augment nothing reads has shipped here twice. Capstones by `seed_m35_engine`'s rules, in Hearts.
+
+**Pacing,** 4/4 both ways. Against the same run without the guns: first automation 12:55 →
+13:48 of play, worst purchase gap 1:29 → 1:30, first Reincarnation 9:16 → 9:46, worst ramp
+1.2x → 1.0x. The half hour is structural — seven more things to spread play over — and leaves
+fourteen minutes under the ten-hour ceiling. The next batch of items has to be run against it.
+
+*Consequence:* a new gun is a row in `tools/seed_m39_guns.gd`, in the grid's own pixel
+coordinates, and a text grid in `art/pixel/`. `HeldGun` does no per-frame work while it is on
+the desk beyond the base class's trail; the aim runs only while it is held, and `_input` only
+while the trigger is down. `gun_check` must stay green, and like every suite it takes two
+arguments to `_check`.
+
+*Not done:* the slingshot (the brief's stretch — plant the frame, draw the pouch, dotted
+trajectory) is left for a later pass. Turning round is instant; a quick roll of the sprite
+about the barrel would sell it and costs one tween. The two kind guns have no ambient life.
+
 ## D58 — Every room of the Arcade is a cabinet, and 1.25x is uneven rather than soft (2026-09-25)
 
 **Decision.** Each of the Arcade's five rooms is built by one class, `Cabinet`, as the same

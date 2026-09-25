@@ -1,9 +1,9 @@
 class_name ItemData
 extends Resource
 
-## One buyable thing. Ten categories across two sides: five ways to hurt him (melee,
-## explosives, cursor powers, turrets, critters) and five to be good to him (care, play,
-## comfort, food, ambience).
+## One buyable thing. Eleven categories across two sides: six ways to hurt him (melee,
+## explosives, cursor powers, turrets, critters, held guns) and five to be good to him (care,
+## play, comfort, food, ambience).
 ##
 ## This is the whole definition. Adding an item to the game is adding a .tres file under
 ## res://Data/Items/ — no script edits anywhere (docs/decisions.md D8). The prototype
@@ -34,6 +34,10 @@ const CATEGORY_CRITTER := 6
 const CATEGORY_COMFORT := 7
 const CATEGORY_FOOD := 8
 const CATEGORY_AMBIENCE := 9
+## A gun you hold and fire with the right button (D56, `HeldGun`). Its own drawer rather than
+## Melee, because the verb is different — you point it and pull the trigger, you do not
+## swing it — and rather than Cursor, because it is a thing on the desk and not a mode.
+const CATEGORY_GUN := 10
 
 ## The two halves of the game. Every category belongs to exactly one, which is the whole
 ## reason `CATEGORY_CRITTER` had to exist: while the critters lived under Toy, no rule over
@@ -51,6 +55,7 @@ const CATEGORY_SIDE := {
 	CATEGORY_CURSOR_POWER: SIDE_HARM,
 	CATEGORY_TURRET: SIDE_HARM,
 	CATEGORY_CRITTER: SIDE_HARM,
+	CATEGORY_GUN: SIDE_HARM,
 	CATEGORY_FRIENDLY: SIDE_KIND,
 	CATEGORY_TOY: SIDE_KIND,
 	CATEGORY_COMFORT: SIDE_KIND,
@@ -68,7 +73,7 @@ const CURRENCY_HEARTS := 1
 @export var display_name: String
 @export_multiline var description: String
 
-@export_enum("Weapon", "Throwable", "CursorPower", "Friendly", "Toy", "Turret", "Critter", "Comfort", "Food", "Ambience") var category: int = CATEGORY_WEAPON
+@export_enum("Weapon", "Throwable", "CursorPower", "Friendly", "Toy", "Turret", "Critter", "Comfort", "Food", "Ambience", "Gun") var category: int = CATEGORY_WEAPON
 
 ## One-time, hand-authored price. **Zero or less means a free starter**, owned from the
 ## first boot — that is how the catalog's "free (starter)" entries are expressed.

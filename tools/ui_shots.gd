@@ -62,6 +62,10 @@ func _ready() -> void:
 
 	panels.call("show_panel", &"shop")
 	await _shot("02-toys-melee")
+	# The sixth tab on the harm side (D56): the strip has to hold six at one width.
+	shop.call("show_category", ItemData.CATEGORY_GUN)
+	shop.call("select", &"revolver")
+	await _shot("02b-toys-guns")
 	shop.call("show_category", ItemData.CATEGORY_FRIENDLY)
 	shop.call("select", &"boombox")
 	await _shot("03-toys-kind")
@@ -119,6 +123,11 @@ func _ready() -> void:
 		_unlock_chain(id)
 	EventBus.spawn_requested.emit(&"flamethrower", centre + Vector2(-130, 250))
 	EventBus.spawn_requested.emit(&"pellet_turret", centre + Vector2(250, 150))
+	# Two held guns lying on the desk (D56), for their size beside him and the turrets.
+	for id in [&"hunting_rifle", &"water_pistol"]:
+		_unlock_chain(id)
+	EventBus.spawn_requested.emit(&"hunting_rifle", centre + Vector2(-20, 250))
+	EventBus.spawn_requested.emit(&"water_pistol", centre + Vector2(170, 250))
 	for step in [["16-juice", 2], ["16b-juice", 6], ["16c-juice", 12]]:
 		for i in int(step[1]):
 			await get_tree().process_frame
@@ -145,6 +154,13 @@ func _ready() -> void:
 	EventBus.ui_scale_changed.emit(2)
 	panels.call("show_panel", &"shop")
 	await _shot("10-toys-2x")
+	# Six harm tabs at 2x and at the quarter step between (D50, D56): the strip is where a
+	# seventh caption would first run out of room.
+	shop.call("show_category", ItemData.CATEGORY_GUN)
+	await _shot("10b-guns-2x")
+	Settings.ui_scale = 1.25
+	EventBus.ui_scale_changed.emit(1.25)
+	await _shot("10c-guns-1.25x")
 	# The arcade again at 1.25x and 2x. 1.25x is the owner's own Menu size (D50, D58): a
 	# fractional factor resamples the pixel shell, so the rules and the type are judged there
 	# too, every run, rather than only at the whole numbers the game picks by itself.

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_gf5ur"]
+
+[resource]
+script = ExtResource("1_gf5ur")
+id = &"blunderbuss_steady"
+item_id = &"blunderbuss"
+display_name = "Braced Stock"
+effect_key = &"recoil_mult"
+effect_per_level = 0.92
+cost_base = 1636
+cost_growth = 1.09
+sort_order = 4

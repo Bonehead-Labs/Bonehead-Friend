@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/pump_shotgun.png" id="1_si3yg"]
+[ext_resource type="PackedScene" path="res://Scenes/Guns/pump_shotgun.tscn" id="2_y2wcr"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_5ch6r"]
+
+[resource]
+script = ExtResource("3_5ch6r")
+id = &"pump_shotgun"
+display_name = "Pump Shotgun"
+description = "Six pellets, then the pump, then six more. Get close."
+category = 10
+cost = 12000
+scene = ExtResource("2_y2wcr")
+icon = ExtResource("1_si3yg")
+requires = Array[StringName]([&"smg"])
+sort_order = 30
+controls = "Hold · Right-click to fire"

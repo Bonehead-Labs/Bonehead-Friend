@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/water_pistol.png" id="1_py3ww"]
+[ext_resource type="PackedScene" path="res://Scenes/Guns/water_pistol.tscn" id="2_8lfos"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_6g24r"]
+
+[resource]
+script = ExtResource("3_6g24r")
+id = &"water_pistol"
+display_name = "Water Pistol"
+description = "Squirt him clean. Pays for every speck of grime it washes off, and he likes it anyway."
+category = 3
+cost = 350
+currency = 1
+scene = ExtResource("2_8lfos")
+icon = ExtResource("1_py3ww")
+sort_order = 40
+controls = "Hold · Hold right to squirt"

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_rg156"]
+
+[resource]
+script = ExtResource("1_rg156")
+id = &"smg_payout"
+item_id = &"smg"
+display_name = "Spray Fees"
+effect_key = &"payout_mult"
+effect_per_level = 1.12
+cost_base = 215
+sort_order = 1

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_38g8b"]
+
+[resource]
+script = ExtResource("1_38g8b")
+id = &"smg_steady"
+item_id = &"smg"
+display_name = "Muzzle Brake"
+effect_key = &"recoil_mult"
+effect_per_level = 0.92
+cost_base = 151
+cost_growth = 1.09
+sort_order = 4

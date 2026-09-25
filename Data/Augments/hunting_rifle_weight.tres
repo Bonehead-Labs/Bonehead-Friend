@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_ro3v1"]
+
+[resource]
+script = ExtResource("1_ro3v1")
+id = &"hunting_rifle_weight"
+item_id = &"hunting_rifle"
+display_name = "Heavy Barrel"
+effect_key = &"mass_mult"
+effect_per_level = 1.08
+cost_base = 655
+cost_growth = 1.09
+sort_order = 3

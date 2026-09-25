@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/revolver.png" id="1_g6nc0"]
+[ext_resource type="PackedScene" path="res://Scenes/Guns/revolver.tscn" id="2_wdvvw"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_w1v2k"]
+
+[resource]
+script = ExtResource("3_w1v2k")
+id = &"revolver"
+display_name = "Revolver"
+description = "Six chambers, one skeleton. It kicks like a mule, and so does he."
+category = 10
+cost = 1500
+scene = ExtResource("2_wdvvw")
+icon = ExtResource("1_g6nc0")
+requires = Array[StringName]([&"pistol"])
+sort_order = 10
+controls = "Hold · Right-click to fire"

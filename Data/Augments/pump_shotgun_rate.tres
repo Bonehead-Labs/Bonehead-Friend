@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_a7nlv"]
+
+[resource]
+script = ExtResource("1_a7nlv")
+id = &"pump_shotgun_rate"
+item_id = &"pump_shotgun"
+display_name = "Slick Pump"
+effect_key = &"cooldown_mult"
+effect_per_level = 0.94
+cost_base = 360
+cost_growth = 1.09
+sort_order = 2

@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/blunderbuss.png" id="1_242xs"]
+[ext_resource type="PackedScene" path="res://Scenes/Guns/blunderbuss.tscn" id="2_llhs7"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_ag4yg"]
+
+[resource]
+script = ExtResource("3_ag4yg")
+id = &"blunderbuss"
+display_name = "Blunderbuss"
+description = "A brass bell full of whatever was in the drawer. Hold on tight."
+category = 10
+cost = 65000
+scene = ExtResource("2_llhs7")
+icon = ExtResource("1_242xs")
+requires = Array[StringName]([&"hunting_rifle"])
+sort_order = 50
+controls = "Hold · Right-click to fire"

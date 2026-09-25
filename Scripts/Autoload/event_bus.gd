@@ -54,8 +54,9 @@ signal knockout_payout(total: float)
 signal buddy_landed(world_pos: Vector2, speed: float)  ## his feet, and how fast he came down
 ## Something on the desk is about to hurt him, or just did. `kind` is `fuse` (a primed
 ## explosive: level 1 lit, 0 gone off), `windup` (an NPC's tell: 1 winding up, 0 swung) or
-## `turret` (a shot: always 1). Presentation only — the buddy's expression reads it, nothing in
-## the simulation may. One signal with three emitters, deliberately not six.
+## `turret` (a shot: always 1) or `aim` (a held gun pointed at him: 1, refreshed while it stays
+## on him, 0 when it comes off — D56). Presentation only — the buddy's expression reads it,
+## nothing in the simulation may. One signal with several emitters, deliberately not one each.
 signal threat_changed(kind: StringName, world_pos: Vector2, level: float)
 
 # --- shell ---

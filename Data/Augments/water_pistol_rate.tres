@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_kjls4"]
+
+[resource]
+script = ExtResource("1_kjls4")
+id = &"water_pistol_rate"
+item_id = &"water_pistol"
+display_name = "Bigger Pump"
+effect_key = &"cooldown_mult"
+effect_per_level = 0.94
+cost_base = 40
+cost_growth = 1.09
+currency = 1
+sort_order = 2

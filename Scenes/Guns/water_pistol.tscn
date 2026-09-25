@@ -1,0 +1,98 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Bodies/held_gun.gd" id="1_ixvqd"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/water_pistol.png" id="2_kx306"]
+[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_uus6b"]
+[ext_resource type="Script" path="res://Scripts/Components/effects_player.gd" id="4_oirws"]
+
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_ixvqd"]
+friction = 0.9
+bounce = 0.15
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_kx306"]
+size = Vector2(20, 8)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_uus6b"]
+size = Vector2(40, 12)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_oirws"]
+size = Vector2(8, 6)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_rhbrn"]
+size = Vector2(12, 12)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_5ppn1"]
+size = Vector2(52, 34)
+
+[node name="_WaterPistol" type="RigidBody2D" unique_id=1880750196 node_paths=PackedStringArray("drag_area", "handle", "sprite", "collider", "Effects_Player")]
+collision_layer = 4
+collision_mask = 7
+mass = 0.8
+physics_material_override = SubResource("PhysicsMaterial_ixvqd")
+center_of_mass_mode = 1
+center_of_mass = Vector2(12, -14)
+contact_monitor = true
+max_contacts_reported = 4
+script = ExtResource("1_ixvqd")
+aim_frequency = 26.0
+aim_damping = 0.85
+aim_max_accel = 340.0
+muzzle = Vector2(42, -9)
+ejects = false
+shot_kind = &"water"
+fire_interval = 0.1
+auto_fire = true
+spread_degrees = 2.0
+shot_force = 60.0
+shot_mult = 0.0
+shot_range = 300.0
+recoil_kick = 8.0
+recoil_climb = 20.0
+squirt_clean = 0.012
+squirt_value = 0.15
+fire_sound = &"splash"
+fire_pitch = 1.8
+fire_volume_db = -18.0
+damage_mult = 0.0
+item_id = &"water_pistol"
+drag_area = NodePath("DraggableArea")
+handle = NodePath("Handle")
+sprite = NodePath("Sprite")
+collider = NodePath("CollisionShape2D")
+Effects_Player = NodePath("EffectsPlayer")
+
+[node name="Sprite" type="Sprite2D" parent="." unique_id=60675552]
+position = Vector2(16, -8)
+scale = Vector2(2, 2)
+texture = ExtResource("2_kx306")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=594248630]
+position = Vector2(12, -20)
+shape = SubResource("RectangleShape2D_kx306")
+
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="." unique_id=1638378386]
+position = Vector2(14, -10)
+shape = SubResource("RectangleShape2D_uus6b")
+
+[node name="CollisionShape2D3" type="CollisionShape2D" parent="." unique_id=740243195]
+position = Vector2(37, -9)
+shape = SubResource("RectangleShape2D_oirws")
+
+[node name="CollisionShape2D4" type="CollisionShape2D" parent="." unique_id=183248254]
+position = Vector2(-1, 1)
+shape = SubResource("RectangleShape2D_rhbrn")
+
+[node name="DraggableArea" type="Area2D" parent="." unique_id=1006392928]
+script = ExtResource("3_uus6b")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=115289070]
+position = Vector2(16, -8)
+shape = SubResource("RectangleShape2D_5ppn1")
+
+[node name="Handle" type="StaticBody2D" parent="." unique_id=283045159]
+visible = false
+collision_layer = 0
+collision_mask = 0
+
+[node name="EffectsPlayer" type="Node" parent="." unique_id=765327415]
+script = ExtResource("4_oirws")
