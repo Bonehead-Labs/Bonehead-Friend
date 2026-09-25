@@ -1999,6 +1999,108 @@ apart): they draw beneath the lines and are thrown no higher than the headline. 
 `numbers keep apart` suite checks every visible line's drawn rect pairwise, now and at four
 points through its rise.
 
+## D66 — The second five toys: a stretch, a swing, a wind, a string and a draw (2026-09-26)
+
+**Decision.** Five more toys on D57's zones and gestures, each a verb the game did not have and
+each something he does himself. Three are kind and two are harm. The grammar is unchanged:
+left holds, right while holding is the item's action, right on a zone is that zone's action,
+and Shift+right bins.
+
+| Toy | Drawer, price | The verb | His | Pays |
+|---|---|---|---|---|
+| Slinky | Play, 350 Hearts | hold it and pull with right held, or right-drag it where it lies; let go and it boings. Throw it and it walks | plucks it | 6 a full boing (a quarter for a short one) as an act; 0.5 a step, trickled |
+| Newton's cradle | Mood, 5,000 Hearts | right-drag an end ball out and let go | watches it, calmed; pulls one himself | 0.6 a full clack, trickled: about 4 for a 40 degree pull, over ~25 clacks |
+| Pull-back car | Play, 3,000 Hearts | right-drag it backwards to wind it, eight notches, then let go | hops on for a ride; winds it and chases it | 24 a ride from a full wind, as an act |
+| Yo-yo | Melee, 1,500 Bones, after the frying pan | hold it; right throws it out on its string, right held puts it to sleep | watches it sleep, impressed by a trick | a bonk: the collision's impulse x1.3, and x2.5 after a trick |
+| Slingshot | Guns, 1,200 Bones, first in the drawer | hold it; hold right and pull the pouch back, let go | cowers while it is drawn at him | a pellet: 1,700 impulse at a full draw |
+
+Each has three tier-1 nodes and a capstone by the M3.5 rules, currency by side. Every key is
+read by the toy's own script: the value, the payout, and "time between uses", which here means
+whatever each toy has instead of a gap in time. A full boing is a shorter pull ("Looser Coil").
+A clack keeps more of the swing ("Harder Steel"). A full wind is a shorter pull ("Tighter
+Spring"). A shorter sleep is a trick ("Ball Bearing"). A new pellet is in the pouch sooner
+("Pellet Pouch"). `item_check` measures all fifteen (x0.94 each) rather than trusting them.
+
+**The pull-back car is kind, not a ram.** The brief left the side open. A car that drives at
+him and pays Bones is a melee weapon with a motor, and the harm side already has thirty of
+those. It would also be billed by a contact solver that cannot see a hit that parts in one
+physics step (D59's F1), and a small fast car bouncing off him is exactly that. A ride is a
+verb nothing in the game had: he stands on a thing that moves. So the car sits in Play, costs
+Hearts, and pays Hearts for the rides it gives. His own play with it is the idle brain's
+steering doing what it already does. He winds it, lets it go away from him, and the brain walks
+him after it.
+
+**How each one works, and why that way.**
+
+- *The slinky's coil* is twelve ring sprites, two of each colour, laid along a quadratic curve
+  that sags more the more sideways it is pulled. Each ring stands across the curve, so a
+  stretched slinky is its stack pulled apart. In the hand, the held end freezes where it is
+  and the cursor has the other. Let go of right and the frozen end is released, the drag joint
+  yanks it home, and the coil shrinks as it comes. That is the boing, and it is physics rather
+  than a canned tween. On the desk, the far end comes home on an underdamped spring. A walk is
+  end over end, one span a step, and only where `test_move` finds room.
+- *The cradle is a clock, not a solver.* Five touching pendulums are hard to simulate and easy
+  to animate: only the end balls move, one at a time, and what leaves one arrives at the other,
+  less a tenth. The clacks form a geometric series, so `item_check` checks the whole swing's
+  Hearts to 0.2%. The player's act is the pull, which the contract board counts. The clacks
+  are the toy running on its own, so they trickle. Watching it holds him in a new `calmed` row,
+  and the trickle lifts his mood like any kindness.
+- *The ride.* The car stops, he hops, and he is welded to the roof by two pins a head apart,
+  since one pin would let him spin. The car then drives frozen and kinematic under
+  `move_and_collide`, so the car sets the pace rather than his weight, and a wall ends the ride
+  instead of being driven through. **He and the car pass through each other from the hop to
+  the end of the ride.** Measured first: a hop computed to rise 43 px topped out at 29 and turned
+  him a radian, because a skeleton rising past the roof's corner catches on it. Nothing
+  collides now, and the landing is the frame his feet cross the roof line coming down.
+- *The yo-yo's string is a rope, not a joint.* In `_integrate_forces` the body is held within
+  the string's length of the hand, and only the outward part of its velocity is removed. It is
+  written there and only when taut, so it is always the current state and never a stale copy
+  (D56). **A bonk on the string bills itself.** It uses `Buddy.take_impulse`, the gunshot's
+  path, at the collision's own impulse: (1 + e) x reduced mass x the approach speed from the
+  frames before the contact. While the yo-yo is out, his contact path bills it at zero, so a
+  bonk is never billed twice. In the hand or loose, the yo-yo is an ordinary weapon. A trick
+  pays through the next bonk, because Bones are minted only from damage and a trick is not
+  damage.
+- *The slingshot aims nothing for you.* It is the one gun in the drawer that does not aim
+  itself. The frame plants upright and the pouch is the cursor, clamped to the bands' reach. A
+  dotted arc shows the launch `loose` would give under the same gravity. While that arc runs
+  through him, the held gun's `aim` threat is on and he cowers. The pellet collides with the
+  world only and sweeps the segment it flew each step for him, so it bills exactly once however
+  fast it goes. It bills at the slingshot's own `damage_mult`, so every hit carries the number
+  the data says it does. A binned slingshot frees the pellets still flying.
+
+**Budget.** Nothing per frame at rest, asserted for all five: `_process` runs only while a coil
+is drawn, a cradle swings or a notch pip is shown, and each switches itself off. The yo-yo's
+speed memory is a four-slot ring, not a queue.
+
+**Pacing,** 4/4. Against a0934a5: first automation 15:33 -> 16:24 of play, worst dead stretch
+1:10 -> 1:30, first Reincarnation 9:41 -> 9:49, worst ramp 1.0x. The simulator is order-
+sensitive, not additive. Alone, the slinky, cradle and car added one to three minutes, the
+yo-yo nothing, and the slingshot at 800 Bones took 27 minutes off. All five together at the
+first prices landed at **10:06**, over the ceiling. The slingshot's price was the lever, not
+the other four's: at 800 it was the first Bones purchase after the pistol, and anywhere from
+1,000 to 2,500 lands at 9:48-9:49. It is 1,200: still the cheapest gun, and still before the
+revolver. Eleven minutes of headroom is left, and the next batch has to be run against it.
+
+**What else it turned up.** A drag that crosses a HUD panel is the panel's: the slingshot's
+pouch stopped following the cursor over the "next up" row, because `GestureZones` hears only
+unhandled events. A gesture is therefore confined to the desk, which is right for a click and
+a limit for a long pull; nothing is done about it here. And at boot he is still dropping in
+from his authored spawn point, so a toy put "beside him" in a suite's first second is put in
+mid-air.
+
+*Consequence:* `tools/seed_m39_toys2.gd` is the table (`--force`, `--only=id,id`), and each
+grid in `art/pixel/` says which rows and columns are which part. `tests/integration/toys2_check.tscn`
+(178 assertions, `-- --only=slinky,cradle,car,yoyo,slingshot,zones,bin,rest,him`) drives every
+gesture with synthetic events at real positions. That includes an upside-down cradle, a
+mirrored car and a slinky on its side. It checks payouts through the real pipeline, his routines
+and rows, and the budget. `item_check` has a driver per class. `fidget_shots` stages the five
+for a person to look at. Four `FIDGET_ROWS` are new (`boing`, `clacking`, `yoyo_trick`, `ride`),
+three rows are new (`calmed`, `impressed`, `riding`), and there are six new synthesised voices
+(`boing`, `clack`, `ratchet`, `zoom`, `twang`, `zip`). *Not done:* the wind-up teeth from D57's
+list (the slingshot took its place). He does not play the yo-yo himself. And nothing here has
+been seen on a real desk.
+
 
 ## Recommendations not yet decided
 
