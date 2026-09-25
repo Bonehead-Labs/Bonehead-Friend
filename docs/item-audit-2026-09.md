@@ -38,6 +38,8 @@ tools. No body went faster than 6,277 px/s (him, off a demolition charge); the c
 
 ### F1. A hit that parts within one physics step is never billed
 
+**Fixed in D64:** billed from his own momentum when the engine does not report it.
+
 **Affects:** the fist (the starter power), any thrown ball or item that bounces off him, the
 trampoline's landing, the raccoon's thrown props. Measured: the fist ran through him and launched
 him at **1,653 px/s with nothing billed**; a bowling ball thrown into him at 900 px/s, **nothing**;
@@ -140,6 +142,8 @@ mastery.
 
 ### F6. The trampoline returns less than it was given
 
+**Fixed in D64:** lands 722, leaves 1,062, with a `max_launch` ceiling.
+
 Measured: he lands at **722 px/s** and leaves at **303**. `Trampoline._physics_process` reads the
 falling speed after the landing has already been solved, so `falling × bounce_gain` is almost
 always under `minimum_launch` and every bounce is the 320 px/s minimum. "Everything that lands on
@@ -151,6 +155,8 @@ and a ×1.55 per bounce is a runaway — so it needs a ceiling (`max_launch`) in
 idle brain's `ROUTINE_BOUNCE` was tuned around the current behaviour.
 
 ### F9. The beach ball earns nothing
+
+**Fixed in D64:** a Hearts catch now; the bowling ball stays a Bones toy on the swing floor.
 
 It is a `WeaponBase` filed in the Play drawer, which is the kind side, so `Buddy._min_impulse_for`
 asks a 0.4 kg ball for the 1,500 fall-floor impulse — about 2,200 px/s. Dropped and thrown, it
@@ -171,7 +177,7 @@ ball) fits the description.
   birthday cake and party popper are `consume_on_use`: each pays once and is gone, so the gap their
   third node shortens never runs. A kindness-value or payout node would mean something.
 - **The donut box says "Six. He is going to have all six."** It is consumed on the first contact.
-- **The fist's damage node counts twice.** `FistPower.fire` scales the punch impulse by
+- **Fixed in D64.** **The fist's damage node counts twice.** `FistPower.fire` scales the punch impulse by
   `effective_damage_mult()`, and the receiver scales the damage by the fist body's multiplier
   again, so one level is ×1.32 on a punch, not ×1.15. Balance call.
 - **The nail gun and the flamethrower** barely clear the damage floor at zero distance (420 and 400

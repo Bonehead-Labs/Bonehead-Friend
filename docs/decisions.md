@@ -2043,6 +2043,102 @@ apart): they draw beneath the lines and are thrown no higher than the headline. 
 `numbers keep apart` suite checks every visible line's drawn rect pairwise, now and at four
 points through its rise.
 
+## D64 — The hits the engine never reports are billed from his own momentum (2026-09-25)
+
+**Decision.** D7 stands: he measures his own damage. It now has two halves. The engine's contact
+report is still billed as it was. What the engine never reports is read off his momentum: a
+node that runs after every script (`Buddy.StepStart`) notes his velocity as each step begins,
+and the callback after it holds the step as a ledger of what his contacts handed him (his
+momentum change, less gravity and damping exactly as Godot applies them) and who was touching
+him. One step later the engine has said all it will about that step. Whatever it reported is
+subtracted, and the rest is billed to the colliders that were touching him and now report
+nothing, through the same floor, per-source cooldown and attribution as any contact. Four more
+item fixes from the audit (F6, F9 and the fist's double count) went in alongside it.
+
+**Why D7 had a hole, measured.** A contact carries the impulse of the step *before* the one it
+is listed in, and only if the solver recycled it. Godot's recycle radius is one pixel on both
+bodies, so a contact that slides a pixel between steps is new every step and reports zero every
+step. The fist pushed him for six frames and reported 0 on every one. And a body asleep when a
+step begins is not called back for that step, even one woken inside it. He dozes whenever the
+desk is quiet, so the commonest hit in the game (the first one on an idle buddy) was solved in
+a step he never heard about. The ledger holds its span open across a sleep for that reason. The
+engine's report is not always right when it does arrive. When two new contact points recycle
+one old contact, each inherits its whole impulse, so a report can be exactly twice the blow.
+
+**The model, and how it was chosen.** Two candidates were measured against the one number the
+engine does report: a swung weapon's recycled contact. Each run was the reference bat, mace and
+katana, swung on the game's own drag joint and thrown, at 600, 900, 1,200 and 1,500 px/s. At
+each first contact the engine reported, both models were asked what they would have billed had
+it not. Measured: 44 first contacts, 18 of them with him in the air.
+
+| airborne, n = 18 | agrees with the engine | median ratio |
+|---|---|---|
+| ledger (his momentum) | exactly on 11; exactly half on 3, the engine's double count | 1.00 |
+| closing speed, `(1+e) mu v` | within 20% on 6; the rest scatter from 0.4 to 1.9 | 1.11 |
+
+On the floor (n = 26) the ledger reads 0.64 of the engine's number and the closing-speed model
+0.54. The floor's friction takes part of the blow, and the ledger bills only what reached him.
+Measured on a desk, a 14 kg ball thrown at a dozing buddy at 1,200 px/s is billed 5,301, and
+the ball lost 5,418 along the blow. The engine reported 0. The ledger won on accuracy, and it
+also cannot disagree about a thrown bat and a swung one: it never asks what hit him.
+
+**Two limits keep it honest.** One unreported collider takes the whole residual only if it
+could have delivered it. The blow has to push him away from that collider, and it has to sit
+inside the friction cone, which is no wider than 45 degrees because his friction is 1.0. Several
+colliders split it by their normals, solved non-negative. No share may exceed
+`2 sqrt(2) x mass behind it x closing speed`. The mass behind a free body is its own. The mass
+behind the world is his, because a floor gives back only what he brought. That cap removed a
+9,521 "world" bill from a bat squeezing him into the floor, which the first version had made.
+It cannot bill a step twice by construction. `loop_check` checks that with the per-source
+cooldown switched off.
+
+**What moved, item by item** (`item_check`, plain run):
+
+| | before | after |
+|---|---|---|
+| fist (the starter power) | 0 hits, 0 Bones, launched him at 1,653 px/s | 3 hits, 19.3 Bones |
+| bowling ball, dropped and thrown | 0 | 20.9 Bones |
+| trampoline landing | unbilled; lands 722, leaves 303 | billed; lands 722, leaves 1,062 |
+| beach ball | 0 (a 0.4 kg ball asked for the 1,500 fall floor) | a catch: 4.0 a time, 3.6 Hearts |
+| fist, one level of Knuckle Duster | punch x1.15 and damage x1.15: x1.32 | punch 6,000 at every level: x1.15 |
+
+- **F6, the trampoline.** The mat read his speed in `_physics_process`, after the landing had
+  been solved, so every launch was the 320 minimum. It now reads the collider's velocity from
+  its own contacts, which is the speed the solver started from. `max_launch` (1,080 px/s, 600
+  px of lift, which keeps his head on a 720 px desk) stops x1.55 running away, and above the
+  ceiling it gives back exactly what it was given, so nothing leaves slower than it arrived. The
+  idle brain's restart hop now climbs 153, 320, 496, 769, 1,080 and stays there. The landing is
+  billed at the mat's own multiplier, so "Tighter Springs" is read on the hit.
+- **F9, the beach ball.** It is now what its description says: a `FriendlyBase` catch bought
+  for 100 Hearts, paying 4 a catch above 200 px/s with a 0.5 s gap. He heads it at 270, so the
+  keepy-uppies pay. Its tree was re-derived in Hearts by `seed_m35_trees -- --only beach_ball`.
+  Its weight node ("Sand Filled", a placebo on a catch) became "Quicker Rallies", a rate, on the
+  same id. "Beach Day" was re-derived on the Hearts line: 0.57 Hearts/s a level, where it was
+  1.2 Bones/s.
+- **The bowling ball stays a Bones toy in Play**, and so do the trampoline and the fan. They are
+  bought with Bones and earn Bones. The receiver used to ask the drawer, so a thrown bowling
+  ball faced the fall floor meant for a beanbag he climbed on to. It now asks the currency:
+  kind *and* bought with Hearts means the fall floor. That rule also replaces the `Trampoline`
+  special case.
+
+*Consequence:* thrown things, the fist and the mat pay what they always claimed to, and the
+landings he makes by being flung now bill the world as the reported ones always did. Two things
+were measured and left alone. Godot's cast-ray CCD slows a fast body so that it arrives
+"softly" the step before contact: a bowling ball thrown at 900 px/s reached him at 151. So a
+throw still pays less than its speed suggests, and that is tunnelling protection. And the idle
+brain's bouncing now really does pay the Bones its `KNOCKOUT_COOLDOWN` comment always said it
+did: about 17.6 damage a second whatever the ceiling, because a landing's impulse and the flight
+between landings both scale with speed. The dwell, the toy cooldown and the five-minute
+knockout rest bound it. The pacing simulator models a player's hands and not the physics, so it
+sees none of this. It moved only with the beach ball's price and capstone: the first
+Reincarnation is 9:39:49, where it was 9:41:19, and four of four targets are met, so nothing
+was rebalanced.
+
+The seeders that own the beach ball take `--only id,id` now, as the body seeders have since
+D61 (`seed_m3_content`, `seed_m35_trees`). Run `item_check` before any change to
+`Buddy._integrate_forces`, the ledger or `_min_impulse_for`. Its F1, F6 and F9 lines are gone
+from `KNOWN`.
+
 
 ## Recommendations not yet decided
 
