@@ -46,6 +46,7 @@ shaped this batch:
 | `reassemble` | `collapse` reversed | — | — | — | $0.00 |
 | `pile` | `collapse` last frame, held | — | — | — | $0.00 |
 | `dragged` | hand-drawn | — | — | — | $0.00 |
+| `walk` | drawn, `art/tools/make_walk.py` (D62) | 8 | — | — | $0.00 |
 
 ## Prompts
 
@@ -87,3 +88,32 @@ came back with six magenta ones.
 | `#000000` | outline |
 | `#2EB8B3` | headphones |
 | `#FCFCEE` | bone cream |
+
+## `walk` — drawn, not generated (2026-09-25, D62)
+
+It waited a milestone on `rd_advanced_animation__walking`; it is built from his own pixels
+instead. `art/tools/make_walk.py` cuts `bonehead_neutral_faceless_96.png` at the top of the
+knob flare and puts it back together eight times from a frame table: each foot lifts 2 then 4
+art pixels, the upper body bobs one pixel at the passing frames and sways one pixel over the
+planted foot. Nothing is recoloured, so the outline and shading are the generated body's own.
+The lift is eased column by column across the notch between his feet; lifting each half as a
+block left a white tooth hanging in the gap.
+
+    python3 art/tools/make_walk.py
+    python3 art/tools/postprocess.py art/raw/bonehead_walk_sheet.png walk
+
+Tried and dropped: arm nubs cut from the `happy` hop (on a dark desk, two white dots floating
+off his sides) and a sideways reach on the lifted foot (it fights the notch easing, and
+`flip_h` already says which way he is going). Plays at 12 fps: a 0.67 s cycle, three steps a
+second at his 117 px/s walking speed.
+
+**Rebuilding the body file needs every tag's sheet in `art/raw/`, which is gitignored.**
+Export them from the committed `.aseprite` first, one tag at a time (Windows paths):
+
+    Aseprite.exe -b --tag <tag> art\src\bonehead.aseprite --sheet-type horizontal
+        --sheet art\raw\body_<tag>.png
+
+then run `_build_body.lua` with the full spec, `walk` last so frames 1-74 keep their numbers:
+`idle:10,idle_sad:7,idle_happy:13,hurt:16,happy:14,collapse:18,reassemble:18,pile:3,dragged:4,walk:12`.
+Checked after the rebuild: the first 74 frames and their durations are pixel-identical to the
+file before it.

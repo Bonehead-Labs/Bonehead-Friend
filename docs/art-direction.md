@@ -110,11 +110,12 @@ animation names directly.
 
 ### Buddy — body (`art/src/bonehead.aseprite`)
 
-Built so far — `art/src/bonehead.aseprite`, nine tags, 74 frames. ✅ means in the game.
+Built so far — `art/src/bonehead.aseprite`, ten tags, 82 frames. ✅ means in the game.
 
 | Tag | Frames | Notes |
 |---|---|---|
 | `idle` | ✅ 8 | Gentle bob |
+| `walk` | ✅ 8 | Travelling to a toy. Drawn from the neutral body, not generated (D62) |
 | `idle_sad` | ✅ 8 | Low mood: slumped, slower |
 | `idle_happy` | ✅ 8 | High mood: bouncy |
 | `dragged` | ✅ 2 | Dangling from the cursor. Hand-made; the pin joint does the real work |

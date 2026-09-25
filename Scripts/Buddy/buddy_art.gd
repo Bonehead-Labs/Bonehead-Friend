@@ -112,13 +112,14 @@ var _body_home := Vector2.ZERO
 ## which point a 0.85 squash drags the face 15% down his skull on every hit.
 var _base_scale := Vector2.ONE
 
-## Travel presentation. He has no walk tag — the nine body tags are poses and beats, none of
-## them a stride — and the idle brain nevertheless walks him across the desk to his toys.
-## Playing `idle` the whole way there reads as a skeleton being dragged by a ghost.
+## Travel presentation: the idle brain walks him across the desk to his toys, and playing
+## `idle` the whole way there reads as a skeleton being dragged by a ghost.
 ##
-## So this is the half that needs no new art: **which way he is facing, and a bob keyed to
-## how fast he is going.** A real walk cycle replaces the bob later and nothing that calls
-## `travel()` has to change, which is the point of it being here rather than in the brain.
+## **He plays `walk` while he travels** (D62) — a drawn stride that carries its own one-pixel
+## bob, so the code bob stays at zero under it. The bob below is the fallback for a body file
+## without the tag, which is what makes a partial art pass survivable: no stride, but still
+## which way he is facing and a bounce keyed to how fast he is going. Nothing that calls
+## `travel()` knows which of the two it got.
 ##
 ## Applied to the body *and* the face together. The face is a sibling sprite re-placed every
 ## frame from a table of per-frame offsets, so anything that moves one and not the other
@@ -129,11 +130,13 @@ const BOB_RATE := 9.0
 ## Fast enough that letting go of him stops the bob within a few frames, slow enough that the
 ## gap between two physics ticks never dips it.
 const TRAVEL_DECAY := 6.0
+const WALK := &"walk"
 
 var _facing := 1.0
 var _travel := 0.0
 var _bob_phase := 0.0
 var _bob := 0.0
+var _walking := false
 
 ## The motion accumulator (docs/plan-expressive-buddy.md §3.3). A `Tween` on `body.position`,
 ## `face.position` or `body.scale` does not work here: travel writes the body every frame and
@@ -330,7 +333,10 @@ func _advance_travel(delta: float) -> void:
 	# without anybody remembering to say stop. There is no code path that can leave him
 	# bobbing on the spot forever, which is the bug the switch version would have had.
 	_travel = maxf(0.0, _travel - delta * TRAVEL_DECAY)
-	if _travel > 0.0:
+	var striding := _travel > 0.0 and _can_walk()
+	if striding != _walking:
+		_set_walking(striding)
+	if _travel > 0.0 and not _walking:
 		_bob_phase += delta * BOB_RATE
 		_bob = -absf(sin(_bob_phase)) * BOB_HEIGHT * _travel
 	else:
@@ -339,6 +345,23 @@ func _advance_travel(delta: float) -> void:
 		_bob = move_toward(_bob, 0.0, delta * BOB_HEIGHT * 4.0)
 	_advance_motion()
 	_apply_body()
+
+## Whether travelling should show the stride: only standing idle, and never over a beat that
+## owns the body. A face-only beat (no tag) leaves his legs to him, so he can look pleased on
+## the way to a toy without stopping to do it.
+func _can_walk() -> bool:
+	if not has_animation(WALK) or _state_of_body() != &"idle":
+		return false
+	return not _beat_live or _beat_tag == &""
+
+## Start or stop the stride. Stopping hands back only a walk that is still playing — if a hit,
+## a drag or a beat has taken the body since, that animation is left alone.
+func _set_walking(on: bool) -> void:
+	_walking = on
+	if on:
+		_play_body(WALK)
+	elif body and body.animation == WALK:
+		_play_body(_idle_for(Economy.mood))
 
 ## The one place the body sprite's transform is written. Everything that moves him — travel,
 ## the bob, a beat's recoil, hop or squash — is a number folded in here, and the face is
@@ -642,8 +665,14 @@ func _on_mood_changed(value: float) -> void:
 		if value < float(threshold[0]):
 			set_expression(threshold[1])
 			break
-	if state != &"idle":
+	# Mid-stride the face follows his mood and the legs keep walking; he settles into the
+	# right idle when he arrives (`_set_walking`).
+	if state != &"idle" or (_walking and body.animation == WALK):
 		return
+	_play_body(_idle_for(value))
+
+## The idle he stands in at this mood.
+func _idle_for(value: float) -> StringName:
 	for threshold in MOOD_IDLES:
 		if value < float(threshold[0]):
 			var idle: StringName = threshold[1]
@@ -651,8 +680,8 @@ func _on_mood_changed(value: float) -> void:
 			# meter is still happy, but a neutral one with a full meter looks like it.
 			if idle == &"idle" and posture_bias != &"" and has_animation(posture_bias):
 				idle = posture_bias
-			_play_body(idle)
-			return
+			return idle
+	return &"idle"
 
 func _state_of_body() -> StringName:
 	var owner_buddy := buddy

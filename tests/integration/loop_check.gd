@@ -1273,11 +1273,15 @@ func _the_buddy_art_is_wired() -> void:
 	var saved_visible := art._track_visible
 
 	art._face_home = Vector2(3.0, 0.0)
+	art.travel(-1.0, 1.0)
+	art._advance_travel(1.0 / 60.0)
+	# Travelling starts the `walk` tag (D62), and a tag change loads that tag's own offsets —
+	# so the synthetic table goes in after the walk has started, or the walk's real one is what
+	# gets measured.
 	art._track_positions = PackedVector2Array([Vector2(4.0, 0.0)])
 	art._track_visible = PackedByteArray([1])
 	art.body.frame = 0
-	art.travel(-1.0, 1.0)
-	art._advance_travel(1.0 / 60.0)
+	art._apply_body()
 	# Bob is a y-only offset (`_place_face` adds `Vector2(0.0, _bob)`), so `face.position.x`
 	# is the mirrored placement with nothing else riding on it.
 	var expected_dx := 4.0 * art._base_scale.x
@@ -1295,6 +1299,30 @@ func _the_buddy_art_is_wired() -> void:
 	art._process(1.0 / 60.0)
 	_check("BuddyArt stops processing once travel and the bob it drives have settled",
 		not art.is_processing())
+
+	# The walk (D62). He slid to every toy on a code bob for two milestones; the stride is a
+	# drawn tag now, and the three things that can go wrong with it are that it never starts,
+	# that the code bob keeps bouncing a body that already bobs, and that arriving leaves him
+	# marching on the spot.
+	_check("the body has a walk tag", body.has_animation(BuddyArt.WALK))
+	# A reaction left over from an earlier suite owns the body, and a tagged beat rightly
+	# holds the stride off. Clearing it is what the brain's own timer would do next.
+	if art.beat_active():
+		art.clear_beat()
+	_check("standing idle with no beat, he is free to walk", art._can_walk())
+	if body.has_animation(BuddyArt.WALK):
+		art.travel(1.0, 1.0)
+		art._advance_travel(1.0 / 60.0)
+		_check("travelling plays the walk (got '%s')" % art.body.animation,
+			art.body.animation == BuddyArt.WALK)
+		art._advance_travel(0.1)
+		_check("and the drawn stride replaces the code bob (bob %.2f)" % art._bob,
+			is_zero_approx(art._bob))
+		art._travel = 0.0
+		art._process(1.0 / 60.0)
+		_check("arriving stands him back in an idle (got '%s')" % art.body.animation,
+			art.body.animation != BuddyArt.WALK and art.body.animation.begins_with("idle"))
+		_check("and he stops processing once he has arrived", not art.is_processing())
 
 	art._face_home = saved_home
 	art._facing = saved_facing
