@@ -18,7 +18,7 @@ An item that fits neither — wider than 32 with no icon grid — is refused wit
 rather than quietly resampled.
 
 **Long things get a drawn icon on the diagonal** (D69). A 56px rifle halved is 28x6 and a
-78px halberd is a one-pixel stick; turning either 45 degrees buys a little length and nothing
+78px halberd is a one-pixel stick; turning either 45 degrees buys about an eighth and nothing
 else, because a thin thing stays thin. What works is an icon grid that is *thicker than the
 item*: the long guns are their own sprites with the barrel, stock and scope rows doubled (and
 some of the rifle's barrel taken out), laid on the 45-degree lattice (icon pixel (x, y) is

@@ -2121,8 +2121,8 @@ Seven are under ten pixels on their short side (hunting rifle 6, pump shotgun 7,
 cricket bat 8, rolling pin 9, blunderbuss 9, the shotgun cursor 10), and three more pass only
 because a hairline is drawn at an angle (scythe, tyre iron and halberd, at about four pixels of
 picture per pixel of length). Turning a long thing 45 degrees does not rescue it: a rectangle
-L x T turned needs (L + T) / 1.41 of the square, so a 4:1 rifle gains about a fifth in length
-and nothing in width. So the icon has to be a caricature:
+L x T turned needs (L + T) / 1.41 of the square, so a 4:1 rifle drawn to scale grows by about an
+eighth — four pixels longer, one pixel thicker. So the icon has to be a caricature:
 
 - **The three long guns** are their own sprites with the barrel, stock, scope and fore-end rows
   doubled (and eight columns of the rifle's barrel taken out), laid on the 45-degree lattice:
