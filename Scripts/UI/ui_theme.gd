@@ -30,6 +30,19 @@ extends RefCounted
 ##   BodyLabel    running text
 ##   NameLabel    an item or node's own name
 ##   Numeral      a figure meant to be read in a column
+##
+## The Arcade's cabinets (D58), one frame divided by rules:
+##
+##   Cabinet      the frame — the only box a room draws
+##   Marquee*     the lit band across its top, one per `UIStyle.MARQUEES` colour
+##   Stage        the game, under one rule
+##   OddsStrip    the paytable, under one rule
+##   Deck         the stake and the keys, under one rule
+##   Display      the plate a machine talks through, set into its marquee
+##   Glass        a machine's own window frame — the reel bank
+##   Rule         a solid divider between cells (a `Panel`)
+##   DeckKey      a key on a deck; disabled keeps a solid rule
+##   RoomTab*     a room on the Arcade's strip, lit in its marquee's colour when chosen
 
 static var _theme: Theme = null
 
@@ -236,6 +249,68 @@ static func _panels(theme: Theme) -> void:
 	theme.set_type_variation("Capstone", "PanelContainer")
 	theme.set_stylebox("panel", "Capstone", capstone)
 
+	_cabinets(theme)
+
+## The Arcade's cabinets (docs/decisions.md D58). One outer frame, and inside it sections
+## divided by a single rule each — never a frame inside a frame. The old room was a tile
+## holding a sunk well holding the machine: three nested boxes of the same weight, so nothing
+## read as *the machine*. A section here owns only the rule on its top edge, so two of them
+## stacked share one line instead of drawing two.
+static func _cabinets(theme: Theme) -> void:
+	var rule := UIStyle.BORDER_WIDTH
+
+	# The frame. Its content margin is exactly the rule, so the sections inside butt up to it
+	# rather than sitting on a strip of card stock that would read as a second frame.
+	theme.set_type_variation("Cabinet", "PanelContainer")
+	theme.set_stylebox("panel", "Cabinet", _box(UIStyle.PANEL, rule, rule))
+
+	# The marquee: the machine's colour, edge to edge, no rule of its own — the frame is its
+	# top and the stage's rule is its bottom.
+	for accent in UIStyle.MARQUEES:
+		var lit := StyleBoxFlat.new()
+		lit.bg_color = UIStyle.marquee_fill(accent)
+		lit.set_corner_radius_all(0)
+		lit.content_margin_left = 12
+		lit.content_margin_right = 8
+		lit.content_margin_top = 3
+		lit.content_margin_bottom = 3
+		var variation := UIStyle.marquee_variation(accent)
+		theme.set_type_variation(variation, "PanelContainer")
+		theme.set_stylebox("panel", variation, lit)
+
+	# The stage, the paytable and the deck: sunk, raised, card — three surfaces the contrast
+	# grid already grades every ink against, each with one rule across its top.
+	for entry in [["Stage", UIStyle.SUNK, 12, 6], ["OddsStrip", UIStyle.RAISED, 12, 3],
+			["Deck", UIStyle.PANEL, 12, 6]]:
+		var section := StyleBoxFlat.new()
+		section.bg_color = entry[1]
+		section.border_color = UIStyle.EDGE
+		section.border_width_top = rule
+		section.set_corner_radius_all(0)
+		section.content_margin_left = entry[2]
+		section.content_margin_right = entry[2]
+		section.content_margin_top = rule + int(entry[3])
+		section.content_margin_bottom = entry[3]
+		theme.set_type_variation(entry[0], "PanelContainer")
+		theme.set_stylebox("panel", entry[0], section)
+
+	# The display a machine talks through, set into its marquee: card stock inside a rule, so
+	# the readout's ink is graded against a surface it is actually printed on.
+	theme.set_type_variation("Display", "PanelContainer")
+	theme.set_stylebox("panel", "Display", _box(UIStyle.PANEL, 8, 2))
+
+	# A window frame for a machine's own glass — the slot machine's reels. Three windows share
+	# it and are divided by `Rule`s, so the reel bank is one object rather than three tiles.
+	theme.set_type_variation("Glass", "PanelContainer")
+	theme.set_stylebox("panel", "Glass", _box(UIStyle.RAISED, rule, rule))
+
+	# A solid rule between cells of a section (`UIStyle.rule()`). A Panel sized by its caller.
+	var solid := StyleBoxFlat.new()
+	solid.bg_color = UIStyle.EDGE
+	solid.set_corner_radius_all(0)
+	theme.set_type_variation("Rule", "Panel")
+	theme.set_stylebox("panel", "Rule", solid)
+
 static func _buttons(theme: Theme, display: Font) -> void:
 	theme.set_font("font", "Button", display)
 	theme.set_font_size("font_size", "Button", UIStyle.LABEL)
@@ -363,6 +438,51 @@ static func _buttons(theme: Theme, display: Font) -> void:
 	theme.set_color("font_hover_color", "DangerButton", UIStyle.PANEL)
 	theme.set_color("font_pressed_color", "DangerButton", UIStyle.PANEL)
 	theme.set_color("font_hover_pressed_color", "DangerButton", UIStyle.PANEL)
+
+	_arcade_keys(theme)
+
+## The Arcade's keys (docs/decisions.md D58).
+static func _arcade_keys(theme: Theme) -> void:
+	# The deck's keys: the one main action, blackjack's Hit and Stand, the stake stepper. A
+	# BuyButton in every state but one — disabled keeps its solid rule. The base Button's
+	# disabled box draws its rule at a third of black, which at a fractional Menu size comes
+	# out as a soft grey edge on the keys that spend most of a hand disabled, and a cabinet is
+	# meant to be the hardest-edged thing in the shell. The pressed-in shape and the quiet ink
+	# still say "not now" (D26).
+	theme.set_type_variation("DeckKey", "Button")
+	theme.set_stylebox("normal", "DeckKey", _key(UIStyle.PANEL, 10, 7))
+	theme.set_stylebox("hover", "DeckKey", _key(UIStyle.BUY_HOVER, 10, 7))
+	theme.set_stylebox("pressed", "DeckKey", _key_pressed(UIStyle.SUNK, 10, 7))
+	theme.set_stylebox("hover_pressed", "DeckKey", _key_pressed(UIStyle.RAISED, 10, 7))
+	theme.set_stylebox("disabled", "DeckKey", _key_pressed(UIStyle.SUNK, 10, 7))
+
+	# A room of the Arcade on its strip, one variation per marquee colour. At rest it is a
+	# sunk key with its machine's colour lit along the top (a `Marquee*` panel the page lays
+	# in, since a StyleBoxFlat has one border colour); chosen, the whole key lights up in that
+	# colour and presses in, so the strip reads as a row of machines with one switched on and
+	# the lit key matches the marquee under it.
+	for accent in UIStyle.MARQUEES:
+		var variation := UIStyle.room_tab_variation(accent)
+		var ink := UIStyle.marquee_ink(accent)
+		theme.set_type_variation(variation, "Button")
+		theme.set_font_size("font_size", variation, UIStyle.MICRO)
+		var rest := _key(UIStyle.SUNK, 8, 5)
+		rest.content_margin_top = 4 + ROOM_LAMP
+		theme.set_stylebox("normal", variation, rest)
+		theme.set_stylebox("disabled", variation, rest)
+		var lifted := _key(UIStyle.RAISED, 8, 5)
+		lifted.content_margin_top = 4 + ROOM_LAMP
+		theme.set_stylebox("hover", variation, lifted)
+		var lit := _key_pressed(UIStyle.marquee_fill(accent), 8, 5)
+		lit.content_margin_top = 4 + ROOM_LAMP + KEY_LIFT
+		theme.set_stylebox("pressed", variation, lit)
+		theme.set_stylebox("hover_pressed", variation, lit)
+		for state in ["font_pressed_color", "font_hover_pressed_color",
+				"icon_pressed_color", "icon_hover_pressed_color"]:
+			theme.set_color(state, variation, ink)
+
+## Height of the colour band across the top of an unlit room key, in UI pixels.
+const ROOM_LAMP := 6
 
 static func _meters(theme: Theme) -> void:
 	# The fill is inset by the background's content margin, so the rule stays a rule
