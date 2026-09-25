@@ -23,6 +23,22 @@ Read `docs/README.md` first — it indexes the full spec. Design questions are a
   in its own arguments, even when you invoke it from WSL. Convert with `wslpath -w`.
 - Never run `godot` from a Linux PATH — it is not installed and a Linux build would
   produce a broken export.
+- **Some sessions run on Windows in Git Bash instead of WSL.** Then Godot is
+  `"/c/Users/George/Godot Projects/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe"`,
+  `--path` takes `"$(cygpath -w "$PWD")"`, and Pillow exists **only** in WSL
+  (`wsl.exe -e bash -lc 'cd "/mnt/c/..." && python3 ...'`) — Windows `python`/`python3` are
+  Microsoft Store stubs. Don't rewrite UTF-8 source through PowerShell 5.1's `Get-Content` /
+  `WriteAllText`: without a BOM it reads them as ANSI and mangles `·` and `—`.
+- **The owner games on the same PC.** Any windowed Godot run (`ui_shots`, `window_check`,
+  `sandbox`, the other capture tools) steals his focus. Default to `--headless`; batch the
+  windowed checks and run them when he says the machine is free.
+- **Parallel worktrees need their own `user://`.** Godot keys it by project name, so two
+  checkouts running a suite at once share a save slot and a settings file. Put a (gitignored)
+  `override.cfg` in each worktree with `config/use_custom_user_dir=true` and a distinct
+  `config/custom_user_dir_name`. Keep worktrees under `.claude/worktrees/` (`.claude/.gdignore`
+  stops the main project scanning them) and cut them from the working branch by hand — the
+  Agent tool's own worktree option branched from the ancient `origin/main`. Kill a stray Godot
+  by PID, never `taskkill /IM`, which kills every other worktree's run too.
 
 ## Hard rules
 
@@ -106,6 +122,25 @@ that are not obvious from the code:
   `get_global_rect()` on any shell Control is in canvas space and wrong by the scale factor:
   anything comparing a control to a mouse position uses `UIScale.screen_centre` /
   `screen_rect`. Each layer's root Control is sized explicitly rather than anchored full-rect.
+- **No rounded corners, anywhere.** `StyleBoxFlat` anti-aliases only when a corner has a
+  radius, so a radius is the one way to get a soft edge in this shell — and at the owner's own
+  1.25x Menu size that is what read as "rounded boxes" (D58). loop_check fails any rounded box
+  in the Theme. What 1.25x still costs is unevenness: a 3px rule renders as 3 or 4 screen px.
+- **Arcade rooms are `Cabinet`s** (D58): marquee, stage, paytable strip, deck, one frame with
+  rules between sections. A new machine picks an accent from `UIStyle.MARQUEES`; one drawn at a
+  fixed size implements `_fit_stage(width)`. `_key_pressed` has 4px more content margin than
+  `_key`, so a key's `custom_minimum_size` must cover the *pressed* height (44 at LABEL) or
+  pressing it grows the key and its whole row.
+- **`UIMotion.rise` fades, so it is for rows on a card only.** A card sitting straight on the
+  transparent window *unrolls* (scale only) — the HUD toast faded in from alpha 0 and read as a
+  ghost on a dark desk (D63). Headless has no motion at all; a check about an entrance sets
+  `UIMotion.run_in_headless` for its duration.
+- **Floating text goes through `FXLayer.spawn_number`'s placement** (D63): each line reserves
+  the space its whole rise passes through, so concurrent texts never overlap. Never position a
+  world label directly; give a headline `RANK_HEADLINE`, and a key if a newer one should
+  replace it.
+- **An item's `controls` line is the how-to** (D57): shown in the shop's detail pane and taught
+  once by toast when the item first lands. Every item with a non-default gesture fills it.
 
 Two capture tools exist because the shell cannot be reviewed from source:
 
@@ -116,6 +151,11 @@ Two capture tools exist because the shell cannot be reviewed from source:
 # Motion, as frame sequences in user://ui_motion. --fixed-fps is mandatory: without it each
 # frame's delta is however long the previous PNG took to write.
 "$GODOT" --fixed-fps 60 --path "$PROJ" res://tools/ui_motion_shots.tscn
+
+# ui_shots also shoots the Arcade at 1.25x (the owner's Menu size) and 2x every run;
+# `-- --arcade` shoots only the Arcade, at 1x, 1.25x, 2x and in the 640x480 play area.
+# The fidget toys on the desk and the shop's how-to strip:
+"$GODOT" --fixed-fps 60 --path "$PROJ" res://tools/fidget_shots.tscn
 ```
 
 Both run the real `main.tscn` against their **own save slot**, which `CaptureWindow` clears
@@ -152,6 +192,26 @@ PROJ='C:\Users\George\Godot Projects\Projects\Bonehead_Friend\interactive-buddy-
 
 # Can the player actually click the UI? Synthetic mouse events at the real widget rects
 "$GODOT" --headless --path "$PROJ" res://tests/integration/ui_check.tscn
+
+# Every item in ItemDB, alone on a desk of its own, used the way a player uses it (D59):
+# its currency through the real pipeline, its contract event, its effect, binning, teardown,
+# every augment key read by something. ~6.5 min for the roster. Drivers are picked by exact
+# script class and a class with no driver fails by name. Open findings live in its KNOWN
+# table (docs/item-audit-2026-09.md); a known finding that stops reproducing fails the suite,
+# so delete its lines when you fix it.
+"$GODOT" --headless --path "$PROJ" res://tests/integration/item_check.tscn
+"$GODOT" --headless --path "$PROJ" res://tests/integration/item_check.tscn -- --only=fist,grenade --trace
+
+# The held guns (D56) and the fidget toys (D57) against real physics and real input
+"$GODOT" --headless --path "$PROJ" res://tests/integration/gun_check.tscn
+"$GODOT" --headless --path "$PROJ" res://tests/integration/fidget_check.tscn
+
+# Author a weapon's physics row against its sprite (D61): coverage, overhang, grip and axis per
+# body, overlays in user://collider_audit; then re-seed only that scene with `-- --only <id>` on
+# its seeder, never `--force`. swing_rig sweeps the real drag joint through him before and
+# after a physics change — compare its momentum column, not the billed hits.
+"$GODOT" --headless --path "$PROJ" res://tools/collider_report.tscn -- --tables --only katana
+"$GODOT" --headless --path "$PROJ" res://tools/swing_rig.tscn
 
 # Boot smoke test — catches broken @export refs and missing scene paths
 "$GODOT" --headless --path "$PROJ" --quit-after 120
@@ -311,6 +371,28 @@ GDScript quirks already paid for once each:
   window size — `WorldBounds`, the trash bin anchor, the buddy's out-of-bounds rescue — is
   meaningless in a headless run, and a generated floor ends up inside the buddy rather than
   under him. Headless physics tests must supply their own geometry.
+- **Never write a body's velocity back unconditionally.** `linear_velocity` reads a copy from
+  the last step; assigning it erases every impulse applied since. D54's drag backstop did that
+  every frame, so a held revolver's first recoil measured exactly 0° and a blast could not knock
+  a held bat (fixed in D56: write only when the limit is actually exceeded). Same family as the
+  fist that erased its own punch.
+- **Contacts are reported a step late.** `get_contact_impulse()` carries the *previous* step's
+  impulse, so it is 0 on the frame two bodies first touch — a thrown ball that bounces off him
+  in one step is never billed (item audit F1; the starter fist paid nothing because of it). In
+  `body_entered` a thrown ball has already stopped: keep a decaying peak speed, not last
+  frame's.
+- **A timed gap is read against a timestamp taken before the press**, not after the handler's
+  own work has run in between.
+- **`set_default_cursor_shape` pushes a synthetic mouse-motion event** back through the game, so
+  call it only on a change — and GDScript has no getter, so track what you set (D57).
+- **Aim his hops straight up.** Sideways against a light toy just shoves it (490 px in three
+  hops, measured while building the bubble wrap).
+- **An explosive's blast area masks the item layer, so it catches its own casing** at zero
+  distance, where `ExplosionUtil` falls back to straight up at full force — a spent grenade
+  flew off invisibly at 6,878 px/s (D59). Take the casing out of the world before the blast.
+- **A turret that mirrors to face him has colliders that do not**; make it solid only where its
+  picture is there in both facings (D61). Mirroring the shapes at runtime teleports them into
+  whatever the turret is touching, usually him.
 
 Two more constraints the test runner imposes, both already worked around:
 - Autoload singletons are **not registered under `-s`**, so a script the tests import must
@@ -364,7 +446,7 @@ It runs `gpt-5.6-luna` at low effort, about 32k tokens an image, and does **not*
 interactive Codex the owner has open. It is not a Retro Diffusion replacement: **no seed** (so
 the prompt is the only record — write it out in full in `art/prompts/`), no `remove_bg` (that
 is what `keyout.py` is), no `return_spritesheet` and none of the `rd_advanced_animation__*`
-presets. **The walk cycle and the animation families still need Retro Diffusion.**
+presets. **The animation families (dance, relax, eat, catch, sleep) still want Retro Diffusion**; the walk cycle did not, it was drawn from his own frames (D62).
 
 Prompt tail that works with this generator, and every clause earns its place: `simple bold
 shapes, thick dark outline, flat solid colours, centred with generous margin, on a plain solid
@@ -382,7 +464,34 @@ Three things that cost time to find:
 - **`ImageChops.difference(a, b).getbbox()` on RGBA reads only alpha**, so a colour-only edit
   comes back as "no change". Compare pixel data when verifying an art change.
 
+**Item art can also be drawn by hand, and the grid is the record** (D62). `art/pixel/<id>.txt`
+is a text grid, one character per colour of the locked palette, with named parts for pieces
+that move; `python3 art/tools/pixel_sprite.py art/pixel/<id>.txt` writes the sprite and a 6x
+preview under `art/preview/pixel/`, and `--sheet <out.png> <ids…>` lays sprites against the
+roster. Look at every preview before committing. Every M3.9 item (the guns, the fidget toys) and
+fourteen redraws were made this way, and the walk cycle was drawn from his own body frames
+(`art/tools/make_walk.py`) rather than waiting for a generator. Icons: `art/tools/pixel_icon.py`
+for hand-drawn items (whole-number steps only); `make_icons.py` for the rest (a whole step when
+it keeps 80% of the exact fit, otherwise the exact fit with majority-colour sampling so outlines
+survive). If a redraw changes an item's size, delete that one scene and re-run its seeder with
+`-- --only <id>`, never `--force`. `art/raw/` is gitignored: before `_build_body.lua`, export
+every tag from `bonehead.aseprite` (`-b --tag <t> --sheet art\raw\body_<t>.png`), and append new
+tags last. Aseprite is at `C:\Program Files (x86)\Steam\steamapps\common\Aseprite\Aseprite.exe`
+and runs headless with `--batch`; nobody needs to open it.
+
 ## Current state
+
+**M3.9, the toybox (branch `m3.9-toybox`, 2026-09-25).** Guns you hold (D56: `HeldGun` — left
+carries, right fires, a torque controller aims it at him with weight, recoil kicks it off and it
+settles back; five harm guns on a sixth harm tab, a water pistol and a bubble blaster on the kind
+side; he cowers when one is aimed). Fidget toys (D57: `GestureZones` — zones in art pixels and a
+gesture vocabulary per button, one input grammar for everything held: **left carries, right while
+holding is the item's action, right on a zone is the zone's action, Shift+right bins**; bubble
+wrap, fidget spinner, jack-in-the-box, fortune ball, stress ball, each of which he uses himself).
+The Arcade rebuilt as cabinets (D58). Every item tested alone (D59, `item_check`) and every
+multi-collider weapon re-authored against its art (D61). Fourteen sprites redrawn, a walk cycle
+and headphones that fall (D62). Floating text that never overlaps (D63). The item audit's open
+findings are in `docs/item-audit-2026-09.md` — read it before touching the damage model.
 
 **M3's engineering is closed. What remains of the milestone is the art pass and the two
 playtests — neither of which can be done from a keyboard.** Mood, grime, the Hearts economy, the knockout beat, mastery and the shared pool,
@@ -435,8 +544,8 @@ CC0 recordings under `Assets/audio/` with the synthesised voice as the fallback 
 his breaths, the roar and the knockout clatter are still synthesised at boot in `AudioManager`
 (D12) on purpose. **The recorded levels have not been heard by a person yet.** Turrets mirror and
 aim at him and fire from an authored muzzle (D43). What is *not* drawn, as of the September 2026
-assessment (`docs/assessment-2026-09.md`): the walk cycle and the five animation families,
-and squash/stretch on the buddy. The five hands-on kind items and the fist icon are **generated**
+assessment (`docs/assessment-2026-09.md`): the five animation families and squash/stretch on
+the buddy. The walk cycle exists (D62) and his headphones now fall onto the knockout heap. The five hands-on kind items and the fist icon are **generated**
 (D45, Codex `imagegen`) and no longer plotted; `make_hands_on_items.py` now refuses to overwrite
 them without `--force`. The soft brush is still plotted and is fine as it is. Eight items that
 vanished on a dark desktop carry a bright second material as of D45, and the generator litter is
