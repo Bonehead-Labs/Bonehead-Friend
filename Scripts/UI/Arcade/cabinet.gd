@@ -34,9 +34,10 @@ const MARK_BOX := 32
 ## The display's minimum width. The readout inside it clips rather than grows (a single
 ## unwrapped Label would otherwise widen the card for every page in the shell, D22).
 const DISPLAY_MIN := 240
-## Every key on a deck is this tall, whatever it says, so a deck is one row of equal keys. Tall
-## enough for a *pressed* key as well: pressing moves the lift into the top margin, and a key
-## whose pressed box is taller than its floor grows under the finger and the whole deck with it.
+## Every key on a deck is this tall, whatever it says, so a deck is one row of equal keys. It
+## used to be a floor raised to cover a pressed key's extra margin as well — and 44 did not
+## quite, so a deck still grew 2px when its keys went dead. A pressed key is now the size of the
+## key at rest by construction (`UITheme._pressed`, D68), and this is only a height.
 const KEY_HEIGHT := 44
 
 var accent: StringName = &"gold"

@@ -1709,6 +1709,65 @@ func _nothing_overflows_its_box() -> void:
 
 	panels.call("close")
 	await _settle()
+	await _keys_hold_their_size(panels)
+
+## A key of every variation, pressed, hovered while pressed and disabled on a bench in the real
+## shell, and measured each time (D68). A Button sizes itself from the state it is in, so a
+## state with more margin than the key at rest grows the key — and its row, and the card under
+## it. The arcade's deck grew 2px every time a hand was dealt and its keys went dead.
+##
+## A toggle does not re-measure the key on its own; the next thing that does (a caption change,
+## a theme change) picks up the pressed size. So the bench asks, the way that next thing would.
+func _keys_hold_their_size(panels: Node) -> void:
+	var root := panels.get("_root") as Control
+	var theme := UITheme.get_theme()
+	var types: Array[String] = ["Button"]
+	types.append_array(theme.get_type_variation_list("Button"))
+	var bench := VBoxContainer.new()
+	bench.name = "KeyBench"
+	bench.position = Vector2(40, 40)
+	root.add_child(bench)
+	var keys: Array[Button] = []
+	for type_name in types:
+		var row := HBoxContainer.new()
+		bench.add_child(row)
+		var key := Button.new()
+		key.name = "Bench%s" % type_name
+		key.text = "Deal"
+		UIStyle.set_icon(key, UIStyle.glyph(&"star"))
+		key.toggle_mode = true
+		key.focus_mode = Control.FOCUS_NONE
+		key.theme_type_variation = type_name
+		row.add_child(key)
+		keys.append(key)
+	await _settle()
+	var grew: Array[String] = []
+	for key in keys:
+		var rest := key.get_rect()
+		var states: Array[String] = []
+		key.button_pressed = true
+		key.update_minimum_size()
+		await _settle()
+		states.append("pressed %s" % key.size)
+		var pressed_ok := key.get_rect().is_equal_approx(rest)
+		_hovered_at(_centre_of(key))
+		key.update_minimum_size()
+		await _settle()
+		states.append("hovered %s" % key.size)
+		var hovered_ok := key.get_rect().is_equal_approx(rest)
+		_hovered_at(Vector2(VIEW_SIZE) * 0.5)
+		key.button_pressed = false
+		key.disabled = true
+		await _settle()
+		states.append("disabled %s" % key.size)
+		var disabled_ok := key.get_rect().is_equal_approx(rest)
+		if not (pressed_ok and hovered_ok and disabled_ok):
+			grew.append("%s: at rest %s, %s" % [key.theme_type_variation, rest.size,
+				", ".join(states)])
+	_check("a key of every variation (%d) keeps its rect pressed, hovered and disabled"
+		% keys.size(), grew.is_empty(), "; ".join(grew))
+	bench.queue_free()
+	await _settle()
 
 ## No page may be left flagged visible under a shut card. That gap is what made every
 ## page's `if visible:` guard a no-op and left five pages doing full refreshes per hit,
