@@ -124,6 +124,20 @@ func _ready() -> void:
 	var flag := args.find("--divisor")
 	if flag >= 0 and flag + 1 < args.size():
 		divisor = float(args[flag + 1])
+	# `-- --price revolver=1800,flare_gun=2600`: try item prices without editing a `.tres`, the way
+	# `--divisor` tries a divisor. In memory only — this run's ItemDB, nothing written — so several
+	# can run side by side. The item's tree and capstone move with it by the seeders' own rules
+	# (`seed_m35_trees`, `seed_m35_engine`): a price alone, with the tree still priced for the old
+	# one, is not what a re-seed at that price would ship, and it measures the wrong thing — a
+	# gun's cheap first levels are most of what it costs a run (D71).
+	flag = args.find("--price")
+	if flag >= 0 and flag + 1 < args.size():
+		for pair in String(args[flag + 1]).split(",", false):
+			var parts := pair.split("=")
+			var item := ItemDB.get_item(StringName(parts[0])) if parts.size() == 2 else null
+			if item:
+				_reprice(item, int(parts[1]))
+				print("  price %s = %s" % [parts[0], parts[1]])
 
 	print("")
 	print("Bonehead Friend — pacing simulator")
@@ -139,6 +153,22 @@ func _ready() -> void:
 	print("==================================")
 	print("passed: %d   failed: %d" % [_passed, _failed])
 	get_tree().quit(1 if _failed > 0 else 0)
+
+## An item at a new price, with its tier-1 nodes scaled by the ratio of the two tree bases
+## (every node is a fraction of `50 + price x 0.045`) and its capstone re-derived from the
+## engine's rule for its currency.
+func _reprice(item: ItemData, cost: int) -> void:
+	var old_base := 50.0 + float(item.cost) * 0.045
+	var new_base := 50.0 + float(cost) * 0.045
+	var hearts := item.currency == ItemData.CURRENCY_HEARTS
+	for node in ItemDB.augments_for(item.id):
+		if node.is_automation:
+			node.cost_base = int(round(800.0 + float(cost) * (0.5 if hearts else 0.4)))
+			var rate := (0.5 + float(cost) / 1500.0) if hearts else (1.0 + float(cost) / 500.0)
+			node.automation_rate = round(rate * 100.0) / 100.0
+		else:
+			node.cost_base = int(round(float(node.cost_base) * new_base / old_base))
+	item.cost = cost
 
 # --- the loop --------------------------------------------------------------
 

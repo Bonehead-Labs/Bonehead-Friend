@@ -74,15 +74,20 @@ const DRIVERS := {
 	&"NpcBase": &"_drive_critter",
 	&"NpcGorilla": &"_drive_critter",
 	&"FistPower": &"_drive_fist",
-	&"GunPower": &"_drive_gun",
 	&"BeamPower": &"_drive_beam",
 	&"LightningPower": &"_drive_strike",
 	&"MissilePower": &"_drive_strike",
 	&"VortexPower": &"_drive_vortex",
 	&"OpenHandPower": &"_drive_pet",
 	# D56: all seven held guns, harm and kind. Which of the three things a shot is, and which
-	# side it pays on, the driver reads off the gun and the item.
+	# side it pays on, the driver reads off the gun and the item. D71 added the three the cursor
+	# gave up and the guns whose shot is a body — each class its own row, as every class is —
+	# and the harpoon, whose trigger also reels, its own driver.
 	&"HeldGun": &"_drive_held_gun",
+	&"GrenadeLauncher": &"_drive_held_gun",
+	&"FlareGun": &"_drive_held_gun",
+	&"DartBlaster": &"_drive_held_gun",
+	&"HarpoonGun": &"_drive_harpoon_gun",
 	# D57: one row per toy, each working its own zones through `GestureZones` with the helpers
 	# under "drivers: the fidget layer". A new toy class is a row here and a driver built from
 	# them; its currency is decided by `_pays_hearts`, not by this table.
@@ -127,6 +132,15 @@ const KNOWN := {
 	"pump_shotgun/thrown": "~F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
 	"hunting_rifle/thrown": "~F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
 	"blunderbuss/thrown": "~F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
+	# D71's, the same throw and the same finding: reported when it shows, not failed when it does not.
+	"pistol/thrown": "~F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
+	"shotgun/thrown": "~F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
+	"minigun/thrown": "~F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
+	"flare_gun/thrown": "~F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
+	"tommy_gun/thrown": "~F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
+	"grenade_launcher/thrown": "~F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
+	"harpoon_gun/thrown": "~F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
+	"ray_gun/thrown": "~F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
 	"magic_eight_ball/aug_cooldown_mult": "F10 a shake is a whole reversal: 4 x 0.94^n still rounds up to 4 until level 5",
 }
 
@@ -1322,42 +1336,6 @@ func _drive_fist(run: Run) -> void:
 		run.speed = maxf(run.speed, fist.linear_velocity.length())
 	await _holster(run)
 
-func _drive_gun(run: Run) -> void:
-	_move(_centre())
-	await _step(2)
-	var power := await _equip(run) as GunPower
-	if power == null:
-		return
-	var v0 := _buddy.linear_velocity
-	var pressed_at := Time.get_ticks_msec()
-	_press(MOUSE_BUTTON_LEFT)
-	run.cooldown = float(power._cooldown_until_msec - pressed_at)
-	if power.auto_fire:
-		for i in 40:
-			_move(_centre())
-			await _step()
-	_release(MOUSE_BUTTON_LEFT)
-	await _step(6)
-	var kick := (_buddy.linear_velocity - v0).length()
-	var shots := run.uses()
-	_expect(run, "fires", shots > 0, "a click on him fires (%d shots)" % shots)
-	if power.auto_fire:
-		_expect(run, "stream", shots >= 5, "holding the trigger keeps it firing (%d shots)" % shots)
-	_expect(run, "pellets", _fx.count("shot") == shots * maxi(1, power.pellets),
-		"%d pellet(s) a shot land as %d sparks for %d shots" % [power.pellets, _fx.count("shot"), shots])
-	_expect(run, "hits", not run.hits.is_empty(), "and it hurts him (%d hits)" % run.hits.size())
-	_expect(run, "shoves", maxf(kick, run.kick) > 20.0, "and shoves him (%.0f px/s)" % maxf(kick, run.kick))
-	# Shift suspends the power (D47): the same click with Shift held is his, not the gun's.
-	await _step(int(ceil(float(run.authored.get("cooldown_seconds", 0.0)) * 60.0)) + 2)
-	var before := run.uses()
-	_move(_centre())
-	await _step()
-	_press(MOUSE_BUTTON_LEFT, true)
-	_release(MOUSE_BUTTON_LEFT, true)
-	await _step(3)
-	_expect(run, "shift", run.uses() == before, "and Shift held, the click is not a shot")
-	await _holster(run)
-
 func _drive_beam(run: Run) -> void:
 	_move(_centre())
 	await _step(2)
@@ -1406,6 +1384,16 @@ func _drive_strike(run: Run) -> void:
 		_expect(run, "effect", landed, "the missile flies in and goes off on the spot marked (%s vs %s)"
 			% [_fx.booms[0] if not _fx.booms.is_empty() else "no blast", at])
 		await _step(40)
+	# Shift suspends the power (D47): the same click with Shift held is his, not the power's.
+	# Asked here since D71 retired the cursor guns it used to be asked of.
+	await _step(int(ceil(float(run.authored.get("cooldown_seconds", 0.0)) * 60.0)) + 2)
+	var before := run.uses()
+	_move(_centre())
+	await _step()
+	_press(MOUSE_BUTTON_LEFT, true)
+	_release(MOUSE_BUTTON_LEFT, true)
+	await _step(3)
+	_expect(run, "shift", run.uses() == before, "and Shift held, the click is not a strike")
 	await _holster(run)
 
 func _drive_vortex(run: Run) -> void:
@@ -1763,6 +1751,10 @@ func _on_aim_threat(kind: StringName, _at: Vector2, level: float) -> void:
 ## second tap at once that its gap must refuse, and then another shot or, full-auto, the
 ## trigger held down for a stream. What a shot is (`bullet`, `water`, `bubble`) is read off the
 ## gun and which side it pays on off the item, so all seven are this one driver.
+##
+## D71's guns go through it too. A rotary gun is held until its first round, and the time that
+## takes is its gap (the rate node shortens the spin-up). A gun whose shot is a body — a
+## grenade, a flare, a dart — is asked what its body did, each by its exact class.
 func _drive_held_gun(run: Run) -> void:
 	if not EventBus.threat_changed.is_connected(_on_aim_threat):
 		EventBus.threat_changed.connect(_on_aim_threat)
@@ -1801,33 +1793,43 @@ func _drive_held_gun(run: Run) -> void:
 		_expect(run, "threat", _threatened and cowers,
 			"pointed at him, it says so, and he cowers (beat '%s')" % _buddy.expression.beat_id())
 
+	# Everything it hurts him with from here to the throw is a shot: a blast or a burn is billed
+	# at `shot_mult` whatever its impulse (`_hit_multiplier`).
+	run.authored["shots_live"] = true
+	run.authored["shot_bodies"] = body is GrenadeLauncher or body is FlareGun
 	# One tap, and at once a second, which the gap must refuse. The gap is read off the gun's
 	# own clock against a time taken before the press; it due-dates the next shot a frame early
 	# to keep a stream's phase (D56), so that frame goes back on.
 	var muzzle := body.muzzle_position()
 	var first_tracer := _fx.tracers.size()
-	await _step()
-	var spin_before := body.angular_velocity
-	await _step()
-	var spin_at := body.angular_velocity
-	var pressed_at := Time.get_ticks_msec()
-	_press(MOUSE_BUTTON_RIGHT)
-	var fired := body.shots_fired
-	if fired == 1:
-		run.cooldown = float(body._next_shot_msec - pressed_at + _frame_msec())
-	_release(MOUSE_BUTTON_RIGHT)
-	_press(MOUSE_BUTTON_RIGHT)
-	_release(MOUSE_BUTTON_RIGHT)
-	_expect(run, "fires", fired == 1 and body.shots_fired == 1,
-		"right-click in the hand fires one shot, and a second click inside its %.2fs gap does not (%d)"
-		% [body._interval(), body.shots_fired])
+	var kick := 0.0
+	if body.spin_up > 0.0:
+		var first: Array = await _spin_up_first_round(run, body)
+		kick = first[0]
+		muzzle = first[1]
+	else:
+		await _step()
+		var spin_before := body.angular_velocity
+		await _step()
+		var spin_at := body.angular_velocity
+		var pressed_at := Time.get_ticks_msec()
+		_press(MOUSE_BUTTON_RIGHT)
+		var fired := body.shots_fired
+		if fired == 1:
+			run.cooldown = float(body._next_shot_msec - pressed_at + _frame_msec())
+		_release(MOUSE_BUTTON_RIGHT)
+		_press(MOUSE_BUTTON_RIGHT)
+		_release(MOUSE_BUTTON_RIGHT)
+		_expect(run, "fires", fired == 1 and body.shots_fired == 1,
+			"right-click in the hand fires one shot, and a second click inside its %.2fs gap does not (%d)"
+			% [body._interval(), body.shots_fired])
+		await _step()
+		# The kick, as the angular momentum the shot handed it: the change in spin over the step
+		# it landed in, less the change the aim was already making, times its mass. Mass-normalised
+		# on purpose — the Weight node turns a heavier gun less for the same impulse, and must not
+		# be able to pass for the Steady one.
+		kick = absf((body.angular_velocity - spin_at) - (spin_at - spin_before)) * body.mass
 	var in_air := _bubbles().size()
-	await _step()
-	# The kick, as the angular momentum the shot handed it: the change in spin over the step it
-	# landed in, less the change the aim was already making, times its mass. Mass-normalised on
-	# purpose — the Weight node turns a heavier gun less for the same impulse, and must not be
-	# able to pass for the Steady one.
-	var kick := absf((body.angular_velocity - spin_at) - (spin_at - spin_before)) * body.mass
 	var peak := 0.0
 	for i in 20:
 		peak = maxf(peak, absf(body.aim_error()))
@@ -1842,14 +1844,16 @@ func _drive_held_gun(run: Run) -> void:
 	await _aim_settles(body, 60)
 	if body.auto_fire:
 		var before := body.shots_fired
+		# A rotary gun that has run down spins up again first.
+		var held := 50 + (int(ceil(body._spin_up_seconds() * 60.0)) if body.spin_up > 0.0 else 0)
 		_press(MOUSE_BUTTON_RIGHT)
-		await _step(50)
+		await _step(held)
 		_release(MOUSE_BUTTON_RIGHT)
 		var streamed := body.shots_fired - before
 		await _step(10)
 		_expect(run, "stream", streamed >= 3 and body.shots_fired == before + streamed
 			and not body.trigger_held(),
-			"holding right keeps it firing (%d shots in %.2fs), and letting go stops it" % [streamed, 50.0 / 60.0])
+			"holding right keeps it firing (%d shots in %.2fs), and letting go stops it" % [streamed, held / 60.0])
 	else:
 		_press(MOUSE_BUTTON_RIGHT)
 		_release(MOUSE_BUTTON_RIGHT)
@@ -1862,19 +1866,168 @@ func _drive_held_gun(run: Run) -> void:
 	if kind:
 		_expect(run, "no_threat", not _threatened, "a kind gun is never a threat to him")
 		_expect(run, "no_hits", run.hits.is_empty(), "and never bills him a hit (%d)" % run.hits.size())
-	match body.shot_kind:
-		&"water":
-			_expect_tracer(run, muzzle, first_tracer, false)
-			await _expect_squirts(run, body)
-		&"bubble":
-			_expect(run, "blows", in_air >= 1, "a shot is a bubble in the air (%d)" % in_air)
-			await _expect_bubbles(run, body, shots)
-		_:
-			_expect_tracer(run, muzzle, first_tracer, true)
+	if body is GrenadeLauncher:
+		await _expect_grenades(run, body as GrenadeLauncher, shots)
+	elif body is FlareGun:
+		await _expect_flares(run, body as FlareGun, shots)
+	elif body is DartBlaster:
+		await _expect_darts(run, body as DartBlaster, shots)
+	else:
+		match body.shot_kind:
+			&"water":
+				_expect_tracer(run, muzzle, first_tracer, false)
+				await _expect_squirts(run, body)
+			&"bubble":
+				_expect(run, "blows", in_air >= 1, "a shot is a bubble in the air (%d)" % in_air)
+				await _expect_bubbles(run, body, shots)
+			_:
+				_expect_tracer(run, muzzle, first_tracer, true)
+	run.authored["shots_live"] = false
 	if run.upgraded:
 		await _bin_in_the_hand(run, body)
 	else:
 		await _thrown_gun(run, body, kind)
+
+## A rotary gun (D71's minigun): right held, nothing until the barrels are up to speed, then the
+## first round. The wait is the gap its rate node shortens, so it goes into `run.cooldown` and
+## the spin-up stands in for the fire interval in `_cooldown_verdict`. Returns the first round's
+## kick, measured as a tapped gun's is, over the steps either side of the round — with the
+## shudder switched off for it, because a random jitter is noise on one round's measurement —
+## and where the muzzle was when it fired, which the aim has moved since the press.
+func _spin_up_first_round(run: Run, body: HeldGun) -> Array:
+	body.spin_shudder = 0.0
+	run.authored["fire_interval"] = body.spin_up
+	var spins: Array[float] = [body.angular_velocity, body.angular_velocity]
+	var muzzle := body.muzzle_position()
+	var fired_from := muzzle
+	_press(MOUSE_BUTTON_RIGHT)
+	var waited := 0
+	while body.shots_fired == 0 and waited < 150:
+		fired_from = muzzle
+		await _step()
+		waited += 1
+		spins.append(body.angular_velocity)
+		muzzle = body.muzzle_position()
+	_release(MOUSE_BUTTON_RIGHT)
+	var fired := body.shots_fired
+	run.cooldown = float(waited) * 1000.0 / float(Engine.physics_ticks_per_second)
+	var due := body._spin_up_seconds() * float(Engine.physics_ticks_per_second)
+	_expect(run, "fires", fired == 1 and absf(float(waited) - due) <= 3.0,
+		"right held in the hand, it spins up and fires its first round after %.2fs (spin-up %.2fs)"
+		% [waited / 60.0, body._spin_up_seconds()])
+	await _step()
+	spins.append(body.angular_velocity)
+	var n := spins.size()
+	# The round landed in the step before the last read; the one before that is the aim's own.
+	return [absf((spins[n - 2] - spins[n - 3]) - (spins[n - 3] - spins[n - 4])) * body.mass, fired_from]
+
+## The grenade launcher (D71): every grenade it lobbed went off, on him or on its fuse, and he was
+## hurt by the blast through the real pipeline.
+func _expect_grenades(run: Run, body: GrenadeLauncher, shots: int) -> void:
+	await _await(func() -> bool: return body.grenades_in_flight() == 0, 200)
+	await _step(3)
+	_expect(run, "goes_off", body.grenades_in_flight() == 0 and _fx.count("boom") >= shots,
+		"each grenade goes off (%d blasts for %d shots)" % [_fx.count("boom"), shots])
+	_expect(run, "hits", not run.hits.is_empty(), "and a blast hurts him (%d hits)" % run.hits.size())
+	_expect(run, "effect", _fx.reactions.has(run.item.id), "and the world answers each hit")
+
+## The flare gun (D71): a flare that meets him sticks and burns — ticks at the burn's impulse on
+## top of the strike — and every flare goes out.
+func _expect_flares(run: Run, body: FlareGun, shots: int) -> void:
+	var landed := await _await(func() -> bool: return body.flares_burning() == 0,
+		int((body.burn_time + 3.0) * 60.0))
+	await _step(3)
+	var burns := run.hits.filter(func(h: HitInfo) -> bool: return is_equal_approx(h.raw_impulse, body.burn_force))
+	run.notes.append("%d burn tick(s) from %d flare(s)" % [burns.size(), shots])
+	_expect(run, "sticks", not burns.is_empty(), "a flare sticks in him and burns (%d ticks)" % burns.size())
+	_expect(run, "hits", run.hits.size() > burns.size(), "on top of the strike (%d hits)" % run.hits.size())
+	_expect(run, "effect", _fx.count("heat") > 0, "it burns where it is")
+	_expect(run, "out", landed, "and every flare goes out")
+
+## The foam dart blaster (D71): every dart that sticks to him is one kind act of exactly the
+## dart's value, and they drop off him in their own time.
+func _expect_darts(run: Run, body: DartBlaster, shots: int) -> void:
+	await _await(func() -> bool: return body.darts_alive() == body.darts_on_him(), 90)
+	var stuck := body.darts_on_him()
+	_expect(run, "sticks", stuck >= 1, "a dart sticks to him (%d of %d)" % [stuck, shots])
+	_expect(run, "acts", run.acts.size() == stuck, "each one that sticks is a kind act (%d)" % run.acts.size())
+	_expect(run, "contract", run.contract("kindness") == run.acts.size(), "each one a kind act for the board")
+	_expect_acts_worth(run, body.dart_value * body.value_multiplier(), "a dart that sticks to him")
+	for node in _stage.get_children():
+		if node is DartBlaster.Dart:
+			node.set("_drop_at", 0.0)
+	await _step(3)
+	_expect(run, "drops", body.darts_on_him() == 0, "and they drop off him in their own time")
+
+## The harpoon gun (D71): fired, it sticks in him — the strike is a hit — then right held reels
+## him in until it tears out, which is the second hit, and it winds home loaded. Its trigger is
+## also its reel, which is why it has a driver of its own.
+func _drive_harpoon_gun(run: Run) -> void:
+	if not EventBus.threat_changed.is_connected(_on_aim_threat):
+		EventBus.threat_changed.connect(_on_aim_threat)
+	_threatened = false
+	_reseed(run)
+	var body := await _spawn(run, _centre() + Vector2(-300.0, -150.0)) as HarpoonGun
+	if body == null:
+		return
+	run.authored["shot_mult"] = body.shot_mult
+	run.authored["shot_force"] = body.shot_force
+	run.notes.append("a harpoon on a line, reeled at %.0f px/s" % body.reel_speed)
+	await _await_still(body, 60)
+	if not await _grab(run, body):
+		return
+	await _mouse_to(_centre() + Vector2(-300.0, -30.0), 700.0)
+	var settle := await _aim_settles(body, 90)
+	_expect(run, "aims", settle >= 0, "held beside him, it lays its own barrel on him (%s)"
+		% (("in %.2fs" % (settle / 60.0)) if settle >= 0
+			else "never: %.1f deg off" % rad_to_deg(absf(body.aim_error()))))
+	var cowers := await _await(func() -> bool: return _buddy.expression.beat_id() == &"aimed_at", 60)
+	_expect(run, "threat", _threatened and cowers,
+		"pointed at him, it says so, and he cowers (beat '%s')" % _buddy.expression.beat_id())
+	run.authored["shots_live"] = true
+	await _step()
+	var spin_before := body.angular_velocity
+	await _step()
+	var spin_at := body.angular_velocity
+	var pressed_at := Time.get_ticks_msec()
+	_press(MOUSE_BUTTON_RIGHT)
+	if body.shots_fired == 1:
+		run.cooldown = float(body._next_shot_msec - pressed_at + _frame_msec())
+	_release(MOUSE_BUTTON_RIGHT)
+	_press(MOUSE_BUTTON_RIGHT)
+	_release(MOUSE_BUTTON_RIGHT)
+	_expect(run, "fires", body.shots_fired == 1,
+		"right-click in the hand fires the harpoon, and a second while it is out does not (%d)"
+		% body.shots_fired)
+	await _step()
+	_gauge(run, &"recoil_mult", absf((body.angular_velocity - spin_at) - (spin_at - spin_before)) * body.mass)
+	var stuck := await _await(func() -> bool: return body.harpoon_in_him(), 60)
+	await _step(2)
+	_expect(run, "sticks", stuck, "the harpoon sticks in him")
+	_expect(run, "strike", run.hits.any(func(h: HitInfo) -> bool:
+		return is_equal_approx(h.raw_impulse, body.shot_force)), "and the strike is a hit (%d hits)" % run.hits.size())
+	var from := _buddy.global_position.distance_to(body.muzzle_position())
+	_press(MOUSE_BUTTON_RIGHT)
+	var tore := await _await(func() -> bool: return body.rips > 0, 200)
+	_release(MOUSE_BUTTON_RIGHT)
+	await _step(2)
+	var to := _buddy.global_position.distance_to(body.muzzle_position())
+	run.notes.append("reeled from %.0f to %.0f px" % [from, to])
+	_expect(run, "reels", tore and to < from - 100.0, "right held reels him in (%.0f -> %.0f px) until it tears out"
+		% [from, to])
+	_expect(run, "tears", run.hits.any(func(h: HitInfo) -> bool:
+		return is_equal_approx(h.raw_impulse, body.shot_force * body.rip_share)), "and the tear is a second hit")
+	var home := await _await(func() -> bool: return not body.harpoon_out(), 90)
+	_expect(run, "home", home, "then it winds home, loaded again")
+	_expect(run, "use", run.uses() == body.shots_fired, "each shot is a use:%s for the board (%d of %d)"
+		% [run.item.id, run.uses(), body.shots_fired])
+	_expect(run, "effect", _fx.reactions.has(run.item.id), "and the world answers each hit")
+	run.authored["shots_live"] = false
+	await _step(20)
+	if run.upgraded:
+		await _bin_in_the_hand(run, body)
+	else:
+		await _thrown_gun(run, body, false)
 
 ## Frames until the aim holds within two degrees of him for a tenth of a second, or -1.
 func _aim_settles(body: HeldGun, frames: int) -> int:
@@ -2398,7 +2551,7 @@ func _expect_acts_worth(run: Run, value: float, what: String) -> void:
 func _pays_hearts(run: Run) -> bool:
 	if HEARTS_CLASSES.has(run.cls):
 		return true
-	if run.cls == &"HeldGun":
+	if _lineage(run.item).has(&"HeldGun"):
 		return run.item.is_kind()
 	return _lineage(run.item).has(&"FidgetToy")
 
@@ -2426,6 +2579,10 @@ func _lineage(item: ItemData) -> Array:
 func _hit_multiplier(run: Run, info: HitInfo) -> float:
 	var base := float(run.authored.get("damage_mult", 1.0))
 	if run.authored.has("shot_force") and is_equal_approx(info.raw_impulse, float(run.authored["shot_force"])):
+		base = float(run.authored["shot_mult"])
+	# A gun whose shot is a body (D71) hurts him by blast and by burn, at impulses of their own,
+	# and bills each at its shot multiplier; the driver says when its shots are live.
+	if run.authored.get("shots_live", false) and run.authored.get("shot_bodies", false):
 		base = float(run.authored["shot_mult"])
 	return Progression.damage_mult_for(run.item.id, base)
 

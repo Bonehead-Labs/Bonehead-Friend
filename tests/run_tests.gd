@@ -99,6 +99,7 @@ func _initialize() -> void:
 	_test_v1_fixture_migrates()
 	_test_v2_fixture_migrates()
 	_test_v3_fixture_migrates()
+	_test_v4_cursor_guns_fixture_is_current()
 
 	_suite("mood")
 	_test_mood_decays_toward_zero_without_overshooting()
@@ -800,6 +801,44 @@ func _test_v3_fixture_migrates() -> void:
 		(out["automation_off"] as Array).has("boombox_playlist"))
 	_check("sixteen unlocks survived", (out["unlocks"] as Array).size() == 16)
 	_check("the mastery pool survived", int(out["mastery_pool"]) == 31)
+
+## A v4 save from just before D71, when the pistol, the shotgun and the minigun were cursor
+## powers: all three owned, levels bought in their trees, two of their capstones running and
+## one switched off, mastery past the automation rank, and a Range Day half done.
+##
+## D71 turned all three into guns you hold **under the same ids**, which is why this is not a
+## migration: every key in this file means the same thing after it as before. The equipped
+## power was never saved — `ItemSpawner` holds it for the session — so there is nothing to
+## drop or to fall back from. `gun_check` loads this file into the real autoloads and fires the
+## guns it owns; this asserts the half that is pure: it is current, and nothing in it moves.
+func _test_v4_cursor_guns_fixture_is_current() -> void:
+	var f := FileAccess.open("res://tests/fixtures/save_v4_cursor_guns.json", FileAccess.READ)
+	if f == null:
+		_check("v4 cursor-guns fixture is present", false)
+		return
+	var parsed = JSON.parse_string(f.get_as_text())
+	f.close()
+	if typeof(parsed) != TYPE_DICTIONARY:
+		_check("v4 cursor-guns fixture is valid JSON", false)
+		return
+	_check("a save from before D71 is already the current version (no migration for kept ids)",
+		int((parsed as Dictionary)["version"]) == Schema.SAVE_VERSION)
+	var out: Dictionary = Schema.migrate(parsed)
+	var unlocks: Array = out["unlocks"]
+	_check("the three cursor guns are still owned, by the same ids",
+		unlocks.has("pistol") and unlocks.has("shotgun") and unlocks.has("minigun"))
+	var augments: Dictionary = out["augments"]
+	_check("every level bought in their trees survives",
+		int(augments["pistol_damage"]) == 4 and int(augments["pistol_third"]) == 3
+		and int(augments["shotgun_third"]) == 5 and int(augments["minigun_damage"]) == 3)
+	_check("and their capstones' levels", int(augments["pistol_turret"]) == 2
+		and int(augments["minigun_sentry"]) == 1 and int(augments["shotgun_trap"]) == 1)
+	_check("the switched-off one stays off", (out["automation_off"] as Array).has("shotgun_trap"))
+	_check("their mastery survives", is_equal_approx(float(out["mastery_xp"]["pistol"]), 42000.0))
+	_check("and so does a Range Day half done",
+		int((out["contracts"]["progress"] as Dictionary)["daily_use_pistol"]) == 120)
+	_check("nothing in a save names an equipped power", not out.has("equipped_power")
+		and not out.has("cursor_power"))
 
 # --- harness ---------------------------------------------------------------
 

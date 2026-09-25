@@ -1456,7 +1456,8 @@ func _drawn_alpha(item: CanvasItem) -> float:
 ##
 ## Three separate complaints, one suite: nothing on screen said you were holding a power,
 ## unequipping meant a trip back into the panel, and while armed you could not pick anything
-## up — so a pistol and a teddy bear could not be used in the same minute.
+## up — so a pistol and a teddy bear could not be used in the same minute. Taught with the
+## missile strike since D71 made the pistol a gun you hold.
 func _the_power_leaves_your_hands_free() -> void:
 	_suite("cursor powers")
 	var spawner := get_tree().get_first_node_in_group(&"item_spawner")
@@ -1477,12 +1478,14 @@ func _the_power_leaves_your_hands_free() -> void:
 	var toast := _find(hud, "Toast") as CanvasItem
 	_check("the HUD's toast is named, so it can be found", toast != null)
 
-	Progression.purchase_item(&"pistol")
-	EventBus.spawn_requested.emit(&"pistol", Vector2.ZERO)
+	# Paid for, whatever the suites before this one left in the purse.
+	Economy.grant(Economy.BONES, float(ItemDB.get_item(&"missile").cost))
+	Progression.purchase_item(&"missile")
+	EventBus.spawn_requested.emit(&"missile", Vector2.ZERO)
 	await _settle()
 	_check("equipping a power arms the spawner",
-		StringName(spawner.call("active_power")) == &"pistol")
-	_check("and the chip says so", chip.visible and chip.text.contains("Pistol"))
+		StringName(spawner.call("active_power")) == &"missile")
+	_check("and the chip says so", chip.visible and chip.text.contains("Missile"))
 	# The rules are good and invisible, so the one that cannot be guessed gets taught once.
 	_check("and the way out is written on the chip, not hidden in a tooltip",
 		chip.text.contains("Esc"))
@@ -1494,7 +1497,7 @@ func _the_power_leaves_your_hands_free() -> void:
 	# The rule that gives the hands back: a click over something the player put on the desk
 	# is a grab, not a shot. Asked of the power itself, because a synthetic click cannot move
 	# the OS cursor and the hover flags are what the real gesture reads.
-	var power := spawner.call("get_power", &"pistol") as CursorPowerBase
+	var power := spawner.call("get_power", &"missile") as CursorPowerBase
 	_check("the power instance exists once equipped", power != null)
 	if power:
 		_check("with nothing under the cursor, the power takes the click",
@@ -1514,7 +1517,7 @@ func _the_power_leaves_your_hands_free() -> void:
 			area.is_hovered = false
 
 	# The chip carries an icon, a name and a key in a 268px column. "Magnifying Glass" is a
-	# lot longer than "Pistol", and a Button grows to fit rather than clipping — so the
+	# lot longer than "Missile Strike", and a Button grows to fit rather than clipping — so the
 	# longest name in the roster would silently widen the whole HUD if this went unchecked.
 	var widest := ""
 	var widest_px := 0.0
@@ -1530,7 +1533,7 @@ func _the_power_leaves_your_hands_free() -> void:
 	_check("the armed chip fits the HUD column for every power (%s, %.0fpx)"
 		% [widest, widest_px], widest_px <= HUD.WIDTH,
 		"%.0f > %.0f" % [widest_px, HUD.WIDTH])
-	EventBus.cursor_power_changed.emit(&"pistol")
+	EventBus.cursor_power_changed.emit(&"missile")
 	await _settle()
 
 	# One click on the chip puts it away — the whole point of the chip existing.

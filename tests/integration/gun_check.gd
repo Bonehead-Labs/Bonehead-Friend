@@ -8,6 +8,11 @@ extends Node
 ## floor: a headless viewport is 64x64, so nothing here may lean on WorldBounds. Runs against
 ## its own save slot and its own settings file, and clears both.
 ##
+## Since D71 it covers every gun in the game — the cursor's three kept as held guns under their
+## own ids (and a save from before, loaded, that owned them), and the six whose verbs are new:
+## the double barrel's break, the minigun's spin, the tommy gun's drum, the ray gun's heat, the
+## lobbed grenade, the flare that burns, the harpoon that reels and the dart that sticks.
+##
 ## What it is here to prove, because none of it can be seen from source:
 ##   - the aim settles on him while held, in a time that is stated, and does nothing dropped;
 ##   - a shot kicks the gun a measurable amount and the aim walks it back;
@@ -23,8 +28,11 @@ extends Node
 ## error in a test scene presents as a hang.
 
 const TEST_SLOT := "gun_check_slot"
-const HARM := [&"revolver", &"smg", &"pump_shotgun", &"hunting_rifle", &"blunderbuss"]
-const KIND := [&"water_pistol", &"bubble_blaster"]
+const HARM := [&"revolver", &"smg", &"pump_shotgun", &"hunting_rifle", &"blunderbuss",
+	# D71: the three the cursor gave up, under their own ids, and the six new ones.
+	&"pistol", &"shotgun", &"minigun", &"flare_gun", &"tommy_gun", &"grenade_launcher",
+	&"harpoon_gun", &"ray_gun"]
+const KIND := [&"water_pistol", &"bubble_blaster", &"foam_dart_blaster"]
 
 ## Floor top at y = 600; he stands on it at about x = 900.
 const FLOOR_TOP := 600.0
@@ -84,6 +92,18 @@ func _ready() -> void:
 	await _the_water_pistol_cleans_and_pays_hearts()
 	await _bubbles_drift_to_him_and_pop_into_hearts()
 	await _a_kind_gun_thrown_at_him_pays_no_bones()
+	# D71: the cursor guns kept as held guns, and the verbs the new guns brought.
+	await _every_trigger_is_right_click_while_held()
+	await _the_double_barrel_breaks_open()
+	await _the_minigun_spins_up()
+	await _the_tommy_gun_runs_dry()
+	await _the_ray_gun_overheats()
+	await _the_grenade_lobs_and_goes_off()
+	await _the_flare_sticks_and_burns()
+	await _the_harpoon_reels_him_in()
+	await _foam_darts_stick_to_him()
+	await _steady_is_read_on_the_new_guns()
+	await _the_cursor_guns_are_guns_you_hold()
 
 	print("")
 	print("===========================")
@@ -314,6 +334,12 @@ func _it_turns_round_rather_than_upside_down() -> void:
 func _kick(gun: HeldGun) -> Array:
 	await _settle_frames(gun, 60, deg_to_rad(1.0))
 	gun._next_shot_msec = 0
+	# A rotary gun's first round is the one after it has spun up; one round is what is measured,
+	# so its shudder — a random jitter, which is the point in the hand — is noise here.
+	if gun.spin_up > 0.0:
+		gun._spin = 1.0
+		gun._spun = true
+		gun.spin_shudder = 0.0
 	var fired := gun.fire()
 	var peak := 0.0
 	var back := -1
@@ -595,6 +621,462 @@ func _a_kind_gun_thrown_at_him_pays_no_bones() -> void:
 			_check("and pays no Bones", _paid(Economy.BONES, id) == 0.0)
 		gun.free()
 		await _steps(2)
+
+# --- D71: every gun is a gun you hold ---------------------------------------------------
+
+## Shots of `id` billed to him since `_hits` was cleared.
+func _hits_by(id: StringName) -> Array[HitInfo]:
+	var out: Array[HitInfo] = []
+	for h in _hits:
+		if h.source_id == id:
+			out.append(h)
+	return out
+
+## A gun of `id`, bought, spawned at `hand` and picked up there, pointing at him and settled.
+func _ready_gun(id: StringName, hand: Vector2) -> HeldGun:
+	_own(id)
+	var gun := _spawn(id, hand)
+	await _steps(2)
+	_grab(gun, hand, 0.0)
+	await _settle_frames(gun, 60, deg_to_rad(1.5))
+	return gun
+
+func _put_away(gun: HeldGun) -> void:
+	_right(false)
+	await _steps(1)
+	_drop(gun)
+	if is_instance_valid(gun):
+		gun.free()
+	await _steps(2)
+
+## Every gun: right on a gun lying on the desk does nothing, and right in the hand is its
+## trigger — a shot, or for the minigun the barrels starting to turn.
+func _every_trigger_is_right_click_while_held() -> void:
+	_suite("every trigger")
+	await _reset_buddy()
+	for id in HARM + KIND:
+		_own(id)
+		var gun := _spawn(id, Vector2(420, 560))
+		await _steps(20)
+		_right(true)
+		_right(false)
+		await _steps(2)
+		var idle := gun.shots_fired == 0 and gun.spin() == 0.0 and not gun.is_queued_for_deletion()
+		_grab(gun, HAND, 0.0)
+		await _settle_frames(gun, 45, deg_to_rad(2.0))
+		_right(true)
+		await _steps(3)
+		var fired := gun.shots_fired >= 1
+		if gun.spin_up > 0.0:
+			fired = gun.shots_fired == 0 and gun.spin() > 0.0
+		_check("'%s': nothing from right on the desk, and right in the hand %s" % [id,
+			"spins it up" if gun.spin_up > 0.0 else "fires"], idle and fired)
+		await _put_away(gun)
+
+## The pistol, the shotgun and the minigun were cursor powers until D71. A save from the day
+## before, loaded into the real autoloads: all three are guns in the Guns drawer that land on
+## the desk rather than equip, the levels bought for them are read by the guns, their devices
+## still run, their mastery is where it was, and a held pistol's shot is a Range Day round.
+func _the_cursor_guns_are_guns_you_hold() -> void:
+	_suite("the cursor guns, kept")
+	var fixture = JSON.parse_string(
+		FileAccess.get_file_as_string("res://tests/fixtures/save_v4_cursor_guns.json"))
+	_check("the pre-D71 fixture is readable", fixture is Dictionary)
+	if not (fixture is Dictionary):
+		return
+	# Written today, so today's board is the one it was saved with and Range Day is on it; a
+	# board a day old is re-rolled on load, and whether the pistol's job survives that is the
+	# calendar's business, not this suite's.
+	(fixture["contracts"] as Dictionary)["refreshed_at"] = int(Time.get_unix_time_from_system())
+	DirAccess.make_dir_recursive_absolute(SaveManager.save_path().get_base_dir())
+	var out := FileAccess.open(SaveManager.save_path(), FileAccess.WRITE)
+	out.store_string(JSON.stringify(fixture))
+	out.close()
+	SaveManager.load_game()
+	var spawner := ItemSpawner.new()
+	spawner.name = "ItemSpawner"
+	spawner.world = _world
+	add_child(spawner)
+	for id in [&"pistol", &"shotgun", &"minigun"]:
+		var item := ItemDB.get_item(id)
+		var body := item.scene.instantiate()
+		_check("'%s' is still owned, and is a gun in the Guns drawer, not a cursor power" % id,
+			Progression.is_unlocked(id) and item.category == ItemData.CATEGORY_GUN
+			and not item.is_cursor_power() and body is HeldGun)
+		body.free()
+		EventBus.spawn_requested.emit(id, HAND)
+		await _steps(2)
+		var landed: HeldGun = null
+		for node in get_tree().get_nodes_in_group(BaseDraggable.GROUP_SPAWNED):
+			if node is HeldGun and (node as HeldGun).item_id == id:
+				landed = node
+		_check("and buying or spawning it puts it on the desk (armed: '%s')" % spawner.active_power(),
+			landed != null and spawner.active_power() == &"")
+		if landed:
+			landed.bin_myself()
+		await _steps(2)
+	var gun := _spawn(&"pistol", HAND)
+	var bought := pow(1.15, 4)
+	_check("four levels of Hollow Point are read by the held pistol (x%.3f)" % (gun.shot_damage_mult()
+		/ gun.shot_mult), is_equal_approx(gun.shot_damage_mult(), gun.shot_mult * bought))
+	_check("and three of Quick Draw shorten its gap (%.3f s)" % gun._interval(),
+		is_equal_approx(gun._interval(), gun.fire_interval * pow(0.94, 3)))
+	gun.free()
+	_check("its mastery is where it was (rank %d)" % Progression.mastery_rank(&"pistol"),
+		Progression.mastery_rank(&"pistol") >= ItemDB.balance.mastery_automation_rank)
+	var turret := ItemDB.get_augment(&"pistol_turret")
+	_check("the Turret Mount still automates, at two levels, on a tripod now",
+		turret.is_automation and Progression.augment_level(&"pistol_turret") == 2
+		and Progression.is_automation_enabled(&"pistol_turret") and turret.device_mount == &"tripod")
+	_check("the Trap Bench a player switched off stays off",
+		not Progression.is_automation_enabled(&"shotgun_trap"))
+	_check("and the three add their rates to Bones automation (%.1f/s)"
+		% Progression.automation_rate_per_second(Economy.BONES),
+		Progression.automation_rate_per_second(Economy.BONES) >= 2.0 * turret.automation_rate
+		+ ItemDB.get_augment(&"minigun_sentry").automation_rate - 0.001)
+	var before := Progression.contract_progress(&"daily_use_pistol")
+	_check("Range Day is on the board, half done (%d)" % before, before == 120)
+	await _reset_buddy()
+	var pistol := await _ready_gun(&"pistol", HAND)
+	pistol._next_shot_msec = 0
+	pistol.fire()
+	await _steps(2)
+	_check("a held pistol's shot is a Range Day round (%d -> %d)" % [before,
+		Progression.contract_progress(&"daily_use_pistol")],
+		Progression.contract_progress(&"daily_use_pistol") == before + 1)
+	await _put_away(pistol)
+	spawner.free()
+	_clear_slot()
+	SaveManager.load_game()
+	await _steps(2)
+
+## Two barrels, then the break: two shots close together, a third pull that does nothing while
+## it is open, and a shot again once it has closed.
+func _the_double_barrel_breaks_open() -> void:
+	_suite("sawn-off")
+	await _reset_buddy()
+	var gun := await _ready_gun(&"shotgun", BUDDY_AT + Vector2(-200, -40))
+	_check("two in the barrels", gun.rounds_left() == 2)
+	_right(true)
+	_right(false)
+	await _steps(int(ceil(gun._interval() * 60.0)) + 1)
+	_right(true)
+	_right(false)
+	await _steps(2)
+	_check("two pulls, two shots", gun.shots_fired == 2)
+	_check("and it is open", gun.is_reloading(Time.get_ticks_msec()) and gun.rounds_left() == 0)
+	_right(true)
+	_right(false)
+	await _steps(2)
+	_check("a pull while it is open fires nothing", gun.shots_fired == 2)
+	await _steps(int(ceil(gun._reload_seconds() * 60.0)) + 2)
+	gun._next_shot_msec = 0
+	_right(true)
+	_right(false)
+	await _steps(2)
+	_check("closed again after %.1f s, it fires" % gun._reload_seconds(), gun.shots_fired == 3)
+	await _put_away(gun)
+
+## Nothing while the barrels wind up, then a stream that climbs; let go and it runs down; press
+## again before it stops and it fires at once. The minigun's recoil is fought by feathering.
+func _the_minigun_spins_up() -> void:
+	_suite("minigun")
+	await _reset_buddy()
+	var gun := await _ready_gun(&"minigun", BUDDY_AT + Vector2(-320, -40))
+	_hits.clear()
+	_right(true)
+	var first := -1
+	for i in 90:
+		await _steps(1)
+		if first < 0 and gun.shots_fired > 0:
+			first = i + 1
+	var expected := gun._spin_up_seconds() * 60.0
+	_check("nothing until the barrels are up to speed (first round at frame %d, spin-up %.0f)"
+		% [first, expected], first >= int(expected) - 2 and first <= int(expected) + 3)
+	var climbed := gun._climb
+	var due := (90.0 - float(first)) / 60.0 / gun._interval()
+	_check("then a stream (%d rounds in %.2f s, %.0f due)" % [gun.shots_fired, (90 - first) / 60.0,
+		due], gun.shots_fired >= int(due) - 2)
+	_check("that climbs (%.1f deg in under a second)" % rad_to_deg(climbed), climbed > 0.25)
+	# Some of it: the climb walks the stream up off him, which is the point of the gun.
+	_check("and hurts him (%d hits)" % _hits_by(&"minigun").size(), _hits_by(&"minigun").size() >= 3)
+	_right(false)
+	await _steps(12)
+	_check("let go, it runs down rather than stopping (spin %.2f)" % gun.spin(),
+		gun.spin() > 0.3 and gun.spin() < 1.0)
+	var at := gun.shots_fired
+	_right(true)
+	await _steps(3)
+	_check("pressed again before it stops, it fires at once (%d)" % (gun.shots_fired - at),
+		gun.shots_fired > at)
+	_right(false)
+	await _steps(90)
+	_check("left alone, it stops (spin %.2f)" % gun.spin(), gun.spin() == 0.0)
+	await _put_away(gun)
+
+## Fifty in the drum; empty, it pauses for the drum change and carries on.
+func _the_tommy_gun_runs_dry() -> void:
+	_suite("tommy gun")
+	await _reset_buddy()
+	var gun := await _ready_gun(&"tommy_gun", BUDDY_AT + Vector2(-260, -40))
+	_check("fifty in the drum", gun.rounds_left() == 50)
+	# The last few rounds, rather than a whole drum's worth of the suite's time.
+	gun._rounds = 4
+	_right(true)
+	await _steps(30)
+	_check("it fires what is left and stops (%d)" % gun.shots_fired, gun.shots_fired == 4)
+	_check("to change the drum", gun.is_reloading(Time.get_ticks_msec()))
+	await _steps(int(ceil(gun._reload_seconds() * 60.0)) + 6)
+	_check("and carries on with a full one (%d)" % gun.shots_fired, gun.shots_fired > 4
+		and gun.rounds_left() > 40)
+	await _put_away(gun)
+
+## A beam for as long as the gauge allows, then a lock, then the beam again.
+func _the_ray_gun_overheats() -> void:
+	_suite("ray gun")
+	await _reset_buddy()
+	var gun := await _ready_gun(&"ray_gun", BUDDY_AT + Vector2(-260, -40))
+	_hits.clear()
+	_right(true)
+	var locked_at := -1
+	for i in 240:
+		await _steps(1)
+		if gun.is_overheated(Time.get_ticks_msec()):
+			locked_at = i
+			break
+	var burst := gun.shots_fired
+	_check("held down, it burns until the gauge is full (%d ticks in %.2f s)" % [burst,
+		locked_at / 60.0], locked_at > 0 and burst >= int(1.0 / gun.heat_per_shot))
+	_check("each tick that touches him is a hit (%d)" % _hits_by(&"ray_gun").size(),
+		_hits_by(&"ray_gun").size() >= burst / 2)
+	_check("billed at its own impulse", _hits_by(&"ray_gun").all(
+		func(h: HitInfo) -> bool: return is_equal_approx(h.raw_impulse, gun.shot_force)))
+	await _steps(int(gun.overheat_lock * 60.0) - 6)
+	_check("locked, it fires nothing (%d)" % (gun.shots_fired - burst), gun.shots_fired == burst)
+	await _steps(12)
+	_check("and cooled, it fires again (%d)" % (gun.shots_fired - burst), gun.shots_fired > burst)
+	_right(false)
+	await _put_away(gun)
+
+## A lobbed grenade: the barrel tips up above the straight line to him, the grenade flies the
+## arc, and it goes off on him, billed to the launcher at its shot multiplier.
+func _the_grenade_lobs_and_goes_off() -> void:
+	_suite("grenade launcher")
+	await _reset_buddy()
+	var hand := BUDDY_AT + Vector2(-340, -40)
+	var gun := await _ready_gun(&"grenade_launcher", hand) as GrenadeLauncher
+	var target := _buddy.global_transform * _buddy.center_of_mass
+	var straight := (target - gun.muzzle_position()).angle()
+	_check("it aims above the straight line, at the arc (%.1f deg above)"
+		% rad_to_deg(straight - gun.global_rotation), gun.global_rotation < straight - deg_to_rad(4.0)
+		and absf(gun.aim_error()) < deg_to_rad(3.0))
+	_hits.clear()
+	_payouts.clear()
+	var from_x := _buddy.global_position.x
+	gun._next_shot_msec = 0
+	gun.fire()
+	_check("a grenade is in the air", gun.grenades_in_flight() == 1)
+	var gone := false
+	for i in 150:
+		await _steps(1)
+		if gun.grenades_in_flight() == 0:
+			gone = true
+			break
+	await _steps(3)
+	var hits := _hits_by(&"grenade_launcher")
+	_check("it goes off (%s)" % ("gone" if gone else "still flying"), gone)
+	_check("on him: a hit billed to the launcher (%d)" % hits.size(), not hits.is_empty())
+	if not hits.is_empty():
+		var h := hits[0]
+		var want := h.raw_impulse * ItemDB.balance.damage_per_impulse * gun.shot_damage_mult()
+		_check("at its shot multiplier (%.2f damage from %.0f)" % [h.amount, h.raw_impulse],
+			is_equal_approx(h.amount, minf(want, ItemDB.balance.knockout_damage
+				* ItemDB.balance.max_hit_fraction)))
+	_check("paying Bones (%.2f)" % _paid(Economy.BONES, &"grenade_launcher"),
+		_paid(Economy.BONES, &"grenade_launcher") > 0.0)
+	_check("and it throws him (%.0f px)" % absf(_buddy.global_position.x - from_x),
+		absf(_buddy.global_position.x - from_x) > 20.0 or _buddy.linear_velocity.length() > 100.0)
+	await _put_away(gun)
+
+## A flare sticks in him and burns: a tick every `burn_every` for `burn_time`, each a hit at
+## the burn's impulse, and then it goes out and is gone.
+func _the_flare_sticks_and_burns() -> void:
+	_suite("flare gun")
+	await _reset_buddy()
+	var gun := await _ready_gun(&"flare_gun", BUDDY_AT + Vector2(-240, -40)) as FlareGun
+	_hits.clear()
+	gun._next_shot_msec = 0
+	gun.fire()
+	var flare: FlareGun.Flare = null
+	for i in 60:
+		await _steps(1)
+		for node in _world.get_children():
+			if node is FlareGun.Flare:
+				flare = node
+		if flare and flare.stuck_to() == _buddy:
+			break
+	_check("the flare sticks in him", flare != null and flare.stuck_to() == _buddy)
+	# A hit is dealt on his next physics frame, not the one it was billed in.
+	await _steps(2)
+	var strike := _hits_by(&"flare_gun").size()
+	_check("the strike is a hit (%d)" % strike, strike >= 1)
+	var frames := int(ceil(gun.burn_time * 60.0)) + 10
+	for i in frames:
+		await _steps(1)
+		if not is_instance_valid(flare):
+			break
+	var burns := _hits_by(&"flare_gun").filter(
+		func(h: HitInfo) -> bool: return is_equal_approx(h.raw_impulse, gun.burn_force))
+	var want := int(gun.burn_time / gun.burn_every)
+	_check("it burns: %d ticks, %d expected" % [burns.size(), want], absi(burns.size() - want) <= 1)
+	_check("each at the burn's own impulse and the shot's multiplier", burns.all(
+		func(h: HitInfo) -> bool: return is_equal_approx(h.amount,
+			gun.burn_force * ItemDB.balance.damage_per_impulse * gun.shot_damage_mult())))
+	_check("and then it has gone out", not is_instance_valid(flare) and gun.flares_burning() == 0)
+	await _put_away(gun)
+
+## The harpoon: it sticks, the strike is a hit, holding right reels him in until it tears out
+## (the second hit) and winds home; walking away with it pulls him along; dropping the gun lets
+## go of the line.
+func _the_harpoon_reels_him_in() -> void:
+	_suite("harpoon gun")
+	await _reset_buddy()
+	var hand := BUDDY_AT + Vector2(-330, -30)
+	var gun := await _ready_gun(&"harpoon_gun", hand) as HarpoonGun
+	_hits.clear()
+	_right(true)
+	_right(false)
+	var stuck := false
+	for i in 40:
+		await _steps(1)
+		if gun.harpoon_in_him():
+			stuck = true
+			break
+	_check("the harpoon sticks in him", stuck)
+	await _steps(2)
+	_check("the strike is a hit at its impulse", _hits_by(&"harpoon_gun").any(
+		func(h: HitInfo) -> bool: return is_equal_approx(h.raw_impulse, gun.shot_force)))
+	_check("the harpoon is out of the gun, and the gun shows it", gun.harpoon_out()
+		and gun.loaded_sprite != null and not gun.loaded_sprite.visible)
+	await _steps(20)
+	var start := _buddy.global_position.distance_to(hand)
+	_right(true)
+	var closest := start
+	var tore := false
+	for i in 150:
+		await _steps(1)
+		closest = minf(closest, _buddy.global_position.distance_to(hand))
+		if gun.rips > 0:
+			tore = true
+			break
+	_right(false)
+	await _steps(2)
+	_check("holding right reels him in (%.0f -> %.0f px)" % [start, closest], closest < start - 120.0)
+	_check("until it tears out: a second hit", tore and _hits_by(&"harpoon_gun").any(
+		func(h: HitInfo) -> bool: return is_equal_approx(h.raw_impulse, gun.shot_force * gun.rip_share)))
+	var home := false
+	for i in 60:
+		await _steps(1)
+		if not gun.harpoon_out():
+			home = true
+			break
+	_check("and winds home, loaded again", home and gun.loaded_sprite.visible)
+
+	# On the line, without reeling: the gun walked away, and he comes too.
+	await _reset_buddy()
+	await _settle_frames(gun, 60, deg_to_rad(1.5))
+	gun._next_shot_msec = 0
+	_right(true)
+	_right(false)
+	for i in 40:
+		await _steps(1)
+		if gun.harpoon_in_him():
+			break
+	await _steps(30)
+	var was := _buddy.global_position.x
+	for i in 50:
+		_hand.x -= 5.0
+		await _steps(1)
+	await _steps(10)
+	_check("walked 250 px away with it, he is pulled along (%.0f px)" % (was - _buddy.global_position.x),
+		gun.harpoon_in_him() and was - _buddy.global_position.x > 60.0)
+	_drop(gun)
+	await _steps(2)
+	_check("dropped, the gun lets go of the line", not gun.harpoon_in_him())
+	for i in 60:
+		await _steps(1)
+		if not gun.harpoon_out():
+			break
+	_check("and the harpoon winds home", not gun.harpoon_out())
+	gun.free()
+	await _steps(2)
+
+## Foam darts: each that meets him sticks to him and is one kind act worth the dart's value;
+## no Bones, no hits; six to a load; and they drop off him in their own time.
+func _foam_darts_stick_to_him() -> void:
+	_suite("foam dart blaster")
+	await _reset_buddy()
+	var gun := await _ready_gun(&"foam_dart_blaster", BUDDY_AT + Vector2(-220, -40)) as DartBlaster
+	_given.clear()
+	_payouts.clear()
+	_hits.clear()
+	for i in 3:
+		gun._next_shot_msec = 0
+		_right(true)
+		_right(false)
+		await _steps(20)
+	await _steps(20)
+	var acts := _given.filter(func(g: Array) -> bool: return g[0] == &"foam_dart_blaster")
+	_check("darts stick to him (%d of %d)" % [gun.darts_on_him(), gun.shots_fired],
+		gun.darts_on_him() >= 2 and gun.shots_fired == 3)
+	_check("each one stuck is one kind act (%d)" % acts.size(), acts.size() == gun.darts_on_him())
+	_check("worth the dart's value", acts.all(func(g: Array) -> bool:
+		return is_equal_approx(float(g[1]), gun.dart_value * gun.value_multiplier())))
+	_check("paying Hearts (%.2f) and never Bones" % _paid(Economy.HEARTS, &"foam_dart_blaster"),
+		_paid(Economy.HEARTS, &"foam_dart_blaster") > 0.0
+		and _paid(Economy.BONES, &"foam_dart_blaster") == 0.0 and _hits_by(&"foam_dart_blaster").is_empty())
+	_check("and never a threat", not gun.is_threatening())
+	for i in 3:
+		gun._next_shot_msec = 0
+		_right(true)
+		_right(false)
+		await _steps(1)
+	_check("six to a load, then it reloads", gun.shots_fired == 6 and gun.is_reloading(Time.get_ticks_msec()))
+	for node in _world.get_children():
+		if node is DartBlaster.Dart and (node as DartBlaster.Dart).stuck_to() == _buddy:
+			node.set("_drop_at", 0.0)
+	await _steps(3)
+	_check("their time up, they drop off him (%d left)" % gun.darts_on_him(), gun.darts_on_him() == 0)
+	await _put_away(gun)
+	var left := 0
+	for node in _world.get_children():
+		if node is DartBlaster.Dart and not node.is_queued_for_deletion():
+			left += 1
+	_check("and a blaster put away takes its darts with it (%d left)" % left, left == 0)
+
+## The Steady node on the minigun, the gun whose recoil is the point: ten levels take its
+## kick down, measured the same way as the revolver's.
+func _steady_is_read_on_the_new_guns() -> void:
+	_suite("steady, on the new guns")
+	var far := BUDDY_AT + Vector2(-1500, -60)
+	_buddy.freeze = true
+	for id in [&"minigun", &"tommy_gun", &"harpoon_gun"]:
+		var gun := _spawn(id, far)
+		await _steps(2)
+		_grab(gun, far, 0.0)
+		var plain: Array = await _kick(gun)
+		_own(id)
+		Economy.grant(Economy.BONES, 1.0e8)
+		Progression.purchase_augment(StringName("%s_steady" % id), 10)
+		gun._next_shot_msec = 0
+		var steady: Array = await _kick(gun)
+		_check("'%s': Steady is read (kick %.1f -> %.1f deg)" % [id, rad_to_deg(plain[1]),
+			rad_to_deg(steady[1])], steady[1] < plain[1] * 0.8)
+		_drop(gun)
+		gun.free()
+		await _steps(2)
+	_buddy.freeze = false
+	await _steps(2)
 
 # --- harness -----------------------------------------------------------------
 

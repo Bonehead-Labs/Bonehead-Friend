@@ -587,7 +587,7 @@ func _content_loaded() -> void:
 		_check("the %s costs Hearts" % id, item != null and item.currency_id() == Economy.HEARTS)
 	# Equipping a cursor power has to change what the player sees, or the tool with no world
 	# sprite is invisible and the ordinary arrow keeps lying about what a click will do. Two
-	# honest ways to satisfy it: replace the pointer (pistol, shotgun, open hand) or draw
+	# honest ways to satisfy it: replace the pointer (the glass, the lightning, open hand) or draw
 	# yourself in the world (the fist, which is a rigid body that chases the mouse). The
 	# shotgun shipped with neither and nothing noticed; five more cursor powers are coming.
 	var invisible: Array[String] = []
@@ -1381,7 +1381,9 @@ func _spawning_and_the_item_limit() -> void:
 	_check("cursor power equips", spawner.active_power() == &"fist")
 	EventBus.spawn_requested.emit(&"fist", Vector2.ZERO)
 	_check("cursor power toggles back off", spawner.active_power() == &"")
-	_check("an unowned power cannot be equipped", not _try_equip(&"pistol", spawner))
+	# The lightning, not the pistol it used to be: the pistol is a held gun (D71), and spawning
+	# one is a body on the desk, never an equip — it would pass for the wrong reason.
+	_check("an unowned power cannot be equipped", not _try_equip(&"lightning", spawner))
 
 func _try_equip(item_id: StringName, spawner: ItemSpawner) -> bool:
 	EventBus.spawn_requested.emit(item_id, Vector2.ZERO)

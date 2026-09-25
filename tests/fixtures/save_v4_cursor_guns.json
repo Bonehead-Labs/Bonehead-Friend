@@ -1,0 +1,19 @@
+{
+	"version": 4,
+	"saved_at_unix": 1790380800,
+	"last_played_unix": 1790380800,
+	"currencies": { "bones": 52140.0, "hearts": 8820.0, "dollars": 640.0 },
+	"lifetime": { "bones": 918400.0, "hearts": 121700.0 },
+	"prestige": { "marrow": 1.4, "count": 1, "personality": "stoic", "run_earnings": 410200.0 },
+	"unlocks": [ "baseball_bat", "fist", "grenade", "open_hand", "sponge", "mace", "pistol", "revolver", "shotgun", "missile", "magnifying_glass", "minigun", "pellet_turret" ],
+	"augments": { "pistol_damage": 4, "pistol_payout": 2, "pistol_third": 3, "pistol_turret": 2, "shotgun_damage": 2, "shotgun_third": 5, "shotgun_trap": 1, "minigun_damage": 3, "minigun_third": 1, "minigun_sentry": 1, "mace_damage": 3 },
+	"exclusive_choices": {},
+	"mastery_xp": { "pistol": 42000.0, "shotgun": 26000.0, "minigun": 30500.0, "baseball_bat": 12000.0 },
+	"mastery_pool": 22,
+	"offline_cap_level": 0,
+	"contracts": { "active": [ "daily_use_pistol", "daily_damage_light" ], "progress": { "daily_use_pistol": 120, "daily_damage_light": 400 }, "claimed": [], "refreshed_at": 1790294400 },
+	"automation_off": [ "shotgun_trap" ],
+	"buddy": { "mood": 20.0, "grime": 0.05 },
+	"cosmetics": { "owned": [], "equipped": [] },
+	"stats": { "damage_dealt": 1836800.0, "pets": 4100, "knockouts": 188 }
+}
