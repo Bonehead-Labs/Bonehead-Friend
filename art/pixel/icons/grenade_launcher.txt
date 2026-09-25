@@ -1,0 +1,20 @@
+# Grenade launcher's shop icon (D71). The sprite at full size with three columns of stock and
+# three of barrel taken out, so it fits the icon without being halved; the fat barrel is the
+# picture and keeps all of its height.
+id: grenade_launcher
+cell: 32
+
+--- main
+...................KK.........
+..................KGGK........
+...........KKKKKKKKKKKKKKKKKKK
+...........KEEEEEEEEEEEEEEEEEK
+KKKKKKKKKKKKeeeeeeeeeeeeeeeekK
+KBBBBBBBBBGKeeeeeeeeeeeeeeeekK
+KbbbbbbbbbGKeeeeeeeeeeeeeeeekK
+KbbbbbbbbhHKqqqqqqqqqqqqqqqqqK
+KbbbnnKKKKKKKKKKKKKKKKKKKKKKKK
+KbnnK.KhKh.K..................
+KbnK..KKKKKK..................
+KbK...........................
+KK............................

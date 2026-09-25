@@ -1,0 +1,30 @@
+# Flare gun (D71). A break-open signal pistol in orange plastic, faces right: a fat short
+# barrel with a wide dark bore, the hinge, a black grip. Orange so it reads on any desk, and
+# because every flare gun anyone has seen is orange. 24 x 15 art px.
+#
+# `flare` is the flare in flight: a red cartridge with its burning end.
+id: flare_gun
+cell: 64
+
+--- main
+......KKKKKKKKKKKKKKKKKK
+.....KOOOOOOOOOOOOOOOOYK
+..KKKKOOOOOOOOOOOOOOOOkK
+.KhhKROOOOOOOOOOOOOOOOkK
+.KKhKRrrrrrrrrrrrrrrrrrK
+...KRRKKKKKKKKKKKKKKKKK.
+...KRRRRRRRRRKK.........
+..KHHhKKKKKRRK..........
+..KHhhK.h..KRK..........
+..KHhhK..KKKK...........
+.KHhhK..................
+.KHhhK..................
+KHhhhK..................
+KHhhhK..................
+KKKKKK..................
+
+--- flare
+KKKKKKKK.
+KYRRRRRRK
+KOrrrrrrK
+KKKKKKKK.
