@@ -740,6 +740,12 @@ func react_to_hit(info: HitInfo) -> bool:
 	var item := ItemDB.get_item(info.source_id)
 	if item and HURT_FACES.has(item.category):
 		face = HURT_FACES[item.category]
+	# A category face that is the generic one says nothing about the source, and passed as an
+	# override it locked the personality out: the Masochist's grin, the Diva's glare and the
+	# Stone's straight face never once showed for a bat, which is what everybody hits him with
+	# (D60). Only a face that is a statement of its own — a power's `angry` — outranks the tell.
+	if face == GENERIC_HURT:
+		face = &""
 	if heat < HEAT_LIGHT:
 		return react(&"hit_light", heat, info.position, face)
 	if heat > HEAT_HEAVY:
