@@ -72,6 +72,7 @@ func _ready() -> void:
 	await _the_sponge_cleans_him_and_pays()
 	await _real_physics_produces_hits()
 	await _a_hit_that_parts_is_billed()
+	_the_mat_gives_back_more()
 	await _he_goes_and_plays_with_his_toys()
 	await _save_survives_a_restart()
 	# Last: it wipes the run, so every suite that needs an owned item has to come first.
@@ -2964,6 +2965,29 @@ func _a_hit_that_parts_is_billed() -> void:
 	buddy.health.reset_meter()
 	for i in 30:
 		await get_tree().physics_frame
+
+## The trampoline's launch (D64, F6). It read his speed after the landing had been solved, so
+## every bounce was the 320 minimum; reading it from before, x1.55 a bounce runs away, so the
+## gain stops at `max_launch` — and above it the mat still never returns less than it was given.
+## The landing itself is `item_check`'s to measure; this pins the rule.
+func _the_mat_gives_back_more() -> void:
+	_suite("the trampoline's launch (D64)")
+	var mat := _instance_of(&"trampoline") as Trampoline
+	_check("the trampoline instantiates", mat != null)
+	if mat:
+		_check("a landing leaves faster than it arrived (%.0f from 400)" % mat.launch_speed(400.0),
+			mat.launch_speed(400.0) > 400.0)
+		_check("the gain stops at max_launch (%.0f from 900)" % mat.launch_speed(900.0),
+			is_equal_approx(mat.launch_speed(900.0), mat.max_launch))
+		_check("and above it he leaves exactly as fast (%.0f from 3,000)" % mat.launch_speed(3000.0),
+			is_equal_approx(mat.launch_speed(3000.0), 3000.0))
+		# The idle brain's routine starts a bounce with the smallest hop there is. Twenty bounces
+		# later it has settled at the ceiling instead of leaving the monitor.
+		var v := sqrt(2.0 * 980.0 * 12.0)
+		for i in 20:
+			v = mat.launch_speed(v)
+		_check("a bounce started from a hop settles at the ceiling (%.0f)" % v, is_equal_approx(v, mat.max_launch))
+		mat.free()
 
 func _observe(info: HitInfo) -> void:
 	_observed.append(info)

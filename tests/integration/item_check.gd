@@ -99,7 +99,6 @@ const KNOWN := {
 	"beach_ball/mastery": "F9 a 0.4 kg ball on the kind side needs a 1,500 fall-floor impulse",
 	"beach_ball/aug_damage_mult": "F9 a 0.4 kg ball on the kind side needs a 1,500 fall-floor impulse",
 	"beach_ball/aug_payout_mult": "F9 a 0.4 kg ball on the kind side needs a 1,500 fall-floor impulse",
-	"trampoline/launch": "F6 the launch reads his speed after the landing was solved",
 	"desk_fan/earns": "F5 nothing it does is billed under its own name",
 	"desk_fan/mastery": "F5 nothing it does is billed under its own name",
 	"desk_fan/aug_damage_mult": "F5 nothing it does is billed under its own name",
