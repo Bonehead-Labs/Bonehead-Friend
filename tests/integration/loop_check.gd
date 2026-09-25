@@ -2647,6 +2647,27 @@ func _he_goes_and_plays_with_his_toys() -> void:
 		beanbag_body != null and brain._routine_for(beanbag_body) == IdleBrain.ROUTINE_SOAK)
 	if beanbag_body:
 		beanbag_body.free()
+	# He eats only food (D70, AI audit G): the rubber duck fell through to the nibble and he ate
+	# it, again and again. Enumerated, so the next toy that pays for contact is covered too.
+	var eaten_toys: Array[String] = []
+	var eaten := 0
+	for item in ItemDB.all_items():
+		var body := _instance_of(item.id)
+		if body == null:
+			continue
+		if brain._routine_for(body) == IdleBrain.ROUTINE_NIBBLE:
+			eaten += 1
+			if not (body is FriendlyBase and (body as FriendlyBase).consume_on_use):
+				eaten_toys.append(String(item.id))
+		body.free()
+	_check("everything he eats is food (%d eaten%s)" % [eaten,
+		"" if eaten_toys.is_empty() else "; not food: " + ", ".join(eaten_toys)],
+		eaten > 0 and eaten_toys.is_empty())
+	var duck := _instance_of(&"rubber_duck")
+	_check("and a rubber duck is knocked about, not eaten",
+		duck != null and brain._routine_for(duck) == IdleBrain.ROUTINE_BOP)
+	if duck:
+		duck.free()
 
 	_clear_spawned()
 	buddy.health.reset_meter()

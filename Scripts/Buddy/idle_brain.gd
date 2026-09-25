@@ -688,8 +688,11 @@ func _routine_for(body: BaseDraggable) -> int:
 		return ROUTINE_SCRUB
 	if friendly.hearts_per_second_touching > 0.0:
 		return ROUTINE_SOAK
+	# Food is eaten. A toy that pays for contact and is not used up is played with: the rubber duck
+	# fell through to here and he sat and ate it, over and over (AI audit G). He knocks it about
+	# instead, which is what its contact pays for.
 	if friendly.hearts_per_contact > 0.0:
-		return ROUTINE_NIBBLE
+		return ROUTINE_NIBBLE if friendly.consume_on_use else ROUTINE_BOP
 	if friendly.hearts_per_second_placed > 0.0:
 		return ROUTINE_PLAY
 	return ROUTINE_NONE
