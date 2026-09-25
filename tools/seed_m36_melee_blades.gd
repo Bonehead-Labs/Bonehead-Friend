@@ -3,7 +3,7 @@ extends Node
 ## Writes M3.6's edged half of the melee roster: fifteen weapons with a point or an edge,
 ## their bodies, their tier-1 trees, their automation capstones and two exclusive branches.
 ##
-##   Godot --headless --path <project> res://tools/seed_m36_melee_blades.tscn [-- --force]
+##   Godot --headless --path <project> res://tools/seed_m36_melee_blades.tscn [-- --force | --only id,id]
 ##
 ## The melee category shipped four items — bat, pan, mace, katana — and the ladder stopped
 ## at 3,500 Bones while the cursor page ran to 40,000. A player who liked hitting him with
@@ -67,6 +67,12 @@ const EXCLUSIVE_FRACTION := 0.45
 ## sprite is. `rot` is degrees, and 45 puts a shape's long axis on the lower-left to
 ## upper-right diagonal — the katana's convention, and the pose the art brief asks for on
 ## everything long enough to need one.
+##
+## **The art does not always keep that pose, and every row is authored against the sprite as
+## drawn** (D61): the greatsword's hilt is up and to the right, the sickle's handle runs the
+## other diagonal, the scythe's blade hangs off the right of the snath, and a few blades lean
+## at the 41-43 degrees they were drawn at rather than a round 45. Read shapes off
+## `tools/collider_report.tscn -- --tables --shots --runs`, never off a guess about the prompt.
 ##
 ##   shapes  one entry per part: a capsule down a blade, a small rect on the grip
 ##   com     centre of mass — where the weight actually is when it swings
@@ -134,11 +140,13 @@ const BLADES := [
 		# The mass sits on the screw, so it tumbles about its middle instead of swinging
 		# about a hand. The only weapon in the family with no head and no tail.
 		"shapes": [
-			{"capsule": Vector2(8, 16), "at": Vector2(0, -8)},
-			{"circle": 3.5, "at": Vector2(0, 1)},
-			{"rect": Vector2(13, 12), "at": Vector2(0, 10)},
+			{"capsule": Vector2(5, 12), "at": Vector2(-6.3, -9.5), "rot": -23.0},
+			{"capsule": Vector2(5, 12), "at": Vector2(4.8, -9.5), "rot": 25.0},
+			{"rect": Vector2(9, 10), "at": Vector2(-0.5, 1)},
+			{"circle": 5.0, "at": Vector2(-6.5, 10.5)},
+			{"circle": 5.0, "at": Vector2(4.5, 10.5)},
 		],
-		"com": Vector2(0, 1),
+		"com": Vector2(-0.5, 1),
 		"grip": Vector2(0, 10),
 		"grab": {"size": Vector2(18, 18), "at": Vector2(0, 8)},
 		"tree": ["Ground Bevel", "Piecework Rates", "Forged Bows"],
@@ -157,13 +165,14 @@ const BLADES := [
 		# The hook puts the weight *off* the handle's line, so it swings wide and catches
 		# rather than arriving flat. That offset is the whole character of a sickle.
 		"shapes": [
-			{"capsule": Vector2(6, 22), "at": Vector2(5, -9), "rot": 75.0},
-			{"rect": Vector2(6, 8), "at": Vector2(-2, 2), "rot": 45.0},
-			{"rect": Vector2(8, 14), "at": Vector2(-11, 11), "rot": 45.0},
+			{"capsule": Vector2(6, 26), "at": Vector2(4.5, 6.5), "rot": -44.0},
+			{"capsule": Vector2(6, 22), "at": Vector2(-1, -14), "rot": 90.0},
+			{"capsule": Vector2(9, 16), "at": Vector2(-10.5, -7), "rot": -30.0},
+			{"rect": Vector2(4, 4), "at": Vector2(9, -10)},
 		],
-		"com": Vector2(6, -7),
-		"grip": Vector2(-14, 14),
-		"grab": {"size": Vector2(18, 18), "at": Vector2(-11, 11)},
+		"com": Vector2(-4, -11),
+		"grip": Vector2(11, 13),
+		"grab": {"size": Vector2(18, 18), "at": Vector2(9, 11)},
 		"tree": ["Keener Crescent", "Harvest Share", "Forged Hook"],
 		"device": [&"sickle_harvester", "Harvester",
 			"It works round the desk in slow circles, cutting whatever it finds there."],
@@ -180,12 +189,12 @@ const BLADES := [
 		# The one weapon here whose centre of mass is at your fist. A katar is punched, not
 		# swung, and anything that made it lead with the blade would turn it into a knife.
 		"shapes": [
-			{"capsule": Vector2(9, 22), "at": Vector2(8, 0), "rot": 90.0},
-			{"rect": Vector2(5, 20), "at": Vector2(-11, 0)},
+			{"capsule": Vector2(10, 26), "at": Vector2(5.5, -4), "rot": 54.0},
+			{"rect": Vector2(6, 16), "at": Vector2(-10, 6), "rot": 71.0},
 		],
-		"com": Vector2(-8, 0),
-		"grip": Vector2(-11, 0),
-		"grab": {"size": Vector2(18, 18), "at": Vector2(-8, 0)},
+		"com": Vector2(-8, 5.5),
+		"grip": Vector2(-11, 6.5),
+		"grab": {"size": Vector2(18, 18), "at": Vector2(-9, 5)},
 		"tree": ["Reinforced Tip", "Duellist's Purse", "Steel Rails"],
 		"device": [&"katar_punch_frame", "Punch Frame",
 			"A sprung frame that throws one straight jab a second, indefinitely."],
@@ -202,11 +211,11 @@ const BLADES := [
 		# Weight forward of the guard but not out at the tip: heavy enough to chop, light
 		# enough to bring back for a second swing.
 		"shapes": [
-			{"capsule": Vector2(10, 36), "at": Vector2(11, -11), "rot": 45.0},
-			{"rect": Vector2(9, 16), "at": Vector2(-18, 18), "rot": 45.0},
+			{"capsule": Vector2(12, 41), "at": Vector2(6.2, -8.5), "rot": 41.0},
+			{"rect": Vector2(9, 20), "at": Vector2(-14.5, 14), "rot": 40.0},
 		],
 		"com": Vector2(10, -10),
-		"grip": Vector2(-21, 21),
+		"grip": Vector2(-20, 20),
 		"grab": {"size": Vector2(18, 20), "at": Vector2(-18, 18)},
 		"tree": ["Field Sharpening", "Clearing Contract", "Full Tang"],
 		"device": [&"machete_clearing_rig", "Clearing Rig",
@@ -224,9 +233,9 @@ const BLADES := [
 		# Balanced *behind* the guard, in the cup and the pommel, so the blade whips: high
 		# tip speed on very little mass. A rapier balanced out in the blade is a thin sword.
 		"shapes": [
-			{"capsule": Vector2(4, 46), "at": Vector2(12, -12), "rot": 45.0},
-			{"circle": 6.0, "at": Vector2(-13, 13)},
-			{"rect": Vector2(5, 14), "at": Vector2(-22, 22), "rot": 45.0},
+			{"capsule": Vector2(6, 48), "at": Vector2(10.4, -10.9), "rot": 45.0},
+			{"circle": 7.0, "at": Vector2(-12.5, 11.5)},
+			{"rect": Vector2(7, 14), "at": Vector2(-22, 21.5), "rot": 45.0},
 		],
 		"com": Vector2(-9, 9),
 		"grip": Vector2(-23, 23),
@@ -248,11 +257,11 @@ const BLADES := [
 		# in it. The blade rect is deeper along the swing than it is wide, which is what
 		# makes a cleaver a cleaver rather than a short sword.
 		"shapes": [
-			{"rect": Vector2(18, 24), "at": Vector2(8, -8), "rot": 45.0},
-			{"rect": Vector2(8, 15), "at": Vector2(-14, 14), "rot": 45.0},
+			{"rect": Vector2(13.5, 26), "at": Vector2(5, -4.6), "rot": 45.0},
+			{"rect": Vector2(8, 18), "at": Vector2(-11.6, 9.6), "rot": 45.0},
 		],
 		"com": Vector2(9, -9),
-		"grip": Vector2(-17, 17),
+		"grip": Vector2(-16, 16),
 		"grab": {"size": Vector2(18, 18), "at": Vector2(-14, 14)},
 		"tree": ["Ground Edge", "Butcher's Cut", "Thicker Stock"],
 		"device": [&"cleaver_block", "Chopping Block",
@@ -270,12 +279,13 @@ const BLADES := [
 		# The bat's argument with a wedge on the end: all the mass at the top of a long
 		# haft, so it arrives head-first whatever you did with the mouse on the way down.
 		"shapes": [
-			{"rect": Vector2(18, 13), "at": Vector2(0, -18)},
-			{"rect": Vector2(6, 34), "at": Vector2(0, 7)},
+			{"rect": Vector2(20, 9), "at": Vector2(0, -15)},
+			{"rect": Vector2(5, 14), "at": Vector2(7.5, -15)},
+			{"capsule": Vector2(5, 50), "at": Vector2(-1.5, -0.5)},
 		],
-		"com": Vector2(0, -17),
-		"grip": Vector2(0, 20),
-		"grab": {"size": Vector2(18, 26), "at": Vector2(0, 14)},
+		"com": Vector2(0, -16),
+		"grip": Vector2(-2, 20),
+		"grab": {"size": Vector2(18, 26), "at": Vector2(-2, 14)},
 		"tree": ["Ground Bit", "Emergency Callout", "Steel Haft"],
 		"device": [&"axe_break_glass", "Break Glass",
 			"The case reglazes itself every few seconds, which is more than the axe does."],
@@ -293,8 +303,9 @@ const BLADES := [
 		# around it: the blade has no mass, so all nine kilos are the power cell in the grip.
 		# Sharpness at the roster's ceiling is what it is bought for, not impact.
 		"shapes": [
-			{"capsule": Vector2(6, 46), "at": Vector2(13, -13), "rot": 45.0},
-			{"rect": Vector2(8, 20), "at": Vector2(-21, 21), "rot": 45.0},
+			{"capsule": Vector2(10, 48), "at": Vector2(11.7, -11.5), "rot": 42.0},
+			{"rect": Vector2(6, 16), "at": Vector2(-8, 8.5), "rot": -42.0},
+			{"rect": Vector2(8, 22), "at": Vector2(-19.5, 19.5), "rot": 45.0},
 		],
 		"com": Vector2(-19, 19),
 		"grip": Vector2(-22, 22),
@@ -315,13 +326,14 @@ const BLADES := [
 		# Mass behind a single point, and slightly off the haft's line so it rolls into the
 		# blow. It does not sweep; it lands.
 		"shapes": [
-			{"capsule": Vector2(6, 20), "at": Vector2(8, -14), "rot": 60.0},
-			{"rect": Vector2(9, 9), "at": Vector2(-5, -16)},
-			{"rect": Vector2(6, 30), "at": Vector2(0, 6)},
+			{"capsule": Vector2(6, 15), "at": Vector2(6.5, -15), "rot": 92.0},
+			{"rect": Vector2(15, 8), "at": Vector2(-7.5, -15)},
+			{"rect": Vector2(7, 3), "at": Vector2(-4.5, -20.5)},
+			{"capsule": Vector2(6, 34), "at": Vector2(-4, 5)},
 		],
-		"com": Vector2(2, -14),
-		"grip": Vector2(0, 17),
-		"grab": {"size": Vector2(18, 24), "at": Vector2(0, 12)},
+		"com": Vector2(-2, -15),
+		"grip": Vector2(-4, 17),
+		"grab": {"size": Vector2(18, 24), "at": Vector2(-4, 12)},
 		"tree": ["Hardened Beak", "Armourer's Fee", "Lead Poll"],
 		"device": [&"pick_pit_head", "Pit Head",
 			"A winch that lifts the beak and lets go of it, on a schedule."],
@@ -337,13 +349,15 @@ const BLADES := [
 		"damage": 2.2,
 		# The blade is at right angles to the snath and a long way off its line, so the
 		# centre of mass is nowhere near the handle. It will not swing straight — it
-		# corkscrews, and it is the only weapon in the family that does.
+		# corkscrews, and it is the only weapon in the family that does. The blade is drawn
+		# hanging off the right of the snath, so that is where the weight is.
 		"shapes": [
-			{"capsule": Vector2(7, 60), "at": Vector2(0, 6)},
-			{"rect": Vector2(6, 9), "at": Vector2(-3, -28)},
-			{"capsule": Vector2(6, 34), "at": Vector2(-16, -26), "rot": 100.0},
+			{"capsule": Vector2(5, 66), "at": Vector2(0.5, 5)},
+			{"capsule": Vector2(7, 36), "at": Vector2(-1, -32), "rot": 90.0},
+			{"capsule": Vector2(7, 17), "at": Vector2(15.5, -21.5)},
+			{"rect": Vector2(7, 3), "at": Vector2(-17.5, -27)},
 		],
-		"com": Vector2(-12, -20),
+		"com": Vector2(12, -21),
 		"grip": Vector2(0, 24),
 		"grab": {"size": Vector2(18, 30), "at": Vector2(0, 22)},
 		"tree": ["Peened Edge", "Reaper's Due", "Iron Snath"],
@@ -360,17 +374,19 @@ const BLADES := [
 		"mass": 16.0,
 		"damage": 2.1,
 		# A head on the end of the longest lever in the game: slow to bring round and very
-		# hard to stop once it is coming. The three head pieces are separate because a
-		# halberd that hits with one box hits the same however it is turned.
+		# hard to stop once it is coming. The head is a socket and a blade either side of it,
+		# as separate pieces, because a halberd that hits with one box hits the same however
+		# it is turned. The spike is the top of the shaft.
 		"shapes": [
-			{"capsule": Vector2(5, 16), "at": Vector2(0, -30)},
-			{"rect": Vector2(17, 14), "at": Vector2(-9, -24)},
-			{"rect": Vector2(9, 6), "at": Vector2(8, -23)},
-			{"capsule": Vector2(6, 56), "at": Vector2(0, 10)},
+			{"capsule": Vector2(5, 77), "at": Vector2(-0.5, -0.5)},
+			{"rect": Vector2(11, 12), "at": Vector2(-1, -29.5)},
+			{"circle": 5.5, "at": Vector2(-12, -29.5)},
+			{"circle": 5.5, "at": Vector2(10, -29.5)},
+			{"rect": Vector2(9, 7), "at": Vector2(-1, 33.5)},
 		],
-		"com": Vector2(-3, -24),
-		"grip": Vector2(0, 26),
-		"grab": {"size": Vector2(18, 30), "at": Vector2(0, 24)},
+		"com": Vector2(-1, -29),
+		"grip": Vector2(-1, 26),
+		"grab": {"size": Vector2(18, 30), "at": Vector2(-1, 24)},
 		"tree": ["Ground Bill", "Guard Duty", "Iron-Shod Shaft"],
 		"device": [&"halberd_guard_post", "Guard Post",
 			"It stands there for hours. Occasionally it does its job."],
@@ -388,14 +404,14 @@ const BLADES := [
 		# far enough in that a player can still turn it. Out at the tip it is a wrecking
 		# ball and at the hand it is a stick, and neither of those is a greatsword.
 		"shapes": [
-			{"capsule": Vector2(11, 46), "at": Vector2(0, -12)},
-			{"rect": Vector2(28, 5), "at": Vector2(0, 14)},
-			{"rect": Vector2(7, 16), "at": Vector2(0, 24)},
-			{"circle": 4.5, "at": Vector2(0, 34)},
+			{"capsule": Vector2(12, 68), "at": Vector2(-11.5, 11), "rot": 45.0},
+			{"rect": Vector2(6, 22), "at": Vector2(16.5, -16.5), "rot": -45.0},
+			{"rect": Vector2(6, 12), "at": Vector2(26, -26), "rot": 45.0},
+			{"circle": 4.5, "at": Vector2(32.5, -32.5)},
 		],
-		"com": Vector2(0, -8),
-		"grip": Vector2(0, 24),
-		"grab": {"size": Vector2(20, 26), "at": Vector2(0, 22)},
+		"com": Vector2(-5, 5),
+		"grip": Vector2(26, -26),
+		"grab": {"size": Vector2(20, 20), "at": Vector2(25, -25)},
 		"tree": ["Sharpened Ricasso", "Champion's Purse", "Steel Pommel"],
 		"device": [&"greatsword_gantry", "Gantry Swing",
 			"A gantry lifts it, aims it, and lets go. Then it does that again."],
@@ -414,12 +430,13 @@ const BLADES := [
 		# That is what a chainsaw does, and it is why it must not have a forward centre of
 		# mass however much the silhouette suggests one.
 		"shapes": [
-			{"capsule": Vector2(8, 34), "at": Vector2(16, -16), "rot": 45.0},
-			{"rect": Vector2(18, 18), "at": Vector2(-8, 8), "rot": 45.0},
-			{"rect": Vector2(5, 14), "at": Vector2(-22, 22), "rot": 45.0},
+			{"capsule": Vector2(10, 28), "at": Vector2(14.5, -15), "rot": 45.0},
+			{"rect": Vector2(19, 30), "at": Vector2(-7.75, 1.25), "rot": 45.0},
+			{"rect": Vector2(5, 9), "at": Vector2(-13, -9.5), "rot": 45.0},
+			{"rect": Vector2(10.5, 12), "at": Vector2(-20.5, 18), "rot": 45.0},
 		],
-		"com": Vector2(-8, 8),
-		"grip": Vector2(-11, 11),
+		"com": Vector2(-8, 1),
+		"grip": Vector2(-11, 4),
 		"grab": {"size": Vector2(22, 22), "at": Vector2(-10, 10)},
 		"tree": ["Fresh Chain", "Timber Rights", "Bigger Engine"],
 		"device": [&"chainsaw_mill", "Sawmill",
@@ -462,11 +479,18 @@ const EXCLUSIVES := {
 }
 
 var _force := false
+## `--only id,id`: rewrite those ids' scenes and nothing else (D61). The way to re-seed a body
+## after its physics row changes — `--force` would also rewrite every item and augment this tool
+## owns, including the ones later milestones refined; D55 tried that and the suite caught it.
+var _only := PackedStringArray()
 var _written := 0
 var _skipped := 0
 
 func _ready() -> void:
 	_force = OS.get_cmdline_user_args().has("--force")
+	var only_at := OS.get_cmdline_user_args().find("--only")
+	if only_at >= 0 and only_at + 1 < OS.get_cmdline_user_args().size():
+		_only = OS.get_cmdline_user_args()[only_at + 1].split(",", false)
 	for dir in [BODIES_DIR, ITEMS_DIR, AUGMENTS_DIR]:
 		DirAccess.make_dir_recursive_absolute(dir)
 
@@ -634,6 +658,11 @@ func _exclusives(spec: Dictionary) -> void:
 # --- io --------------------------------------------------------------------
 
 func _should_write(path: String) -> bool:
+	if not _only.is_empty():
+		if path.get_extension() == "tscn" and _only.has(path.get_file().get_basename()):
+			return true
+		_skipped += 1
+		return false
 	if _force or not ResourceLoader.exists(path):
 		return true
 	_skipped += 1

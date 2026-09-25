@@ -5,28 +5,28 @@
 [ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_p1ix8"]
 [ext_resource type="Script" path="res://Scripts/Components/effects_player.gd" id="4_i1jq2"]
 
-[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_s2exy"]
-radius = 11.0
-height = 92.0
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_el4tl"]
+radius = 12.0
+height = 136.0
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_jjsur"]
-size = Vector2(56, 10)
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_f7qsd"]
+size = Vector2(12, 44)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_h8j7h"]
-size = Vector2(14, 32)
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_p1ix8"]
+size = Vector2(12, 24)
 
-[sub_resource type="CircleShape2D" id="CircleShape2D_ink83"]
+[sub_resource type="CircleShape2D" id="CircleShape2D_i1jq2"]
 radius = 9.0
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_tkvn0"]
-size = Vector2(40, 52)
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_s2exy"]
+size = Vector2(40, 40)
 
-[node name="_Greatsword" type="RigidBody2D" unique_id=1464172085 node_paths=PackedStringArray("drag_area", "handle", "sprite", "collider", "Effects_Player")]
+[node name="_Greatsword" type="RigidBody2D" unique_id=2095019400 node_paths=PackedStringArray("drag_area", "handle", "sprite", "collider", "Effects_Player")]
 collision_layer = 4
 collision_mask = 7
 mass = 20.0
 center_of_mass_mode = 1
-center_of_mass = Vector2(0, -16)
+center_of_mass = Vector2(-10, 10)
 contact_monitor = true
 max_contacts_reported = 4
 script = ExtResource("1_el4tl")
@@ -37,39 +37,42 @@ handle = NodePath("Handle")
 sprite = NodePath("Sprite")
 collider = NodePath("CollisionShape2D")
 Effects_Player = NodePath("EffectsPlayer")
-grip_offset = Vector2(0, 48)
+grip_offset = Vector2(52, -52)
 
-[node name="Sprite" type="Sprite2D" parent="." unique_id=1145148958]
+[node name="Sprite" type="Sprite2D" parent="." unique_id=490891878]
 scale = Vector2(2, 2)
 texture = ExtResource("2_f7qsd")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1654448216]
-position = Vector2(0, -24)
-shape = SubResource("CapsuleShape2D_s2exy")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=962674036]
+position = Vector2(-23, 22)
+rotation = 0.7853982
+shape = SubResource("CapsuleShape2D_el4tl")
 
-[node name="CollisionShape2D2" type="CollisionShape2D" parent="." unique_id=1059407141]
-position = Vector2(0, 28)
-shape = SubResource("RectangleShape2D_jjsur")
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="." unique_id=49145818]
+position = Vector2(33, -33)
+rotation = -0.7853982
+shape = SubResource("RectangleShape2D_f7qsd")
 
-[node name="CollisionShape2D3" type="CollisionShape2D" parent="." unique_id=1723171209]
-position = Vector2(0, 48)
-shape = SubResource("RectangleShape2D_h8j7h")
+[node name="CollisionShape2D3" type="CollisionShape2D" parent="." unique_id=909984878]
+position = Vector2(52, -52)
+rotation = 0.7853982
+shape = SubResource("RectangleShape2D_p1ix8")
 
-[node name="CollisionShape2D4" type="CollisionShape2D" parent="." unique_id=936191794]
-position = Vector2(0, 68)
-shape = SubResource("CircleShape2D_ink83")
+[node name="CollisionShape2D4" type="CollisionShape2D" parent="." unique_id=966136478]
+position = Vector2(65, -65)
+shape = SubResource("CircleShape2D_i1jq2")
 
-[node name="DraggableArea" type="Area2D" parent="." unique_id=1071552914]
+[node name="DraggableArea" type="Area2D" parent="." unique_id=1550284391]
 script = ExtResource("3_p1ix8")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=1272691568]
-position = Vector2(0, 44)
-shape = SubResource("RectangleShape2D_tkvn0")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=2083412612]
+position = Vector2(50, -50)
+shape = SubResource("RectangleShape2D_s2exy")
 
-[node name="Handle" type="StaticBody2D" parent="." unique_id=1362706129]
+[node name="Handle" type="StaticBody2D" parent="." unique_id=2013117279]
 visible = false
 collision_layer = 0
 collision_mask = 0
 
-[node name="EffectsPlayer" type="Node" parent="." unique_id=264856545]
+[node name="EffectsPlayer" type="Node" parent="." unique_id=89648591]
 script = ExtResource("4_i1jq2")

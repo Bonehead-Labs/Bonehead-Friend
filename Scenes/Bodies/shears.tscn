@@ -5,25 +5,30 @@
 [ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_hyorm"]
 [ext_resource type="Script" path="res://Scripts/Components/effects_player.gd" id="4_htd63"]
 
-[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_d6vj0"]
-radius = 8.0
-height = 32.0
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_8m17e"]
+radius = 5.0
+height = 24.0
 
-[sub_resource type="CircleShape2D" id="CircleShape2D_af8qh"]
-radius = 7.0
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_i4qgs"]
+radius = 5.0
+height = 24.0
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_kba5m"]
-size = Vector2(26, 24)
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_hyorm"]
+size = Vector2(18, 20)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_vuk24"]
+[sub_resource type="CircleShape2D" id="CircleShape2D_htd63"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_d6vj0"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_af8qh"]
 size = Vector2(36, 36)
 
-[node name="_Shears" type="RigidBody2D" unique_id=1869934496 node_paths=PackedStringArray("drag_area", "handle", "sprite", "collider", "Effects_Player")]
+[node name="_Shears" type="RigidBody2D" unique_id=493286477 node_paths=PackedStringArray("drag_area", "handle", "sprite", "collider", "Effects_Player")]
 collision_layer = 4
 collision_mask = 7
 mass = 3.4
 center_of_mass_mode = 1
-center_of_mass = Vector2(0, 2)
+center_of_mass = Vector2(-1, 2)
 contact_monitor = true
 max_contacts_reported = 4
 script = ExtResource("1_8m17e")
@@ -36,33 +41,43 @@ collider = NodePath("CollisionShape2D")
 Effects_Player = NodePath("EffectsPlayer")
 grip_offset = Vector2(0, 20)
 
-[node name="Sprite" type="Sprite2D" parent="." unique_id=1505020114]
+[node name="Sprite" type="Sprite2D" parent="." unique_id=1703406721]
 scale = Vector2(2, 2)
 texture = ExtResource("2_i4qgs")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=2039116591]
-position = Vector2(0, -16)
-shape = SubResource("CapsuleShape2D_d6vj0")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=346640290]
+position = Vector2(-12.6, -19)
+rotation = -0.40142572
+shape = SubResource("CapsuleShape2D_8m17e")
 
-[node name="CollisionShape2D2" type="CollisionShape2D" parent="." unique_id=249746223]
-position = Vector2(0, 2)
-shape = SubResource("CircleShape2D_af8qh")
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="." unique_id=217982678]
+position = Vector2(9.6, -19)
+rotation = 0.43633232
+shape = SubResource("CapsuleShape2D_i4qgs")
 
-[node name="CollisionShape2D3" type="CollisionShape2D" parent="." unique_id=1430583083]
-position = Vector2(0, 20)
-shape = SubResource("RectangleShape2D_kba5m")
+[node name="CollisionShape2D3" type="CollisionShape2D" parent="." unique_id=1338272063]
+position = Vector2(-1, 2)
+shape = SubResource("RectangleShape2D_hyorm")
 
-[node name="DraggableArea" type="Area2D" parent="." unique_id=459634365]
+[node name="CollisionShape2D4" type="CollisionShape2D" parent="." unique_id=749964285]
+position = Vector2(-13, 21)
+shape = SubResource("CircleShape2D_htd63")
+
+[node name="CollisionShape2D5" type="CollisionShape2D" parent="." unique_id=1257118254]
+position = Vector2(9, 21)
+shape = SubResource("CircleShape2D_d6vj0")
+
+[node name="DraggableArea" type="Area2D" parent="." unique_id=1073889328]
 script = ExtResource("3_hyorm")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=1923963532]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=1601826389]
 position = Vector2(0, 16)
-shape = SubResource("RectangleShape2D_vuk24")
+shape = SubResource("RectangleShape2D_af8qh")
 
-[node name="Handle" type="StaticBody2D" parent="." unique_id=1425285814]
+[node name="Handle" type="StaticBody2D" parent="." unique_id=1729836116]
 visible = false
 collision_layer = 0
 collision_mask = 0
 
-[node name="EffectsPlayer" type="Node" parent="." unique_id=1143992686]
+[node name="EffectsPlayer" type="Node" parent="." unique_id=516286561]
 script = ExtResource("4_htd63")

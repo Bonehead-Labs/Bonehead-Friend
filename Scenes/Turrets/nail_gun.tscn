@@ -6,26 +6,29 @@
 [ext_resource type="Script" path="res://Scripts/Components/effects_player.gd" id="4_jocqy"]
 [ext_resource type="Texture2D" path="res://Assets/sprites/items/nail_gun_barrel.png" id="5_b3esd"]
 
-[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_8bovf"]
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_l675e"]
 friction = 0.95
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_1ymta"]
-size = Vector2(32, 12)
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_dw7t6"]
+size = Vector2(48, 6)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_v3e4c"]
-size = Vector2(14, 28)
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_c43fv"]
+size = Vector2(24, 20)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_hbv6c"]
-size = Vector2(48, 22)
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_jocqy"]
+size = Vector2(16, 6)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_p0fu3"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_b3esd"]
+size = Vector2(24, 8)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_8bovf"]
 size = Vector2(60, 76)
 
-[node name="_NailGun" type="RigidBody2D" unique_id=511908756 node_paths=PackedStringArray("barrel", "drag_area", "handle", "sprite", "collider", "Effects_Player")]
+[node name="_NailGun" type="RigidBody2D" unique_id=532840404 node_paths=PackedStringArray("barrel", "drag_area", "handle", "sprite", "collider", "Effects_Player")]
 collision_layer = 4
 collision_mask = 7
 mass = 9.0
-physics_material_override = SubResource("PhysicsMaterial_8bovf")
+physics_material_override = SubResource("PhysicsMaterial_l675e")
 center_of_mass_mode = 1
 center_of_mass = Vector2(0, 22)
 contact_monitor = true
@@ -50,37 +53,41 @@ collider = NodePath("CollisionShape2D")
 Effects_Player = NodePath("EffectsPlayer")
 grip_offset = Vector2(0, -26)
 
-[node name="Sprite" type="Sprite2D" parent="." unique_id=21745725]
+[node name="Sprite" type="Sprite2D" parent="." unique_id=1246491452]
 scale = Vector2(2, 2)
 texture = ExtResource("2_dw7t6")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1901243606]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1583417660]
+position = Vector2(0, -25)
+shape = SubResource("RectangleShape2D_dw7t6")
+
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="." unique_id=1476764480]
+position = Vector2(0, -25)
+shape = SubResource("RectangleShape2D_c43fv")
+
+[node name="CollisionShape2D3" type="CollisionShape2D" parent="." unique_id=77214558]
+position = Vector2(0, 21)
+shape = SubResource("RectangleShape2D_jocqy")
+
+[node name="CollisionShape2D4" type="CollisionShape2D" parent="." unique_id=879652152]
 position = Vector2(0, 28)
-shape = SubResource("RectangleShape2D_1ymta")
+shape = SubResource("RectangleShape2D_b3esd")
 
-[node name="CollisionShape2D2" type="CollisionShape2D" parent="." unique_id=436220007]
-position = Vector2(0, 8)
-shape = SubResource("RectangleShape2D_v3e4c")
-
-[node name="CollisionShape2D3" type="CollisionShape2D" parent="." unique_id=575832593]
-position = Vector2(0, -20)
-shape = SubResource("RectangleShape2D_hbv6c")
-
-[node name="DraggableArea" type="Area2D" parent="." unique_id=1009993702]
+[node name="DraggableArea" type="Area2D" parent="." unique_id=37149981]
 script = ExtResource("3_c43fv")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=1451750863]
-shape = SubResource("RectangleShape2D_p0fu3")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=2007935304]
+shape = SubResource("RectangleShape2D_8bovf")
 
-[node name="Handle" type="StaticBody2D" parent="." unique_id=640783640]
+[node name="Handle" type="StaticBody2D" parent="." unique_id=2009739671]
 visible = false
 collision_layer = 0
 collision_mask = 0
 
-[node name="EffectsPlayer" type="Node" parent="." unique_id=1555432155]
+[node name="EffectsPlayer" type="Node" parent="." unique_id=1220966671]
 script = ExtResource("4_jocqy")
 
-[node name="Barrel" type="Sprite2D" parent="." unique_id=363035500]
+[node name="Barrel" type="Sprite2D" parent="." unique_id=1243862790]
 position = Vector2(-8, -6)
 scale = Vector2(2, 2)
 texture = ExtResource("5_b3esd")

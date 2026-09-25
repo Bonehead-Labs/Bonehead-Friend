@@ -5,25 +5,30 @@
 [ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_kgw0c"]
 [ext_resource type="Script" path="res://Scripts/Components/effects_player.gd" id="4_6qtbo"]
 
-[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_2u0yl"]
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_gyxg7"]
+radius = 6.0
+height = 52.0
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_w3en4"]
 radius = 6.0
 height = 44.0
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_57hpq"]
-size = Vector2(12, 16)
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_kgw0c"]
+radius = 9.0
+height = 32.0
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_rt66e"]
-size = Vector2(16, 28)
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_6qtbo"]
+size = Vector2(8, 8)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_d605l"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_2u0yl"]
 size = Vector2(36, 36)
 
-[node name="_Sickle" type="RigidBody2D" unique_id=1228115712 node_paths=PackedStringArray("drag_area", "handle", "sprite", "collider", "Effects_Player")]
+[node name="_Sickle" type="RigidBody2D" unique_id=247271913 node_paths=PackedStringArray("drag_area", "handle", "sprite", "collider", "Effects_Player")]
 collision_layer = 4
 collision_mask = 7
 mass = 4.2
 center_of_mass_mode = 1
-center_of_mass = Vector2(12, -14)
+center_of_mass = Vector2(-8, -22)
 contact_monitor = true
 max_contacts_reported = 4
 script = ExtResource("1_gyxg7")
@@ -34,38 +39,42 @@ handle = NodePath("Handle")
 sprite = NodePath("Sprite")
 collider = NodePath("CollisionShape2D")
 Effects_Player = NodePath("EffectsPlayer")
-grip_offset = Vector2(-28, 28)
+grip_offset = Vector2(22, 26)
 
-[node name="Sprite" type="Sprite2D" parent="." unique_id=1233274359]
+[node name="Sprite" type="Sprite2D" parent="." unique_id=1383293903]
 scale = Vector2(2, 2)
 texture = ExtResource("2_w3en4")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1938946325]
-position = Vector2(10, -18)
-rotation = 1.3089969
-shape = SubResource("CapsuleShape2D_2u0yl")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1386975876]
+position = Vector2(9, 13)
+rotation = -0.7679449
+shape = SubResource("CapsuleShape2D_gyxg7")
 
-[node name="CollisionShape2D2" type="CollisionShape2D" parent="." unique_id=62912503]
-position = Vector2(-4, 4)
-rotation = 0.7853982
-shape = SubResource("RectangleShape2D_57hpq")
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="." unique_id=1085601704]
+position = Vector2(-2, -28)
+rotation = 1.5707964
+shape = SubResource("CapsuleShape2D_w3en4")
 
-[node name="CollisionShape2D3" type="CollisionShape2D" parent="." unique_id=1001457597]
-position = Vector2(-22, 22)
-rotation = 0.7853982
-shape = SubResource("RectangleShape2D_rt66e")
+[node name="CollisionShape2D3" type="CollisionShape2D" parent="." unique_id=1486019318]
+position = Vector2(-21, -14)
+rotation = -0.5235988
+shape = SubResource("CapsuleShape2D_kgw0c")
 
-[node name="DraggableArea" type="Area2D" parent="." unique_id=2078708276]
+[node name="CollisionShape2D4" type="CollisionShape2D" parent="." unique_id=1442630607]
+position = Vector2(18, -20)
+shape = SubResource("RectangleShape2D_6qtbo")
+
+[node name="DraggableArea" type="Area2D" parent="." unique_id=1442391798]
 script = ExtResource("3_kgw0c")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=1839873717]
-position = Vector2(-22, 22)
-shape = SubResource("RectangleShape2D_d605l")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=375655695]
+position = Vector2(18, 22)
+shape = SubResource("RectangleShape2D_2u0yl")
 
-[node name="Handle" type="StaticBody2D" parent="." unique_id=1110119624]
+[node name="Handle" type="StaticBody2D" parent="." unique_id=1465105358]
 visible = false
 collision_layer = 0
 collision_mask = 0
 
-[node name="EffectsPlayer" type="Node" parent="." unique_id=1638062988]
+[node name="EffectsPlayer" type="Node" parent="." unique_id=722950917]
 script = ExtResource("4_6qtbo")

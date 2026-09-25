@@ -3,7 +3,7 @@ extends Node
 ## M3.6's ten explosives: scenes, items, tier-1 trees, one exclusive branch and an automation
 ## capstone each. The Boom category goes from four rungs to fourteen.
 ##
-##   Godot --headless --path <project> res://tools/seed_m36_explosives.tscn [-- --force]
+##   Godot --headless --path <project> res://tools/seed_m36_explosives.tscn [-- --force | --only id,id]
 ##
 ## **The ladder is not "the same bang, bigger", and it cannot be.** A single hit is clamped at
 ## `knockout_damage x max_hit_fraction` — half a knockout — before it ever reaches the payout
@@ -184,12 +184,14 @@ const EXPLOSIVES := [
 		"script": ThrowableBaseScript,
 		"mass": 6.0,
 		"blast": 320.0,
-		# The one silhouette here that is genuinely not a box: a bag and a strap. Weight in
-		# the bag and the pin up on the strap, so it hangs the way a bag hangs and swings its
-		# own weight when you throw it.
+		# The one silhouette here that is genuinely not a box: a sack with the charge sticking
+		# out of the top. Weight in the sack and the pin up on the charge, so it hangs the way
+		# a bag hangs and swings its own weight when you throw it.
 		"shapes": [
-			{"rect": Vector2(26, 22), "at": Vector2(0, 7)},
-			{"rect": Vector2(6, 26), "at": Vector2(-9, -9), "rot": 25.0},
+			{"rect": Vector2(38, 20), "at": Vector2(0.5, 3)},
+			{"rect": Vector2(30, 6), "at": Vector2(0, 16)},
+			{"rect": Vector2(23, 9), "at": Vector2(-3.5, -13)},
+			{"rect": Vector2(12, 3), "at": Vector2(-3, -18.5)},
 		],
 		"com": Vector2(0, 7),
 		"grip": Vector2(-12, -16),
@@ -266,11 +268,18 @@ const CLUSTER_BRANCH := [
 ]
 
 var _force := false
+## `--only id,id`: rewrite those ids' scenes and nothing else (D61). The way to re-seed a body
+## after its physics row changes — `--force` would also rewrite every item and augment this tool
+## owns, including the ones later milestones refined; D55 tried that and the suite caught it.
+var _only := PackedStringArray()
 var _written := 0
 var _skipped := 0
 
 func _ready() -> void:
 	_force = OS.get_cmdline_user_args().has("--force")
+	var only_at := OS.get_cmdline_user_args().find("--only")
+	if only_at >= 0 and only_at + 1 < OS.get_cmdline_user_args().size():
+		_only = OS.get_cmdline_user_args()[only_at + 1].split(",", false)
 	for dir in [BODIES_DIR, ITEMS_DIR, AUGMENTS_DIR]:
 		DirAccess.make_dir_recursive_absolute(dir)
 
@@ -447,6 +456,11 @@ func _seed_branch() -> void:
 # --- io --------------------------------------------------------------------
 
 func _should_write(path: String) -> bool:
+	if not _only.is_empty():
+		if path.get_extension() == "tscn" and _only.has(path.get_file().get_basename()):
+			return true
+		_skipped += 1
+		return false
 	if _force or not ResourceLoader.exists(path):
 		return true
 	_skipped += 1

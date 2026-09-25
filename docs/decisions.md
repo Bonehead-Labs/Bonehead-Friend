@@ -1476,6 +1476,29 @@ against sprites replaced in D45. None of that is a one-line fix and all of it ch
 game plays, so it is left for the owner to direct rather than guessed at in a sweep. The
 layers themselves are fine: 97 bodies on layer 4 / mask 7, the buddy on 2 / 5.
 
+## D55 — The collider is the picture (2026-09-07)
+
+**Decision.** A derived collider is the sprite's own opaque bounds at the sprite's scale, in
+every seed tool, never a number somebody typed. `loop_check` asserts it for every body with a
+single collider.
+
+**Why.** The owner: "just simply make the collision of the items in the world match the shape
+of the object." The fault was one line in two files. `seed_friendly.gd` and
+`seed_m3_content.gd` drew their sprites at 2x and wrote a hand-typed art-pixel extent straight
+into a world-pixel shape, while `item_body_builder.gd` and `seed_m35_roster.gd` multiplied by
+`ART_SCALE`. So 28 of 31 kind items had a collider between a third and six-sevenths of what
+you could see, and you could push a bat most of the way into a hot tub before anything
+touched. A typed extent also goes stale when the art is regenerated and the scene is not,
+which is what happened to seven scenes in the D45 art pass. Afterwards 35 of 36 Friendly and
+Props colliders match their art on both axes. The trampoline's is deliberately the mat.
+
+*Consequence:* the guard instantiates every item and checks the 43 single-collider bodies.
+Nothing in 1,000 assertions had ever looked at a collision shape. The 42 bodies with several
+colliders were left alone on purpose, because a bat is a capsule and a rect rather than a box
+around both, and that geometry is D25. They became D61. The mine was corrected by hand with a
+two-line size edit, because the seeder could only rewrite it with `--force`, which rewrites 63
+files including augment data that later milestones refined. D61 added `--only` for that.
+
 ## D58 — Every room of the Arcade is a cabinet, and 1.25x is uneven rather than soft (2026-09-25)
 
 **Decision.** Each of the Arcade's five rooms is built by one class, `Cabinet`, as the same
@@ -1548,6 +1571,75 @@ cabinet is laid out to fit without clipping: the reels step down 192, 160, 128 w
 in order, one stage height and one deck line across all five rooms, every word in every room
 legible where it sits, and the stepper's rules; `loop_check` asserts the new variations, every
 marquee's ink, a solid disabled deck rule, and that no box in the theme has a rounded corner.
+
+## D61 — The authored colliders are the picture too (2026-09-25)
+
+**Decision.** Every hand-authored body is re-authored against the sprite it actually has:
+shapes, centre of mass and grip, in the seed tables' own art pixels. That is 36 of the 42
+multi-collider weapons, turrets and charges. `loop_check` now asserts every authored body
+against its picture. The bat, the mace and the katana are the reference feel and did not move.
+
+**Why.** D54 measured the problem and D55 left it alone on purpose. Measured properly, it was
+worse than a list of offenders:
+
+| | |
+|---|---|
+| Nunchaku | shapes down the empty gap between two sticks drawn side by side: **2%** of its art |
+| Tyre iron | a column where the bar is not, because the bar is drawn off to the right of its arm: 16% |
+| Greatsword, sickle, katar, scythe | authored against a pose the sprite does not have; greatsword 46 degrees off its own axis, the sickle's grip 29 px in mid-air |
+| Rail gun | a vertical stack against a gun drawn level, with its base 12 px below the art, so it stood in the air |
+| Laser lattice | two posts in the empty middle of a frame, frozen against the art D45 replaced |
+| Monitor, keyboard, stapler | 21, 15 and 13 px past their art |
+| All authored bodies | **30 of 48** failed at least one bound below. After: none |
+
+None of it was fixed in a sweep. Each row was measured, drawn over, re-authored and measured
+again, and its centre of mass and grip were moved only where the art moved them. The
+greatsword's weight sits a third of the way up the blade, as the row's comment always said.
+The scythe's weight is mirrored to the side its blade is drawn on. The chainsaw's grip is
+still 4 px from its engine, so it still bucks. The rows' comments were corrected where the
+drawing contradicted them.
+
+**How it is measured.** `ColliderAudit` (`tools/collider_audit.gd`) rasterises the scene the
+game runs, with every sprite as the picture and every shape as the collider. It returns
+coverage, the share of the collider that is air, the furthest a shape reaches past the art
+(an exact distance transform), the principal axis of each, and whether the grip is on the
+art. `tools/collider_report.tscn -- --tables --shots --runs` is now how a row is authored. It
+builds the row in memory, draws the shapes over the sprite at 4x and prints the opaque pixels
+per row. It is not written from a guess about the prompt. Run without `--tables`, it also
+showed that no scene had drifted from its row. The guard's bounds come from the references:
+
+| Bound | Why this number |
+|---|---|
+| coverage >= 0.65 | the katana covers 0.68, the lowest of the three references |
+| air <= 0.30 | the katana is 0.25; the worst after D61 is a round bomb at 0.28 |
+| overhang <= 8 px | one art pixel past the mace's 6.1 |
+| grip <= 2 px from the art | one art pixel; a weapon is held by something |
+| axis <= 10 degrees | only where both art and shapes are at least 2:1; worst after is 2.2 |
+
+**Turrets.** Five turrets mirror their sprite to face him, and their colliders never mirror.
+A flipping turret is therefore solid only where its picture is present in both facings. The
+rail gun's stand and the nail gun's post are drawn off-centre and are not solid; each stands
+on a centred foot that is. Mirroring the shapes in `TurretBase` instead would teleport them
+under whatever touches the turret at the moment it turns, which is usually him. That is the
+owner's call. The laser lattice's beams are light, and only its frame is solid.
+
+**Feel, measured.** `tools/swing_rig.tscn` sweeps the game's own drag joint through him at
+1200 px/s. The three references are bit-identical before and after. Across the 13 changed
+weapons it swings, the momentum handed to him runs from 3,016 to 5,031, against 2,786 to 5,106
+before; the references sit at 3,005 to 4,181. Peak weapon speed moved at most 5%, except the
+nunchaku's +9%, whose weight is now in the far stick. Some
+levers changed because the weapon on screen is a different length from the one its row
+assumed: greatsword 32 -> 44 art px, halberd 50 -> 55, flail 41 -> 45, keyboard 33 -> 28,
+nunchaku 32 -> 27. None of them became a plank or a rocket.
+
+*Consequence:* the four seeders that own authored bodies take `--only id,id`. It rewrites
+those scenes and nothing else, which is the way to re-seed one body. A weapon whose shapes do
+not match its sprite now fails `loop_check`, which names the reason. The enumeration covers
+future items and fails if it ever finds fewer than 42. Two things were left alone.
+Turret barrels still lean up to 40 degrees over colliders that match the rest pose. And
+`Buddy._cooldown_ready` runs on `Time.get_ticks_msec()`, so a headless run that steps faster
+than real time bills slightly different hits from identical physics. The rig reports
+momentum for that reason.
 
 ## D62 — The art polish is drawn, not generated: a walk, fourteen sprites, headphones that fall (2026-09-25)
 

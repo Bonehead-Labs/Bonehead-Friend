@@ -60,6 +60,7 @@ func _ready() -> void:
 	_the_idle_brain_knows_who_is_at_the_desk()
 	await _every_toy_is_worth_walking_to()
 	_the_colliders_match_the_pictures()
+	_the_authored_colliders_match_the_pictures()
 	_knockout_pays_and_resets()
 	_the_buddy_art_is_wired()
 	_the_expression_brain_arbitrates()
@@ -1123,7 +1124,8 @@ func _every_toy_is_worth_walking_to() -> void:
 ## Checked for every item whose body has exactly ONE collider — those are derived from the
 ## sprite's own opaque pixels, so they should match it almost exactly. Bodies with several
 ## colliders are deliberately authored (D25: a bat is a barrel and a grip, not a box around
-## both) and are not measurable this way, so they are skipped rather than guessed at.
+## both) and are not measurable this way, so they are skipped here and measured shape by shape
+## by the check after this one (D61).
 ##
 ## This exists because the fault was invisible from source and silent in play. Two seeders
 ## wrote a hand-typed art-pixel extent into a world-pixel shape while drawing the sprite at
@@ -1178,6 +1180,77 @@ func _the_colliders_match_the_pictures() -> void:
 		% [checked, wrong.size()], wrong.is_empty())
 	for line in wrong.slice(0, 5):
 		print("        %s" % line)
+
+## The authored colliders are the picture too (D61).
+##
+## Everything the check above skips: any body whose collider a person typed into a seed table
+## — several shapes, an offset one, a turned one, a circle. `ColliderAudit.is_authored` is the
+## exact complement of the derived box, so between the two assertions every item body is
+## covered, and an item added tomorrow is covered by the enumeration without anyone listing it.
+##
+## Measured by `ColliderAudit` against the sprite's own opaque pixels; a turret that mirrors is
+## measured against the part of its picture that is there in both facings. The thresholds come
+## from the measurement, not from taste: the reference feel is the bat, the mace and the katana,
+## which D61 did not touch, and the floor sits just under the worst of them. Before D61, 30 of
+## the 48 authored bodies failed at least one of these; after it, none.
+##
+##   coverage >= 0.65   the katana covers 0.68 of its blade, and is the floor of the references
+##   excess   <= 0.30   the katana's capsule is 0.25 air; the worst after D61 is a round bomb at 0.28
+##   overhang <= 8 px   one art pixel past the mace's circle, which reaches 6.1 world px beyond
+##                      its spikes; the nunchaku's shapes sat 12.6 px off its sticks
+##   grip     <= 2 px   within one art pixel of the picture — a weapon is held by something
+##   axis gap <= 10 deg only when both the art and the shapes are at least 2:1; every long body
+##                      is under 2.3 after D61, and the greatsword was 46 off before it
+func _the_authored_colliders_match_the_pictures() -> void:
+	_suite("authored collider shapes")
+	const MIN_COVERAGE := 0.65
+	const MAX_EXCESS := 0.30
+	const MAX_OVERHANG := 8.0
+	const MAX_GRIP_OFF := 2.0
+	const MAX_AXIS_GAP := 10.0
+	const LONG := 2.0
+	# Deliberately not the picture, and each says why where it is built.
+	const EXEMPT := {
+		&"trampoline": "the mat, not the frame and legs (seed_m35_roster)",
+	}
+	var checked := 0
+	var wrong: Array[String] = []
+	for item in ItemDB.all_items():
+		if item.scene == null or EXEMPT.has(item.id):
+			continue
+		var root := item.scene.instantiate()
+		var body := root as RigidBody2D
+		if body == null or not ColliderAudit.is_authored(body):
+			root.free()
+			continue
+		var m := ColliderAudit.measure(body)
+		root.free()
+		if m.is_empty():
+			continue
+		checked += 1
+		var faults: Array[String] = []
+		if float(m["coverage"]) < MIN_COVERAGE:
+			faults.append("covers %.0f%% of its art" % (float(m["coverage"]) * 100.0))
+		if float(m["excess"]) > MAX_EXCESS:
+			faults.append("%.0f%% of it is air" % (float(m["excess"]) * 100.0))
+		if float(m["overhang"]) > MAX_OVERHANG:
+			faults.append("overhangs by %.1f px" % m["overhang"])
+		if float(m["grip_off"]) > MAX_GRIP_OFF:
+			faults.append("grip %.1f px off the art" % m["grip_off"])
+		if float(m["art_long"]) >= LONG and float(m["shape_long"]) >= LONG \
+				and float(m["axis_gap"]) > MAX_AXIS_GAP:
+			faults.append("shapes %.0f deg off the art's axis" % m["axis_gap"])
+		if not faults.is_empty():
+			wrong.append("%s: %s" % [item.id, ", ".join(faults)])
+	_check("every authored body's shapes cover its picture, claim little air and are held by it (%d checked, %d off)"
+		% [checked, wrong.size()], wrong.is_empty())
+	for line in wrong.slice(0, 8):
+		print("        %s" % line)
+	# The enumeration is the guard for future items, so it must not quietly check nothing: the
+	# 42 multi-shape bodies D61 audited are all in it, plus the offset and round ones.
+	_check("and the enumeration found them (%d, at least the 42 D61 audited)" % checked, checked >= 42)
+	for id in EXEMPT:
+		_check("the exemption for %s names a real item" % id, ItemDB.get_item(id) != null)
 
 func _the_idle_brain_knows_who_is_at_the_desk() -> void:
 	_suite("idle brain")
