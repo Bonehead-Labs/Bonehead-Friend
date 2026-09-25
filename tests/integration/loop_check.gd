@@ -441,6 +441,24 @@ func _the_shell_has_its_look() -> void:
 		% [key_types.size(), "" if resized.is_empty() else ": " + ", ".join(resized)],
 		resized.is_empty())
 
+	# The rule at every Menu size the settings can reach (D68): the base 3px at the whole
+	# factors, 4 at the quarter steps between, and a whole number of screen pixels at each — the
+	# rule and the key's lift both. A 3px rule at 1.25x is 3.75 screen pixels and lands as 3 or
+	# 4 depending on where it sits.
+	var ladder: Array[String] = []
+	var factor := UIScale.MIN
+	while factor <= UIScale.MAX + 0.001:
+		var width := UIStyle.rule_for(factor)
+		var whole := is_equal_approx(factor, roundf(factor))
+		var expected := UIStyle.BORDER_WIDTH if whole else 4
+		var lift := float(UITheme.KEY_LIFT) * factor
+		if width != expected or absf(float(width) * factor - roundf(float(width) * factor)) > 0.001 \
+				or absf(lift - roundf(lift)) > 0.001:
+			ladder.append("%.2fx -> %dpx" % [factor, width])
+		factor += UIScale.STEP
+	_check("a rule is 3px at every whole Menu size and 4 between, whole on screen at each%s"
+		% ("" if ladder.is_empty() else ": " + ", ".join(ladder)), ladder.is_empty())
+
 	# A scrollbar's width is its track stylebox's minimum size. Zero here means a panel
 	# that silently cannot be scrolled, which reads as content simply missing.
 	var track := theme.get_stylebox("scroll", "VScrollBar")

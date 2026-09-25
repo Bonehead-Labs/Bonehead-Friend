@@ -110,7 +110,7 @@ func _build_page() -> void:
 	for category in categories:
 		_tab_row.add_child(_make_tab(category, _by_category[category]))
 
-	add_child(_rule())
+	add_child(UIStyle.rule(false))
 
 	var split := HBoxContainer.new()
 	split.add_theme_constant_override("separation", 10)
@@ -136,13 +136,6 @@ func _build_page() -> void:
 
 	if not categories.is_empty():
 		show_side(_side)
-
-func _rule() -> Control:
-	var rule := ColorRect.new()
-	rule.color = UIStyle.EDGE
-	rule.custom_minimum_size = Vector2(0, UIStyle.BORDER_WIDTH)
-	rule.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	return rule
 
 # --- categories ------------------------------------------------------------
 

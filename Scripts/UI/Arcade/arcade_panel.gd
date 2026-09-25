@@ -69,6 +69,9 @@ func _ready() -> void:
 	var host := get_parent() as Control
 	if host:
 		host.resized.connect(_fit_stages)
+	# And when the rule width changes with the Menu size (D68): the reel bank's fit counts its
+	# rules, and the card can keep its size across the change.
+	theme_changed.connect(_fit_stages)
 	_fit_stages.call_deferred()
 
 ## Tells every machine how wide its stage is on this card. Everything else in a cabinet is laid
@@ -172,14 +175,20 @@ func _add_room(id: StringName, caption: String, mark: StringName, accent: String
 	lamp.theme_type_variation = UIStyle.marquee_variation(accent)
 	lamp.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	lamp.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	lamp.offset_left = UIStyle.BORDER_WIDTH
-	lamp.offset_right = -UIStyle.BORDER_WIDTH
-	lamp.offset_top = UIStyle.BORDER_WIDTH
-	lamp.offset_bottom = UIStyle.BORDER_WIDTH + UITheme.ROOM_LAMP
+	_hang_lamp(lamp)
+	# Inside the key's rule, and the rule's width follows the Menu size (D68).
+	lamp.theme_changed.connect(func() -> void: _hang_lamp(lamp))
 	tab.add_child(lamp)
 
 	_rooms[id] = {"tab": tab, "view": view}
 	_room_order.append(id)
+
+static func _hang_lamp(lamp: Control) -> void:
+	var rule := float(UIStyle.rule_width())
+	lamp.offset_left = rule
+	lamp.offset_right = -rule
+	lamp.offset_top = rule
+	lamp.offset_bottom = rule + UITheme.ROOM_LAMP
 
 ## Bring one room forward. The others stay built and hidden — a spin still running in a room
 ## the player left keeps running and still pays.

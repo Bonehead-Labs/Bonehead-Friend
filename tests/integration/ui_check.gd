@@ -111,6 +111,7 @@ func _ready() -> void:
 	await _the_hud_points_at_the_next_toy()
 	await _the_shell_hides_until_hovered()
 	await _nothing_overflows_its_box()
+	await _the_shell_at_every_menu_size()
 	await _closed_pages_do_no_work()
 	await _the_buddy_still_takes_clicks()
 	await _he_notices_the_player()
@@ -1219,8 +1220,7 @@ func _the_numbers_keep_apart() -> void:
 	var coins_behind := true
 	for child in fx.get_children():
 		var coin := child as Label
-		if coin and coin.visible and coin.text.begins_with("+") and headline \
-				and coin.z_index >= headline.z_index:
+		if coin and coin.visible and coin.text.begins_with("+") and headline 				and coin.z_index >= headline.z_index:
 			coins_behind = false
 	_check("and the fountain's coins draw behind the lines", coins_behind)
 	await _apart_for_life(fx, "the knockout's lines")
@@ -1768,6 +1768,110 @@ func _keys_hold_their_size(panels: Node) -> void:
 		% keys.size(), grew.is_empty(), "; ".join(grew))
 	bench.queue_free()
 	await _settle()
+
+## The shell at the sizes it is actually used at (D68). Every other suite runs at 1x in a
+## 960x640 window; the owner plays at Menu size 1.25x on a 1440x960 play area, 2x is one step
+## away in Settings, 1180x760 is the play area a new player starts in, and 480x360 is the
+## smallest the window goes.
+##
+## At 1.25x a 3px rule is 3.75 screen pixels and draws as 3 or 4 by where it sits, so a box was
+## heavier on top than underneath. Rules are 4 at a fractional factor.
+const MENU_SIZES := [
+	[Vector2i(960, 640), 1.0],
+	[Vector2i(1440, 960), 1.25],
+	[Vector2i(1440, 960), 2.0],
+	[Vector2i(1180, 760), 2.0],
+	[Vector2i(960, 640), 1.75],
+	[Vector2i(480, 360), 1.0],
+]
+
+func _the_shell_at_every_menu_size() -> void:
+	_suite("menu sizes")
+	var panels := _find(_main, "PanelLayer")
+	if panels == null:
+		_check("the panels are present to test", false)
+		return
+	var rebuilds_before := UITheme.rebuilds
+	for entry in MENU_SIZES:
+		var view_size: Vector2i = entry[0]
+		var asked: float = entry[1]
+		_view.size = view_size
+		Settings.set_ui_scale(asked)
+		await _settle()
+		await _settle()
+		var factor := UIScale.factor_for(Vector2(view_size))
+		var at := "%dx%d at %sx" % [view_size.x, view_size.y, ("%.2f" % factor).rstrip("0").rstrip(".")]
+		_check("%s: the shell is drawn at the size asked for" % at,
+			is_equal_approx(factor, asked) and is_equal_approx((panels as CanvasLayer).scale.x, asked))
+		_rules_land_whole(factor, at)
+
+	# Rebuilding the theme is paid when the rule width changes and at no other time: the steps
+	# above crossed between whole and fractional factors, and a resize at the same factor
+	# changes nothing.
+	var crossed := UITheme.rebuilds - rebuilds_before
+	_check("the theme was rebuilt once per change of rule width (%d)" % crossed, crossed >= 2)
+	_view.size = Vector2i(1440, 960)
+	Settings.set_ui_scale(1.25)
+	await _settle()
+	var settled := UITheme.rebuilds
+	_view.size = Vector2i(1400, 940)
+	await _settle()
+	_view.size = Vector2i(1440, 960)
+	await _settle()
+	_check("and resizing the window at the same factor rebuilds nothing",
+		UITheme.rebuilds == settled, "%d rebuild(s)" % (UITheme.rebuilds - settled))
+
+	_view.size = VIEW_SIZE
+	Settings.set_ui_scale(1.0)
+	await _settle()
+	await _settle()
+	_check("and back at 1x the rules are the base width again",
+		UIStyle.rule_width() == UIStyle.BORDER_WIDTH)
+
+## Every rule the theme draws is a whole number of screen pixels at `factor`, and the shell is
+## actually drawing with that theme: the card's own rule, every `UIStyle.rule()`, every lamp.
+func _rules_land_whole(factor: float, at: String) -> void:
+	var theme := UITheme.get_theme()
+	var uneven: Array[String] = []
+	var checked := 0
+	for type_name in theme.get_stylebox_type_list():
+		# Drawn in the world, which the Menu size never scales.
+		if type_name == "Bubble":
+			continue
+		for box_name in theme.get_stylebox_list(type_name):
+			var flat := theme.get_stylebox(box_name, type_name) as StyleBoxFlat
+			if flat == null:
+				continue
+			for side in [SIDE_LEFT, SIDE_TOP, SIDE_RIGHT, SIDE_BOTTOM]:
+				var width := flat.get_border_width(side)
+				# A hairline is one pixel on purpose and cannot be whole at a quarter step
+				# without being four; D68 leaves them.
+				if width <= 1:
+					continue
+				checked += 1
+				var screen := float(width) * factor
+				if absf(screen - roundf(screen)) > 0.001:
+					uneven.append("%s/%s %dpx" % [type_name, box_name, width])
+	_check("%s: every rule in the theme is whole screen pixels (%d)" % [at, checked],
+		checked > 0 and uneven.is_empty(), ", ".join(uneven))
+	var rule := UIStyle.rule_for(factor)
+	var card := _find(_main, "Card") as Control
+	var drawn := (card.get_theme_stylebox("panel") as StyleBoxFlat).border_width_top if card else -1
+	var off: Array[String] = []
+	var lines := 0
+	for node in _all_nodes(_main):
+		var panel := node as Panel
+		if panel == null:
+			continue
+		if panel.theme_type_variation == &"Rule":
+			lines += 1
+			var thick := maxf(panel.custom_minimum_size.x, panel.custom_minimum_size.y)
+			if absf(thick - float(rule)) > 0.01:
+				off.append("rule %.0f" % thick)
+		elif panel.name == "Lamp" and absf(panel.offset_top - float(rule)) > 0.01:
+			off.append("lamp at %.0f" % panel.offset_top)
+	_check("%s: the card, %d cell rules and every lamp are drawn at %dpx" % [at, lines, rule],
+		drawn == rule and lines > 0 and off.is_empty(), "card %d, %s" % [drawn, ", ".join(off)])
 
 ## No page may be left flagged visible under a shut card. That gap is what made every
 ## page's `if visible:` guard a no-op and left five pages doing full refreshes per hit,

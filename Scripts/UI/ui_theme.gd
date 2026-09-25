@@ -55,15 +55,51 @@ static func get_theme() -> Theme:
 		_theme = _build()
 	return _theme
 
-## Only for the tools that render specimen sheets; the game never needs to rebuild.
+## Only for the tools that render specimen sheets. The game rebuilds in place instead, and only
+## when the Menu size crosses between a whole and a fractional factor (`use_factor`).
 static func invalidate() -> void:
 	_theme = null
 
+## Times the theme has been rebuilt for a new rule width. A suite asserts that resizing the
+## window at the same factor costs none.
+static var rebuilds := 0
+
+## The Menu size in force, told by `UIScale.apply()` on every fit (D68).
+##
+## Rules are drawn a whole number of screen pixels thick at every Menu size: 3 at a whole
+## factor, 4 at the quarter steps between (`UIStyle.rule_for`). When that width changes, the
+## theme is rebuilt and **merged into the Theme every layer already holds**, rather than swapped
+## for a new one — one `changed`, one theme notification down the shell, and nothing has to be
+## told to re-ask. Anything sized or drawn from the rule outside the theme re-reads
+## `UIStyle.rule_width()` on `theme_changed`. Same width, no work: every layer calls this on
+## every fit, and only the first to see a new width pays.
+static func use_factor(factor: float) -> bool:
+	var width := UIStyle.rule_for(factor)
+	if width == UIStyle.rule_width():
+		return false
+	UIStyle._rule_width = width
+	if _theme != null:
+		_theme.merge_with(_build())
+		rebuilds += 1
+	return true
+
 # --- fonts -----------------------------------------------------------------
+
+## Loaded once. A rebuild for a new rule width reuses them: a fresh FontFile is a fresh glyph
+## cache, and every label in the shell would re-rasterise its text for a change of border.
+static var _fonts: Dictionary = {}
 
 ## Crisp, unhinted, no subpixel positioning. A pixel face rendered with the defaults is
 ## a blurry pixel face, which is worse than not using one.
 static func _font(path: String) -> Font:
+	if _fonts.has(path):
+		return _fonts[path]
+	var font := _crisp(path)
+	if font:
+		_fonts[path] = font
+	return font
+
+static func _crisp(path: String) -> Font:
 	var loaded := ResourceLoader.load(path) as FontFile
 	if loaded == null:
 		push_error("UITheme: missing font %s" % path)
@@ -102,11 +138,12 @@ static func _fallback() -> Font:
 
 # --- boxes -----------------------------------------------------------------
 
+## Card stock inside a rule, at the rule width in force (`use_factor`).
 static func _box(fill: Color, margin_h: int = 10, margin_v: int = 8) -> StyleBoxFlat:
 	var box := StyleBoxFlat.new()
 	box.bg_color = fill
 	box.border_color = UIStyle.EDGE
-	box.set_border_width_all(UIStyle.BORDER_WIDTH)
+	box.set_border_width_all(UIStyle.rule_width())
 	box.set_corner_radius_all(0)
 	box.content_margin_left = margin_h
 	box.content_margin_right = margin_h
@@ -116,13 +153,14 @@ static func _box(fill: Color, margin_h: int = 10, margin_v: int = 8) -> StyleBox
 
 ## How far a key rises off the card. The bottom rule is thicker than the other three, and
 ## pressing the key spends that thickness — which is the whole trick: the button is not
-## drawn moving, it *is* shorter, and the label inside it drops to match.
+## drawn moving, it *is* shorter, and the label inside it drops to match. Four, so the lift
+## lands on whole screen pixels at every quarter-step Menu size as the rule does (D68).
 const KEY_LIFT := 4
 
 ## A key at rest: thick bottom rule, label sitting high on it.
 static func _key(fill: Color, margin_h: int = 12, margin_v: int = 7) -> StyleBoxFlat:
 	var box := _box(fill, margin_h, margin_v)
-	box.border_width_bottom = UIStyle.BORDER_WIDTH + KEY_LIFT
+	box.border_width_bottom = UIStyle.rule_width() + KEY_LIFT
 	box.content_margin_bottom = margin_v - 2
 	return box
 
@@ -256,14 +294,17 @@ static func _panels(theme: Theme) -> void:
 	# ruled down its left edge only, so it cannot be mistaken for the mastery well below it.
 	var how := _box(UIStyle.SUNK, 10, 6)
 	how.set_border_width_all(0)
-	how.border_width_left = UIStyle.BORDER_WIDTH
+	how.border_width_left = UIStyle.rule_width()
 	theme.set_type_variation("HowTo", "PanelContainer")
 	theme.set_stylebox("panel", "HowTo", how)
 
 	# A toy speaking in the world: the fortune ball's answer, over whatever the player's
-	# desktop is. Card stock inside the rule like every card, and snug around one line.
+	# desktop is. Card stock inside the rule like every card, and snug around one line. Always
+	# the base rule: it is drawn in the world, which the Menu size never scales (D68).
 	theme.set_type_variation("Bubble", "PanelContainer")
-	theme.set_stylebox("panel", "Bubble", _box(UIStyle.PANEL, 8, 3))
+	var bubble := _box(UIStyle.PANEL, 8, 3)
+	bubble.set_border_width_all(UIStyle.BORDER_WIDTH)
+	theme.set_stylebox("panel", "Bubble", bubble)
 
 	theme.set_type_variation("Chip", "PanelContainer")
 	theme.set_stylebox("panel", "Chip", _box(UIStyle.PANEL, 9, 5))
@@ -297,7 +338,9 @@ static func _panels(theme: Theme) -> void:
 	# on the one upgrade that keeps earning after the window is closed.
 	var capstone := _box(UIStyle.PANEL, 10, 9)
 	capstone.border_color = UIStyle.TEAL
-	capstone.border_width_bottom = UIStyle.BORDER_WIDTH + 3
+	# A double rule underneath: 6 at a whole Menu size, as it always was, and 8 between them,
+	# where `rule + 3` would have been 7 and uneven again.
+	capstone.border_width_bottom = UIStyle.rule_width() * 2
 	theme.set_type_variation("Capstone", "PanelContainer")
 	theme.set_stylebox("panel", "Capstone", capstone)
 
@@ -309,7 +352,7 @@ static func _panels(theme: Theme) -> void:
 ## read as *the machine*. A section here owns only the rule on its top edge, so two of them
 ## stacked share one line instead of drawing two.
 static func _cabinets(theme: Theme) -> void:
-	var rule := UIStyle.BORDER_WIDTH
+	var rule := UIStyle.rule_width()
 
 	# The frame. Its content margin is exactly the rule, so the sections inside butt up to it
 	# rather than sitting on a strip of card stock that would read as a second frame.
@@ -444,7 +487,7 @@ static func _buttons(theme: Theme, display: Font) -> void:
 	var row_on := row.duplicate() as StyleBoxFlat
 	row_on.bg_color = UIStyle.SUNK
 	row_on.border_color = UIStyle.EDGE
-	row_on.border_width_left = UIStyle.BORDER_WIDTH
+	row_on.border_width_left = UIStyle.rule_width()
 	theme.set_stylebox("pressed", "ListRow", row_on)
 	theme.set_stylebox("hover_pressed", "ListRow", row_on)
 	theme.set_stylebox("disabled", "ListRow", row)
@@ -535,7 +578,7 @@ const ROOM_LAMP := 6
 static func _meters(theme: Theme) -> void:
 	# The fill is inset by the background's content margin, so the rule stays a rule
 	# instead of being painted over by a full bar.
-	var track := _box(UIStyle.SUNK, UIStyle.BORDER_WIDTH, UIStyle.BORDER_WIDTH)
+	var track := _box(UIStyle.SUNK, UIStyle.rule_width(), UIStyle.rule_width())
 	theme.set_stylebox("background", "ProgressBar", track)
 	theme.set_stylebox("fill", "ProgressBar", UIStyle.meter_fill())
 	theme.set_font("font", "ProgressBar", _font(UIStyle.FONT_DISPLAY))

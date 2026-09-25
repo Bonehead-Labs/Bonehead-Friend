@@ -495,7 +495,7 @@ func _draw_wheel() -> void:
 	var hub := radius * HUB_FRACTION
 	var band := radius - hub
 	var mid := hub + band * 0.5
-	var rule := float(UIStyle.BORDER_WIDTH)
+	var rule := float(UIStyle.rule_width())
 
 	# A thick arc is a true annulus: a polyline's width is laid off along the normal, which
 	# on a circle is radial, and its flat end caps therefore fall on the wedge boundaries.
@@ -561,7 +561,7 @@ func _draw_pointer(centre: Vector2, radius: float) -> void:
 	])
 	_face.draw_colored_polygon(points, UIStyle.PANEL)
 	_face.draw_polyline(PackedVector2Array([points[0], points[1], points[2], points[0]]),
-		UIStyle.EDGE, float(UIStyle.BORDER_WIDTH))
+		UIStyle.EDGE, float(UIStyle.rule_width()))
 
 func _swung(point: Vector2, hinge: Vector2, angle: float) -> Vector2:
 	return hinge + (point - hinge).rotated(angle)

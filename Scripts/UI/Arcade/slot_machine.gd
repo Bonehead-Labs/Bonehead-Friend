@@ -230,7 +230,7 @@ func _show(index: int, symbol: StringName) -> void:
 ## between them and the glass's own rule either side. Re-boxed through `_show()`, so a resize
 ## mid-spin keeps whatever each reel is showing.
 func _fit_stage(width: float) -> void:
-	var rules := float((REEL_COUNT + 1) * UIStyle.BORDER_WIDTH)
+	var rules := float((REEL_COUNT + 1) * UIStyle.rule_width())
 	var box: int = REEL_BOXES[-1]
 	for candidate in REEL_BOXES:
 		if float(REEL_COUNT * (candidate + REEL_PAD * 2)) + rules <= width:

@@ -26,9 +26,36 @@ const EDGE := Color("000000")        ## Every rule in the UI is this, at BORDER_
 const TEXT := Color("17140e")
 const TEXT_DIM := Color("655f4c")
 
-## Three pixels, everywhere, unscaled. The whole skin reads as printed card because the
-## rules never get thinner or softer — a 1px hairline somewhere would look like a mistake.
+## Three pixels at every whole-number Menu size. The whole skin reads as printed card because
+## the rules never get thinner or softer — a 1px hairline somewhere would look like a mistake.
+##
+## This is the rule's *base* width. What is drawn is `rule_width()`, which is four at the
+## quarter steps between whole sizes (D68): anything that draws or sizes a rule reads that,
+## never this.
 const BORDER_WIDTH := 3
+
+## The rule as drawn at the Menu size in force. Written by `UITheme.use_factor()` only.
+static var _rule_width := BORDER_WIDTH
+
+static func rule_width() -> int:
+	return _rule_width
+
+## The narrowest rule at least `BORDER_WIDTH` wide that covers a whole number of screen pixels
+## at `factor` — 3 at every whole factor, 4 at every quarter step between them.
+##
+## A rule's two edges land on the screen at `y * factor` and `(y + w) * factor`, and each is
+## rounded to a pixel on its own. At 1.25x a 3px rule is 3.75 screen pixels, so it draws as 4
+## or 3 depending on where it sits — D58 counted 894 and 218 of one room's samples, and a box
+## came out heavier on top than underneath. A 4px rule is exactly 5 at 1.25x, 6 at 1.5x and 7
+## at 1.75x, wherever it sits, because 4 x k/4 is always whole.
+static func rule_for(factor: float) -> int:
+	for width in range(BORDER_WIDTH, BORDER_WIDTH * 2):
+		var screen := float(width) * factor
+		if absf(screen - roundf(screen)) < 0.001:
+			return width
+	# No width near the base lands whole (a factor that is not a quarter step). Keep the base
+	# rather than draw a rule twice as heavy to chase it.
+	return BORDER_WIDTH
 
 # --- meaning ---------------------------------------------------------------
 #
@@ -475,12 +502,23 @@ static func room_tab_variation(accent: StringName) -> StringName:
 
 ## A solid rule, for dividing one section of a cabinet into cells. A `Panel` whose look is
 ## the theme's `Rule` — never a `ColorRect`, which the theme cannot restyle and no suite sees.
+##
+## Its thickness follows `rule_width()`, re-read whenever the theme changes, which is when the
+## Menu size moves between a whole and a fractional factor (D68).
 static func rule(vertical: bool = true) -> Panel:
 	var line := Panel.new()
 	line.theme_type_variation = &"Rule"
 	line.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	line.custom_minimum_size = Vector2(BORDER_WIDTH, 0) if vertical else Vector2(0, BORDER_WIDTH)
+	line.set_meta(&"vertical", vertical)
+	_size_rule(line)
+	# Connected to the rule's own signal, so the lambda cannot outlive the node it holds.
+	line.theme_changed.connect(func() -> void: _size_rule(line))
 	return line
+
+static func _size_rule(line: Control) -> void:
+	var width := float(rule_width())
+	line.custom_minimum_size = Vector2(width, 0.0) if bool(line.get_meta(&"vertical", true)) \
+		else Vector2(0.0, width)
 
 # --- contrast --------------------------------------------------------------
 
