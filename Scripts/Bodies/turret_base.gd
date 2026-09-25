@@ -46,9 +46,10 @@ const LEAN_LERP := 6.0
 
 ## How far back along the shot the impact is placed, from his centre toward the muzzle.
 ##
-## Enough to give the blast a direction and some falloff, small enough to stay well inside his
-## 88x120 silhouette so a shot still reads as landing on him. Zero — which is what this was —
-## makes every shot a full-strength impulse straight up (D54).
+## Small enough to stay well inside his 88x120 silhouette so a shot reads as landing on him —
+## the tracer ends there, and the splash centres there, which is the push he feels. It no
+## longer decides the damage: the pellet does (D60). Zero, which is what this was, made every
+## shot a full-strength impulse straight up (D54).
 const IMPACT_INSET := 18.0
 
 ## Seconds between shots, before the fire-rate augment.
@@ -162,15 +163,9 @@ func _fire(target: Buddy) -> void:
 		return
 	var mult := effective_damage_mult()
 	var from := muzzle_position()
-	# Where the shot lands ON him, not on his origin (D54).
-	#
-	# `at` used to be `target.global_position` exactly. Inside `point_blast` that makes
-	# `to_body` the zero vector, so the direction falls through to the `Vector2.UP` fallback
-	# **and** the falloff returns the full undiminished `blast_force` — so every shot from the
-	# six single-pellet turrets was a maximum-strength impulse straight up, and a running
-	# turret simply levitated him. Aiming a little way back along the shot gives it a real
-	# direction and a real falloff, and it is where the pellet would have struck anyway.
+	# Where the shot lands ON him, not on his origin (D54) — for the tracer and the splash.
 	var at: Vector2 = target.global_position + (from - target.global_position).limit_length(IMPACT_INSET)
+	var him := target.get_interaction_rect()
 	for i in maxi(1, pellets):
 		var point := at
 		# No `pellets > 1` gate. A nail gun fires one nail and declares a spread; gating on
@@ -178,10 +173,18 @@ func _fire(target: Buddy) -> void:
 		# authored spread was dead data.
 		if spread > 0.0:
 			point += Vector2.RIGHT.rotated(randf() * TAU) * randf() * spread
-		for hit in ExplosionUtil.point_blast(space, point, blast_radius, blast_force):
-			var body: Node = hit["body"]
-			if body is Buddy:
-				(body as Buddy).take_impulse(float(hit["impulse"]), item_id, mult, point)
+		# The splash: the push on him and on the props is the blast's, exactly as D54 left it —
+		# directional, falling off with distance, never straight up.
+		ExplosionUtil.point_blast(space, point, blast_radius, blast_force)
+		# **The damage is the pellet's** (D60). D54 billed him whatever the falloff left 18 px off
+		# his centre, and against radii as small as 18 px under a squared falloff that was
+		# nothing: the pellet turret's 900 arrived as 144 and the rail gun's 7,200 as 238, both
+		# under the 350 floor — so the pellet turret, the nail gun, the flamethrower, the rail gun
+		# and the laser lattice dealt no damage at all, and the tesla coil and the mortar a half
+		# and two thirds of theirs. Force *is* the damage (see above): a pellet that lands on his
+		# silhouette is worth all of it, and a spread that carries it off him is a miss.
+		if him.has_point(point):
+			target.take_impulse(blast_force, item_id, mult, point)
 	if _animating():
 		_recoil = recoil_pixels
 	# The line the shot took, for a tenth of a second. Without it a turret was a device
