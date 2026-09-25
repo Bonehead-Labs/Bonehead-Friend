@@ -2694,6 +2694,215 @@ this pass ran headless on a machine the owner was using, so everything was judge
 previews at 1x, 2x and 8x on a dark and a light desk, never on a real one.
 
 
+## D74 — Every held weapon does one thing no other weapon does: the right button (2026-09-26)
+
+**Decision.** Right while holding a melee weapon is its **ability**: a Home Run on the bat, an
+iaido cut on the katana, a BONG on the frying pan. Each is a row in `AbilityTable`
+(`Scripts/Bodies/Abilities/ability_table.gd`) naming one of eight **archetypes** — charge, dash,
+stun, sustain, shockwave, projectile, spin, throw — with that weapon's numbers. `WeaponBase` reads
+its row at `_ready` and adds the archetype as a child, `WeaponAbility`. Eight weapons have one:
+the bat, katana, frying pan, chainsaw, sledgehammer, golf club, nunchaku and fire axe. The other
+26 are on a design sheet below, and `loop_check` holds them on a list that may only shrink.
+
+**Why.** The owner, verbatim: "I had a bit of a gripe with variability between items, I felt with
+some melee weapons that they just felt similar to the previous, which of course they are supposed
+to feel mostly similar, but other than their sprite they didn't feel unique. perhaps we can
+leverage the left to hold right click to activate mechanic to give each weapon and item an ability
+to activate that is totally unique." He had just played the held guns (D56) and called them
+excellent, and they are the bar: a thing in the hand that does something when you ask it to, with
+weight and a reason to aim. A bat and a mace were one verb with two pictures. Now each weapon has
+a verb of its own, on the button D56 and D57 already gave to "the item's action".
+
+**The grammar is D57's, unchanged.** Left carries. **Right while holding is the ability**: press,
+hold, let go, as its line says. Right on a weapon lying on the desk still bins it, and
+Shift+right bins it held or not. A press during the cooldown is claimed and refused (a dull tick,
+and the pip flashes), never passed through: mashing right on a cooling bat must not throw the bat
+away. The same holds while an ability is still at work out of the hand, as with an axe in the air.
+Every weapon teaches its line on the shop's HowTo strip and on first landing,
+`Hold · Right: <Name> — <what to do>`, written onto `ItemData.controls` from the table by
+`tools/seed_m311_abilities.tscn`.
+
+**Read at runtime, not seeded.** D67's verbs are seeded into their scenes, because a click zone is
+geometry that sits beside the art. An ability is behaviour and tuning. Seeding it would mean
+re-running four seeders that own the weapons' scenes for every number changed, one of which
+(`seed_bodies`) has no `--only` and would rewrite the grenade, the dynamite, the mine and the
+firework to reach the bat. So the table lives under `Scripts/`, which the export carries, not
+beside `verb_table.gd` in `tools/`, which the export filter drops. No scene was touched.
+
+**Damage is still his to measure (D7, D64).** An ability never mints anything. It does one of
+three things, and he bills each one:
+
+- it moves a body, the weapon or him, so that a contact happens and his ledger bills it (the
+  whirl, a Home Run's swing);
+- it scales the weapon's own contact multiplier for a hit (`hit_multiplier`), which he reads in
+  `_attribute` exactly as he reads the damage augment. `register_use` tells the ability first and
+  it only records, so the multiplier he reads on the next line is the one the hit was armed with;
+- it hands him an impulse through `Buddy.take_impulse`, the gunshot's path, at the weapon's
+  multiplier (the cut, the grind, the wave, the ball, the axe's chop).
+
+Anything it applies to *him* directly — the Home Run's launch, the wave's lift — is applied from
+the ability's `_physics_process`, which runs before `Buddy.StepStart` reads the step's starting
+velocity. Applied later, from a deferred call or a timer, his ledger would read it as a contact
+and bill it a second time. Where he lands after a launch is billed to the weapon for a moment
+through D65's `claim_impacts`: only who is billed changes, never whether.
+
+**The first eight**, measured in `ability_check` on a 1280x720 desk with the real stage.
+"Worth" is what one use added, in ordinary hits of the same weapon on the same rig (the boost on a
+multiplied hit, the whole of a hit the ability handed him itself, and a whirl's hits less the swing
+they replace).
+
+| Weapon | Ability | Archetype | What you do | Measured |
+|---|---|---|---|---|
+| Baseball bat | Home Run | charge | hold: the head cocks back over the shoulder, sparks gather, a ratchet climbs; let go: it whips round, and the next hit in 0.8 s is x2.5 and throws him | he leaves at 1,390 px/s; 1.4 hits' worth; his landing is the bat's for 2 s |
+| Katana | Iaido | dash | tap: a glint, then the hand lunges 276 px through him, holds, returns. The blade passes *through* him and the cut lands 0.3 s later | blade 2,700 px/s; cut 3,640, billed once, 0 contacts on the way through; 2.4 |
+| Frying pan | BONG | stun | tap to ring it; the next pan hit is x1.5 and dazes him for 3 s — stars circle his skull — and every pan hit in the daze is x1.3, a note higher each time | 10 to 12 hits a use against an aggressive hand; 3.7 to 4.3 |
+| Chainsaw | Rev | sustain | hold on him: the engine climbs, it bucks, exhaust puffs, and the chain bites a hit every 0.13 s at 520 for 2.5 s of fuel, dragging him onto the bar | 7 grinds in the suite's second; about what swinging a 17 kg saw earns, without swinging it |
+| Sledgehammer | Ground Pound | shockwave | tap: the hand lifts and drives the head into the desk; everything within 280 px is thrown up, 900 px/s at the impact | slammed 100 px from him: lifted at 770 px/s, 145 px into the air |
+| Golf club | Drive | projectile | hold: a ball on the face, the power fills, a dotted low arc through him; let go and the ball flies. Underpowered, the arc falls short and the dots say so first | 1,300 px/s; the ball 2,200, billed once |
+| Nunchaku | Whirlwind | spin | tap: 1.2 s whirling about the hand at 18 rad/s; each pass through him is a glancing hit, x0.6 | 15 rad/s peak, 2.4 turns, 4 hits with the hand following him; 3.1 |
+| Fire axe | Tomahawk | throw | tap: thrown end over end on the low arc at him; it chops once and comes back to the hand if left is still held | the chop 2,497 at x1.3; home in 0.4 s from 250 px; caught |
+
+He answers four of them with rows of his own (`launched`, `dazed`, `sliced`, `quaked`) and three
+with rows that already say it: the grind is `cooking`, the golf ball `startled`, the thrown axe
+`blast`. They arrive on a new bus signal, `ability_event`, mapped through
+`ExpressionBrain.ABILITY_ROWS`, one `connect` in the brain's `_ready`. Each is told a frame after
+the hit it belongs to, deferred, so the ability's row takes the slot from the hit's own. A
+wind-up aimed at him (a bat cocked, a saw revved, a ball teed up) is D56's `windup` threat, so
+he watches it coming and the Nervous one flinches at it. Seven voices are synthesised for them in
+`AudioManager` (D12): whoosh, crack, bong, shing, rev, tock, quake.
+
+The swing feel did not move. `swing_rig`'s deterministic columns (lever, inertia, the momentum
+handed to him, peak spin and speed) are identical to the digit for all nine weapons it swings
+with the ability idle, the three references included. Only its billed hit grouping differs, which
+D61 already records as wall-clock-dependent.
+
+**What cost time, measured.**
+
+- **A throw pays a fraction of its speed.** The first Tomahawk was billed by his ledger like any
+  thrown body, and measured a fifth of an ordinary axe swing: D64's "cast-ray CCD arrives
+  softly" again. So for the flight he and the axe do not collide, the axe is swept for him (its
+  own shapes, and the segment its centre flew), and the chop is billed once, sized by how fast it
+  was going. The golf ball and the katana's cut work the same way.
+- **The whirl jammed.** Spun toward him from still, the nunchaku started pressed into him and
+  ground there at 7 rad/s, a fifth of a turn. It starts away from him now and comes round at
+  speed. Each blow knocks him on, so a whirl is a thing you follow him with.
+- **An impulse cannot aim a 24 kg head.** The first ground pound kicked the head down and whipped
+  it toward the floor, and where it met the desk was wherever a heavy body on a soft joint
+  happened to go. The hand drives it now, the katana's mechanism on end
+  (`BaseDraggable.hand_offset`, the only line this adds to a shared class), so the head lands
+  under the hand. A wave that fell off linearly lifted him 34 px from 150 px away and 96 px from
+  100. It holds its strength near the impact now (`1 - (d / radius)²`) and lifts him 145 px.
+- **The katana's blade lagged its own lunge.** The drag joint is soft (D54), so the blade was
+  still leaving when the hand came back, and the frame at mid-lunge showed nothing. It holds
+  at the far end for 0.12 s, zanshin, and the blade goes through him on screen.
+- **Particles cannot draw a daze.** Orbiting chips fell inward and read as one star on his head.
+  The halo is drawn: four star glyphs on an ellipse over his skull.
+- **The chain shoved him off its own bar** inside a second, and a six-pixel golf ball was a
+  speck. The chain now bites him onto the bar, and the ball is ten pixels with a streak.
+- **A hit attributed in `_integrate_forces` is dealt on his next physics tick**, so a suite that
+  checks the hit on the frame the ability heard of it finds nothing. And an ordinary swing with a
+  heavy weapon can knock him out, so the next measurement lands in the knockout and bills nothing.
+  The suites wait out both.
+
+**Pacing.** Abilities that multiply damage add income, so the simulator now prices them. Each row
+states its `worth` and its `busy` seconds. A player who uses a weapon's ability every time it is
+ready deals `1 + worth / (hits_per_second x (cooldown + busy))` of what swinging it alone would,
+at `REAL_HITS_PER_SECOND` = 1.5 in `pacing_sim`. That is a quick hand on a light weapon, and a lower
+number prices every ability higher, which is the safe side of the six-hour floor. `ability_check`
+fails any row whose measured worth runs past its stated worth by half again, so the table cannot
+understate what it pays. The uplifts run from 1.12 (the sledgehammer) to 1.33 (the pan). Result,
+4/4: the first Reincarnation 9:47:54 -> **9:11:08**, first automation 17:04 -> 16:57 of play, worst
+dead stretch 1:13 -> 1:23, worst ramp 1.0x -> 1.3x. The half hour is income, and it buys back
+headroom under the ten-hour ceiling that D66 had nearly used up.
+
+**Budget.** Nothing runs while a weapon lies on the desk or its ability is idle: no `_process`,
+no `_physics_process`, no `_input`. The physics tick runs while an effect runs, the input hook
+while right is down, and the frame tick while the pip is drawn. The cooldown is a `Timer`.
+`ability_check` asserts all three are off at rest, before and after every use.
+
+**Seen, and tested.** `tools/ability_shots.tscn` stages every ability in the real game in a real
+window and writes 24 frames and the shop's HowTo strip. Every frame was looked at, and five
+abilities changed because of what they showed (the list above). `ability_check` is 314 assertions
+over the eight. `loop_check` went 665 -> 747 with the every-melee-weapon suite and the brain's new
+wire and rows. `item_check` drives every ability: 123 items, 0 failed. unit 242, ui 621, gun 103,
+fidget 188, toys2 178 and verbs 265 are unchanged, and `brain_check` has its two known failures
+from another stream and no new ones.
+
+*Consequence:* **a new ability is a row**, plus a subclass of its archetype named in the row's
+`script` only if it needs behaviour the archetype lacks:
+
+1. Add the row to `AbilityTable.ABILITIES`: `id`, `name`, `archetype`, `controls`, `cooldown`,
+   `busy`, `worth`, and the archetype's numbers (each archetype's class comment lists them).
+2. Run `tools/seed_m311_abilities.tscn` to write its line onto the item.
+3. Delete the weapon from `loop_check`'s `ABILITY_STILL_TO_DO`, which fails while it is listed.
+4. Run `ability_check`. A row of an existing archetype is driven the day it lands. A new archetype
+   fails by name until it has a driver there. Give it a stand-off in `item_check`'s
+   `ABILITY_STANDOFF` too, or it is used from a default beside him.
+5. Look at it: `tools/ability_shots.tscn` (`--fixed-fps 60`, not headless) stages each ability
+   mid-effect in the real game and writes the frames to `user://ability_shots/`. A new archetype
+   needs a staging branch there, and says so until it has one.
+6. Run `pacing_sim`: it prices the new row by its `worth`.
+
+`item_check` drives every ability through the same pipeline and multiplier checks as every other
+hit in the catalog. A hit may carry the weapon's multiplier times any the ability billed it
+through, and none other. `brain_check` reports the four new rows and the new wire as notes, as
+its convention is for a stream's rows, because `ability_check` is what triggers them for real.
+*Not done:* the tether, transform and clamp archetypes the sheet below needs are designed, not
+built. Each lands with its first weapon. The capture tool lets the axe fall before it is caught,
+because the catch re-grabs at the OS pointer, which the tool cannot move. Nothing here has been
+used by a person yet. The frames were looked at, and the feel is the owner's to judge.
+
+### The design sheet: one ability for each of the 26 still to do
+
+No two do the same thing with the player's hand. **New** marks an archetype that does not exist
+yet: *tether* (hook him and move him), *transform* (the weapon changes state for a while), and
+*clamp* (a close-range bite that holds or pinches). *Hook* marks a subclass needed for a detail
+its archetype lacks.
+
+| Weapon | Ability | Archetype | The verb, in one line |
+|---|---|---|---|
+| Mace | Lead Heart | transform (new) | tap: for 4 s it weighs double and glows dull red; slow to swing, and every blow is x1.3 and shakes the desk |
+| Morning star | Bristle | projectile, hook | tap: it fires its spikes in a fan of five at him and is bald until the cooldown grows them back |
+| Flail | Wrap | tether (new) | tap: the next hit wraps the chain round him; for 2 s he is on the end of it and swings with your hand; let go of right to fling him |
+| Halberd | Hook and Spike | tether (new) | tap: the hook reaches 200 px down the haft; if it catches him it yanks him back onto the spike, x1.5 |
+| Greatsword | Momentum | sustain, hook | hold: the grip loosens and it carries its own weight in long arcs; each hit without it stopping adds x0.15, to x1.6 |
+| Cleaver | Embed | throw, hook | tap: thrown end over end; if it hits him it lodges in him for 3 s, a light bleed tick every half second, then drops out |
+| Machete | Brush Clear | shockwave, hook | tap: one wide chest-high swipe; everything in a 120-degree cone in front is thrown away from you, props off the desk, him with them |
+| Sickle | Reap | dash, hook | tap: the hand sweeps a low arc along the desk; catch his feet and he is upended, head over heels |
+| Scythe | Soul Reap | projectile, hook | swing with right held: a ghost of the blade flies on along the swing and passes through him, the iaido's cut at range |
+| Rapier | En Garde | sustain, hook | hold: it points itself at him like a held gun (D56's aim); a thrust along the blade is x2, a swipe across it x0.5 |
+| Katar | Flurry | sustain, hook | hold: the hand jabs at him six times a second, each a real contact; you steer the jabs |
+| Boxcutter | Snap | projectile | tap: click-click-click, three snapped blade tips flicked at him dead straight, no arc |
+| Letter opener | Special Delivery | throw, hook | tap: flies point-first in a straight line and sticks where it lands, x2 on the point; you go and fetch it |
+| Crowbar | Pry | tether (new) | tap with it against him: it wedges under him and levers him up and over the bar |
+| Cricket bat | Middle It | stun, hook | tap: the middle of the face glows for 1.5 s; a hit on the middle third is x2.5 and sends him straight up, a six; off the middle it is an ordinary hit |
+| Rolling pin | Flatten | sustain, hook | hold: it rolls under the hand along the desk; roll it over him and he is flattened, squashed and x1.5 |
+| Stapler | Staple Gun | projectile, hook | hold: staples at him five a second, straight; twenty to a strip, then the cooldown is the reload |
+| Hole punch | Punch | clamp (new) | tap with his arm in the jaws: it bites once, sharply, x2, in a burst of paper confetti |
+| Shears | Snip | clamp (new) | tap: the blades snap twice in quick succession on whatever is between them; a snip near his head takes his headphones off (D62) |
+| Pipe wrench | Crank | clamp (new) | tap against him: the jaws clamp on for 2 s; right-drag circles and he is cranked round about them (D57's crank gesture) |
+| Tyre iron | Ricochet | throw, hook | tap: thrown, it tumbles and each wall it hits redirects it at him, up to three banks |
+| Energy sabre | Ignite | transform (new) | tap: for 4 s the blade is lit; it passes through him (no contact) and burns a tick every 0.2 s it spends inside him |
+| War pick | Pinpoint | charge, hook | hold: a crosshair walks onto him; let go and the beak drives into that one spot, x2.5, and nowhere else |
+| Mechanical keyboard | Keycap Barrage | projectile, hook | tap: eight keycaps pop off in a fountain and rain down on him in an arc, each a light hit, then clack back on |
+| Monitor | Blue Screen | stun, hook | tap: the screen goes blue and he freezes, staring; the hits you land in the 1.5 s are stored and dump into him at once when he comes back |
+| Office mug | Hot Coffee | projectile, hook | tap: a splash of coffee arcs out; it scalds (a light hit, his `cooking` face) and puts grime on him |
+
+**Beyond melee, the same button.** Ideas for held things that are not melee weapons, left for the
+owner:
+
+- **Balls.** The baseball's *Curveball* (thrown from the hand with right, it breaks late toward
+  him), the tennis ball's *Serve* (tossed up and struck, fast and flat), the bowling ball's *Strike*
+  (bowled along the desk: it rolls at him and he goes over like a pin), the beach ball's *Spike*
+  (a volleyball smash he tries to return).
+- **Kind handhelds** pay Hearts, so theirs are acts. The sponge's *Wring* (squeezed over him, it
+  rains clean water on a patch of grime), the feather duster's *Tickle Flurry* (a burst of
+  feathers he cannot help giggling at, the `laugh` row), the warm towel's *Wrap* (thrown round his
+  shoulders, a few seconds of warmth that lifts his mood), and the soft brush's *Polish* (a
+  sparkle that makes the next pet worth more).
+- The water pistol and the bubble blaster already use right for their shot (D56). They keep it.
+
+
 ## Recommendations not yet decided
 
 Carried in the spec, owner's call before they matter:
