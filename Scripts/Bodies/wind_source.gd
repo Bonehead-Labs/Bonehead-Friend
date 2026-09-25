@@ -3,16 +3,25 @@ extends BaseDraggable
 
 ## The desk fan: a constant push in the direction it faces.
 ##
-## It deals no damage and earns nothing on its own. What it does is change every *other*
-## item's arc — a thrown grenade curves, a dropped ball rolls, and a swing that used to land
-## now misses. That is the only thing in the roster that modifies the physics sandbox
-## rather than adding to it, and it is why the fan is worth owning at all.
+## It deals no damage of its own. What it does is change every *other* item's arc — a thrown
+## grenade curves, a dropped ball rolls, and a swing that used to land now misses. That is the
+## only thing in the roster that modifies the physics sandbox rather than adding to it, and it
+## is why the fan is worth owning at all.
+##
+## **What it earns is the world** (D65): while its wind is on him, and for a moment after, an
+## impact with the floor or a wall is billed to the fan rather than to `world` — the landing it
+## bent is its landing. A prop it blows into him is still the prop's. Before this the fan
+## earned nothing under its own name, so its payout node and its capstone were unreachable.
 ##
 ## The force is applied to bodies overlapping a cone-ish Area2D rather than to everything on
 ## screen, so turning the fan changes who is in the wind — pointing it is the interaction.
 
-## Push per second on a body in the wind, before falloff.
+## Push per second on a body in the wind, before falloff. "Higher Setting" (`wind_mult`)
+## multiplies it.
 @export var force: float = 900.0
+
+## How long after he leaves the wind an impact with the world is still the fan's.
+const CLAIM_SECONDS := 0.5
 
 ## Local direction the fan blows in, before its own rotation.
 @export var blow_direction: Vector2 = Vector2.RIGHT
@@ -25,6 +34,7 @@ func _physics_process(delta: float) -> void:
 	if wind_area == null:
 		return
 	var direction := blow_direction.normalized().rotated(rotation)
+	var push := force * Progression.get_modifier(item_id, &"wind_mult")
 	for body in wind_area.get_overlapping_bodies():
 		var rigid := body as RigidBody2D
 		if rigid == null or rigid == self or rigid.freeze:
@@ -37,7 +47,10 @@ func _physics_process(delta: float) -> void:
 			continue
 		var reach := _reach()
 		var falloff := clampf(1.0 - along / maxf(reach, 1.0), 0.0, 1.0)
-		rigid.apply_central_force(direction * force * falloff * delta * 60.0)
+		rigid.apply_central_force(direction * push * falloff * delta * 60.0)
+		if rigid is Buddy:
+			(rigid as Buddy).claim_impacts(item_id, Progression.damage_mult_for(item_id, 1.0),
+				CLAIM_SECONDS)
 
 ## How far the wind carries, taken from the area's own shape so the number and the picture
 ## cannot disagree. Looked up by shape rather than by node name — a scene rebuilt from

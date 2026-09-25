@@ -212,7 +212,7 @@ const EXPLOSIVES := [
 		"shapes": [{"circle": 14.0}],
 		"properties": {
 			"damage_mult": 1.6, "throwable_delay": 2.6, "max_force": 24000.0,
-			"pull_force": 3200.0, "pull_seconds": 1.3,
+			"pull_accel": 10000.0, "pull_seconds": 1.3,
 		},
 		"tree": ["Deeper Collapse", "Vacuum Rates", "Denser Core"],
 		"device": [&"implosion_compressor", "Compressor",
@@ -242,7 +242,7 @@ const EXPLOSIVES := [
 		"shapes": [{"circle": 16.0}],
 		"properties": {
 			"damage_mult": 2.2, "throwable_delay": 3.0, "max_force": 34000.0,
-			"pull_force": 6000.0, "pull_seconds": 2.2,
+			"pull_accel": 11000.0, "pull_seconds": 2.2,
 		},
 		"tree": ["Wider Horizon", "Spaghettification Fee", "Heavier Singularity"],
 		"device": [&"black_hole_containment", "Containment Failure",

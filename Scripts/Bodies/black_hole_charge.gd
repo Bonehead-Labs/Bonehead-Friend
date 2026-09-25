@@ -13,9 +13,19 @@ extends ThrowableBase
 ##
 ## Both charges built on it are this class with a longer, stronger pull (D8).
 
-## Inward force at the centre, falling off with distance exactly the way the blast does — so
-## what the well gathers is precisely what the blast then reaches.
-@export var pull_force: float = 3200.0
+## Inward pull at the centre, as an **acceleration** in px/s², falling off with distance exactly
+## the way the blast does — so what the well gathers is precisely what the blast then reaches.
+##
+## An acceleration, not a force (D65): every body it catches is pulled by its own mass times
+## this, the way gravity pulls. It was a force the same for a 0.3 kg prop and a 3 kg skeleton,
+## and he stands on `1.0 x 3 x 980 = 2,940` of floor friction — so the implosion charge's 3,200
+## moved him only inside 12 px, and the black hole's 6,000 inside 96. Both gathered the desk and
+## left him where he was.
+##
+## The ceiling is his squeeze: pressed against the charge he takes `3 kg x pull / 60` of contact
+## impulse a tick, and past the damage floor (350) that would bill him for being held still.
+## Both charges stay under it at the distance his body stops against theirs.
+@export var pull_accel: float = 10000.0
 @export var pull_seconds: float = 1.3
 
 var _pull_left := 0.0
@@ -60,6 +70,8 @@ func _pull() -> void:
 		if distance < 1.0:
 			continue
 		# A force, not an impulse: this runs every physics frame for a second or two, and an
-		# impulse per frame is a strength that depends on the frame rate.
-		(body as RigidBody2D).apply_central_force(inward / distance
-			* ExplosionUtil.blast_strength(distance, _reach, pull_force))
+		# impulse per frame is a strength that depends on the frame rate. Times the body's own
+		# mass, so the pull is one acceleration on everything it catches.
+		var rigid := body as RigidBody2D
+		rigid.apply_central_force(inward / distance * rigid.mass
+			* ExplosionUtil.blast_strength(distance, _reach, pull_accel))

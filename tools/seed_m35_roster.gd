@@ -105,7 +105,7 @@ func _seed_scenes() -> void:
 			"auto_fire": true,
 		}), "%s/minigun_power.tscn" % POWERS_DIR)
 	_save_scene(_build_power("GravityVortexPower", &"gravity_vortex", VortexPowerScript, {
-			"pull_force": 2400.0,
+			"pull_accel": 4000.0,
 			"radius": 260.0,
 			"cooldown_seconds": 0.0,
 		}), "%s/gravity_vortex_power.tscn" % POWERS_DIR)
