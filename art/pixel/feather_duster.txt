@@ -1,0 +1,19 @@
+# Feather duster — D62 redraw. The generated one was 16x11, a grey smear on a stick that
+# took three takes and was still the weakest of the Codex five. Drawn at the handoff's
+# design size instead (26 wide, lying down), with the plume in pink: a plume is one material,
+# so it needs a colour the handle does not have and a serrated edge to say "feathers".
+cell: 64
+
+--- main
+..................KK.KK...
+...............KKKPPKPPK..
+.............KKPPPPpPPPpK.
+...........KKPPPpppPppppK.
+KKKKKKKKKKKYYKPppmppppmppK
+KBBBBBBBBBKYOKPpmpppmmppK.
+KbbbbbbbbbKYOKppmpppmmpppK
+KnnnnnnnnnKYOKpmppmmmppmK.
+KKKKKKKKKKKYYKmmpmmmpmmmmK
+...........KKmmmmmmmmmmmK.
+.............KKmmmmmKmmK..
+...............KKKKK.KK...

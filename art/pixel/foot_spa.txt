@@ -1,0 +1,29 @@
+# Foot spa — D62 redraw. The generated one was a tall grey tub with a pink rim and read as a
+# cooking pot. A foot spa is low and wide and seen from above: a white basin, bubbling water
+# with two foot-shaped pads in it (the pads are what make a tub a foot spa), a teal band and a
+# dial on the front. 30x22, from 25x22.
+cell: 64
+
+--- main
+.............KKKK.............
+.......KKKKKKWWWWKKKKKK.......
+.....KKWWWWWWWWWWWWWWWWKK.....
+...KKWWWWWqqqqqqqqqqWWWWWKK...
+..KWWWWWqqAAAAAAAAAAqqqWWWWK..
+.KWWWqqAAaAaAAAAAAaAaAAqqWWWK.
+KWWWqAAAAaaaaAAAAaaaaAAAAqWWWK
+KWWWqAAAAAaaaAAAAaaaAAAAAqWWWK
+KWWWqAAAAAaaaAAAAaaaAAAAAqWWWK
+KWWWWqqAAAaaAWAAAAaaAAWqqWWWWK
+KCWWWWWqqqAAAAAAAAAAqqqWWWWWcK
+KCCWWWWWWWqqqqqqqqqqWWWWWWWccK
+KCCCCWWWWWWWWWWWWWWWWWWWWccccK
+KCCCCCCWWWWWWWWWWWWWWWWCcccccK
+KaaaaaaaaaaaaWWWWaaaaaaaqqqqqK
+KaaaaaaaaaaaaKGGKaaaaaaaqqqqqK
+KCCCCCCCCCCCKGhhGKCCCCCCcccccK
+.KKCCCCCCCCCKGGGGKCCCCCCcccKK.
+...KCCCCCCCCCKGGKCCCCCCCccK...
+....KKCCCCCCCCKKCCCCCCCCKK....
+......KKKKCCCCCCCCCCKKKK......
+..........KKKKKKKKKK..........

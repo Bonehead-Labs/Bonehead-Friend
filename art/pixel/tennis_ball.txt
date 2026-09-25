@@ -1,0 +1,18 @@
+# Tennis ball — D62 redraw. A plain gold disc read as a coin. The two white seams curving in
+# from the sides are the whole identity of a tennis ball. Same 13x13.
+cell: 64
+
+--- main
+....KKKKK....
+..KKYYYYYKK..
+.KYWYYYYYWYK.
+.KYYWYYYWYYK.
+KYYYWYYYWYYYK
+KYYYWYYYWYYYK
+KYYYWYYYWYYYK
+KYYYWYYYWYYYK
+KYYYWYYYWYYBK
+.KYYWYYYWYBK.
+.KYWYYYYYWBK.
+..KKYYYYBKK..
+....KKKKK....

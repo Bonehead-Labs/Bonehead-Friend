@@ -435,3 +435,54 @@ on the first towel attempt is what produced a stripe that averaged away.
 wider at 2x than the buddy is tall. Asking for a short handle bought six pixels. The real fix
 is assessment finding 9, the scale table constraining width as well as height, and that is a
 table change rather than an art change.
+
+## The drawn pass — fourteen sprites that did not say what they were (2026-09-25, D62)
+
+Every item and icon was laid out at game scale against a dark and a light desk, beside the
+buddy, and ranked on one question: can a player tell what this is at 1x, in peripheral
+vision? These fourteen could not. None was regenerated. Each is drawn as a text grid in
+`art/pixel/<id>.txt` and built with `art/tools/pixel_sprite.py`, so **the grid is the record**
+— there is no prompt or seed to keep, and each file's header says what the old sprite read as
+and what the new one leans on.
+
+| Item | before | after | read as | the redraw leans on |
+|---|---|---|---|---|
+| feather_duster | 16x11 | 26x12 | a grey smear | a pink serrated plume on a wooden handle, lying down (the handoff's design size) |
+| mine | 17x20 | 24x12 | a spark | the only flat explosive: a pressure plate, a red light, a hazard band |
+| grenade | 19x24 | 19x24 | a clay jug | the segmented egg, the spoon lever, the ring pin |
+| dynamite | 14x26 | 14x26 | a fire extinguisher | three sticks, a strap, a lit fuse |
+| foot_spa | 25x22 | 30x22 | a cooking pot | a basin seen from above, with two foot pads in the water |
+| donut_box | 26x22 | 26x22 | a paper bag | the lid back, six rings with six holes |
+| demolition_charge | 37x44 | 37x44 | a block of cheese | four bricks, two straps, a red countdown, a detonator |
+| nail_bomb | 22x24 | 22x24 | a ladybird | a labelled tin with nails driven through it and a lit fuse |
+| concussion_charge | 13x22 | 13x22 | a bottle | a vented canister with teal bands, a pin and a lever |
+| tennis_ball | 13x13 | 13x13 | a coin | the two curved seams |
+| wind_chimes | 14x40 | 14x40 | a grandfather clock | three tubes with daylight between them, a bar, a hook, a sail |
+| jigsaw_puzzle | 28x30 | 28x28 | a brown box | one piece — two knobs out, two sockets in — with the lighthouse on it |
+| sticky_bomb | 23x22 | 21x22 | a bowling ball in a sling | green goo over the top in four drips, a lit fuse |
+| bubble_machine | 26x34 | 26x33 | a teal blob | a box, the wand wheel, a spout, bubbles drawn as rings |
+
+**Three things learned drawing them.**
+
+- **A solid white disc is a snowball.** The first bubbles were filled circles; a bubble is a
+  ring with a shine, and the interior has to be a light colour rather than transparent, or
+  the outline pass closes it into a black dot.
+- **A strap both ways is a ribbon.** The demolition charge with tape crossing vertically and
+  horizontally read as a wrapped present. Two horizontal straps and the timer read as a charge.
+- **Evenly spaced nails are legs.** Three nails out of each side of the tin, level with each
+  other, made a beetle. Nails at different heights and angles, and two out of the lid, made a
+  tin someone filled with nails.
+
+**Scenes.** Eight kept their exact size, so their derived colliders already match. Six did
+not, and each was regenerated through its own seeder by deleting the scene and re-running it
+without `--force`: feather_duster, foot_spa, jigsaw_puzzle and bubble_machine through
+`seed_friendly`, mine through `seed_bodies`, sticky_bomb through `seed_m36_explosives`. Each
+diff is two `size` lines and fresh `unique_id`s. ItemDB logs that it cannot load the item
+while its scene is missing; none of those three seeders needs ItemDB to write a scene.
+
+**Not redrawn, and why.** `hole_punch` (reads as a floppy disk), `satchel_charge` (a sack of
+gold), `letter_opener` (a brown stick) and `halberd`'s icon (a hairline at 32 px) are all
+multi-collider weapons, whose colliders are being re-authored against today's art in another
+stream; redraw them after that lands, not before. `hornet` is small in the world but reads as
+a wasp in its icon, and its circle is authored in `seed_m36_npcs`. `warm_towel` is a striped
+slab but a legible one.

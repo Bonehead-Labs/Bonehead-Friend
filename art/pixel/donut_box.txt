@@ -1,0 +1,28 @@
+# Box of donuts — D62 redraw. "Six. He is going to have all six." The generated one was a
+# brown paper bag with a pink smudge. Seen from above with the lid back, six rings with six
+# holes: pink with sprinkles, chocolate, vanilla. Same 26x22.
+cell: 64
+
+--- main
+.KKKKKKKKKKKKKKKKKKKKKKKK.
+KPPPPPPPPPPPPPPPPPPPPPPPpK
+KPppppppppppppppppppppppmK
+KpppppppppppppppppppppppmK
+KmmmmmmmmmmmmmmmmmmmmmmmmK
+KKKKKKKKKKKKKKKKKKKKKKKKKK
+KcKKKKKKccKKKKKKccKKKKKKcK
+KKPaPPYpKKbbbbnnKKWaWWYCKK
+KKPpKKppKKbnKKnnKKWCKKCCKK
+KKPpKKpmKKbnKKnnKKWCKKCcKK
+KKpYppamKKnnnnnnKKCYCCacKK
+KKBBbbbnKKBBbbbnKKBBbbbnKK
+KcKKKKKKccKKKKKKccKKKKKKcK
+KcKKKKKKccKKKKKKccKKKKKKcK
+KKbbbbnnKKPPPPppKKbbbbnnKK
+KKbnKKnnKKPpKKppKKbnKKnnKK
+KKbnKKnnKKPpKKpmKKbnKKnnKK
+KKnnnnnnKKppppmmKKnnnnnnKK
+KKBBbbbnKKBBbbbnKKBBbbbnKK
+KcKKKKKKccKKKKKKccKKKKKKcK
+KCCCCCCCCCCCCCCCCCCCCCCccK
+.KKKKKKKKKKKKKKKKKKKKKKKK.

@@ -1,0 +1,28 @@
+# Concussion charge — D62 redraw. A small black bottle with a teal band. It is a stun
+# canister: a pale cylinder with a grid of vents, teal bands, a ring pin and a lever, which
+# is also what tells it apart from the grenade at the same glance. Same 13x22.
+cell: 64
+
+--- main
+.KKK.........
+KYYYKKKKKKKKK
+KYKYKGGGGGGGK
+KYYYKhhhhKGhK
+.KKKKKKKKKGhK
+.KKKKKKKKKGhK
+.KAaaaaaaKGhK
+.KAaaaaaaKGhK
+.KWGGGGGGKGhK
+.KWGGGGGGKKKK
+.KWGkGkGkggK.
+.KWGGGGGGggK.
+.KWGGGGGGggK.
+.KWGkGkGkggK.
+.KWGGGGGGggK.
+.KWGGGGGGggK.
+.KWGkGkGkggK.
+.KWGGGGGGggK.
+.KWGGGGGGggK.
+.KAaaaaaaaqK.
+.KAaaaaaaaqK.
+.KKKKKKKKKKK.

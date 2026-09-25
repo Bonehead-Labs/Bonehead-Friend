@@ -1,0 +1,19 @@
+# Mine — D62 redraw. The spiked ball read as a spark at 1x, and a sea mine is not what you
+# step on. A landmine is low and wide: a pressure plate, a red light, a hazard band. The band
+# is the dual-tone the D45 pass asked for (a bright material with real area), and the flat
+# silhouette is the only one of its kind among the explosives, all of which are round.
+cell: 64
+
+--- main
+..........KKKK..........
+.........KRPRrK.........
+.....KKKKKRRRrKKKKK.....
+....KGGGGGGGGGGGGGgK....
+..KKKKKKKKKKKKKKKKKKKK..
+.KGGGGGGGGGGGGGGGGGGGgK.
+KYYkkYYkkYYkkYYkkYYkkYYK
+KYkkYYkkYYkkYYkkYYkkYYkK
+KkkYYkkYYkkYYkkYYkkYYkkK
+KhhhhhhhhhhhhhhhhhhhhHHK
+.KHHHHHHHHHHHHHHHHHHHHK.
+..KKKKKKKKKKKKKKKKKKKK..

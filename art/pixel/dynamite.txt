@@ -1,0 +1,32 @@
+# Dynamite — D62 redraw. One red cylinder with a rounded top and a hose-like fuse read as a
+# fire extinguisher. Three sticks, a strap and a lit fuse is the picture everyone already
+# has for the word. Same 14x26 as before.
+cell: 64
+
+--- main
+........KKK...
+.......KYWYK..
+......KOWWWOK.
+.......KYWYK..
+........KBK...
+.......KBK....
+......KBK.....
+....KKKBKK....
+....KCCCcK....
+KKKKKRRRrKKKKK
+KCCcKRRRrKCCcK
+KORrKORRrKORrK
+KORrKORRrKORrK
+KRRrKRRRrKRRrK
+KRRrKRRRrKRRrK
+KhhhhhhhhhhhhK
+KHHHHHHHHHHHHK
+KRRrKRRRrKRRrK
+KORrKORRrKORrK
+KRRrKRRRrKRRrK
+KRRrKRRRrKRRrK
+KRRrKRRRrKRRrK
+KRrrKRRrrKRrrK
+KRrrKRrrrKRrrK
+KrrrKrrrrKrrrK
+KKKKKKKKKKKKKK
