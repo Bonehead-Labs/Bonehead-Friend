@@ -2210,12 +2210,17 @@ func _personalities() -> void:
 		# mace's mastery, which climbs as this loop hits him — read before, and divided out.
 		var pipeline := Economy.payout_for(1.0, MACE)
 		var bones := Economy.balance_of(Economy.BONES)
+		# His mood decays in real time, and the hit takes a frame or four to land: a long frame
+		# on a busy machine was a 0.23 spread against a 0.1 tolerance. Held still for the reading,
+		# so the delta is the hit's alone (D70).
+		_buddy.mood.set_process(false)
 		var mood_before := _buddy.mood.value
 		var n := _hits.size()
 		await _hit(6000.0, MACE)
 		amounts[p.id] = _hits[n].amount if _hits.size() > n else -1.0
 		bone_rates[p.id] = (Economy.balance_of(Economy.BONES) - bones) / maxf(pipeline, 1e-9)
 		mood_deltas[p.id] = _buddy.mood.value - mood_before
+		_buddy.mood.set_process(true)
 		grime_deltas[p.id] = _buddy.grime.value
 		await _settle_hit()
 		_buddy.mood.set_value(40.0)
@@ -2231,8 +2236,8 @@ func _personalities() -> void:
 	# Every tell multiplies motion only; the number columns must be identical across all of them.
 	_check("the same hit deals the same damage under every personality (%s)" % _spread(amounts), _flat(amounts))
 	_check("and pays the same Bones once the curve is divided out (%s)" % _spread(bone_rates), _flat(bone_rates))
-	# Mood decays in real time between the reading and the hit, a frame or two's worth.
-	_check("and moves his mood by the same amount (%s)" % _spread(mood_deltas), _flat(mood_deltas, 0.1))
+	# His decay is held still across the hit, so this is the hit's own effect on him.
+	_check("and moves his mood by the same amount (%s)" % _spread(mood_deltas), _flat(mood_deltas, 0.01))
 	_check("and dirties him by the same amount (%s)" % _spread(grime_deltas), _flat(grime_deltas))
 	_check("and a pet pays the same Hearts once the curve is divided out (%s)" % _spread(heart_rates), _flat(heart_rates))
 	Economy.personality = "stoic"
