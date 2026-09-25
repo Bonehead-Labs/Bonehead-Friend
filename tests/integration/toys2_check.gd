@@ -497,6 +497,24 @@ func _the_car_winds_and_gives_rides() -> void:
 			and car.get_children().filter(func(n: Node) -> bool: return n is PinJoint2D).is_empty())
 	await _frames(60)
 
+	# Twelve turns a second is more than a frame can show (D75): driving, the wheels spin over a
+	# blur, and at Low Power's 20 fps are drawn turning under half a turn a frame, where the
+	# one bolt would otherwise read as turning backwards. Stopped, they are crisp again.
+	var focus := Settings.focus_intensity
+	Settings.focus_intensity = Settings.Intensity.NORMAL
+	car._turn_wheels(car.max_speed / 60.0, 1.0 / 60.0)
+	var blurred := car._wheel_blurs.filter(func(b: RotorBlur) -> bool: return b.is_blurred()).size()
+	_check("flat out, both wheels spin over a blur (%d)" % blurred, blurred == 2)
+	var from_angle := car.rear_wheel.rotation
+	car._turn_wheels(car.max_speed / 20.0, 1.0 / 20.0)
+	var turned := absf(car.rear_wheel.rotation - from_angle)
+	_check("and at 20 fps a wheel is drawn turning forward, under half a turn (%.0f deg for %.0f)"
+		% [rad_to_deg(turned), rad_to_deg(car.max_speed / 20.0 / PullBackCar.WHEEL_RADIUS)],
+		turned > 0.0 and turned < PI)
+	car._turn_wheels(0.0)
+	_check("stopped, they are crisp", car._wheel_blurs.all(func(b: RotorBlur) -> bool: return not b.is_blurred()))
+	Settings.focus_intensity = focus
+
 	# A wind too short to be a wind goes nowhere.
 	at = car.global_position
 	_press(at, MOUSE_BUTTON_RIGHT)
