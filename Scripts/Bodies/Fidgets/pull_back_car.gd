@@ -401,8 +401,13 @@ func _half_extent() -> Vector2:
 
 # --- him --------------------------------------------------------------------------
 
+## **A car that is driving is still his toy** (D70): the chase is half the game, and `idle_use`
+## is what declines to wind a car already moving. Zero is the brain's "nothing to do here" (D57);
+## quoting it while the car drove meant a car he had just let go was not a toy at all the moment
+## he looked round, and brain_check's return found he never came back to it. Only a ride — the
+## player's, with him already on the roof — is nothing for him to walk to.
 func idle_appeal() -> float:
-	if _driving or _riding or _hopping:
+	if _riding or _hopping:
 		return 0.0
 	# A launch every other think tick, and a chase between them.
 	return ride_value * HIS_CHARGE * HIS_SHARE / (IdleBrain.THINK_SECONDS * 2.0)

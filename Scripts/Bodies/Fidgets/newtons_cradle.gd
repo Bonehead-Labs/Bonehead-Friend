@@ -210,10 +210,14 @@ func _he_is_watching() -> bool:
 
 ## What one of his pulls pays over its whole swing, spread over the swing: the clacks form a
 ## geometric series, and it lasts about as many clacks as it takes to fall from his pull to
-## `STOP_ANGLE`. A swinging cradle is not somewhere to go — he is already watching it.
+## `STOP_ANGLE`.
+##
+## **The same whether it is swinging or not** (D70). Zero is the brain's "nothing to do here"
+## (D57), and a swinging cradle is not that: he goes over, watches it clack, and pulls a ball
+## himself once it has stopped — `idle_use` is what declines while it swings. It quoted zero
+## while swinging, so a cradle he set going on his last tick at it was still "nothing" the
+## moment he looked round for a toy, and brain_check's return found he never came back.
 func idle_appeal() -> float:
-	if is_swinging():
-		return 0.0
 	var kept := clampf(restitution, 0.01, 0.99)
 	var total := clack_value * (HIS_PULL / MAX_PULL) / (1.0 - kept)
 	var clacks_long := log(STOP_ANGLE / HIS_PULL) / log(kept)

@@ -6,6 +6,7 @@ extends Node
 ##   Godot --headless --path <project> res://tests/integration/brain_check.tscn
 ##   ... -- --only idle,turrets     run some sections
 ##   ... -- --quick                 one toy per routine instead of every toy
+##   ... -- --only idle.toys --toys hot_tub,beanbag   the every-toy walk for those toys only
 ##
 ## `loop_check` proves the wiring: it calls the brain's handlers directly, because emitting
 ## most of them on the real bus would pay money in the middle of an economy suite. This suite
@@ -49,6 +50,8 @@ var _failed := 0
 var _t0 := 0
 var _only: Array[String] = []
 var _quick := false
+## `-- --toys id,id`: the every-toy walk for those toys only, for working on one routine.
+var _toys: Array[String] = []
 
 ## One entry per mechanic: {name, passed, failed, failures, measures}.
 var _sections: Array[Dictionary] = []
@@ -98,6 +101,9 @@ func _ready() -> void:
 				_only.append(part.strip_edges())
 		elif args[i] == "--quick":
 			_quick = true
+		elif args[i] == "--toys" and i + 1 < args.size():
+			for part in args[i + 1].split(","):
+				_toys.append(part.strip_edges())
 	# Silence without Focus Off: the dummy audio driver reports its stream playbacks as leaks
 	# at exit, which would bury a real one — and Off is a mode this suite has to test, not a
 	# default it can hide behind.
@@ -1028,6 +1034,12 @@ func _idle_every_toy() -> void:
 				seen[entry[1]] = true
 				few.append(entry)
 		toys = few
+	if not _toys.is_empty():
+		var picked: Array[Array] = []
+		for entry in toys:
+			if _toys.has(String(entry[0])):
+				picked.append(entry)
+		toys = picked
 	_measure("%d toys with a routine: %s" % [toys.size(), ", ".join(toys.map(
 		func(e: Array) -> String: return "%s (%s)" % [e[0], ROUTINE_NAMES.get(e[1], "?")]))])
 	var beside: Array[String] = []
@@ -1042,7 +1054,7 @@ func _idle_every_toy() -> void:
 	_end()
 
 const ROUTINE_NAMES := {
-	1: "bounce", 2: "play", 3: "soak", 4: "scrub", 5: "nibble", 6: "bop",
+	1: "bounce", 2: "play", 3: "soak", 4: "scrub", 5: "nibble", 6: "bop", 7: "fidget",
 }
 
 ## [item id, routine] for every item whose scene gives him something to do with it.

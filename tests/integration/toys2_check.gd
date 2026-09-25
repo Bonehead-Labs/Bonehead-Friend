@@ -412,8 +412,14 @@ func _the_cradle_clacks() -> void:
 	_release(_mouse, MOUSE_BUTTON_RIGHT)
 	_check("a nudge sets nothing going", not cradle.is_swinging())
 	# He pulls a ball himself when it is still.
+	var still_appeal := cradle.idle_appeal()
 	cradle.idle_use(_buddy)
 	_check("left alone with a still one, he sets it going", cradle.is_swinging())
+	# Swinging is not "nothing to do here" (D70): the brain reads a zero as exactly that, and a
+	# cradle he set going on his last tick at it was never a destination again.
+	_check("and swinging it is still somewhere to go (%.3f, still %.3f)"
+		% [cradle.idle_appeal(), still_appeal], cradle.idle_appeal() > 0.0
+		and is_equal_approx(cradle.idle_appeal(), still_appeal))
 	cradle._stop()
 	Settings.focus_intensity = Settings.Intensity.OFF
 	_trickles.clear()
@@ -512,6 +518,9 @@ func _the_car_winds_and_gives_rides() -> void:
 	var away := signf(car.global_position.x - _buddy.global_position.x)
 	_check("left alone with it, he lets it go away from him", car.is_driving()
 		and is_equal_approx(car.facing, away))
+	# The chase is the game, so a driving car is still his toy (D70).
+	_check("and a car on the move is still somewhere to go (%.3f)" % car.idle_appeal(),
+		car.idle_appeal() > 0.0)
 	await _frames(40)
 	_check("and that is his trickle, not an act", _acts.is_empty()
 		and _trickles.any(func(t: Array) -> bool: return t[0] == &"pull_back_car"))
