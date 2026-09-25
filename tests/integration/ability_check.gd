@@ -217,7 +217,12 @@ func _check_ability(id: StringName) -> void:
 	var before_uses := ability.uses
 
 	var measured := {}
-	match archetype:
+	# A hooked row that is used differently from its archetype brings a driver named for its
+	# ability (`_drive_<ability id>`), below the eight.
+	var own_driver := "_drive_%s" % row.get("id", "")
+	match &"hooked" if has_method(own_driver) else archetype:
+		&"hooked":
+			measured = await call(own_driver, body, ability)
 		&"charge":
 			measured = await _drive_charge(body, ability as ChargeAbility)
 		&"dash":
@@ -519,6 +524,41 @@ func _drive_throw(body: WeaponBase, ability: ThrowAbility) -> Dictionary:
 	_check("at the hand", ability.grip_world().distance_to(hand) <= 120.0)
 	return {"speed": ability.last_throw_speed, "hits": ability.throw_hits, "trip": ability.last_trip}
 
+# --- the blades (hooked rows, driven by ability id) -------------------------------------------
+
+## The hand to where a blade's ability starts, round him rather than through him — over his head,
+## across, and down — and him still again before anything is counted, so a blade carried into
+## place is never measured as its ability.
+func _approach(body: WeaponBase, offset: Vector2) -> void:
+	var over := _buddy.get_interaction_rect().position.y - 220.0
+	await _mouse_to(Vector2(_mouse.x, minf(_mouse.y, over)), 700.0)
+	await _mouse_to(Vector2(_centre().x + offset.x, over), 700.0)
+	await _mouse_to(_centre() + offset, 500.0)
+	await _steady(body, 60)
+	await _settle_him()
+	# He may have been nudged on the way: once more, the short way.
+	await _mouse_to(_centre() + offset, 400.0)
+	await _steady(body, 60)
+	_hits.clear()
+	_faces.clear()
+	_pipeline_bad.clear()
+
+## A plain free body on the item layer, for a swipe to throw.
+func _prop(at: Vector2) -> RigidBody2D:
+	var prop := RigidBody2D.new()
+	prop.name = "Prop"
+	prop.collision_layer = 4
+	prop.collision_mask = 1 | 4
+	prop.mass = 1.0
+	var shape := CollisionShape2D.new()
+	var box := RectangleShape2D.new()
+	box.size = Vector2(20, 20)
+	shape.shape = box
+	prop.add_child(shape)
+	_stage.add_child(prop)
+	prop.global_position = at
+	return prop
+
 # --- what each hit carried -------------------------------------------------------------------
 
 func _on_payout(currency: StringName, amount: float, _at: Vector2, source_id: StringName) -> void:
@@ -605,7 +645,8 @@ func _extra_damage(body: WeaponBase, archetype: StringName, ordinary: float) -> 
 			extra += info.amount * (1.0 - 1.0 / m)
 		else:
 			plain += info.amount
-	if archetype == &"spin":
+	# A whirl's and a flurry's hits are ordinary contacts, many to a use.
+	if archetype == &"spin" or (body.ability and body.ability.ability_id() == &"flurry"):
 		extra += maxf(plain - ordinary, 0.0)
 	return extra
 
@@ -846,6 +887,12 @@ func _leftovers() -> String:
 	for node in _stage.get_children():
 		if node is RigidBody2D and String(node.name).begins_with("GolfBall") and not node.is_queued_for_deletion():
 			return "a golf ball"
+		for left in ["GhostBlade", "BladeTip"]:
+			if String(node.name).begins_with(left) and not node.is_queued_for_deletion():
+				return "a %s" % left
+	for child in _buddy.get_children():
+		if String(child.name).begins_with("SoulWisp") and not child.is_queued_for_deletion():
+			return "his soul, still out"
 	if not _buddy.get_collision_exceptions().is_empty():
 		return "an exception on him"
 	return ""

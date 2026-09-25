@@ -127,7 +127,12 @@ func _stage(id: StringName) -> void:
 	await _carry(start, 20)
 	var ability := _weapon.ability
 	print("  %s — %s" % [id, ability_row.get("name", "")])
-	match ability.archetype():
+	# A hooked row that is used differently from its archetype brings a staging of its own,
+	# `_stage_<ability id>`, below.
+	var staging := "_stage_%s" % ability.ability_id()
+	match &"hooked" if has_method(staging) else ability.archetype():
+		&"hooked":
+			await call(staging, id, ability, centre, floor_y)
 		&"charge":
 			await _carry(centre + Vector2(-130.0, -20.0), 30)
 			ability.press()
@@ -234,6 +239,8 @@ func _stage(id: StringName) -> void:
 	if is_instance_valid(_weapon):
 		_weapon.bin_myself()
 	await _idle(10)
+
+# --- the blades (D74) -----------------------------------------------------------------------
 
 ## The weapon held at `at` the way swing_rig holds one: its grip on a joint to its own handle.
 func _hold(at: Vector2) -> void:
