@@ -26,3 +26,8 @@ __pycache__/
 # A worktree's own user:// (config/custom_user_dir_name), so parallel test runs cannot share a
 # save slot or a settings file. Local by definition; never commit one.
 override.cfg
+
+# Parallel agent worktrees, and the marker that keeps Godot from scanning them as part of
+# this project (a second copy of every class_name would shadow the real ones).
+.claude/worktrees/
+.claude/.gdignore

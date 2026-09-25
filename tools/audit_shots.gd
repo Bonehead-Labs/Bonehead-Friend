@@ -83,7 +83,7 @@ func _ready() -> void:
 		await _settle(6)
 		await _shoot("contracts")
 
-		Economy.grant(Economy.BONES, ItemDB.balance.prestige_divisor * 30.0)
+		Economy.grant(Economy.BONES, ItemDB.balance.marrow_divisor * 30.0)
 		_panels.show_panel(&"arcade")
 		await _settle(6)
 		await _shoot("rebirth")
