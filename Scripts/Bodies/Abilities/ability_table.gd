@@ -51,6 +51,33 @@ const ARCHETYPES := {
 }
 
 const ABILITIES := {
+	# --- the three archetypes the design sheet needed: transform, tether, clamp ---
+	#
+	# Four seconds of a mace twice as heavy, with a heart of lead beating in it: slower to bring
+	# round, every blow x1.2 and the desk jolts under him. The weight is the body's own mass, so most
+	# of the extra is in the swing, not the number: a blow measured 2.4 ordinary mace hits, five of
+	# them a use. Hence the long cooldown.
+	&"mace": {
+		"id": &"lead_heart", "name": "Lead Heart", "archetype": &"transform",
+		"controls": "Hold · Right: Lead Heart — tap: for 4 s it weighs double and every blow lands harder",
+		"cooldown": 10.0, "busy": 4.0, "worth": 6.0,
+		"seconds": 4.0, "mass_mult": 2.0, "hit_mult": 1.2, "quake": 7.0,
+		"tint": "ff5a2e", "shade": "ff9c86", "glow": 0.7, "pulse": 0.7, "embers": "ff9a3c", "ember_at": 0.9,
+		"ember_gravity": -70.0, "sound_on": &"heartbeat", "hum": &"heartbeat", "hum_seconds": 0.7,
+		"tell": &"crushed",
+	},
+	# Four seconds lit: the blade goes through him without touching him, and every fifth of a second
+	# of it inside him burns — a light hit that hops him, so the blade chases him round the desk.
+	# Drawn through him for the four seconds, twelve burns: 3.5 ordinary sabre hits.
+	&"energy_sabre": {
+		"id": &"ignite", "name": "Ignite", "archetype": &"transform",
+		"controls": "Hold · Right: Ignite — tap to light it for 4 s; it passes through him and burns",
+		"cooldown": 6.0, "busy": 4.0, "worth": 3.5,
+		"seconds": 4.0, "phase": true, "burn_seconds": 0.2, "burn_force": 700.0, "burn_mult": 0.8,
+		"shove": 0.3, "tint": "8ff8ff", "glow": 0.75, "embers": "d8fdff", "ember_at": 0.65,
+		"ember_gravity": -40.0, "sound_on": &"ignite", "sound_off": &"hum", "hum": &"hum",
+		"hum_seconds": 0.3, "tell": &"scorched",
+	},
 	# The starter. A full wind-up is 0.9 s; the hit it arms is x2.5 and adds 850 px/s at 38 degrees
 	# — he leaves at about 1,400 with the swing, a home run and not a launch into orbit. Where he
 	# lands is the bat's for two seconds. One use measured at 1.4 ordinary bat hits' worth.

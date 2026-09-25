@@ -298,6 +298,15 @@ func _build_streams() -> void:
 	_streams[&"zoom"] = _wav(_zoom_samples())
 	_streams[&"twang"] = _wav(_twang_samples())
 	_streams[&"zip"] = _wav(_sweep_samples(0.11, 700.0, 1500.0))
+	# --- held weapons that change, hook him and bite (D74: transform, tether, clamp) ---
+	#
+	# A heart of lead beating in a mace, a blade catching light and the hum it keeps while lit,
+	# the sizzle of it in him. Short, because each repeats: the hum every third of a second, the
+	# sizzle five times a second.
+	_streams[&"heartbeat"] = _wav(_heartbeat_samples())
+	_streams[&"ignite"] = _wav(_ignite_samples())
+	_streams[&"hum"] = _wav(_hum_samples())
+	_streams[&"sizzle"] = _wav(_sizzle_samples())
 	# --- held weapons' abilities (D74) ---
 	#
 	# One voice each for the moments a CC0 recording does not cover: the air a swing moves, a bat
@@ -468,6 +477,83 @@ func _twang_samples() -> PackedFloat32Array:
 		var tone := (sin(phase) * 0.45 + sin(phase * 2.0) * 0.15) * exp(-t * 18.0)
 		var slap := rng.randf_range(-1.0, 1.0) * 0.45 * exp(-t * 600.0)
 		out[i] = clampf(tone + slap, -1.0, 1.0)
+	return out
+
+## Lub-dub: two low thumps, the second softer, a sixth of a second apart. Lead does not ring.
+func _heartbeat_samples() -> PackedFloat32Array:
+	var duration := 0.42
+	var count := int(MIX_RATE * duration)
+	var out := PackedFloat32Array()
+	out.resize(count)
+	for i in count:
+		var t := float(i) / float(MIX_RATE)
+		var value := 0.0
+		for beat in [[0.0, 1.0], [0.16, 0.6]]:
+			var u := t - float(beat[0])
+			if u < 0.0:
+				continue
+			var strength := float(beat[1])
+			value += sin(TAU * 52.0 * u) * 0.62 * strength * exp(-u * 15.0) * minf(u * 400.0, 1.0)
+			value += sin(TAU * 96.0 * u) * 0.22 * strength * exp(-u * 32.0)
+		out[i] = clampf(value, -1.0, 1.0)
+	return out
+
+## A blade catching light: a buzz that climbs from nothing into the hum, under a bright zing that
+## sweeps up and fades, with a crackle of static on the front.
+func _ignite_samples() -> PackedFloat32Array:
+	var duration := 0.5
+	var count := int(MIX_RATE * duration)
+	var out := PackedFloat32Array()
+	out.resize(count)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 20260930
+	var phase := 0.0
+	var zing := 0.0
+	for i in count:
+		var t := float(i) / float(MIX_RATE)
+		var progress := t / duration
+		phase += lerpf(60.0, 110.0, minf(progress * 2.0, 1.0)) / float(MIX_RATE)
+		zing += TAU * lerpf(700.0, 1900.0, sqrt(progress)) / float(MIX_RATE)
+		var saw := (phase - floorf(phase)) * 2.0 - 1.0
+		var swell := minf(progress * 5.0, 1.0) * minf((duration - t) * 20.0, 1.0)
+		var crackle := rng.randf_range(-1.0, 1.0) * 0.3 * exp(-t * 30.0)
+		out[i] = clampf(saw * 0.3 * swell + sin(zing) * 0.2 * exp(-t * 6.0) + crackle, -1.0, 1.0)
+	return out
+
+## What a lit blade sounds like while it waits: two buzzes a hair apart, so it beats, faded in and
+## out at the ends so a string of them runs together.
+func _hum_samples() -> PackedFloat32Array:
+	var duration := 0.32
+	var count := int(MIX_RATE * duration)
+	var out := PackedFloat32Array()
+	out.resize(count)
+	var a := 0.0
+	var b := 0.0
+	for i in count:
+		var t := float(i) / float(MIX_RATE)
+		a += 105.0 / float(MIX_RATE)
+		b += 107.5 / float(MIX_RATE)
+		var buzz := ((a - floorf(a)) * 2.0 - 1.0) * 0.16 + ((b - floorf(b)) * 2.0 - 1.0) * 0.12 			+ sin(TAU * 210.0 * t) * 0.1
+		var envelope := minf(t * 40.0, 1.0) * minf((duration - t) * 40.0, 1.0)
+		out[i] = clampf(buzz * envelope, -1.0, 1.0)
+	return out
+
+## Something hot in something that is not: hissing noise with pops in it.
+func _sizzle_samples() -> PackedFloat32Array:
+	var duration := 0.2
+	var count := int(MIX_RATE * duration)
+	var out := PackedFloat32Array()
+	out.resize(count)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 20260931
+	var last := 0.0
+	for i in count:
+		var t := float(i) / float(MIX_RATE)
+		var noise := rng.randf_range(-1.0, 1.0)
+		var hiss := (noise - last) * 0.28
+		last = noise
+		var pop := rng.randf_range(-1.0, 1.0) * 0.7 if rng.randf() < 0.004 else 0.0
+		out[i] = clampf((hiss + pop) * exp(-t * 9.0) * minf(t * 300.0, 1.0), -1.0, 1.0)
 	return out
 
 ## A woodblock tick: one decaying sine with a noise transient on the front. The transient

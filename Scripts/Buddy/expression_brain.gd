@@ -239,6 +239,13 @@ const ROWS := {
 	# --- K: held weapons' abilities (D74) ---
 	# Each arrives a frame after the hit it belongs to (`WeaponAbility.tell` is deferred), so it
 	# takes the slot from the hit's own row rather than being overwritten by it.
+	# The transforms, tethers and clamps. A blow from a mace twice its weight: squashed flat into
+	# the desk, and dizzy coming back up.
+	&"crushed": {"face": &"shocked", "tag": &"hurt", "tail_face": &"dizzy", "motion": &"land",
+		"seconds": 0.4, "tail": 0.5, "priority": HEAVY, "gate": GATE_REACTIVE, "sound": &"oof"},
+	# A lit blade in him: a hot-foot hop every burn, so a sabre held in him keeps him jumping.
+	&"scorched": {"face": &"shocked", "tag": &"flinch", "fallback": &"hurt", "motion": &"hop",
+		"seconds": 0.3, "priority": HEAVY, "gate": GATE_REACTIVE},
 	# The Home Run landed: thrown, and dizzy on the way down.
 	&"launched": {"face": &"shocked", "tag": &"hurt", "tail_face": &"dizzy",
 		"motion": &"impact_wobble", "seconds": 0.5, "tail": 0.9, "priority": HEAVY,
@@ -289,6 +296,8 @@ const FIDGET_ROWS := {
 ## grind, the golf ball and the thrown axe borrow the ones that already say it: cooked, startled,
 ## ducking a blast. Only near him, like a threat.
 const ABILITY_ROWS := {
+	&"crushed": &"crushed",
+	&"scorched": &"scorched",
 	&"home_run": &"launched",
 	&"dazed": &"dazed",
 	&"sliced": &"sliced",
