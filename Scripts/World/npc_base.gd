@@ -107,6 +107,14 @@ const BLOW_LIFT := 0.45
 ## shown at, so a whole-number zoom keeps it on the pixel grid.
 const ART_SCALE := 2.0
 
+## Vertical speed under which a walker counts as standing on something: the hop's own test,
+## shared with the steering's friction feed-forward.
+const HOP_GROUND_SPEED := 40.0
+
+## The steering force is clamped at this many g's worth, as the idle brain's walk is, so the
+## reversal kick when it passes its target stays bounded.
+const STEER_PUSH_G := 2.5
+
 const STATE_IDLE := &"idle"
 const STATE_APPROACH := &"approach"
 const STATE_ATTACK := &"attack"
@@ -214,6 +222,7 @@ var _buddy: Buddy = null
 
 var _age := 0.0
 var _since_decide := 0.0
+var _gravity := 980.0
 var _target_point := Vector2.ZERO
 var _offset := Vector2.ZERO
 var _facing := 1.0
@@ -248,6 +257,7 @@ func _ready() -> void:
 	# Locking rotation is what separates a character from a prop; the prop rules (D25's
 	# authored shapes, a centre of mass in the head) are for things that are swung.
 	lock_rotation = true
+	_gravity = float(ProjectSettings.get_setting("physics/2d/default_gravity", 980.0))
 	if flying:
 		gravity_scale = 0.0
 		# Otherwise a flyer accumulates the whole session's steering and orbits the window.
@@ -379,8 +389,25 @@ func _steer() -> void:
 	if absf(to_target.x) < 6.0:
 		return
 	var desired_x := signf(to_target.x) * speed
-	apply_central_force(Vector2((desired_x - linear_velocity.x) * gain, 0.0))
+	# Friction paid for up front, the way the idle brain's walk pays it (docs/plan-movement-
+	# hitboxes.md §2). A bare P-term against a floor that resists with about `m g` never reaches
+	# its target speed, and for a heavy animal it never starts: the gorilla's gain of 2.6 made
+	# 7,100 N against 24,200 N of friction and it stood where it was dropped, the raccoon crawled
+	# at 4 px/s, the goose ran at half pace, and at Focus Off none of them moved at all — so
+	# none of them could land the blow Off promises they keep landing (D60). Grounded only, by
+	# the test `_maybe_hop` already uses: in the air there is no floor to pay, and a push over
+	# its own weight holds an animal up a wall by friction.
+	var weight := mass * gravity_scale * _gravity
+	var grounded := absf(linear_velocity.y) <= HOP_GROUND_SPEED
+	var feed := signf(to_target.x) * weight * _friction() if grounded else 0.0
+	var limit := STEER_PUSH_G * weight
+	apply_central_force(Vector2(clampf(feed + (desired_x - linear_velocity.x) * gain, -limit, limit), 0.0))
 	_face(to_target.x)
+
+## The friction the floor charges this body, as the solver combines it (the lower of the two).
+func _friction() -> float:
+	var own := physics_material_override.friction if physics_material_override else 1.0
+	return minf(own, 1.0)
 
 func _maybe_hop() -> void:
 	if flying or hop_speed <= 0.0 or _buddy == null:
@@ -389,7 +416,7 @@ func _maybe_hop() -> void:
 		return
 	# Only from something solid. Testing the vertical speed rather than the contacts keeps
 	# this off `contact_monitor`, which an NPC otherwise has no use for at all.
-	if absf(linear_velocity.y) > 40.0:
+	if absf(linear_velocity.y) > HOP_GROUND_SPEED:
 		return
 	apply_central_impulse(Vector2(0.0, -hop_speed * mass))
 
