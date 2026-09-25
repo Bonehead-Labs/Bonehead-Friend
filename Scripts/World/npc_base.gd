@@ -620,7 +620,14 @@ func _begin_leaving() -> void:
 	_grapple_until_msec = 0
 	_in_melee = false
 	var width := get_viewport().get_visible_rect().size.x
-	_exit_x = 0.0 if global_position.x < width * 0.5 else width
+	# Away from him, not to whichever edge is nearer. An animal's last blow usually knocks him
+	# toward the far side of it, so the nearer edge was as often as not the one behind him: it
+	# walked into him, shoved him along the floor for the whole fourteen-second timeout, and then
+	# vanished in the middle of the desk (D60). It turns its back on him and goes.
+	var leftward := global_position.x < width * 0.5
+	if is_instance_valid(_buddy):
+		leftward = global_position.x < _buddy.global_position.x
+	_exit_x = 0.0 if leftward else width
 	_set_state(STATE_APPROACH)
 
 ## Whether the capstone that keeps one around has been bought and left switched on.
