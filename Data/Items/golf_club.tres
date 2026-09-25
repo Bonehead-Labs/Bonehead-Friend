@@ -14,3 +14,4 @@ scene = ExtResource("2_ahsl6")
 icon = ExtResource("1_uioqe")
 requires = Array[StringName]([&"pipe_wrench"])
 sort_order = 50
+controls = "Hold · Right: Drive — hold to tee up, let go to drive a ball at him"

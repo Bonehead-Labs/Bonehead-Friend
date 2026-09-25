@@ -14,3 +14,4 @@ scene = ExtResource("2_dr7jc")
 icon = ExtResource("1_18ekg")
 requires = Array[StringName]([&"tyre_iron"])
 sort_order = 47
+controls = "Hold · Right: Ground Pound — slam the desk and he goes up"

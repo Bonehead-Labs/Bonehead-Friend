@@ -14,3 +14,4 @@ scene = ExtResource("2_dvj5j")
 icon = ExtResource("1_xn6lu")
 requires = Array[StringName]([&"greatsword"])
 sort_order = 92
+controls = "Hold · Right: Rev — hold it down and the running chain grinds him"

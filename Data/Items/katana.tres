@@ -14,3 +14,4 @@ scene = ExtResource("2_6oa2p")
 icon = ExtResource("1_8payu")
 requires = Array[StringName]([&"mace"])
 sort_order = 15
+controls = "Hold · Right: Iaido — one draw, one cut, straight through him"

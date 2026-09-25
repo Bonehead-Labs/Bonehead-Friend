@@ -11,3 +11,4 @@ display_name = "Baseball Bat"
 description = "The tutorial weapon. Grab it, swing it, watch him clatter."
 scene = ExtResource("2_tcrbp")
 icon = ExtResource("1_tcrbp")
+controls = "Hold · Right: Home Run — hold to wind up, let go to swing"

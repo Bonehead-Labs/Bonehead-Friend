@@ -14,3 +14,4 @@ scene = ExtResource("2_5q44l")
 icon = ExtResource("1_xql6b")
 requires = Array[StringName]([&"cleaver"])
 sort_order = 62
+controls = "Hold · Right: Tomahawk — throw it; keep holding left and it comes back"

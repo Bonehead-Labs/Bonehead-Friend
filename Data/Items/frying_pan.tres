@@ -13,3 +13,4 @@ cost = 250
 scene = ExtResource("1_1tqqm")
 icon = ExtResource("1_8gkf7")
 sort_order = 5
+controls = "Hold · Right: BONG — ring it, then hit him to daze him"

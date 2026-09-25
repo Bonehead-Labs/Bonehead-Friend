@@ -14,3 +14,4 @@ scene = ExtResource("2_l0b2d")
 icon = ExtResource("1_1kq5q")
 requires = Array[StringName]([&"golf_club"])
 sort_order = 51
+controls = "Hold · Right: Whirlwind — they spin about your hand"
