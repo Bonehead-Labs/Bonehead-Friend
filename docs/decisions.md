@@ -1986,6 +1986,17 @@ Turret barrels still lean up to 40 degrees over colliders that match the rest po
 than real time bills slightly different hits from identical physics. The rig reports
 momentum for that reason.
 
+*Amended after the merge with D60.* `brain_check` reported the flamethrower's muzzle "on the far
+side": it was lying on its side, rotated 117 degrees. The collider was not the cause. The
+suite teleports each turret to 0.6 of its reach from him, which is 90 px for the flamethrower.
+His collider reaches 44 px either side of his centre, and the flamethrower's reaches 54 now
+that it is as wide as its drawn tank (26 before). So it was put 8 px inside him, and the
+solver's shove at the end of the tank tipped it over. Standing on its own it is steadier than
+before: its centre of mass is 8 px above an 18 px half-foot, against 12 above 20. The fix is
+in the suite, which now keeps the gap clear of both bodies' colliders as well as inside
+reach. No other turret was close enough to overlap. **A test that places a body by teleport
+must clear the colliders.** Once those are the picture, a body is exactly as wide as it looks.
+
 ## D62 — The art polish is drawn, not generated: a walk, fourteen sprites, headphones that fall (2026-09-25)
 
 **Decision.** Three pieces of art that had waited on a generator, or had come out of one
