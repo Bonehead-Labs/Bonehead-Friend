@@ -100,3 +100,17 @@ func _retire() -> void:
 
 func effective_damage_mult() -> float:
 	return Progression.damage_mult_for(item_id, damage_mult)
+
+## The blast area's real radius, found by *what it is* rather than by name — the same rule
+## ExplosionUtil documents and for the same reason: the item scenes renamed that shape once
+## already, and every explosion in the game silently stopped applying any force at all.
+## Shared by the well that pulls to it and the mine that waits for him inside it.
+func _blast_reach() -> float:
+	if explosion_area == null:
+		return 0.0
+	for child in explosion_area.get_children():
+		var cs := child as CollisionShape2D
+		if cs and cs.shape is CircleShape2D:
+			return ExplosionUtil.blast_radius((cs.shape as CircleShape2D).radius,
+				cs.global_scale.x)
+	return 0.0

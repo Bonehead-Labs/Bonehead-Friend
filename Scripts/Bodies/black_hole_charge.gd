@@ -63,14 +63,3 @@ func _pull() -> void:
 		# impulse per frame is a strength that depends on the frame rate.
 		(body as RigidBody2D).apply_central_force(inward / distance
 			* ExplosionUtil.blast_strength(distance, _reach, pull_force))
-
-## The blast area's real radius, found by *what it is* rather than by name — the same rule
-## ExplosionUtil documents and for the same reason: the item scenes renamed that shape once
-## already, and every explosion in the game silently stopped applying any force at all.
-func _blast_reach() -> float:
-	for child in explosion_area.get_children():
-		var cs := child as CollisionShape2D
-		if cs and cs.shape is CircleShape2D:
-			return ExplosionUtil.blast_radius((cs.shape as CircleShape2D).radius,
-				cs.global_scale.x)
-	return 0.0
