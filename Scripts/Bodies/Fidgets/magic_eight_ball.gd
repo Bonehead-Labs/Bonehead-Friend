@@ -40,7 +40,8 @@ const ANSWERS := [
 ]
 const UNSHAKEN := "Shake me first."
 
-## Direction changes to be ready, before the "time between uses" node takes some off.
+## Full shakes to be ready, before the "time between uses" node takes some off. A full shake is
+## one stroke of at least `STROKE` px between two changes of direction.
 @export var shakes_needed: float = 4.0
 ## Kindness value of a yes, before the item's own value node. A maybe or a no pays nothing.
 @export var answer_value: float = 14.0
@@ -49,11 +50,20 @@ const UNSHAKEN := "Shake me first."
 
 ## A carried step shorter than this (world px) is jitter, not a shake.
 const SHAKE_STEP := 3.0
+## How much of each stroke counts, world px: a stroke this long is one whole shake, a shorter
+## one its share of one, and anything past it nothing — carrying the ball across the desk is not
+## shaking it, however far it goes. A comfortable flick of the wrist.
+const STROKE := 32.0
 
 var last_answer := ""
 var last_tone: StringName = &""
 var _energy := 0.0
 var _last_step := Vector2.ZERO
+## How far the current stroke has gone since the last change of direction, world px.
+var _stroke := 0.0
+## The first stroke is only carrying it until it turns back; what it was worth waits here.
+var _first := 0.0
+var _turned := false
 var _bubble: PanelContainer
 var _bubble_label: Label
 var _bubble_until := 0
@@ -82,16 +92,40 @@ func _on_gesture(g: GestureZones.Gesture) -> void:
 			if g.button == MOUSE_BUTTON_RIGHT and g.zone == &"ball":
 				read(true)
 
-## One carried step. A reversal is a step against the one before it, both of them real.
+## One carried step. A reversal is a step against the one before it, both of them real, and it
+## starts a new stroke.
+##
+## **The shake is counted continuously, by how far each stroke went** (D70, the item audit's
+## F10). It used to count one whole reversal at a time against `4 x 0.94^n`, so "Looser Dice"
+## rounded back up to four reversals for its first four levels and took off one shake, once,
+## across all ten. Now every step of a stroke is worth its share of a shake as it happens, up to
+## `STROKE`, so the ball fills as the hand moves and 6% less shaking is 6% less shaking. The
+## first stroke is only carrying it until the hand turns back — a straight drag is never a shake
+## — and then counts as if it had been one all along.
 func _shake_step(step: Vector2) -> void:
-	if step.length() < SHAKE_STEP:
+	var length := step.length()
+	if length < SHAKE_STEP:
 		return
-	if _last_step != Vector2.ZERO and step.dot(_last_step) < 0.0:
-		var was_ready := is_ready_to_read()
-		_energy = minf(_energy + 1.0, _needed() * 2.0)
-		if not was_ready and is_ready_to_read():
-			_ready_tell()
+	var reversed := _last_step != Vector2.ZERO and step.dot(_last_step) < 0.0
 	_last_step = step
+	var gained := 0.0
+	if reversed:
+		_stroke = 0.0
+		if not _turned:
+			_turned = true
+			gained += _first
+	var worth := clampf(STROKE - _stroke, 0.0, length) / STROKE
+	_stroke += length
+	if _turned:
+		gained += worth
+	else:
+		_first += worth
+	if gained <= 0.0:
+		return
+	var was_ready := is_ready_to_read()
+	_energy = minf(_energy + gained, _needed() * 2.0)
+	if not was_ready and is_ready_to_read():
+		_ready_tell()
 
 ## The dice inside have settled: a slosh and a wobble.
 func _ready_tell() -> void:
@@ -114,6 +148,9 @@ func read(by_player: bool, pick: int = -1) -> void:
 		return
 	_energy = 0.0
 	_last_step = Vector2.ZERO
+	_stroke = 0.0
+	_first = 0.0
+	_turned = false
 	var index := pick if pick >= 0 and pick < ANSWERS.size() else randi() % ANSWERS.size()
 	last_answer = ANSWERS[index][0]
 	last_tone = ANSWERS[index][1]

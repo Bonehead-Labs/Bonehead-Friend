@@ -518,6 +518,22 @@ func _the_ball_tells_fortunes() -> void:
 		else:
 			_check("a %s pays nothing" % tone, is_equal_approx(Economy.balance_of(Economy.HEARTS), before))
 
+	# F10 (D70): a shake counts by how far each stroke went, up to one `STROKE`, so every level of
+	# Looser Dice is felt. A straight drag is only carrying it; once the hand turns back, that
+	# first stroke counts as a shake, and half a stroke is half of one.
+	ball._energy = 0.0
+	ball._last_step = Vector2.ZERO
+	ball._stroke = 0.0
+	ball._first = 0.0
+	ball._turned = false
+	ball._shake_step(Vector2(300.0, 0.0))
+	_check("a long straight drag is not a shake (%.2f)" % ball.energy(), ball.energy() == 0.0)
+	ball._shake_step(Vector2(-MagicEightBall.STROKE * 0.5, 0.0))
+	_check("turned back, the drag was one shake and half a stroke is half another (%.2f)" % ball.energy(),
+		is_equal_approx(ball.energy(), 1.5))
+	ball._shake_step(Vector2(-MagicEightBall.STROKE * 4.0, 0.0))
+	_check("and no stroke is worth more than one (%.2f)" % ball.energy(), is_equal_approx(ball.energy(), 2.0))
+
 	ball.bubble_seconds = 0.1
 	ball._energy = ball._needed()
 	ball.read(true, 0)

@@ -127,7 +127,6 @@ const KNOWN := {
 	"pump_shotgun/thrown": "~F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
 	"hunting_rifle/thrown": "~F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
 	"blunderbuss/thrown": "~F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
-	"magic_eight_ball/aug_cooldown_mult": "F10 a shake is a whole reversal: 4 x 0.94^n still rounds up to 4 until level 5",
 }
 
 var _passed := 0
@@ -2129,15 +2128,23 @@ func _hold_right(frames: int, before_release: Callable = Callable()) -> float:
 	return held
 
 ## Carried side to side in the hand, a leg a physics frame, until `ready` says so or `legs`
-## run out. The first leg sets a direction and every later one reverses it. Returns the legs.
-func _shake(legs: int, amplitude: float, ready: Callable) -> int:
+## run out. The first leg sets a direction and every later one reverses it. Each leg is `grain`
+## px motions (over the fortune ball's 3 px jitter floor), and `ready` is asked after every one — so what comes
+## back is how far the hand moved before the toy was ready, in px, not a count of legs (D70: the
+## fortune ball fills as it is shaken, and a count of legs cannot see a 6% change).
+func _shake(legs: int, amplitude: float, ready: Callable, grain: float = 4.0) -> float:
 	var home := _mouse
+	var moved := 0.0
 	for i in legs:
-		if ready.call():
-			return i
-		_move(home + Vector2(amplitude if i % 2 == 0 else -amplitude, 0.0))
+		var to := home + Vector2(amplitude if i % 2 == 0 else -amplitude, 0.0)
+		while _mouse.distance_to(to) > 0.001:
+			if ready.call():
+				return moved
+			var from := _mouse
+			_move(_mouse.move_toward(to, grain))
+			moved += from.distance_to(_mouse)
 		await _step()
-	return legs
+	return moved
 
 ## Bubble wrap: a left tap on a bubble pops it and does not lift the sheet; a right-stroke from
 ## there across the row pops the run it passes over and never bins the sheet; a popped bubble
@@ -2301,12 +2308,15 @@ func _drive_fortune_ball(run: Run) -> void:
 	await _mouse_to(_mouse + Vector2(0.0, -90.0), 500.0)
 	var ball: WeakRef = weakref(body)
 	var tones: Array[StringName] = []
-	var legs := -1
+	var shaken := -1.0
+	# Strokes exactly one shake long, so every pixel the hand moves is one the ball counts and the
+	# distance is the shaking itself.
+	var half := MagicEightBall.STROKE * 0.5
 	for attempt in 8:
-		var took := await _shake(16, 36.0, func() -> bool:
+		var took := await _shake(24, half, func() -> bool:
 			return ball.get_ref() == null or ball.get_ref().is_ready_to_read())
-		if legs < 0:
-			legs = took
+		if shaken < 0.0:
+			shaken = took
 		if _gone(body) or not body.is_ready_to_read():
 			break
 		_press(MOUSE_BUTTON_RIGHT)
@@ -2315,11 +2325,12 @@ func _drive_fortune_ball(run: Run) -> void:
 		if body.last_tone == &"yes":
 			break
 		await _step(2)
-	# The reversals it took to be ready, which its third node is sold as taking off.
-	if legs > 0:
-		run.cooldown = float(legs - 1)
-	_expect(run, "shaken", legs > 1 and not tones.is_empty(), "shaken in the hand, it is ready after %d reversals"
-		% (legs - 1))
+	# How much shaking it took to be ready, which its third node is sold as taking off.
+	if shaken > 0.0:
+		run.cooldown = shaken
+	_expect(run, "shaken", shaken > MagicEightBall.STROKE and not tones.is_empty(),
+		"shaken in the hand, it is ready after %.0f px of shaking (%.2f shakes)"
+		% [shaken, shaken / MagicEightBall.STROKE])
 	_expect(run, "reads", run.uses() == tones.size() and not tones.is_empty(),
 		"right-click reads it, a use:%s each (%d reads: %s)" % [run.item.id, tones.size(), tones])
 	_expect(run, "answer", not _gone(body) and body.answer_showing() and body.answer_text() == body.last_answer,
