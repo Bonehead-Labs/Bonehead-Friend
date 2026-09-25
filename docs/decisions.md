@@ -1476,6 +1476,73 @@ against sprites replaced in D45. None of that is a one-line fix and all of it ch
 game plays, so it is left for the owner to direct rather than guessed at in a sweep. The
 layers themselves are fine: 97 bodies on layer 4 / mask 7, the buddy on 2 / 5.
 
+## D62 — The art polish is drawn, not generated: a walk, fourteen sprites, headphones that fall (2026-09-25)
+
+**Decision.** Three pieces of art that had waited on a generator, or had come out of one
+wrong, are drawn by hand from sources a person can read and diff. His **walk** is built from
+his own neutral body (`art/tools/make_walk.py`) and plays while he travels. **Fourteen item
+sprites** that did not say what they were are redrawn as text grids in `art/pixel/`. His
+**headphones fall** onto the heap in the knockout instead of hanging where his head was
+(`art/tools/drop_headphones.py`).
+
+**Why the walk did not need Retro Diffusion.** It sat blocked on the walking preset for a
+milestone (handoff B.1, D44, D45) while he slid to every toy on a 1.5 px bob. But he is a bone
+wearing headphones, and the only things that move when he walks are the two knobs he stands
+on — which the generated neutral body already draws. So each of the eight frames is that body
+cut at the top of the knob flare and reassembled from a table: a foot lifts 2 then 4 pixels, the
+upper body bobs one pixel at the passing frames and sways one over the planted foot. No pixel is
+redrawn or recoloured, which is the only way to match a generated body's outline and shading
+*exactly*, and the face offsets `postprocess.py` measures line up because the head is the same
+head. Two details are not arbitrary:
+
+- **The lift is eased column by column across the notch between his feet.** Lifting each half
+  of the knob end as a block left the notch's walls four pixels apart, with a white tooth
+  hanging in the gap. And lifts are even, because the body is drawn in two-pixel blocks.
+- **Arm nubs were tried and dropped.** Cut from the `happy` hop, at 2x on a dark desk they read
+  as two white dots floating off his sides — generator litter, the thing `postprocess.py`
+  exists to remove. A walk without arms reads as a waddle; one with them reads as a defect.
+
+`BuddyArt` plays `walk` while `travel()` is live and stands him back in his mood idle on
+arrival; the drawn stride carries its own bob, so the code bob stays at zero under it and
+survives only as the fallback for a body file with no `walk` tag. A tagged beat, a hurt or a
+drag still take the body; a face-only beat does not stop his legs. `walk` is appended last in
+`bonehead.aseprite`, so frames 1-74 keep their numbers and `_patch_frames.lua` still addresses
+them — checked pixel-for-pixel against the file before.
+
+**Why these fourteen.** Every item and icon was laid out at game scale against a dark and a
+light desk beside the buddy, and ranked on the question `art-direction.md` already asks: can a
+player tell what it is at 1x, in peripheral vision. The grenade was a clay jug, the dynamite a
+fire extinguisher, the mine a spark, the nail bomb a ladybird, the demolition charge a block of
+cheese, the foot spa a cooking pot, the tennis ball a coin, the wind chimes a grandfather clock
+and the feather duster a 16x11 smear. The generator draws what a word looks like on average;
+what makes an object legible at 26 pixels is the one part only it has — a spoon lever and a
+pin, three sticks and a lit fuse, two seams, a hazard band on the only flat explosive. The grids
+are the record, as D45 made the prompt the record for Codex: each file's header says what the
+old sprite read as and what the new one leans on (`art/prompts/items.md` has the table).
+
+**Colliders stay the picture (D55).** Eight redraws kept their exact size. The six that did
+not were regenerated through their own seeders — scene deleted, seeder re-run without `--force`
+— and each diff is two `size` lines and fresh `unique_id`s. D55 recorded that this route fails
+because ItemDB cannot load the item while its scene is missing. ItemDB does log that, but
+`seed_friendly`, `seed_bodies` and `seed_m36_explosives` do not need it to write a scene, and
+all three rewrote exactly the one file asked for.
+
+**Why the headphones.** The generated collapse left them in mid-air from its fourth frame, and
+`pile` held them there: three seconds of every knockout that read as a rendering bug
+(assessment §3, finding 8). The handoff filed it as a rigging problem; it is an art one. They
+are found per frame as the detached piece with the most teal and lowered whole, outline and
+all, on a `1.2 n^2` fall until they meet the heap as measured on that frame, then a two-pixel
+bounce. `reassemble` is `collapse` reversed, as it always was, so they fly back onto his head.
+
+*Consequence:* `loop_check` asserts the walk plays, that the code bob is zero under it, and
+that arriving returns an idle and lets `BuddyArt` stop processing. Rebuilding the body file
+needs every tag's sheet in `art/raw/`, which is gitignored: export them from the committed
+`.aseprite` first (`art/prompts/bonehead_body_animations.md`). *Not redrawn:* the
+multi-collider weapons, whose colliders are being re-authored against today's art — the hole
+punch still reads as a floppy disk and the satchel charge as a sack of gold, and they should be
+redrawn after that lands rather than before. The walk has not been watched by a person on a
+real desk; frame strips and `art/preview/walk_*.gif` are what it was judged on.
+
 ## Recommendations not yet decided
 
 Carried in the spec, owner's call before they matter:
