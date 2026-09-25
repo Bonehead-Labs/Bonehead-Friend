@@ -2694,6 +2694,120 @@ this pass ran headless on a machine the owner was using, so everything was judge
 previews at 1x, 2x and 8x on a dark and a light desk, never on a real one.
 
 
+## D72 — The Cursor tab is godlike: seven spells, each a verb the game did not have (2026-09-26)
+
+**Decision.** Seven supernatural cursor powers, four that hurt him and three that are kind to
+him, every one a different thing to do with a mouse. They share one base (`SpellPower`), speak to
+his face through the brain's table, draw through `WorldFX` or emitters they own, and are sold,
+upgraded and automated through data like everything else.
+
+| Power | Side, price | The verb | He |
+|---|---|---|---|
+| Telekinesis | Cursor, 6,000 Bones | press anywhere: a ghost's hand takes him from wherever he is, carries him on a soft spring, flings him when you let go; right-click squeezes | dangles and kicks, tinted green; the fling's landing is the hand's |
+| Time Stop | Cursor, 12,000 | click him and he stops dead, mid-air if he was; every click on him banks a blow; click away or wait four seconds and they all land at once | stands still, blue, inside a clock-faced bubble; then one heavy blow |
+| Meteor Shower | Cursor, 25,000 | hold: burning rocks slant in from above the window onto the cursor | rocked about under it |
+| Smite | Cursor, 60,000 | click anywhere: light gathers in that column for 0.6 s, then a pillar comes down it and the desk quakes at its foot | sees it coming and flinches from it |
+| Blessing | Care, 500,000 Hearts | click him: a halo settles over his head and rains hearts on him while it lasts | blissful, calmed, bobbing |
+| Levitation | Care, 750,000 | hold on him: he floats up and falls asleep on nothing; let go and he drifts down | asleep, Zs rising |
+| Rainbow | Care, 1,000,000 | press on him, drag to where he should land, let go: a rainbow arcs there and he slides down it | rides it, delighted |
+
+The missile, lightning, the vortex, the glass, the fist and the open hand stay as they were. The
+pistol, the shotgun and the minigun are D71's, and nothing here depends on them: every spell is
+gated behind a power that stays.
+
+**Why.** The owner, verbatim: "cursor powers should not have guns anymore, these can be godlike
+powers and more advanced things like missles ... add more magical supernatural exciting cursor
+abilities to flesh that out." A gun is a point and a click, and the tab already had five ways to
+make one. What was missing was *verbs*: nothing held him from across the desk, nothing stopped
+time, nothing rained, nothing warned him, nothing was left on him, nothing lifted him, nothing
+gave him a ride. Each spell is one of those and none is a second of another.
+
+**The rules they keep.**
+
+- **D47, exactly.** The base class still decides the click: over a toy it declines and you pick
+  the toy up, Shift gives you your plain hands, Esc holsters. A spell takes a right-click only
+  while it is holding him — telekinesis's squeeze — when a right-click could not have meant the
+  bin. `powers_check` asserts all three rules for all seven, through the real viewport.
+- **D7, D64 and D65.** He measures his own damage. Time stop, the meteors and smite hand him an
+  impulse through `take_impulse`, the missile and lightning's door; telekinesis's squeeze does too,
+  and everything it throws him into is claimed (`claim_impacts`), as is the desk smite drives him
+  into. Only *who* is billed changes, never *whether*. The kind three pay an act through
+  `kindness_given` and a rate through `kindness_sustained` and nothing else.
+- **The budget.** A power that was never equipped does not exist (the spawner instances on first
+  use). An equipped one runs nothing until it is used: `_input` is on only while it is equipped or
+  has an effect in flight, and `_process` / `_physics_process` only while a grip, a bubble, a meteor,
+  a pillar, a halo, a float or a ride is live, switching off the frame it ends. Every drawn thing is
+  built on first use and parked: eight meteors, one bubble, one pillar, six rainbow bands.
+- **His face is a row.** The spells say what happened through `EventBus.fidget_event`, the brain
+  maps it (`FIDGET_ROWS`), and four rows are new: `seized`, `time_frozen` (a hold at body speed
+  0), `blessed`, `levitating`. Smite's tell is the `windup` threat an animal already uses. No
+  spell calls the brain.
+
+**How, and what cost time.**
+
+- **A barrage that shoves like a strike hits once.** The first meteors were point blasts at full
+  force, and a shower held on him landed one hit in five: the first threw him clear and the rest
+  rained on where he had been. A meteor now hands him the blast's full impulse and pushes with
+  `shove_share` (0.4) of it — the beam's notional impulse, made for a barrage — and he is rocked
+  under it instead: the same hold hits him four times where it hit once.
+- **A kind power can never be billed.** Levitation's descent is held under 120 px/s, so a 3 kg
+  skeleton touches down with 360, a quarter of the world's fall floor; a rainbow ride ends on the
+  desk under the cursor (a ray down the world layer), not at the cursor, because a ride that
+  ended in mid-air would drop him and a fall of 128 px is damage; and on the rainbow he leaves
+  every layer but scans the world's, because a contact happens when *either* body scans the
+  other and a kind power must not ram him into a bat and bill the bat.
+- **Holding him is an impulse, not a write, and bounded.** Every spell that moves him steers with
+  `apply_central_impulse` before `Buddy.StepStart` reads the step's start (D54, D64), so the ledger
+  sees the steer as where the step began. The bound is telekinesis's feel and its honesty at once:
+  4,800 px/s² on 3 kg is 240 a step, so pinning him to a wall earns nothing.
+- **Time stop and the knockout both freeze him.** A knockout that starts mid-stop owns him: the
+  bubble goes, the blows are lost with the round, and a spell never unfreezes what the knockout
+  froze. Shift-picking him up ends the stop; so does holstering, and the blows land.
+- **The idle brain drove him from under the spells.** Levitation pays only a rate, which the idle
+  brain does not hear, so a routine kept walking him while he floated. `IdleBrain.notice_player()`
+  is the public door: a spell holding him tells it, as picking him up does.
+- **A moving emitter drops clumps.** `GPUParticles2D` updates at 30 fps by default, so a meteor's
+  fire came out as puffs 40 px apart. The spells' own emitters run at the frame rate.
+- **`--fixed-fps` breaks a capture of anything on the wall clock.** The spells time themselves by
+  `Time.get_ticks_msec()`, like the beam and the hand; under `--fixed-fps 60` frames run faster
+  than real time, so levitation's sleep never started in 150 frames. `power_shots` runs in real
+  time.
+
+**Pacing, and why the kind three are the top of the Hearts side.** The harm four move the first
+Reincarnation from 9:47:54 to 9:50:48 at the prices they would have had anyway. The kind three
+could not be priced like Care items: every ladder tried, from 900 to 400,000 Hearts, put it at
+10:09 to 11:05 against the ten-hour ceiling (eighteen ladders; one kind power alone costs two
+minutes, any two cost twenty). Instrumented, the reason is one item. The simulator's run one
+turns on the **massage chair reaching rank 25 inside the hour-nine play window** — it does at
+9:10:51, with 69 seconds of a twelve-minute window to spare — because the chair earns mastery
+only while it is among the last five kind things bought, and only in the minutes of each hour
+the modelled player plays. A Hearts item bought before the chair delays its purchase by the
+minutes it takes to earn that item back, and the chair misses the window by one rank; one bought
+after pushes the chair out of the last five; one bought after its rank takes the Hearts that
+were levelling its capstone. Either way the capstone slips an hour and the run with it. At
+500,000, 750,000 and 1,000,000 they arrive at 9:39 and 9:48 of run one and early in every run
+after, and all four targets hold: 4/4, 9:50:48. **Owner's call:** the chair's window is the
+thinnest margin in the pacing, and any kind item anyone adds will meet it. Bringing the hot tub
+and chair forward would let these three come down to Care prices, and is a rebalance of items
+that are not this decision's.
+
+*Consequence:* `tools/seed_m39_powers.gd` writes the scenes, items, trees (damage, payout, and a
+`cooldown_mult` each power reads as its own gap — levitation has two nodes, no honest third) and
+capstones on the claw arm; `art/tools/pixel_cursor.py` draws a cursor from `art/pixel/cursors/`
+with its middle pixel on the (32, 32) hotspot; `tools/power_shots.tscn` stages every spell mid-effect
+in a real window; `tests/integration/powers_check.tscn` is the suite; `item_check` has a driver for
+each class; the HUD teaches a power's `controls` line once, the first time it is taken out —
+the second, for the very first power a player equips, whose first toast is D47's rules. *Not
+heard:* the eleven new voices are synthesised and were checked by their shapes, not by ear.
+
+*Verified:* powers_check 183; item_check 130 items, 4,600 passed (every new tree key read, each
+`cooldown_mult` measured as its own gap); unit 242, loop 665, ui 621 (the armed chip still fits
+for every power: "Magnifying Glass" is the widest), gun 103, fidget 196, toys2 178, verbs 273;
+brain 330 with its two known failures (car, cradle); pacing 4/4 at 9:50:48. window_check fails
+one line — the card at 1440x960, pinned 3x, ends 8 px below the window — identically with the
+seven items and this branch's HUD change taken back out, so it is not this decision's.
+
+
 ## Recommendations not yet decided
 
 Carried in the spec, owner's call before they matter:
