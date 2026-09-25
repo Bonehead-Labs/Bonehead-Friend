@@ -166,6 +166,38 @@ func _the_grammar_is_wired() -> void:
 	_check("the zones never read the OS cursor", not polls)
 	_spawner_clear()
 
+	# Every kind of gesture a zone can produce, on one real zone: the jack's crank.
+	var jack := await _fresh(&"jack_in_the_box", _beside_him(170.0)) as JackInTheBox
+	if jack == null:
+		_check("a jack-in-the-box is on the desk", false)
+		return
+	jack.freeze = true
+	jack.set_facing(1.0)
+	var pivot := jack.gestures.zone_world(&"crank")
+	var on := pivot + Vector2(10, 0)
+	jack.gestures.gesture.connect(_record)
+	_seen.clear()
+	_press(on, MOUSE_BUTTON_RIGHT)
+	_release(on, MOUSE_BUTTON_RIGHT)
+	_check("a quick press is PRESS, TAP, RELEASE (%s)" % ", ".join(_seen),
+		_seen == [GestureZones.PRESS, GestureZones.TAP, GestureZones.RELEASE])
+	_seen.clear()
+	_press(on, MOUSE_BUTTON_RIGHT)
+	await get_tree().create_timer(jack.gestures.hold_seconds + 0.2).timeout
+	_release(on, MOUSE_BUTTON_RIGHT)
+	_check("a still press held is a HOLD, and then not a tap (%s)" % ", ".join(_seen),
+		_seen == [GestureZones.PRESS, GestureZones.HOLD, GestureZones.RELEASE])
+	_seen.clear()
+	_press(on, MOUSE_BUTTON_RIGHT)
+	_move(pivot + Vector2(0, 10), Vector2(-600, 600))
+	_release(_mouse, MOUSE_BUTTON_RIGHT)
+	_check("a moving press is DRAG and CRANK, and a fast release a FLICK (%s)" % ", ".join(_seen),
+		_seen.has(GestureZones.DRAG) and _seen.has(GestureZones.CRANK)
+		and _seen.has(GestureZones.FLICK) and _seen.back() == GestureZones.RELEASE
+		and not _seen.has(GestureZones.TAP))
+	jack.gestures.gesture.disconnect(_record)
+	_spawner_clear()
+
 # --- bubble wrap ---------------------------------------------------------------------
 
 func _bubble_wrap_pops() -> void:
