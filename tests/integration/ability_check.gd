@@ -526,6 +526,71 @@ func _drive_throw(body: WeaponBase, ability: ThrowAbility) -> Dictionary:
 
 # --- the blades (hooked rows, driven by ability id) -------------------------------------------
 
+## Momentum: right held, the hand swings it back and forth through him; the grip is loose, the
+## chain climbs with each hit that did not stop it, and letting go puts the grip back.
+func _drive_momentum(body: WeaponBase, ability: MomentumAbility) -> Dictionary:
+	var damp_before := body.angular_damp
+	var mode_before := body.angular_damp_mode
+	await _approach(body, Vector2(-220.0, -40.0))
+	_press(MOUSE_BUTTON_RIGHT)
+	await _step(2)
+	_check("right held loosens the grip (damping %.2f -> %.2f)" % [damp_before, body.angular_damp],
+		ability.is_active() and body.angular_damp == 0.0
+		and body.angular_damp_mode == RigidBody2D.DAMP_MODE_REPLACE)
+	for i in 4:
+		if not ability.is_active() or _buddy.health.down:
+			break
+		await _sweep_through(900.0, 1300.0)
+	_check("the chain climbs with hits that do not stop it (best %d, %d hits, broken %d)"
+		% [ability.best_chain, ability.chain_hits, ability.chains_broken], ability.best_chain >= 2)
+	_check("and a later hit is billed higher than x1", _boosted_hits(body, 1.0 + ability.num("step_mult", 0.15)) >= 1)
+	_release(MOUSE_BUTTON_RIGHT)
+	await _step(2)
+	_check("letting go ends it and gives the grip back", not ability.is_active()
+		and is_equal_approx(body.angular_damp, damp_before) and body.angular_damp_mode == mode_before)
+	return {"hits": _hits.size(), "chain": ability.best_chain, "broken": ability.chains_broken}
+
+## En Garde: right held, it points itself at him; lunges along the blade are thrusts, x2.
+func _drive_en_garde(body: WeaponBase, ability: EnGardeAbility) -> Dictionary:
+	await _approach(body, Vector2(-200.0, -40.0))
+	_press(MOUSE_BUTTON_RIGHT)
+	await _await_cond(func() -> bool: return ability.aim_error() <= 0.1, 60)
+	_check("on guard, it swings onto him and points at him (%.2f rad off)" % ability.aim_error(),
+		ability.aim_error() <= 0.25)
+	await _expect_face(&"en_garde", &"squared_up")
+	for i in 3:
+		if not ability.is_active() or _buddy.health.down:
+			break
+		await _mouse_to(_centre() + Vector2(-60.0, -40.0), 1100.0)
+		await _step(4)
+		await _mouse_to(_centre() + Vector2(-200.0, -40.0), 600.0)
+		await _step(10)
+	await _step(3)
+	_check("a lunge along the blade is a thrust, x%.1f (%d thrusts)" % [ability.num("thrust_mult", 2.0),
+		ability.thrusts], ability.thrusts >= 1 and _boosted_hits(body, ability.num("thrust_mult", 2.0)) >= 1)
+	_release(MOUSE_BUTTON_RIGHT)
+	await _step(2)
+	_check("letting go ends it", not ability.is_active())
+	return {"thrusts": ability.thrusts, "swipes": ability.swipes, "aim": ability.best_aim, "hits": _hits.size()}
+
+## Flurry: right held beside him, the hand following him, for as long as it lasts.
+func _drive_flurry(body: WeaponBase, ability: FlurryAbility) -> Dictionary:
+	await _approach(body, Vector2(-95.0, -10.0))
+	_press(MOUSE_BUTTON_RIGHT)
+	for i in 150:
+		if not ability.is_active():
+			break
+		_move(_mouse.move_toward(_centre() + Vector2(-95.0, -10.0), 600.0 / 60.0))
+		await _step()
+	_release(MOUSE_BUTTON_RIGHT)
+	await _step(3)
+	_check("it jabbed about six a second (%d jabs)" % ability.jabs,
+		ability.jabs >= int(ability.num("jab_rate", 6.0) * ability.num("fuel_seconds", 2.0)) - 1)
+	_check("and the jabs landed as real contacts (%d landed, %d billed)" % [ability.jabs_landed, _hits.size()],
+		ability.jabs_landed >= 4 and ability.struck.is_empty())
+	_check("the hand is its own again", body.hand_offset == Vector2.ZERO and not ability.is_active())
+	return {"jabs": ability.jabs, "landed": ability.jabs_landed, "hits": _hits.size()}
+
 ## The hand to where a blade's ability starts, round him rather than through him — over his head,
 ## across, and down — and him still again before anything is counted, so a blade carried into
 ## place is never measured as its ability.

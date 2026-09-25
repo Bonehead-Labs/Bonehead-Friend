@@ -14,3 +14,4 @@ scene = ExtResource("2_0h3n1")
 icon = ExtResource("1_jdw5m")
 requires = Array[StringName]([&"machete"])
 sort_order = 52
+controls = "Hold · Right: En Garde — it points at him; lunge for x2, a swipe is half"

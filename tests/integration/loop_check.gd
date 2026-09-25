@@ -495,9 +495,9 @@ func _state_box(theme: Theme, state: String, type_name: String) -> StyleBox:
 ## does something no other one does.
 const ABILITY_STILL_TO_DO: Array[StringName] = [
 	&"boxcutter", &"cleaver", &"cricket_bat", &"crowbar", &"energy_sabre", &"flail",
-	&"greatsword", &"halberd", &"hole_punch", &"katar", &"letter_opener", &"mace", &"machete",
+	&"halberd", &"hole_punch", &"letter_opener", &"mace", &"machete",
 	&"mechanical_keyboard", &"monitor", &"morning_star", &"office_mug", &"pipe_wrench",
-	&"rapier", &"rolling_pin", &"scythe", &"shears", &"sickle", &"stapler", &"tyre_iron",
+	&"rolling_pin", &"scythe", &"shears", &"sickle", &"stapler", &"tyre_iron",
 	&"war_pick",
 ]
 

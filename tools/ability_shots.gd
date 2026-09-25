@@ -242,6 +242,45 @@ func _stage(id: StringName) -> void:
 
 # --- the blades (D74) -----------------------------------------------------------------------
 
+## Momentum: right held above him and to one side; the heave starts the first arc, the loosened
+## grip keeps it going round, and the hand steers the arcs into him while the notches fill.
+func _stage_momentum(id: StringName, ability: WeaponAbility, centre: Vector2, _floor_y: float) -> void:
+	await _carry(centre + Vector2(-190.0, -200.0), 30)
+	var momentum := ability as MomentumAbility
+	ability.press()
+	await _shot("%s-heave" % id, 10)
+	for i in 150:
+		await _carry(_hand.move_toward(_buddy.get_interaction_rect().get_center() + Vector2(-120.0, -190.0),
+			3.0), 1)
+		if momentum.chain() >= 3 or not ability.is_active():
+			break
+		if i == 40:
+			await _shot("%s-arc" % id)
+	await _shot("%s-chain" % id, 2)
+	ability.release()
+
+## En Garde: on guard at him, and a lunge.
+func _stage_en_garde(id: StringName, ability: WeaponAbility, centre: Vector2, _floor_y: float) -> void:
+	await _carry(centre + Vector2(-200.0, -40.0), 40)
+	var guard := ability as EnGardeAbility
+	ability.press()
+	await _shot("%s-guard" % id, 40)
+	for i in 12:
+		await _carry(_hand.move_toward(centre + Vector2(-50.0, -40.0), 20.0), 1)
+		if guard.thrusts > 0:
+			break
+	await _shot("%s-thrust" % id, 1)
+	ability.release()
+
+## Flurry: held beside him, jabbing.
+func _stage_flurry(id: StringName, ability: WeaponAbility, centre: Vector2, _floor_y: float) -> void:
+	await _carry(centre + Vector2(-95.0, -10.0), 40)
+	ability.press()
+	await _shot("%s-jab" % id, 5)
+	await _shot("%s-flurry" % id, 14)
+	await _carry(_hand, 60)
+	ability.release()
+
 ## The weapon held at `at` the way swing_rig holds one: its grip on a joint to its own handle.
 func _hold(at: Vector2) -> void:
 	_hand = at
