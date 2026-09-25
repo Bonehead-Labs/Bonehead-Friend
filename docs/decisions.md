@@ -2693,6 +2693,100 @@ hornet, which is small in the world; the swarm launcher, which reads as a speake
 this pass ran headless on a machine the owner was using, so everything was judged from rendered
 previews at 1x, 2x and 8x on a dark and a light desk, never on a real one.
 
+## D73 — Idle did not double: one run measured a busy machine, and the stage now says what it held (2026-09-26)
+
+**Decision.** Nothing in the game changes for performance. The reading that started this —
+idle at 14.30 % of one core (0.89 % of the machine) on `m3.9-toybox` @ 06d67fd, against D42's
+6.7 % — did not reproduce, and M3.9 costs what D42 cost to within the noise. What changes is the
+measurement, which could not tell a regression from a busy evening: the stage stops writing the
+player's settings, its report says what frame cap it held, the tool repeats itself and says how
+busy the rest of the machine was, and a `toybox` stage puts M3.9's things on the desk.
+
+**Measured.** Same machine, same night, the owner's `settings.cfg` copied into a private user
+folder (play area 1440x960, menu 1.25x, chroma backdrop, caps 30/60). Release builds of 5e6ac94
+(D42) and of this branch (06d67fd plus the stage changes below, which touch nothing outside the
+flag). `perf_measure -Repeat 3`, each run a minute or more after a 20 s warm-up. Share of one
+core, minimum and range; the machine figure is that minimum over sixteen threads:
+
+| stage | D42 build | M3.9 | machine, D42 → M3.9 |
+|---|---|---|---|
+| empty | 5.41 (5.41–6.00) | 5.68 (5.68–6.00) | 0.34 → 0.36 % |
+| idle | 6.80 (6.80–7.36) | 7.06 (7.06–8.08) | 0.43 → 0.44 % |
+| load | 14.07 (14.07–14.77) | 12.67 (12.67–14.15) | 0.88 → 0.79 % |
+| toybox | — | 6.83 (6.83–8.19) | 0.43 % |
+
+Through all of these the rest of the machine was 32–73 % busy (a Codex session, other agents'
+suites), and the script now says so on every run. Earlier the same night, one-minute windows
+with the old script: idle at 06d67fd 7.80–9.20 % over fifteen runs, D42's build 7.22–9.41 over
+nine; empty 6.00–6.63 against 5.99–6.15. Nothing the same commit did tonight came within 5
+points of 14.30, and D42's own build measured *load* at 14.07–14.77 — above the 12.26 that was
+read for M3.9's load in the same breath as the idle figure.
+
+**Why one run could say 14.** The process's CPU time is not independent of the machine: shared
+cores and a contended driver make the same frame cost more of it. A sixteen-thread burner beside
+the idle stage moved it from 6.95 and 7.95 to 8.76 and 9.16. The 02:15 run cannot be replayed,
+and the tool could say neither how busy the machine was nor what the game was doing — and
+twice the CPU with twice the GPU (4.0 % against ~2) is exactly what the 60 fps active cap looks
+like from outside. The report now prints it: `idle_cap 73 of 85 s` is a desk that slept (the
+bat falling on him, his walk to the tub and back are the rest); a number under half its window
+is not an idle measurement.
+
+**Where an idle frame goes**, read in-process from a scratch build (never committed), idle desk
+at the 30 fps cap: every `_process` together 60–110 µs a frame; every `_physics_process` 35–60
+µs a tick and the physics server 12–20 µs a step, in both builds — M3.9's `StepStart` ledger and
+the rest add about 8 µs a tick, 0.05 % of one core; rendering about 0.55 ms of CPU a frame at
+D42 and 0.65 at M3.9, the one difference that shows, about 0.3 % of one core. Switching
+rendering off takes empty from 6 to 2.7–4.0; hiding the whole shell (44 of its 47 draw calls)
+saved under half a point, and vsync off, the backdrop off or him hidden sat inside the noise.
+Taking the hot tub off the idle desk saves 2 points in both builds: it pays a number every
+second and steams, which is what it is for. The shell draws the same: 47 draw calls empty at
+D42, 48 at M3.9 (D52's grip).
+
+**Candidates cleared, each by looking at it running:** the `StepStart` ledger (above); the HUD
+streak row's 20 Hz timer, which stops when the streak does and was never running at idle;
+GestureZones and ItemVerbs, which are event-driven and have no per-frame hook; the walk cycle,
+which plays only while he travels; the idle brain, one 2 s think timer with steering switched
+off while he watches; FXLayer's placement, which runs once per number; the eighteen pooled
+particle emitters, which draw nothing when idle (0 draw calls with all of them hidden); bodies
+that never sleep — none on either desk (`awake_peak` 0 on the toybox, 2 on idle during the
+bat's fall and his walk).
+
+**The stage wrote the player's settings.** D42 said it never did. It did: a staged toy's
+one-off controls tip marks itself seen, and `mark_hint_seen` saves — to the player's own file.
+Measured in a private folder with the hot tub's tip unseen, one idle run and `settings.cfg` had
+gained `controls:hot_tub`. The stage now reads the player's settings (window, menu size and caps
+are what it measures) and writes to `user://settings_perf.cfg`, as D51 asks of every test, and
+marks the staged items' tips seen first so a first run on a machine does not unroll a toast the
+second does not.
+
+**The toybox stage** is a fidget spinner, a Newton's cradle, bubble wrap, a boombox, a lava
+lamp, a houseplant and a fish tank, worked by a one-second timer rather than the mouse — the
+spinner flicked when it stops, the cradle pulled when it settles, a bubble a second, the next
+track every six — because pushed input pins the active cap for the whole run. It sits at the
+idle cap for its whole window with nothing awake, and costs what idle does. **A held gun is not
+staged**: `HeldGun.fire()` refuses unless the gun is dragged, and a held body's handle follows
+`get_global_mouse_position()`, which in the root viewport is the OS cursor, so a synthetic hand
+would chase the real mouse. The load stage's pellet turret runs the same bullet, hit and payout
+path.
+
+**Working set: nothing grew.** Private bytes at idle were 335–424 MB for D42's build and
+286–320 for M3.9; at load 405–425 against 378–405; empty 325–354 against 278–308. The working
+set swings 50–100 MB between identical runs as Windows trims it, and the first run after an
+export compiles shaders (418 MB for both builds in a fresh folder), so "364 against 320" was two
+single readings. The script prints private bytes beside it now.
+
+**Seen, not changed.** A toy that animates in `_process` — the spinner, the cradle — does not
+lift the idle cap; only an awake body or input does. At 30 fps a spinner at full speed turns 73
+degrees a frame, and with three arms that reads as turning backwards. Lifting the cap
+while a toy animates costs what the active cap costs (compare idle and load above); that is the
+owner's call, not a performance fix.
+
+*Consequence:* a performance claim is the minimum of `perf_measure -Repeat 3` (or more),
+read with its "everything else" line and its `idle_cap` line; D42's table stands as a single
+run. `perf_measure` reads the report from the folder an `override.cfg` beside the exe names, so
+a scratch build with its own folder is measured without touching the player's files — which is
+how every number above was taken.
+
 
 ## Recommendations not yet decided
 
