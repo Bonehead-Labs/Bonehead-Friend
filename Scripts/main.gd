@@ -257,16 +257,33 @@ func _install_tuning_log() -> void:
 # *exported* build — editor numbers lie — and an exported build cannot run anything under
 # tools/, which the export excludes. So the game itself accepts one developer flag:
 #
-#   "Bonehead Friend.exe" -- --perf-stage=empty|idle|load
+#   "Bonehead Friend.exe" -- --perf-stage=empty|idle|load|toybox
 #
 # `empty` is him alone. `idle` adds a hot tub steaming and a rank-25 bat glowing on the desk,
 # which is what a player who has been playing for a day leaves running. `load` adds a pellet
-# turret firing at him, so every hit, chip, number and payout is live. It runs on a save slot
+# turret firing at him, so every hit, chip, number and payout is live. `toybox` is M3.9's desk
+# (D73): a fidget spinner kept spinning, a Newton's cradle kept clacking, bubble wrap popped,
+# a boombox's track changed and three kind generators placed — worked by the stage on a timer,
+# with no input, so the frame cap is whatever the desk itself asks for. It runs on a save slot
 # of its own, wiped before the load, and writes settings only to a file of its own.
 # tools/perf_measure.ps1 drives it and reads the process counters.
 
 const PERF_SETTINGS := "user://settings_perf.cfg"
 
+## M3.9's things, where they go relative to him. Seven, so the desk limit (ten) is never what
+## decides which of them is measured.
+const PERF_TOYBOX := [
+	[&"fidget_spinner", Vector2(150.0, -60.0)],
+	[&"newtons_cradle", Vector2(290.0, -60.0)],
+	[&"bubble_wrap", Vector2(430.0, -40.0)],
+	[&"boombox", Vector2(-170.0, -60.0)],
+	[&"lava_lamp", Vector2(-300.0, -60.0)],
+	[&"houseplant", Vector2(-420.0, -60.0)],
+	[&"fish_tank", Vector2(-560.0, -60.0)],
+]
+
+var _perf_toys := {}
+var _perf_ticks := 0
 var _perf_frames_from := 0
 var _perf_msec_from := 0
 var _perf_seconds := 0
@@ -294,6 +311,9 @@ func _perf_stage(mode: String) -> void:
 	# it seven hundred pixels from him on an ultrawide, where it measured as furniture.
 	var size := get_viewport().get_visible_rect().size
 	var near := buddy.global_position if buddy else Vector2(size.x * 0.5, size.y - 80.0)
+	if mode == "toybox":
+		_perf_toybox(near, size)
+		return
 	for id in [&"hot_tub", &"baseball_bat", &"pellet_turret"]:
 		_perf_unlock(id)
 	var b := ItemDB.balance
@@ -312,6 +332,56 @@ func _perf_quiet_hints(ids: Array) -> void:
 	Settings.mark_hint_seen(&"removal_gestures")
 	for id in ids:
 		Settings.mark_hint_seen(StringName(HUD.HINT_CONTROLS_PREFIX + String(id)))
+
+func _perf_toybox(near: Vector2, size: Vector2) -> void:
+	var ids: Array = []
+	for row in PERF_TOYBOX:
+		ids.append(row[0])
+		_perf_unlock(row[0])
+	_perf_quiet_hints(ids)
+	var collect := func(node: Node2D) -> void:
+		var body := node as BaseDraggable
+		if body:
+			_perf_toys[body.item_id] = body
+	EventBus.item_spawned.connect(collect)
+	for row in PERF_TOYBOX:
+		var at: Vector2 = near + row[1]
+		at.x = clampf(at.x, 60.0, size.x - 60.0)
+		EventBus.spawn_requested.emit(row[0], at)
+	EventBus.item_spawned.disconnect(collect)
+	# A hand on a timer rather than on the mouse: pushed input would pin the active frame cap
+	# for the whole run (`OverlayManager._input`), and this stage is the desk left going.
+	var hand := Timer.new()
+	hand.name = "PerfHand"
+	hand.wait_time = 1.0
+	hand.timeout.connect(_perf_fidget)
+	add_child(hand)
+	hand.start()
+
+## Keeps the toys going the way a player idly would: the spinner flicked when it stops, the
+## cradle pulled when it settles, a bubble a second, the next track every six.
+func _perf_fidget() -> void:
+	_perf_ticks += 1
+	var spinner := _perf_toys.get(&"fidget_spinner") as FidgetSpinner
+	if is_instance_valid(spinner) and not spinner.is_spinning():
+		spinner.launch(spinner.max_spin, true)
+	var cradle := _perf_toys.get(&"newtons_cradle") as NewtonsCradle
+	if is_instance_valid(cradle) and not cradle.is_swinging():
+		cradle.release(-1, deg_to_rad(45.0), true)
+	var wrap := _perf_toys.get(&"bubble_wrap") as BubbleWrap
+	if is_instance_valid(wrap):
+		for slot in wrap.bubble_count():
+			if wrap.pop(slot, true):
+				break
+	var box := _perf_toys.get(&"boombox") as BaseDraggable
+	if is_instance_valid(box) and box.gesture_zones and _perf_ticks % 6 == 0:
+		# The tap its deck button would have made; ItemVerbs cannot tell it from a click.
+		var tap := GestureZones.Gesture.new()
+		tap.kind = GestureZones.TAP
+		tap.zone = &"deck"
+		tap.button = MOUSE_BUTTON_RIGHT
+		tap.world = box.gesture_zones.zone_world(&"deck")
+		box.gesture_zones.gesture.emit(tap)
 
 ## Buys an item and, first, everything it requires — the public path the shop takes, walked
 ## up the chain, so the stage cannot produce a save the real game could not.
