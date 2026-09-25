@@ -907,11 +907,23 @@ func _the_jobs_tab_wears_a_badge() -> void:
 	if contract == null:
 		_check("a damage contract exists to finish", false)
 		return
-	if not Progression._active_contracts.has(contract.id):
-		Progression._active_contracts.append(contract.id)
+	# **The board is the day's draw, so it holds exactly the contract under test.** The draw is
+	# seeded by the date (`Progression._roll`) and ten contracts count `deal_damage`. On a day
+	# that also drew one with a lower target, the single emit below finished both: the badge
+	# read "2", and claiming one left it lit. That is how this passed on 2026-09-07 and failed
+	# on 2026-09-25 with no code change. The badge is the subject here, not the draw.
+	var drawn := Progression._active_contracts.duplicate()
+	var rivals := PackedStringArray()
+	for id in drawn:
+		var other := ItemDB.get_contract(id)
+		if id != contract.id and other != null and other.goal_key == contract.goal_key:
+			rivals.append(String(id))
+	Progression._active_contracts.clear()
+	Progression._active_contracts.append(contract.id)
 	EventBus.contract_board_changed.emit()
 	await _settle()
-	_check("with nothing claimable it is hidden", not badge.visible)
+	_check("with nothing claimable it is hidden (today's draw also counts damage on: %s)"
+		% ("nothing" if rivals.is_empty() else ", ".join(rivals)), not badge.visible)
 	EventBus.contract_event.emit(&"deal_damage", contract.target)
 	await _settle()
 	_check("a finished contract shows a count", badge.visible
@@ -919,6 +931,9 @@ func _the_jobs_tab_wears_a_badge() -> void:
 	_check("claiming it clears the badge", Progression.claim_contract(contract.id))
 	await _settle()
 	_check("(badge hidden again)", not badge.visible)
+	Progression._active_contracts.assign(drawn)
+	EventBus.contract_board_changed.emit()
+	await _settle()
 
 ## The wardrobe is the one thing in the Arcade that is not a gamble, and the Dollars sink the
 ## design owed the currency: a row per finish, and the button buys, wears or says worn.
