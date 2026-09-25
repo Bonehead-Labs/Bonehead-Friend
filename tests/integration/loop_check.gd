@@ -1713,6 +1713,7 @@ func _the_expression_brain_arbitrates() -> void:
 			[EventBus.threat_changed, brain._on_threat_changed],
 			[EventBus.item_spawned, brain._on_item_spawned],
 			[EventBus.automation_toggled, brain._on_automation_toggled],
+			[EventBus.fidget_event, brain._on_fidget_event],
 			[EventBus.mood_changed, brain._on_mood_changed],
 			[EventBus.focus_mode_changed, brain._on_focus_mode_changed]]:
 		var sig: Signal = pair[0]

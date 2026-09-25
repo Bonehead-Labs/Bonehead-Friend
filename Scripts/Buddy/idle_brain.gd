@@ -226,6 +226,13 @@ const ROUTINE_NIBBLE := 5   ## pizza — the toy pays once, on contact
 ## own check is the ball's speed, and an impulse gives it that in the frame it is still
 ## touching him. Then it falls back on him and pays again. Keepy-uppies.
 const ROUTINE_BOP := 6
+## A fidget toy (D57): something worked by hand rather than sat in or knocked about. The toy
+## says what a second of it is worth (`idle_appeal()`) and does the using itself
+## (`idle_use(buddy)`, on the think tick), paying through its own sustained trickle — so the
+## brain gets him there and pays nothing, exactly as for a hot tub. Asked of the toy by its
+## methods rather than its class, so a harm-side toy with the same two methods is walked to
+## and used the same way.
+const ROUTINE_FIDGET := 7
 
 const PHASE_WATCHING := &"watching"
 const PHASE_TRAVELLING := &"travelling"
@@ -363,6 +370,10 @@ func _tick_play() -> void:
 			_buddy.global_position)
 	_moved_since_think = false
 	_flush()
+	# A fidget toy is used, not sat in: on each tick he is at it, the toy does what he does
+	# with it and pays for that itself — so this is still a routine the brain pays nothing for.
+	if _routine == ROUTINE_FIDGET and (_focus_off() or _touching_target()):
+		_target.call(&"idle_use", _buddy)
 	if _phase_seconds >= DWELL_SECONDS:
 		_finish(true)
 
@@ -592,6 +603,8 @@ func _choose_toy() -> Node2D:
 func _routine_for(body: BaseDraggable) -> int:
 	if body is Trampoline:
 		return ROUTINE_BOUNCE
+	if body.has_method(&"idle_use"):
+		return ROUTINE_FIDGET
 	var friendly := body as FriendlyBase
 	if friendly == null:
 		# A ball that is not a kind item is still a ball. The beach ball and the bowling ball
@@ -642,6 +655,8 @@ func _brain_pays(routine: int) -> bool:
 func _appeal(body: BaseDraggable, routine: int) -> float:
 	if routine == ROUTINE_BOUNCE or routine == ROUTINE_PLAY:
 		return PLAY_VALUE_PER_SECOND
+	if routine == ROUTINE_FIDGET:
+		return float(body.call(&"idle_appeal"))
 	var friendly := body as FriendlyBase
 	if friendly == null:
 		return 0.0

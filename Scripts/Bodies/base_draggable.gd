@@ -59,9 +59,18 @@ func get_interaction_rect() -> Rect2:
 			extent = Vector2(radius, radius) * global_scale.abs()
 	return Rect2(global_position - extent, extent * 2.0)
 
+## A fidget toy's click zones and gestures (docs/decisions.md D57), or null for anything that
+## is only picked up. The `GestureZones` child sets this when it joins the body.
+var gesture_zones: GestureZones
+
 ## Unhandled, not _input: UI must be able to consume a click before the world sees it,
 ## otherwise every panel the player opens also grabs whatever is behind it.
 func _unhandled_input(event: InputEvent) -> void:
+	# The zones see every event first and may claim a press — a bubble pops instead of the
+	# sheet lifting. Shift+right is never theirs, so the bin below still works on everything.
+	if gesture_zones and gesture_zones.take(event):
+		get_viewport().set_input_as_handled()
+		return
 	var click := event as InputEventMouseButton
 	if click == null:
 		return
