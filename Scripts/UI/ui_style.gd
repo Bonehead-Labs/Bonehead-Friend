@@ -265,6 +265,7 @@ const CATEGORY_GLYPHS := {
 	ItemData.CATEGORY_FRIENDLY: &"hand",
 	ItemData.CATEGORY_TOY: &"crate",
 	ItemData.CATEGORY_CRITTER: &"bolt",
+	ItemData.CATEGORY_GUN: &"bolt",
 	ItemData.CATEGORY_COMFORT: &"heart",
 	ItemData.CATEGORY_FOOD: &"heart",
 	ItemData.CATEGORY_AMBIENCE: &"star",

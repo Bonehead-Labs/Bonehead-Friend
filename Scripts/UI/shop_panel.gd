@@ -21,6 +21,7 @@ const CATEGORY_NAMES := {
 	ItemData.CATEGORY_CURSOR_POWER: "Cursor",
 	ItemData.CATEGORY_TURRET: "Turret",
 	ItemData.CATEGORY_CRITTER: "Critters",
+	ItemData.CATEGORY_GUN: "Guns",
 	# "Kind" was this drawer's name back when it was the only kind drawer. It is now the name
 	# of the whole side, and this one holds what you do with your own hands.
 	ItemData.CATEGORY_FRIENDLY: "Care",

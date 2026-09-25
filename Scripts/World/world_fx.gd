@@ -348,6 +348,11 @@ func shot(at: Vector2, spread: bool = false, tier: int = 0) -> void:
 	if spread or tier >= MasteryMath.JUICE_MID:
 		ring(at, 40.0 + 6.0 * tier, colour, 0.18, 2.0)
 
+## Chips that are thrown and fall: a spent case off a held gun, the spray off a water pistol
+## (D56). A spark with weight rather than a puff that drifts up.
+func chips(at: Vector2, colour: Color, count: int = 1, speed: float = 150.0) -> void:
+	_emit(at, _chip, colour, count, speed, 0.55, Vector2(0, 900), 0.6, 1.0)
+
 ## A tick of the sunbeam: heat rising off the spot.
 func heat(at: Vector2, tier: int = 0) -> void:
 	_emit(at, _chip, HEAT.lerp(harm_colour(tier), 0.4) if tier > 0 else HEAT, 3 + 2 * tier, 70.0, 0.5,

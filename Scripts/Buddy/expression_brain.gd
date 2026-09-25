@@ -132,6 +132,12 @@ const ROWS := {
 	&"threatened": {"face": &"shocked", "tag": &"flinch", "fallback": &"",
 		"motion": &"face_toward", "seconds": 1.0, "priority": ATTENTION, "gate": GATE_NORMAL,
 		"hold": true, "refresh": 1.0},
+	# A held gun pointed at him (D56): he cowers and trembles for as long as it stays on him.
+	# Reactive — the player is pointing it and looking at him — and refreshed by the gun, so a
+	# hit that interrupts it gives way back to it, and it lapses if the gun simply vanishes.
+	&"aimed_at": {"face": &"shocked", "tag": &"flinch", "fallback": &"",
+		"motion": &"shiver", "seconds": 1.0, "priority": ATTENTION, "gate": GATE_REACTIVE,
+		"hold": true, "refresh": 1.0},
 	&"item_landed": {"face": &"neutral", "tag": &"",
 		"motion": &"face_toward", "seconds": 1.2, "priority": ATTENTION, "gate": GATE_NORMAL},
 	&"device_appeared": {"face": &"", "tag": &"",
@@ -195,6 +201,7 @@ const HURT_FACES := {
 	ItemData.CATEGORY_CURSOR_POWER: &"angry",
 	ItemData.CATEGORY_TURRET: &"angry",
 	ItemData.CATEGORY_CRITTER: &"angry",
+	ItemData.CATEGORY_GUN: &"angry",
 }
 
 ## Heat thresholds for the three hit rows (plan §2A).
@@ -321,8 +328,8 @@ func _on_threat_changed(kind: StringName, world_pos: Vector2, level: float) -> v
 	if buddy == null or buddy.global_position.distance_to(world_pos) > THREAT_RANGE:
 		return
 	# The Nervous one reacts to the wind-up, not the blow: a real flinch at the tell, where
-	# everyone else only watches it.
-	if level > 0.0 and flinches_early():
+	# everyone else only watches it. Once per aim, not once per refresh of it.
+	if level > 0.0 and flinches_early() and not (kind == &"aim" and beat_id() == &"aimed_at"):
 		react(&"hit_light", 0.4, world_pos)
 	match kind:
 		&"fuse":
@@ -342,6 +349,14 @@ func _on_threat_changed(kind: StringName, world_pos: Vector2, level: float) -> v
 		&"turret":
 			# Fires on a schedule; the row's own refresh lets it lapse a second after the last shot.
 			hold(&"threatened", world_pos)
+		&"aim":
+			if level > 0.0:
+				attend(ATTEND_THREAT, world_pos)
+				hold(&"aimed_at", world_pos)
+			else:
+				release(&"aimed_at")
+				if _attention == ATTEND_THREAT:
+					attend(ATTEND_NONE)
 
 func _on_item_spawned(item: Node2D) -> void:
 	if item and buddy and item.global_position.distance_to(buddy.global_position) <= THREAT_RANGE:
