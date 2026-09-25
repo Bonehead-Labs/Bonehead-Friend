@@ -9,7 +9,9 @@ extends BaseDraggable
 ## surface and a toy.
 ##
 ## It pays nothing by itself. His landing on it is a contact like any other, billed to the mat at
-## the swing floor (D64), which is where the Bones in bouncing come from.
+## the swing floor (D64), which is where the Bones in bouncing come from — when the player threw
+## him on. His own bouncing, the idle brain's, is his own play: not a hit, and not a bounce on the
+## contract board either (D70). The brain pays for it once, in Hearts.
 
 ## Upward impulse per unit of downward speed, and the least it will ever give — so a
 ## skeleton laid gently on it still leaves.
@@ -100,4 +102,7 @@ func _physics_process(delta: float) -> void:
 				fx.ring(Vector2(rigid.global_position.x, global_position.y), 26.0 + 10.0 * juice_tier, trail_colour(), 0.25, 2.0)
 		# Louder for a harder landing, the same way a hit is.
 		AudioManager.play(&"bounce", 0.15, lerpf(-16.0, -4.0, clampf(falling / 900.0, 0.0, 1.0)))
-		EventBus.contract_event.emit(&"bounce", 1)
+		# "Bounce him 100 times" is the player's to do. His own bouncing would finish it overnight.
+		var him := rigid as Buddy
+		if him == null or not him.is_own_play(self):
+			EventBus.contract_event.emit(&"bounce", 1)

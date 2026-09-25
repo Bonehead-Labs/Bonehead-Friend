@@ -142,6 +142,52 @@ var _claim_id: StringName = &""
 var _claim_mult := 1.0
 var _claim_until_msec := 0
 
+## **His own play is never a hit** (D70). While the idle brain has him at a toy, the toy and the
+## world are his own doing: the mat he bounces on, the floor he comes down on, a ball he bops
+## onto his own head. D64 made the mat's landings billable, which is right for a player who
+## throws him onto it and wrong for his own bouncing — that billed about 17.6 damage a second to
+## an empty desk, a Bones engine nobody bought, on top of the Hearts the brain pays for the same
+## bounce ("the toy or the brain pays, never both"; D2: what earns unattended is automation, and
+## automation is bought with Hearts). So those contacts are not billed at all — not reassigned,
+## not billed to someone else. Everything else still is: a bat, a turret, an animal, a pellet.
+##
+## Set by the brain when he sets off, and cleared the moment the player takes him or stands the
+## routine down. When the routine simply ends it lasts until he comes to rest, because a skeleton
+## bouncing on a trampoline keeps bouncing after the dwell is over.
+var _own_play := false
+var _own_play_toy := 0
+var _own_play_until_still := false
+## Slower than this, on the ground, for this many steps in a row, he has come to rest. Steps,
+## not one reading: every trampoline landing stops him dead for the step before the mat throws
+## him back up.
+const OWN_PLAY_REST_SPEED := 30.0
+const OWN_PLAY_REST_STEPS := 30
+var _own_play_still_steps := 0
+
+func begin_own_play(toy: Node) -> void:
+	_own_play = true
+	_own_play_until_still = false
+	_own_play_toy = toy.get_instance_id() if is_instance_valid(toy) else 0
+
+## `now` for a routine the player cut short; otherwise it lasts until he is still.
+func end_own_play(now: bool) -> void:
+	if now or not _own_play:
+		_own_play = false
+		_own_play_until_still = false
+		_own_play_toy = 0
+		return
+	_own_play_until_still = true
+	_own_play_still_steps = 0
+
+## Whether a contact with `src` is his own play: the world, or the toy he is playing with.
+func is_own_play(src: Object) -> bool:
+	if not _own_play:
+		return false
+	var body := src as BaseDraggable
+	if body == null:
+		return true
+	return _own_play_toy != 0 and body.get_instance_id() == _own_play_toy
+
 func is_grounded() -> bool:
 	return _grounded
 
@@ -282,6 +328,8 @@ func _notification(what: int) -> void:
 func _start_drag() -> void:
 	super._start_drag()
 	_claim_until_msec = 0
+	# Whatever he was doing on his own, he is the player's now (D70).
+	end_own_play(true)
 	if not _in_knockout:
 		_reaction_until_msec = 0
 		_set_state(&"dragged")
@@ -334,6 +382,11 @@ func _integrate_forces(state_: PhysicsDirectBodyState2D) -> void:
 		if state_.get_contact_local_normal(i).y < GROUND_NORMAL_Y:
 			_grounded = true
 			break
+	if _own_play_until_still:
+		var still := _grounded and state_.linear_velocity.length() < OWN_PLAY_REST_SPEED
+		_own_play_still_steps = _own_play_still_steps + 1 if still else 0
+		if _own_play_still_steps >= OWN_PLAY_REST_STEPS:
+			end_own_play(true)
 	if health == null or health.down:
 		_ledger_count = 0
 		_step_v_fresh = false
@@ -368,6 +421,9 @@ func _integrate_forces(state_: PhysicsDirectBodyState2D) -> void:
 		# discarded here never stamps the cooldown a real hit would then eat.
 		if impulse < _min_impulse_for(src, b):
 			continue
+		# His own play is not billed (D70). Before the cooldown, which it must not stamp.
+		if is_own_play(src):
+			continue
 		if not _cooldown_ready(src, b.damage_cooldown):
 			continue
 		var attribution := _attribute(src)
@@ -385,6 +441,9 @@ func _integrate_forces(state_: PhysicsDirectBodyState2D) -> void:
 func _note_step_start() -> void:
 	var rid := get_rid()
 	var asleep: bool = PhysicsServer2D.body_get_state(rid, PhysicsServer2D.BODY_STATE_SLEEPING)
+	# Asleep is at rest: whatever he was doing on his own is over (D70).
+	if asleep and _own_play_until_still:
+		end_own_play(true)
 	if _step_v_fresh and _span_asleep:
 		# Asleep at the last read and no callback since: the span stays open from there.
 		_span_woke = _span_woke or not asleep
@@ -525,6 +584,8 @@ func _settle_ledger(state_: PhysicsDirectBodyState2D, b: BalanceData) -> void:
 		if src == null:
 			continue
 		if share < _min_impulse_for(src, b):
+			continue
+		if is_own_play(src):
 			continue
 		if not _cooldown_ready(src, b.damage_cooldown):
 			continue

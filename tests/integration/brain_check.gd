@@ -1146,7 +1146,8 @@ func _play_routine(id: StringName, routine: int) -> bool:
 			start_gap - closest, start_gap])
 	if start_gap - closest < 40.0 and not arrived:
 		problems.append("did not travel toward it")
-	if walk_hits > 0 and routine != IdleBrain.ROUTINE_BOUNCE:
+	# Nothing on the way, not even on the way to a trampoline: his own play is not a hit (D70).
+	if walk_hits > 0:
 		problems.append("the walk cost him %d hits" % walk_hits)
 	if hops > IdleBrain.MAX_CLIMBS_PER_TRIP:
 		problems.append("%d hops on the way" % hops)
@@ -1204,6 +1205,14 @@ func _play_routine(id: StringName, routine: int) -> bool:
 	var cleaned := grime_before - _buddy.grime.value
 	var toy_paid := toy_sustained > 0.0 or toy_given > 0.0 or toy_hits > 0
 	if arrived:
+		# His own play is never a hit (D70): not the toy, not the floor. Bouncing billed the mat
+		# about 17.6 damage a second with nobody at the desk, on top of the brain's Hearts, and a
+		# bowling ball bopped onto his own head billed Bones too.
+		var own_hits := _hits.filter(func(h: HitInfo) -> bool:
+			return h.source_id == id or h.source_id == &"world")
+		if not own_hits.is_empty():
+			problems.append("his own play billed %d hits (%s)" % [own_hits.size(), _list(own_hits.map(
+				func(h: HitInfo) -> String: return "%s %.1f" % [h.source_id, h.amount]))])
 		var brain_should := _idle._brain_pays(routine)
 		if brain_should and brain_paid <= 0.0:
 			problems.append("the brain should pay for this and paid nothing")
@@ -1271,7 +1280,13 @@ func _play_routine(id: StringName, routine: int) -> bool:
 				var mooched := _idle.phase_name() == IdleBrain.PHASE_WATCHING
 				# On his feet before he is asked to start again: he never sets off lying down,
 				# and a trampoline can still be throwing him about when the dwell ends.
+				var before_rest := _hits.size()
 				var settled := await _until(_standing_still, 300)
+				# Bouncing on after the dwell is still his own play until he stops.
+				var after := _hits.slice(before_rest).filter(func(h: HitInfo) -> bool:
+					return h.source_id == id or h.source_id == &"world")
+				if not after.is_empty():
+					problems.append("coming to rest after it billed %d hits" % after.size())
 				if not settled:
 					problems.append("never came to rest after leaving (v %.0f px/s, tilt %.0f deg)"
 						% [_buddy.linear_velocity.length(), rad_to_deg(wrapf(_buddy.rotation, -PI, PI))])

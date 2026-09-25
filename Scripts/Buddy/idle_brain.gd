@@ -103,14 +103,14 @@ const STALL_SECONDS := 8.0
 ## reads as walking.
 const PROGRESS_EPSILON := 16.0
 
-## How long the toy that knocked him out is off the menu.
+## How long the toy he was at when he was knocked out is off the menu.
 ##
-## Bouncing pays Bones through the ordinary damage path as well as Hearts through this one —
-## the trampoline throws him at the mat and the mat is a contact impulse like any other — and
-## left alone that compounds into a knockout roughly every twenty-five seconds of bouncing,
-## which is a real Bones engine rather than a garnish. Five minutes bounds it to one round in
-## six, and it reads correctly too: he knocks himself silly and then gives the thing a wide
-## berth for a while.
+## Bouncing used to pay Bones through the ordinary damage path as well as Hearts through this
+## one — since D64 billed the mat's landings, about 17.6 damage a second and a knockout every
+## twenty-five seconds or so, a Bones engine nobody bought. His own play is no longer a hit at
+## all (D70, `Buddy.is_own_play`), so he cannot knock himself out on a toy; what can still put
+## him down while he plays is somebody else's — a turret, an animal — and then five minutes off
+## that toy reads correctly: he was flattened there, and gives it a wide berth for a while.
 const KNOCKOUT_COOLDOWN := 300.0
 
 ## Above this many remembered toys, expired entries are swept. Items are spawned and binned
@@ -324,6 +324,7 @@ func _exit_tree() -> void:
 	_flush()
 	if is_instance_valid(_buddy):
 		_buddy.lock_rotation = false
+		_buddy.end_own_play(true)
 
 # --- the loop --------------------------------------------------------------
 
@@ -362,8 +363,6 @@ func _consider_starting() -> void:
 	_routine = _routine_for(pick as BaseDraggable)
 	# Focus Mode Off is the promise that a player in a meeting can stop the desktop moving
 	# *without giving up the income* (D21), so he skips the walk and is simply already there.
-	# The one thing it cannot deliver is the Bones a real bounce would have earned, because
-	# that comes from a physical impact that did not happen.
 	_enter(PHASE_PLAYING if _focus_off() else PHASE_TRAVELLING)
 
 func _tick_travel() -> void:
@@ -451,7 +450,8 @@ func _physics_process(delta: float) -> void:
 		_lean(direction)
 	elif _routine == ROUTINE_BOUNCE:
 		# The mat does the work; this is only the shove that gets him going again once a
-		# bounce has died out. Its launch is external energy and pays, by design.
+		# bounce has died out. The brain pays for the bouncing, in Hearts; the landings are his
+		# own play and bill nothing (D70).
 		_climb(true)
 	elif _routine == ROUTINE_BOP:
 		_bop()
@@ -519,8 +519,7 @@ func _walk_speed() -> float:
 ## hop); pressed against something, which is what "walking has stopped working" looks like
 ## from here; a bounded count per trip; and only when the toy's top is actually above his
 ## feet, because a hop cannot help with a beanbag that is not. The trampoline routine passes
-## `minimum_hop`: standing on the mat, the smallest hop is the shove that restarts a bounce,
-## and the mat's launch is external energy that should pay.
+## `minimum_hop`: standing on the mat, the smallest hop is the shove that restarts a bounce.
 func _climb(minimum_hop: bool = false) -> void:
 	if _climb_timer > 0.0 or not is_instance_valid(_target):
 		return
@@ -727,6 +726,10 @@ func _disturb() -> void:
 	# ball and then starts hitting him, they are playing with him, not leaving him to it.
 	_wait_seconds = IDLE_SECONDS
 	_offer_id = &""
+	# The player is here, so what happens to him from now on is theirs, even if he is still
+	# bouncing on after a routine that had already ended (D70).
+	if is_instance_valid(_buddy):
+		_buddy.end_own_play(true)
 	if _phase != PHASE_WATCHING:
 		_stand_down()
 
@@ -826,6 +829,9 @@ func seconds_since_disturbance() -> float:
 
 func _stand_down() -> void:
 	_flush()
+	# The player arrived: from here on what happens to him is theirs.
+	if is_instance_valid(_buddy):
+		_buddy.end_own_play(true)
 	# Deliberately no cooldown: he was interrupted, not bored, and a toy he never got to play
 	# with should still be there when the player leaves again.
 	_target = null
@@ -836,6 +842,9 @@ func _stand_down() -> void:
 
 func _finish(cool: bool) -> void:
 	_flush()
+	# Still his own play until he comes to rest: a trampoline goes on throwing him after the dwell.
+	if is_instance_valid(_buddy):
+		_buddy.end_own_play(false)
 	var reason: StringName = &"toy_gone"
 	if cool:
 		reason = &"stalled" if _phase == PHASE_TRAVELLING else &"done"
@@ -864,6 +873,9 @@ func _enter(phase: StringName) -> void:
 		# `_disturb` → here — so the pin joint never swings a locked body and a throw still
 		# tumbles exactly as it did.
 		_buddy.lock_rotation = phase != PHASE_WATCHING
+		# Whatever he does on the way there and at it is his own play, and is not a hit (D70).
+		if phase == PHASE_TRAVELLING or phase == PHASE_PLAYING:
+			_buddy.begin_own_play(_target)
 		if phase == PHASE_WATCHING and _buddy.art:
 			_buddy.art.stop_travelling()
 	phase_changed.emit(phase, _routine, _target_id)

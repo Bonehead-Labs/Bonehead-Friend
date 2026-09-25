@@ -3093,6 +3093,21 @@ func _the_mat_gives_back_more() -> void:
 		for i in 20:
 			v = mat.launch_speed(v)
 		_check("a bounce started from a hop settles at the ceiling (%.0f)" % v, is_equal_approx(v, mat.max_launch))
+		# His own play is not a hit (D70): while the idle brain has him at the mat, the mat and the
+		# world bill nothing, and anything else still does. The end-to-end half is brain_check's.
+		var him := _buddy()
+		var bat := _instance_of(&"baseball_bat")
+		if him and bat:
+			him.begin_own_play(mat)
+			_check("at a toy on his own, the toy and the world are his own play and a bat is not",
+				him.is_own_play(mat) and him.is_own_play(null) and not him.is_own_play(bat))
+			him.end_own_play(false)
+			_check("a routine that ran out lasts until he comes to rest", him.is_own_play(mat))
+			him._start_drag()
+			him._end_drag()
+			_check("and the player taking him ends it at once", not him.is_own_play(mat)
+				and not him.is_own_play(null))
+			bat.free()
 		mat.free()
 
 func _observe(info: HitInfo) -> void:
