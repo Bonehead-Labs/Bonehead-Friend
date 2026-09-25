@@ -2694,6 +2694,120 @@ this pass ran headless on a machine the owner was using, so everything was judge
 previews at 1x, 2x and 8x on a dark and a light desk, never on a real one.
 
 
+## D70 — The loose ends: his own play, Off still earns, in the beanbag, blasts with a ceiling, gestures that outlive a panel (2026-09-26)
+
+**Decision.** What the item audit (D59), the AI audit (D60) and D64–D66 measured and left, closed
+together, each with a check that fails without it. Thirteen fixes; one finding recorded rather
+than changed.
+
+**1. He goes back to the cradle and the car.** brain_check's two failures at 208a8d1. Both toys
+quoted zero appeal while running — the cradle while it swung, the car while it drove — and zero is
+the brain's "nothing to do here" (D57). His last tick at either set it going, so the moment he
+looked round for a toy it was nothing. Every D57 toy quotes a steady appeal and lets `idle_use`
+decline while busy; these two do the same now. A car carrying him on a ride still quotes zero.
+
+**2. His own play is never a hit.** D64 billed the mat's landings, which is right for a player who
+throws him on and wrong for his own bouncing: about 17.6 damage a second at an empty desk, a Bones
+engine nobody bought, on top of the Hearts the brain pays for the same bounce. That broke both of
+the brain's rules at once — the toy or the brain pays, never both; and what earns unattended is
+automation, which D2 prices in Hearts. While the brain has him travelling to or playing at a toy,
+`Buddy.begin_own_play(toy)` makes that toy and the world his own doing: not billed at all, not
+billed to someone else, and before the per-source cooldown, in both the reported path and D64's
+ledger. Anything else still is — a bat, a turret, an animal, a pellet. The player taking him or
+arriving ends it at once; a routine that runs out ends it when he has been still on the ground for
+half a second, because a trampoline goes on throwing him after the dwell. His own bounces no longer
+count on "Bounce him 100 times". The bowling ball he bops onto his head stopped billing Bones too,
+which settles audit C: played with for its own sake at any Focus.
+
+**3. At Focus Off every routine toy still earns** (audit A). At Off he is simply there (D21, D36)
+and every kind toy pays only for touch, so the soaks, scrubs, snacks and kind balls earned nothing
+at Off — 21 of the 40 routine toys that pay Hearts, measured six hundred pixels from him. Of the
+audit's two options this takes the first: the brain asks the toy to pay for his presence
+(`FriendlyBase.pay_presence`), as itself and down its own roads — a touching rate as a trickle, the
+sponge's grime, a helping at the contact cooldown as an act, eaten if it is food — never on top of
+real contact, and nothing moves. The other option, choosing only brain-paid toys at Off, would have
+made Off a different game. A jack he wound laughs out of earshot now, too: its laugh was gated on a
+distance that at Off, with no walk, he was usually outside. 40 of 40.
+
+**4. He gets in the beanbag** (audit B: 0 of 9 soak toys with him on or in them). A convex collider
+cannot be sat in, so he is let in, the way the pull-back car lets him onto its roof:
+`FriendlyBase.take_in(him)` hops him over its edge and across to its middle, the two passing
+through each other, and when his feet come down through the seat line he is pinned there by two
+joints a head apart, the toy frozen under him and drawn over his legs. The seat is `seat_depth`
+(0.45) of its height below its top, never deeper than 0.4 of his own, so in a hot tub or a
+recliner he sits with his head and shoulders over the side. Sitting in it is touching it
+(`touches()`), so it pays as before, and the hot tub's jets still know he is in. He hops out over
+the nearer side when the dwell ends; picked up, knocked down, or the toy moved or binned, he is let
+go, and the two keep passing through each other until he is clear. 9 of 9, and `soak_shots` shows
+each one reads as in it. One consequence is recorded rather than changed (audit I): sat in a
+beanbag he is out of the goose's 78 px reach, so it waits beside it.
+
+**5. No blast hands one body more than 7,500 px/s.** D54's drag backstop, for blasts. A blast's
+push is `impulse / mass`: right for him at 3 kg, absurd for a light prop — a 0.3 kg prop the black
+hole charge gathers was thrown at 56,462 px/s in one frame (74,608 upgraded), the implosion
+charge's at 36,698. `ExplosionUtil.MAX_BLAST_SPEED` caps the push as a change of speed in both
+blast functions; a caller may pass a smaller one. It sits above every launch a blast gives him (the
+black hole's 6,478 is the fastest), so no explosion is smaller as he feels it: every explosive's
+peak on him in item_check is what it was. The impulse billed to him is untouched.
+
+**6. The gorilla's slam throws him no harder than the blunderbuss** (audit D). The slam's impulse
+is sized for its damage and threw him at 4,640 px/s, past the drag's own 4,500 backstop. Its push
+is capped at 2,500 (`slam_max_speed`, the blunderbuss's 2,536); its damage is not — 140.1 from
+14,015, as before.
+
+**7. A gesture outlives a panel, and not the focus.** Two faults in how a held gesture ends.
+`GestureZones` heard only unhandled events, so a drag across the HUD's "next up" row lost the
+motion to the panel and the slingshot's pouch froze at its edge (D66 measured it); a live press,
+action or carry now listens in `_input` until it ends, exactly as the minigun's stream does, and
+nothing listens at rest. And a gesture the game lost focus in was let go of: the RELEASE and
+ACTION_END that `cancel()` sent on focus-out were a let-go's, so alt-tab mid-draw fired the
+slingshot at him. They carry `cancelled` now, and every hold-to-act toy stands down instead — the
+slingshot slackens, the car unwinds, the cradle's ball goes back, the slinky goes home without a
+boing, the stress ball springs back unpaid, the yo-yo winds in without a trick, the spinner
+settles. The held guns and the four held cursor powers never heard about the focus at all: alt-tab
+mid-stream and the SMG or the minigun fired, and paid Bones, until the next click. They let go.
+
+**8. The fortune ball fills as it is shaken** (F10). A shake was one whole reversal against
+`4 x 0.94^n`, still four for levels 1–4. Each step of a stroke is now worth its share of a shake as
+it happens, up to one 32 px stroke, and a straight drag is not a shake: 6% less shaking is 6% less
+shaking. item_check measures the shaking itself — 112 px plain, 108 at level 1.
+
+**9. The implosion charge's grab region is its sprite's** (D65's note): 88 x 76 drawn round an old
+picture, 70 x 76 from its seeder now, re-seeded with `--only`.
+
+**10. The smaller ones.** An animal's body faces the fall floor, so only its telegraphed blow hurts
+him (audit E; a goose's grapple is its 8 shakes, not 16 hits). The Nervous one's threat holds wait
+behind his early flinch instead of being refused (audit G). He eats only food; the rubber duck is
+bopped (audit G). A toy outside the walls is not a destination (audit F): the brain asks
+`WorldBounds.arena()`, found by group in its own viewport, rather than the window — which is why
+the first attempt was reverted, and why loop_check's hand-built desk is untouched.
+
+**Recorded, not changed: autonomous hits and Dollars** (audit H). By D31's letter a turret's hit
+earns the flat per-hit Dollar like any other. By its point it should not: Dollars are earned by
+being present, and automation pays them at `dollars_idle_efficiency`. A pellet turret banks about
+3,270 an hour at an empty desk against an automation tick's 540; the toys he nibbles and bops pay
+as acts, which the combo, the board and the Dollars all count. A balance call for the owner, with
+the two-line fix written into the audit.
+
+**Why these, and why together.** Each is a sentence of the form the audits exist to find — *this
+does not do what it says*, or *this pays for something nobody did* — and most sit between two
+systems: the brain and the toy, the blast and the body, the gesture and the panel. Every one was
+measured before it was changed, and every check here was run against the code without its fix.
+
+*Consequence:* `Buddy.is_own_play`, `FriendlyBase.take_in`/`let_out`/`touches`/`pay_presence`,
+`ExplosionUtil.MAX_BLAST_SPEED`, `Gesture.cancelled` and `CursorPowerBase.release_hold()` are the
+new seams: a new held toy honours `cancelled`, a new held power overrides `release_hold()`, a new
+soak toy is sat in by default and tuned with `seat_depth`. brain_check takes `--toys id,id`, walks
+every routine toy at Off, and fails an animal that throws him past the drag's backstop or hurts
+him with its body; `tools/soak_shots.tscn` (windowed) shoots him in each soak toy. Three of the
+suites' own timing flakes were found on the way and fixed at their cause: item_check counts touch
+on every tick, brain_check holds his mood still across a reading and times a tell on the
+engine's clock (docs/ai-audit-2026-09.md J). Pacing moves
+nowhere — no price, rate or knob changed: 4/4, first Reincarnation 9:47:54. *Not seen by a
+person:* the slingshot drawn across the real HUD, the goose waiting at the beanbag, the duck being
+bopped.
+
+
 ## D74 — Every held weapon does one thing no other weapon does: the right button (2026-09-26)
 
 **Decision.** Right while holding a melee weapon is its **ability**: a Home Run on the bat, an
@@ -2901,120 +3015,6 @@ owner:
   shoulders, a few seconds of warmth that lifts his mood), and the soft brush's *Polish* (a
   sparkle that makes the next pet worth more).
 - The water pistol and the bubble blaster already use right for their shot (D56). They keep it.
-
-
-## D70 — The loose ends: his own play, Off still earns, in the beanbag, blasts with a ceiling, gestures that outlive a panel (2026-09-26)
-
-**Decision.** What the item audit (D59), the AI audit (D60) and D64–D66 measured and left, closed
-together, each with a check that fails without it. Thirteen fixes; one finding recorded rather
-than changed.
-
-**1. He goes back to the cradle and the car.** brain_check's two failures at 208a8d1. Both toys
-quoted zero appeal while running — the cradle while it swung, the car while it drove — and zero is
-the brain's "nothing to do here" (D57). His last tick at either set it going, so the moment he
-looked round for a toy it was nothing. Every D57 toy quotes a steady appeal and lets `idle_use`
-decline while busy; these two do the same now. A car carrying him on a ride still quotes zero.
-
-**2. His own play is never a hit.** D64 billed the mat's landings, which is right for a player who
-throws him on and wrong for his own bouncing: about 17.6 damage a second at an empty desk, a Bones
-engine nobody bought, on top of the Hearts the brain pays for the same bounce. That broke both of
-the brain's rules at once — the toy or the brain pays, never both; and what earns unattended is
-automation, which D2 prices in Hearts. While the brain has him travelling to or playing at a toy,
-`Buddy.begin_own_play(toy)` makes that toy and the world his own doing: not billed at all, not
-billed to someone else, and before the per-source cooldown, in both the reported path and D64's
-ledger. Anything else still is — a bat, a turret, an animal, a pellet. The player taking him or
-arriving ends it at once; a routine that runs out ends it when he has been still on the ground for
-half a second, because a trampoline goes on throwing him after the dwell. His own bounces no longer
-count on "Bounce him 100 times". The bowling ball he bops onto his head stopped billing Bones too,
-which settles audit C: played with for its own sake at any Focus.
-
-**3. At Focus Off every routine toy still earns** (audit A). At Off he is simply there (D21, D36)
-and every kind toy pays only for touch, so the soaks, scrubs, snacks and kind balls earned nothing
-at Off — 21 of the 40 routine toys that pay Hearts, measured six hundred pixels from him. Of the
-audit's two options this takes the first: the brain asks the toy to pay for his presence
-(`FriendlyBase.pay_presence`), as itself and down its own roads — a touching rate as a trickle, the
-sponge's grime, a helping at the contact cooldown as an act, eaten if it is food — never on top of
-real contact, and nothing moves. The other option, choosing only brain-paid toys at Off, would have
-made Off a different game. A jack he wound laughs out of earshot now, too: its laugh was gated on a
-distance that at Off, with no walk, he was usually outside. 40 of 40.
-
-**4. He gets in the beanbag** (audit B: 0 of 9 soak toys with him on or in them). A convex collider
-cannot be sat in, so he is let in, the way the pull-back car lets him onto its roof:
-`FriendlyBase.take_in(him)` hops him over its edge and across to its middle, the two passing
-through each other, and when his feet come down through the seat line he is pinned there by two
-joints a head apart, the toy frozen under him and drawn over his legs. The seat is `seat_depth`
-(0.45) of its height below its top, never deeper than 0.4 of his own, so in a hot tub or a
-recliner he sits with his head and shoulders over the side. Sitting in it is touching it
-(`touches()`), so it pays as before, and the hot tub's jets still know he is in. He hops out over
-the nearer side when the dwell ends; picked up, knocked down, or the toy moved or binned, he is let
-go, and the two keep passing through each other until he is clear. 9 of 9, and `soak_shots` shows
-each one reads as in it. One consequence is recorded rather than changed (audit I): sat in a
-beanbag he is out of the goose's 78 px reach, so it waits beside it.
-
-**5. No blast hands one body more than 7,500 px/s.** D54's drag backstop, for blasts. A blast's
-push is `impulse / mass`: right for him at 3 kg, absurd for a light prop — a 0.3 kg prop the black
-hole charge gathers was thrown at 56,462 px/s in one frame (74,608 upgraded), the implosion
-charge's at 36,698. `ExplosionUtil.MAX_BLAST_SPEED` caps the push as a change of speed in both
-blast functions; a caller may pass a smaller one. It sits above every launch a blast gives him (the
-black hole's 6,478 is the fastest), so no explosion is smaller as he feels it: every explosive's
-peak on him in item_check is what it was. The impulse billed to him is untouched.
-
-**6. The gorilla's slam throws him no harder than the blunderbuss** (audit D). The slam's impulse
-is sized for its damage and threw him at 4,640 px/s, past the drag's own 4,500 backstop. Its push
-is capped at 2,500 (`slam_max_speed`, the blunderbuss's 2,536); its damage is not — 140.1 from
-14,015, as before.
-
-**7. A gesture outlives a panel, and not the focus.** Two faults in how a held gesture ends.
-`GestureZones` heard only unhandled events, so a drag across the HUD's "next up" row lost the
-motion to the panel and the slingshot's pouch froze at its edge (D66 measured it); a live press,
-action or carry now listens in `_input` until it ends, exactly as the minigun's stream does, and
-nothing listens at rest. And a gesture the game lost focus in was let go of: the RELEASE and
-ACTION_END that `cancel()` sent on focus-out were a let-go's, so alt-tab mid-draw fired the
-slingshot at him. They carry `cancelled` now, and every hold-to-act toy stands down instead — the
-slingshot slackens, the car unwinds, the cradle's ball goes back, the slinky goes home without a
-boing, the stress ball springs back unpaid, the yo-yo winds in without a trick, the spinner
-settles. The held guns and the four held cursor powers never heard about the focus at all: alt-tab
-mid-stream and the SMG or the minigun fired, and paid Bones, until the next click. They let go.
-
-**8. The fortune ball fills as it is shaken** (F10). A shake was one whole reversal against
-`4 x 0.94^n`, still four for levels 1–4. Each step of a stroke is now worth its share of a shake as
-it happens, up to one 32 px stroke, and a straight drag is not a shake: 6% less shaking is 6% less
-shaking. item_check measures the shaking itself — 112 px plain, 108 at level 1.
-
-**9. The implosion charge's grab region is its sprite's** (D65's note): 88 x 76 drawn round an old
-picture, 70 x 76 from its seeder now, re-seeded with `--only`.
-
-**10. The smaller ones.** An animal's body faces the fall floor, so only its telegraphed blow hurts
-him (audit E; a goose's grapple is its 8 shakes, not 16 hits). The Nervous one's threat holds wait
-behind his early flinch instead of being refused (audit G). He eats only food; the rubber duck is
-bopped (audit G). A toy outside the walls is not a destination (audit F): the brain asks
-`WorldBounds.arena()`, found by group in its own viewport, rather than the window — which is why
-the first attempt was reverted, and why loop_check's hand-built desk is untouched.
-
-**Recorded, not changed: autonomous hits and Dollars** (audit H). By D31's letter a turret's hit
-earns the flat per-hit Dollar like any other. By its point it should not: Dollars are earned by
-being present, and automation pays them at `dollars_idle_efficiency`. A pellet turret banks about
-3,270 an hour at an empty desk against an automation tick's 540; the toys he nibbles and bops pay
-as acts, which the combo, the board and the Dollars all count. A balance call for the owner, with
-the two-line fix written into the audit.
-
-**Why these, and why together.** Each is a sentence of the form the audits exist to find — *this
-does not do what it says*, or *this pays for something nobody did* — and most sit between two
-systems: the brain and the toy, the blast and the body, the gesture and the panel. Every one was
-measured before it was changed, and every check here was run against the code without its fix.
-
-*Consequence:* `Buddy.is_own_play`, `FriendlyBase.take_in`/`let_out`/`touches`/`pay_presence`,
-`ExplosionUtil.MAX_BLAST_SPEED`, `Gesture.cancelled` and `CursorPowerBase.release_hold()` are the
-new seams: a new held toy honours `cancelled`, a new held power overrides `release_hold()`, a new
-soak toy is sat in by default and tuned with `seat_depth`. brain_check takes `--toys id,id`, walks
-every routine toy at Off, and fails an animal that throws him past the drag's backstop or hurts
-him with its body; `tools/soak_shots.tscn` (windowed) shoots him in each soak toy. Three of the
-suites' own timing flakes were found on the way and fixed at their cause: item_check counts touch
-on every tick, brain_check holds his mood still across a reading and times a tell on the
-engine's clock (docs/ai-audit-2026-09.md J). Pacing moves
-nowhere — no price, rate or knob changed: 4/4, first Reincarnation 9:47:54. *Not seen by a
-person:* the slingshot drawn across the real HUD, the goose waiting at the beanbag, the duck being
-bopped.
 
 
 ## Recommendations not yet decided
