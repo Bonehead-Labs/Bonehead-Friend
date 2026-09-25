@@ -5,16 +5,19 @@
 [ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_4ojti"]
 [ext_resource type="Script" path="res://Scripts/Components/effects_player.gd" id="4_rmdo8"]
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_julhk"]
-size = Vector2(76, 20)
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_1e8jt"]
+size = Vector2(58, 14)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_wshfo"]
-size = Vector2(84, 16)
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_yw1u4"]
+size = Vector2(26, 4)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_clp2t"]
-size = Vector2(80, 40)
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_4ojti"]
+size = Vector2(62, 18)
 
-[node name="_Stapler" type="RigidBody2D" unique_id=1016028455 node_paths=PackedStringArray("drag_area", "handle", "sprite", "collider", "Effects_Player")]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_rmdo8"]
+size = Vector2(64, 40)
+
+[node name="_Stapler" type="RigidBody2D" unique_id=1632602533 node_paths=PackedStringArray("drag_area", "handle", "sprite", "collider", "Effects_Player")]
 collision_layer = 4
 collision_mask = 7
 mass = 2.5
@@ -32,28 +35,33 @@ collider = NodePath("CollisionShape2D")
 Effects_Player = NodePath("EffectsPlayer")
 grip_offset = Vector2(0, -12)
 
-[node name="Sprite" type="Sprite2D" parent="." unique_id=1568827412]
+[node name="Sprite" type="Sprite2D" parent="." unique_id=228417743]
 scale = Vector2(2, 2)
 texture = ExtResource("2_yw1u4")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1766603804]
-position = Vector2(0, -8)
-shape = SubResource("RectangleShape2D_julhk")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=142249294]
+position = Vector2(-3, -7)
+shape = SubResource("RectangleShape2D_1e8jt")
 
-[node name="CollisionShape2D2" type="CollisionShape2D" parent="." unique_id=684817967]
-position = Vector2(0, 10)
-shape = SubResource("RectangleShape2D_wshfo")
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="." unique_id=282316930]
+position = Vector2(-17, -16)
+shape = SubResource("RectangleShape2D_yw1u4")
 
-[node name="DraggableArea" type="Area2D" parent="." unique_id=207618721]
+[node name="CollisionShape2D3" type="CollisionShape2D" parent="." unique_id=218502413]
+position = Vector2(-1, 9)
+shape = SubResource("RectangleShape2D_4ojti")
+
+[node name="DraggableArea" type="Area2D" parent="." unique_id=1090025791]
 script = ExtResource("3_4ojti")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=1734549279]
-shape = SubResource("RectangleShape2D_clp2t")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=1716390499]
+position = Vector2(-2, 0)
+shape = SubResource("RectangleShape2D_rmdo8")
 
-[node name="Handle" type="StaticBody2D" parent="." unique_id=1605637785]
+[node name="Handle" type="StaticBody2D" parent="." unique_id=463333265]
 visible = false
 collision_layer = 0
 collision_mask = 0
 
-[node name="EffectsPlayer" type="Node" parent="." unique_id=677764856]
+[node name="EffectsPlayer" type="Node" parent="." unique_id=542146431]
 script = ExtResource("4_rmdo8")

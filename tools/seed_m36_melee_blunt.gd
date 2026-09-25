@@ -45,6 +45,11 @@ const ICONS_DIR := "res://Assets/sprites/icons"
 ## Vertical, head up and handle down, is the house pose — it is what the bat and mace
 ## tables assume and what the art prompts ask for. The golf club is the exception and says
 ## why in place.
+##
+## The art does not always keep the pose — the crowbar leans, the tyre iron's bar hangs off
+## the right of its arm, the nunchaku's sticks lie side by side — so every row is authored
+## against the sprite as drawn (D61). Read shapes off
+## `tools/collider_report.tscn -- --tables --shots --runs`, never off a guess about the prompt.
 const PHYSICS := {
 	# Two turned handles and a barrel between them. The weight is spread down the whole
 	# cylinder rather than gathered in a head, which is what makes a rolling pin the
@@ -63,19 +68,20 @@ const PHYSICS := {
 	# difference between a crowbar and a hammer, and it is the whole reason to own both.
 	&"crowbar": {
 		"shapes": [
-			{"capsule": Vector2(6, 38), "at": Vector2(0, 4)},
-			{"rect": Vector2(12, 8), "at": Vector2(-3, -19), "rot": 20.0},
+			{"capsule": Vector2(6, 40.5), "at": Vector2(4.5, 4.75), "rot": -24.0},
+			{"capsule": Vector2(8, 25), "at": Vector2(-5, -17.25), "rot": 68.0},
 		],
-		"com": Vector2(0, -8),
-		"grip": Vector2(0, 20),
-		"grab": {"size": Vector2(14, 26), "at": Vector2(0, 12)},
+		"com": Vector2(0, -6),
+		"grip": Vector2(11, 19),
+		"grab": {"size": Vector2(14, 26), "at": Vector2(8, 13)},
 	},
 	# A wide flat willow face on a long cane handle: the biggest contact patch in the tool
 	# on one of the lightest bodies in it.
 	&"cricket_bat": {
 		"shapes": [
-			{"rect": Vector2(20, 36), "at": Vector2(0, -11)},
-			{"capsule": Vector2(7, 24), "at": Vector2(0, 17)},
+			{"rect": Vector2(13, 33), "at": Vector2(-0.5, -12.5)},
+			{"capsule": Vector2(7, 19), "at": Vector2(-0.5, 14.5)},
+			{"rect": Vector2(11, 6), "at": Vector2(-0.5, 26)},
 		],
 		"com": Vector2(0, -12),
 		"grip": Vector2(0, 26),
@@ -85,17 +91,18 @@ const PHYSICS := {
 	# rather than spins, which is what an L-shaped bar in the boot of a car actually does.
 	&"tyre_iron": {
 		"shapes": [
-			{"capsule": Vector2(5, 42), "at": Vector2(0, 4)},
-			{"rect": Vector2(14, 5), "at": Vector2(-6, -21)},
+			{"capsule": Vector2(6, 46), "at": Vector2(10, 1)},
+			{"rect": Vector2(22, 6), "at": Vector2(-2, -19)},
+			{"rect": Vector2(8, 9), "at": Vector2(-8, -19.5)},
 		],
-		"com": Vector2(0, -10),
-		"grip": Vector2(0, 22),
-		"grab": {"size": Vector2(12, 26), "at": Vector2(0, 14)},
+		"com": Vector2(8, -12),
+		"grip": Vector2(10, 21),
+		"grab": {"size": Vector2(12, 26), "at": Vector2(10, 11)},
 	},
 	&"sledgehammer": {
 		"shapes": [
-			{"rect": Vector2(22, 12), "at": Vector2(0, -21)},
-			{"capsule": Vector2(7, 40), "at": Vector2(0, 7)},
+			{"rect": Vector2(29, 12), "at": Vector2(-1, -21)},
+			{"capsule": Vector2(10, 40), "at": Vector2(-0.5, 7)},
 		],
 		# Almost in the head. A sledgehammer is a wooden stick with a block on the end and
 		# it should hang, swing and land like one.
@@ -105,12 +112,13 @@ const PHYSICS := {
 	},
 	&"pipe_wrench": {
 		"shapes": [
-			{"rect": Vector2(18, 14), "at": Vector2(0, -18)},
-			{"capsule": Vector2(7, 32), "at": Vector2(0, 9)},
+			{"rect": Vector2(14, 11), "at": Vector2(-3, -19.5)},
+			{"rect": Vector2(6, 11), "at": Vector2(7, -15.5)},
+			{"capsule": Vector2(9, 38), "at": Vector2(-3, 5.5), "rot": 7.7},
 		],
 		"com": Vector2(0, -14),
-		"grip": Vector2(0, 22),
-		"grab": {"size": Vector2(14, 28), "at": Vector2(0, 13)},
+		"grip": Vector2(-5, 21),
+		"grab": {"size": Vector2(14, 28), "at": Vector2(-3, 13)},
 	},
 	# The one item here drawn corner to corner, and the one whose grip is at the *top* of
 	# the picture. A club hangs head-down from your hands, so pinning at the butt of the
@@ -119,33 +127,38 @@ const PHYSICS := {
 	# same reason, just the other way up.
 	&"golf_club": {
 		"shapes": [
-			{"capsule": Vector2(5, 58), "at": Vector2(0, 0), "rot": 45.0},
-			{"rect": Vector2(13, 9), "at": Vector2(-23, 23), "rot": 45.0},
-			{"rect": Vector2(5, 16), "at": Vector2(19, -19), "rot": 45.0},
+			{"capsule": Vector2(5.5, 54), "at": Vector2(10.1, -7.6), "rot": 43.0},
+			{"rect": Vector2(20, 9), "at": Vector2(-19.5, 17.5)},
+			{"rect": Vector2(11, 6), "at": Vector2(-21.5, 25)},
+			{"rect": Vector2(7, 16), "at": Vector2(23.2, -21.6), "rot": 43.0},
 		],
 		"com": Vector2(-19, 19),
 		"grip": Vector2(23, -23),
 		"grab": {"size": Vector2(20, 20), "at": Vector2(20, -20)},
 	},
 	# Two sticks and a chain, approximated as one body — see the note on the flail below.
-	# The gap between the sticks is real geometry, so the near stick can pass a corner the
-	# far one catches on.
+	# They are drawn side by side with the chain across the middle, so the pin is at the end
+	# of one stick and the weight is in the other: the flail's approximation again. The gap
+	# between the sticks is real geometry, so the near stick can pass a corner the far one
+	# catches on.
 	&"nunchaku": {
 		"shapes": [
-			{"capsule": Vector2(7, 18), "at": Vector2(0, -12)},
-			{"rect": Vector2(3, 6), "at": Vector2(0, 1)},
-			{"capsule": Vector2(7, 18), "at": Vector2(0, 14)},
+			{"capsule": Vector2(7, 44), "at": Vector2(-10, 0)},
+			{"rect": Vector2(12, 4), "at": Vector2(-1, 2)},
+			{"capsule": Vector2(7, 44), "at": Vector2(9, 0)},
 		],
-		"com": Vector2(0, -12),
-		"grip": Vector2(0, 20),
-		"grab": {"size": Vector2(14, 20), "at": Vector2(0, 14)},
+		"com": Vector2(9, 0),
+		"grip": Vector2(-10, 19),
+		"grab": {"size": Vector2(14, 20), "at": Vector2(-10, 14)},
 	},
 	# Rigid by definition — a morning star is a spiked head on a haft, and the flail below
 	# is the one on a chain. That distinction is the only reason to own both.
 	&"morning_star": {
 		"shapes": [
-			{"circle": 14.0, "at": Vector2(0, -12)},
-			{"capsule": Vector2(7, 26), "at": Vector2(0, 13)},
+			{"circle": 10.5, "at": Vector2(-0.5, -14)},
+			{"rect": Vector2(27, 3), "at": Vector2(-1, -14.5)},
+			{"rect": Vector2(5, 4), "at": Vector2(-1, -24)},
+			{"capsule": Vector2(7, 30), "at": Vector2(-0.5, 10.5)},
 		],
 		"com": Vector2(0, -13),
 		"grip": Vector2(0, 22),
@@ -163,16 +176,16 @@ const PHYSICS := {
 	# a Line2D rebuilt every frame.
 	#
 	# So it is approximated, and the approximation is the same one the bat uses, pushed as
-	# far as it goes: the head is a ball 15 art pixels out, the mass is entirely inside it,
-	# and the pin is at the very butt of the handle. That is a 41-pixel lever arm against
+	# far as it goes: the head is a ball 19 art pixels out, the mass is entirely inside it,
+	# and the pin is at the very butt of the handle. That is a 45-pixel lever arm against
 	# the bat's 30, and the drag joint's own softness supplies the lag.
 	&"flail": {
 		"shapes": [
-			{"circle": 13.0, "at": Vector2(0, -15)},
-			{"capsule": Vector2(3, 14), "at": Vector2(0, -2)},
-			{"capsule": Vector2(7, 22), "at": Vector2(0, 17)},
+			{"circle": 10.0, "at": Vector2(-0.5, -19)},
+			{"capsule": Vector2(8, 22), "at": Vector2(-0.5, -0.5)},
+			{"rect": Vector2(11, 18), "at": Vector2(-0.5, 19)},
 		],
-		"com": Vector2(0, -15),
+		"com": Vector2(0, -19),
 		"grip": Vector2(0, 26),
 		"grab": {"size": Vector2(14, 22), "at": Vector2(0, 17)},
 	},
@@ -184,58 +197,58 @@ const PHYSICS := {
 	# generous, because none of these is a 14-pixel-wide stick that the eye can aim at.
 	&"stapler": {
 		"shapes": [
-			{"rect": Vector2(38, 10), "at": Vector2(0, -4)},
-			{"rect": Vector2(42, 8), "at": Vector2(0, 5)},
+			{"rect": Vector2(29, 7), "at": Vector2(-1.5, -3.5)},
+			{"rect": Vector2(13, 2), "at": Vector2(-8.5, -8)},
+			{"rect": Vector2(31, 9), "at": Vector2(-0.5, 4.5)},
 		],
 		# The spring and the anvil are in the base, which is why a dropped stapler lands
 		# on its bottom and stays there.
 		"com": Vector2(0, 2),
 		"grip": Vector2(0, -6),
-		"grab": {"size": Vector2(40, 20), "at": Vector2(0, 0)},
+		"grab": {"size": Vector2(32, 20), "at": Vector2(-1, 0)},
 	},
 	# Pinned by the handle, so it swings from a point outside its own silhouette. That is
 	# the closest thing in this tool to an actual flail, and it came free with the shape.
 	&"office_mug": {
 		"shapes": [
-			{"rect": Vector2(20, 26), "at": Vector2(-2, 0)},
-			{"rect": Vector2(6, 12), "at": Vector2(11, 0)},
+			{"rect": Vector2(22, 24), "at": Vector2(-4, -1)},
+			{"rect": Vector2(6, 14), "at": Vector2(11, -1)},
 		],
-		"com": Vector2(-2, 6),
+		"com": Vector2(-4, 5),
 		"grip": Vector2(11, -4),
 		"grab": {"size": Vector2(28, 28), "at": Vector2(0, 0)},
 	},
 	&"hole_punch": {
 		"shapes": [
-			{"rect": Vector2(26, 16), "at": Vector2(0, -4)},
-			{"rect": Vector2(30, 8), "at": Vector2(0, 8)},
+			{"rect": Vector2(26, 16), "at": Vector2(-0.5, -4)},
+			{"rect": Vector2(26, 8), "at": Vector2(-0.5, 8)},
 		],
 		"com": Vector2(0, 2),
 		"grip": Vector2(0, -8),
-		"grab": {"size": Vector2(32, 26), "at": Vector2(0, 0)},
+		"grab": {"size": Vector2(32, 26), "at": Vector2(-0.5, 0)},
 	},
 	# Gripped at one end, because a keyboard swung by its corner is a plank on a string and
 	# in this one case that is exactly the joke.
 	&"mechanical_keyboard": {
 		"shapes": [
-			{"rect": Vector2(66, 12), "at": Vector2(0, -8)},
-			{"rect": Vector2(72, 16), "at": Vector2(0, 6)},
+			{"rect": Vector2(57, 28), "at": Vector2(-0.5, 0)},
 		],
 		# Under the keys, not in them: the weight of a mechanical board is its steel plate.
 		"com": Vector2(0, 6),
-		"grip": Vector2(-32, 0),
-		"grab": {"size": Vector2(72, 30), "at": Vector2(0, 0)},
+		"grip": Vector2(-27, 0),
+		"grab": {"size": Vector2(60, 30), "at": Vector2(-0.5, 0)},
 	},
 	# Panel, neck and foot as three shapes, so it can land on the foot and stand up. Held
 	# by the foot, which is how a monitor comes off a desk in a hurry.
 	&"monitor": {
 		"shapes": [
-			{"rect": Vector2(72, 40), "at": Vector2(0, -9)},
-			{"rect": Vector2(8, 10), "at": Vector2(0, 16)},
-			{"rect": Vector2(30, 8), "at": Vector2(0, 25)},
+			{"rect": Vector2(52, 33), "at": Vector2(-0.5, -9.5)},
+			{"rect": Vector2(10, 13), "at": Vector2(-0.5, 13.5)},
+			{"rect": Vector2(28, 6), "at": Vector2(-0.5, 23)},
 		],
 		"com": Vector2(0, -8),
-		"grip": Vector2(0, 26),
-		"grab": {"size": Vector2(70, 44), "at": Vector2(0, -6)},
+		"grip": Vector2(0, 23),
+		"grab": {"size": Vector2(54, 36), "at": Vector2(0, -9)},
 	},
 }
 
