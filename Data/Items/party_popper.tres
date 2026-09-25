@@ -15,3 +15,4 @@ currency = 1
 scene = ExtResource("1_88ctc")
 icon = ExtResource("1_3w3xx")
 sort_order = 44
+controls = "Hold it near him and right-click to pull the string · Or throw it at him"

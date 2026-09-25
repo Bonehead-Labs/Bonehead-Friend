@@ -1,43 +1,88 @@
 [gd_scene format=3]
 
-[ext_resource type="Script" path="res://Scripts/Bodies/friendly_base.gd" id="1_086kb"]
-[ext_resource type="Texture2D" path="res://Assets/sprites/items/cup_of_tea.png" id="2_xatuk"]
-[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_dgxc6"]
+[ext_resource type="Script" path="res://Scripts/Bodies/friendly_base.gd" id="1_dgxc6"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/cup_of_tea.png" id="2_2lbge"]
+[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_yauxx"]
+[ext_resource type="Script" path="res://Scripts/Bodies/gesture_zones.gd" id="4_dfa2e"]
+[ext_resource type="Script" path="res://Scripts/Bodies/item_verbs.gd" id="5_wjqau"]
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_2lbge"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_25j2e"]
 size = Vector2(44, 36)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_yauxx"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_r1esh"]
 size = Vector2(56, 48)
 
-[node name="CupOfTea" type="RigidBody2D" unique_id=1962743486 node_paths=PackedStringArray("drag_area", "handle", "collider")]
+[node name="CupOfTea" type="RigidBody2D" unique_id=1665516329 node_paths=PackedStringArray("drag_area", "handle", "sprite", "collider")]
 collision_layer = 4
 collision_mask = 7
 mass = 0.4
 contact_monitor = true
 max_contacts_reported = 4
-script = ExtResource("1_086kb")
+script = ExtResource("1_dgxc6")
 hearts_per_contact = 18.0
 contact_cooldown = 0.5
 consume_on_use = true
 drag_area = NodePath("DraggableArea")
 handle = NodePath("Handle")
+sprite = NodePath("Sprite")
 collider = NodePath("CollisionShape2D")
 
-[node name="Sprite" type="Sprite2D" parent="." unique_id=1474196884]
+[node name="Sprite" type="Sprite2D" parent="." unique_id=809431545]
 scale = Vector2(2, 2)
-texture = ExtResource("2_xatuk")
+texture = ExtResource("2_2lbge")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=249942771]
-shape = SubResource("RectangleShape2D_2lbge")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1859666228]
+shape = SubResource("RectangleShape2D_25j2e")
 
-[node name="DraggableArea" type="Area2D" parent="." unique_id=2130502243]
-script = ExtResource("3_dgxc6")
+[node name="DraggableArea" type="Area2D" parent="." unique_id=888589310]
+script = ExtResource("3_yauxx")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=1537728421]
-shape = SubResource("RectangleShape2D_yauxx")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=1875431368]
+shape = SubResource("RectangleShape2D_r1esh")
 
-[node name="Handle" type="StaticBody2D" parent="." unique_id=142465685]
+[node name="Handle" type="StaticBody2D" parent="." unique_id=990490936]
 visible = false
 collision_layer = 0
 collision_mask = 0
+
+[node name="GestureZones" type="Node" parent="." unique_id=312733202]
+script = ExtResource("4_dfa2e")
+zones = [{
+"at": Vector2(0, -5),
+"circle": 7.0,
+"id": &"tea",
+"right": "claim"
+}]
+
+[node name="ItemVerbs" type="Node" parent="." unique_id=1515879659]
+script = ExtResource("5_wjqau")
+verbs = [{
+"every": 3.141592653589793,
+"id": &"clink",
+"on": "crank",
+"pitch": 2.2,
+"sound": &"impact_metal",
+"volume": -16.0,
+"zone": &"tea"
+}, {
+"bursts": [[&"heart", Color(1, 0.37254903, 0.61960787, 1), 3, 80.0]],
+"effects": [{
+"amount": 8,
+"at": Vector2(0, -8),
+"box": Vector2(5, 1),
+"colour": Color(0.9098039, 0.89411765, 0.8392157, 1),
+"kind": "surge",
+"lifetime": 1.2,
+"scale": Vector2(1, 2),
+"seconds": 1.0,
+"spread": 20.0,
+"velocity": Vector2(0, -20)
+}],
+"every": 12.566370614359172,
+"id": &"stirred",
+"on": "crank",
+"once": true,
+"react": &"amused",
+"value": 5.0,
+"zone": &"tea"
+}]

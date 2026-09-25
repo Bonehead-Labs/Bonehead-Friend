@@ -1,25 +1,27 @@
 [gd_scene format=3]
 
-[ext_resource type="Script" path="res://Scripts/Bodies/wind_source.gd" id="1_75ab7"]
-[ext_resource type="Texture2D" path="res://Assets/sprites/items/desk_fan.png" id="2_rvvm7"]
-[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_8hgy7"]
+[ext_resource type="Script" path="res://Scripts/Bodies/wind_source.gd" id="1_8hgy7"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/desk_fan.png" id="2_7q75f"]
+[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_awuni"]
+[ext_resource type="Script" path="res://Scripts/Bodies/gesture_zones.gd" id="4_du87q"]
+[ext_resource type="Script" path="res://Scripts/Bodies/item_verbs.gd" id="5_h471q"]
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_7q75f"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_7as4a"]
 size = Vector2(42, 56)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_awuni"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_to2do"]
 size = Vector2(440, 120)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_du87q"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_rn0ss"]
 size = Vector2(66, 80)
 
-[node name="DeskFan" type="RigidBody2D" unique_id=346605006 node_paths=PackedStringArray("wind_area", "drag_area", "handle", "sprite", "collider")]
+[node name="DeskFan" type="RigidBody2D" unique_id=1619198991 node_paths=PackedStringArray("wind_area", "drag_area", "handle", "sprite", "collider")]
 collision_layer = 4
 collision_mask = 7
 mass = 7.0
 contact_monitor = true
 max_contacts_reported = 4
-script = ExtResource("1_75ab7")
+script = ExtResource("1_8hgy7")
 wind_area = NodePath("WindArea")
 item_id = &"desk_fan"
 drag_area = NodePath("DraggableArea")
@@ -27,28 +29,52 @@ handle = NodePath("Handle")
 sprite = NodePath("Sprite")
 collider = NodePath("CollisionShape2D")
 
-[node name="Sprite" type="Sprite2D" parent="." unique_id=330510040]
+[node name="Sprite" type="Sprite2D" parent="." unique_id=581809256]
 scale = Vector2(2, 2)
-texture = ExtResource("2_rvvm7")
+texture = ExtResource("2_7q75f")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=135722344]
-shape = SubResource("RectangleShape2D_7q75f")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=574442881]
+shape = SubResource("RectangleShape2D_7as4a")
 
-[node name="WindArea" type="Area2D" parent="." unique_id=53797434]
+[node name="WindArea" type="Area2D" parent="." unique_id=879781119]
 collision_layer = 32
 collision_mask = 6
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="WindArea" unique_id=1708178193]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="WindArea" unique_id=16749714]
 position = Vector2(220, 0)
-shape = SubResource("RectangleShape2D_awuni")
+shape = SubResource("RectangleShape2D_to2do")
 
-[node name="DraggableArea" type="Area2D" parent="." unique_id=2101153107]
-script = ExtResource("3_8hgy7")
+[node name="DraggableArea" type="Area2D" parent="." unique_id=970999015]
+script = ExtResource("3_awuni")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=217908996]
-shape = SubResource("RectangleShape2D_du87q")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=1443376132]
+shape = SubResource("RectangleShape2D_rn0ss")
 
-[node name="Handle" type="StaticBody2D" parent="." unique_id=1020484868]
+[node name="Handle" type="StaticBody2D" parent="." unique_id=1487077962]
 visible = false
 collision_layer = 0
 collision_mask = 0
+
+[node name="GestureZones" type="Node" parent="." unique_id=1334153058]
+script = ExtResource("4_du87q")
+zones = [{
+"at": Vector2(0, -6),
+"circle": 10.0,
+"id": &"face",
+"right": "claim"
+}]
+
+[node name="ItemVerbs" type="Node" parent="." unique_id=1309184345]
+script = ExtResource("5_h471q")
+verbs = [{
+"id": &"grab_face",
+"on": "press",
+"sound": &"whirr",
+"volume": -10.0,
+"zone": &"face"
+}, {
+"call": &"aim_at",
+"id": &"aim",
+"on": "drag",
+"zone": &"face"
+}]

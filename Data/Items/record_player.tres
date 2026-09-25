@@ -15,3 +15,4 @@ currency = 1
 scene = ExtResource("1_fvpbf")
 icon = ExtResource("1_rvlnk")
 sort_order = 50
+controls = "Right-drag across the record to scratch it"

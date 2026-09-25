@@ -15,3 +15,4 @@ currency = 1
 scene = ExtResource("1_reglp")
 icon = ExtResource("1_237ea")
 sort_order = 60
+controls = "Right-click the lid to feed the fish"

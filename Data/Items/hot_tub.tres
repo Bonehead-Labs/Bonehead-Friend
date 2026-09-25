@@ -16,3 +16,4 @@ scene = ExtResource("2_edpng")
 icon = ExtResource("1_7pkkk")
 requires = Array[StringName]([&"chocolate_fountain"])
 sort_order = 50
+controls = "Right-click the jets while he soaks"
