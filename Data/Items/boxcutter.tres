@@ -14,3 +14,4 @@ scene = ExtResource("2_6wuux")
 icon = ExtResource("1_eyjwg")
 requires = Array[StringName]([&"mace"])
 sort_order = 22
+controls = "Hold · Right: Snap — three blade tips, snapped off and flicked straight at him"

@@ -644,6 +644,29 @@ func _drive_reap(body: WeaponBase, ability: ReapAbility) -> Dictionary:
 		not body.get_collision_exceptions().has(_buddy) and body.hand_offset == Vector2.ZERO)
 	return {"reap": ability.last_reap, "turned": turned, "rise": rise, "hits": _hits.size()}
 
+## Soul Reap: right held, a quick stroke toward him from 430 px: the ghost leaves the blade and goes
+## through him while the scythe is still far away.
+func _drive_soul_reap(body: WeaponBase, ability: SoulReapAbility) -> Dictionary:
+	await _approach(body, Vector2(-430.0, -60.0))
+	_press(MOUSE_BUTTON_RIGHT)
+	await _step(10)
+	_check("right held arms it", ability.is_active() and ability.last_ghost_speed == 0.0)
+	# The swing: a quick stroke of the hand toward him that stops well short of him.
+	await _mouse_to(_centre() + Vector2(-130.0, -60.0), 1800.0)
+	var left := await _await_cond(func() -> bool: return not ability.is_active(), 20)
+	_release(MOUSE_BUTTON_RIGHT)
+	_check("a swing lets the ghost go (%.0f px/s%s)" % [ability.last_ghost_speed,
+		", bent onto him" if ability.assisted else ""], left and not ability.fizzled and ability.last_ghost_speed > 0.0)
+	var reaped := await _await_cond(func() -> bool: return ability.reaps > 0, 60)
+	var gap := ability.tip_world().distance_to(_centre())
+	_check("it reaps him at range (%.0f px from the blade)" % gap, reaped and gap >= 100.0)
+	await _step(3)
+	_check("billed once, as its own impulse (%.0f)" % ability.last_strike,
+		_hits_with_impulse(ability.last_strike) == 1)
+	_check("his soul is tugged out", _buddy.get_node_or_null("SoulWisp") != null)
+	await _expect_face(&"soul_reaped", &"soul_reaped")
+	return {"ghost": ability.last_ghost_speed, "reap": ability.last_strike, "gap": gap, "hits": _hits.size()}
+
 ## En Garde: right held, it points itself at him; lunges along the blade are thrusts, x2.
 func _drive_en_garde(body: WeaponBase, ability: EnGardeAbility) -> Dictionary:
 	await _approach(body, Vector2(-200.0, -40.0))
@@ -684,6 +707,39 @@ func _drive_flurry(body: WeaponBase, ability: FlurryAbility) -> Dictionary:
 		ability.jabs_landed >= 4 and ability.struck.is_empty())
 	_check("the hand is its own again", body.hand_offset == Vector2.ZERO and not ability.is_active())
 	return {"jabs": ability.jabs, "landed": ability.jabs_landed, "hits": _hits.size()}
+
+## Snap: one tap from 300 px: three tips, straight, and the knife never leaves the hand.
+func _drive_snap(body: WeaponBase, ability: SnapAbility) -> Dictionary:
+	await _approach(body, Vector2(-300.0, -40.0))
+	_press(MOUSE_BUTTON_RIGHT)
+	await _step()
+	_release(MOUSE_BUTTON_RIGHT)
+	# The first tip, sampled in flight: a straight line.
+	var tip: Node2D = null
+	for i in 6:
+		await _step()
+		for node in _stage.get_children():
+			if String(node.name).begins_with("BladeTip"):
+				tip = node
+				break
+		if tip:
+			break
+	var path: Array[Vector2] = []
+	for i in 4:
+		if is_instance_valid(tip) and not (tip as SnapAbility.Shard).spent:
+			path.append(tip.global_position)
+		await _step()
+	var straight := path.size() >= 3 and absf((path[1] - path[0]).cross(path[path.size() - 1] - path[0])) \
+		<= 2.0 * path[0].distance_to(path[path.size() - 1])
+	_check("a tip flies dead straight (%d samples)" % path.size(), straight)
+	await _await_cond(func() -> bool: return ability.flicked >= int(ability.num("shots", 3.0)), 40)
+	_check("three of them, and the knife stays in the hand (%d)" % ability.flicked,
+		ability.flicked == int(ability.num("shots", 3.0)) and body.dragging)
+	await _await_cond(func() -> bool: return ability.tips_hit >= 2, 60)
+	await _step(3)
+	_check("they hit him, each billed once (%d hit)" % ability.tips_hit,
+		ability.tips_hit >= 2 and _hits_with_impulse(ability.num("tip_force", 1300.0)) == ability.tips_hit)
+	return {"tips": ability.flicked, "hit": ability.tips_hit, "hits": _hits.size()}
 
 ## Special Delivery: thrown from 260 px, point first and straight; x2 on him; stuck where it lands,
 ## nothing running; and the cooldown starts when it is fetched.

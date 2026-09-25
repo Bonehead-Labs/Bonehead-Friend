@@ -178,6 +178,17 @@ const ABILITIES := {
 		"reap_mult": 1.2, "pull": 260.0, "lift": 520.0, "flip": 13.0, "claim_seconds": 1.5,
 		"settle_seconds": 1.0,
 	},
+	# Hold and flick: a ghost of the blade leaves it the way the hand went, at the hand's speed, and
+	# passes through him. The one ranged ability the player aims.
+	&"scythe": {
+		"id": &"soul_reap", "name": "Soul Reap", "archetype": &"projectile",
+		"script": "res://Scripts/Bodies/Abilities/soul_reap_ability.gd",
+		"controls": "Hold · Right: Soul Reap — hold and swing; the blade's ghost flies on through him",
+		"cooldown": 4.0, "busy": 1.0, "worth": 1.8,
+		"arm_seconds": 2.0, "release_speed": 600.0, "ghost_min": 700.0, "ghost_max": 1300.0,
+		"ghost_range": 620.0, "assist_degrees": 30.0, "reap_force": 2600.0, "reap_speed": 1000.0,
+		"reap_mult": 1.0, "shove": 0.15,
+	},
 	# Hold: it points itself at him like a held gun (D56); a thrust along the blade is x2, a swipe
 	# across it x0.5.
 	&"rapier": {
@@ -196,6 +207,15 @@ const ABILITIES := {
 		"cooldown": 5.0, "busy": 2.0, "worth": 1.8,
 		"fuel_seconds": 2.0, "jab_rate": 6.0, "jab_px": 50.0, "jab_draw": 0.2, "jab_out": 0.3,
 		"kick": 300.0, "reach": 150.0, "aim_frequency": 16.0, "aim_accel": 320.0,
+	},
+	# Tap: click-click-click, three snapped-off blade tips flicked at him dead straight.
+	&"boxcutter": {
+		"id": &"snap", "name": "Snap", "archetype": &"projectile",
+		"script": "res://Scripts/Bodies/Abilities/snap_ability.gd",
+		"controls": "Hold · Right: Snap — three blade tips, snapped off and flicked straight at him",
+		"cooldown": 3.0, "busy": 0.4, "worth": 1.5,
+		"shots": 3.0, "shot_gap": 0.12, "tip_speed": 1400.0, "tip_force": 1300.0, "tip_mult": 1.0,
+		"shove": 0.4, "range": 700.0, "recoil": 60.0,
 	},
 	# Tap: point-first in a dead straight line, x2 on the point, and it sticks where it lands. The
 	# cooldown starts when you fetch it, so `busy` counts the walk.

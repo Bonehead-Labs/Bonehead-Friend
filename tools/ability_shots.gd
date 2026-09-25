@@ -318,6 +318,25 @@ func _stage_reap(id: StringName, ability: WeaponAbility, centre: Vector2, _floor
 	await _shot("%s-caught" % id, 1)
 	await _shot("%s-over" % id, 9)
 
+## Soul Reap: armed, one quick stroke toward him that stops short, the ghost, and his soul.
+func _stage_soul_reap(id: StringName, ability: WeaponAbility, centre: Vector2, _floor_y: float) -> void:
+	await _carry(centre + Vector2(-430.0, -60.0), 50)
+	var soul := ability as SoulReapAbility
+	ability.press()
+	await _shot("%s-armed" % id, 20)
+	for i in 10:
+		await _carry(_hand + Vector2(30.0, 0.0), 1)
+		if not ability.is_active():
+			break
+	ability.release()
+	await _shot("%s-ghost" % id, 4)
+	for i in 40:
+		await _carry(_hand, 1)
+		if soul.reaps > 0:
+			break
+	await _shot("%s-reaped" % id, 1)
+	await _shot("%s-soul" % id, 8)
+
 ## En Garde: on guard at him, and a lunge.
 func _stage_en_garde(id: StringName, ability: WeaponAbility, centre: Vector2, _floor_y: float) -> void:
 	await _carry(centre + Vector2(-200.0, -40.0), 40)
@@ -339,6 +358,20 @@ func _stage_flurry(id: StringName, ability: WeaponAbility, centre: Vector2, _flo
 	await _shot("%s-flurry" % id, 14)
 	await _carry(_hand, 60)
 	ability.release()
+
+## Snap: three tips, straight.
+func _stage_snap(id: StringName, ability: WeaponAbility, centre: Vector2, _floor_y: float) -> void:
+	await _carry(centre + Vector2(-300.0, -40.0), 40)
+	var snap := ability as SnapAbility
+	ability.press()
+	ability.release()
+	await _shot("%s-first" % id, 3)
+	await _shot("%s-three" % id, 12)
+	for i in 30:
+		await _carry(_hand, 1)
+		if snap.tips_hit >= 2:
+			break
+	await _shot("%s-hit" % id, 1)
 
 ## Special Delivery: point first across the desk, the point arriving, and stuck where it landed.
 func _stage_special_delivery(id: StringName, ability: WeaponAbility, centre: Vector2, _floor_y: float) -> void:
