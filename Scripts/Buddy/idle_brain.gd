@@ -663,7 +663,9 @@ func _arena() -> Rect2:
 	for node in get_tree().get_nodes_in_group(WorldBounds.GROUP):
 		var walls := node as WorldBounds
 		if walls and walls.get_viewport() == get_viewport():
-			return walls.arena()
+			# Grown by the walls' own keep-inside margin: a body's origin is not its collider, and the
+			# trampoline resting on the desk has its origin 12 px below the floor line, under its mat.
+			return walls.arena().grow(WorldBounds.CONTAIN_MARGIN)
 	return Rect2()
 
 ## What he would do with it, read off the switches the item already declares rather than off
