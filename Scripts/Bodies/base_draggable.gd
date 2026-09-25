@@ -31,6 +31,11 @@ extends RigidBody2D
 @export var joint_bias: float = 0.2
 @export var follow_lerp: float = 1.0
 
+## Where the hand is, relative to the cursor. Zero, except while a weapon's ability drives the
+## hand itself — the katana's lunge carries the handle through him and back (D74), so the drag
+## joint does the carrying and the blade keeps its weight.
+var hand_offset := Vector2.ZERO
+
 var dragging: bool = false
 var mouse_joint: PinJoint2D
 
@@ -194,7 +199,7 @@ func _physics_process(_delta: float) -> void:
 	# instant physics resumes — which is the bug the freeze was introduced to fix, arriving by
 	# the other door. Measured: eight frozen frames, eight teleports.
 	if dragging and handle and not physics_frozen:
-		handle.global_position = handle.global_position.lerp(get_global_mouse_position(), follow_lerp)
+		handle.global_position = handle.global_position.lerp(get_global_mouse_position() + hand_offset, follow_lerp)
 		# Written only when over the ceiling (D56). The getters return what the server reported
 		# after the last step, so writing them back unconditionally every frame replaced the
 		# body's real velocity with that stale copy — erasing any impulse applied since, which is

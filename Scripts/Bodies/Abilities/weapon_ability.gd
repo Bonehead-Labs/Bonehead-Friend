@@ -1,0 +1,614 @@
+class_name WeaponAbility
+extends Node
+
+## What a weapon does with the right button while it is in your hand (docs/decisions.md D74).
+##
+## The owner, after swinging the melee drawer: "other than their sprite they didn't feel
+## unique". A bat and a mace were one verb with two pictures. So every held weapon gets one
+## thing only it does — a home run, a cut straight through him, a BONG — on the button D56 and
+## D57 already gave to "the item's action": **right while holding**.
+##
+## ## The grammar, unchanged
+##
+## - Left carries. Right while holding is the ability: press, hold, let go.
+## - Right on a weapon you are *not* holding still bins it, and Shift+right bins it anywhere,
+##   held or not. Nothing here claims Shift (`BaseDraggable.click_would_bin`).
+## - A press during the cooldown is claimed and refused — a dull tick, and the pip flashes —
+##   never passed through: mashing right on a cooling bat must not throw the bat away.
+##
+## ## How a weapon gets one
+##
+## A row in `AbilityTable.ABILITIES`, keyed by item id, naming an **archetype** (`charge`,
+## `dash`, `stun`, `sustain`, `shockwave`, `projectile`, `spin`, `throw`) and its numbers.
+## `WeaponBase._ready` asks the table and adds the archetype's script as a child. Each archetype
+## is a subclass of this that overrides the hooks below and nothing else; a weapon that needs
+## behaviour its archetype lacks names a subclass of that archetype in the row's `script`.
+##
+## ## Damage is still his to measure (D7, D64)
+##
+## An ability never mints anything. It does one of three things, and he bills each:
+##   - moves a body — the weapon, or him — so that a contact happens his ledger bills;
+##   - scales the weapon's own contact multiplier for a hit (`hit_multiplier`), which he reads
+##     when he attributes the hit, exactly as he reads the damage augment;
+##   - hands him an impulse through `Buddy.take_impulse`, the gunshot's path, at the weapon's
+##     multiplier.
+## Anything it applies to *him* directly is applied from `_physics_process`, which runs before
+## `Buddy.StepStart` reads the step's starting velocity, so his ledger never mistakes a launch
+## for a contact and bills it a second time.
+##
+## ## Cost
+##
+## Nothing runs while the weapon lies on the desk or the ability is idle: no `_process`, no
+## `_physics_process`, no `_input`. Each is switched on for exactly as long as it is needed — the
+## physics tick while an effect runs, the input hook while right is down, the frame tick while
+## the pip is being drawn — and off again. The cooldown is a stopped `Timer` the rest of the time.
+
+## One activation began, and one landed on him. For the suites and the capture tool; nothing in
+## the simulation listens.
+signal used(ability: StringName)
+signal paid_off(event: StringName)
+
+## One art pixel is this many world pixels — the 2x every sprite is drawn at.
+const ART_SCALE := 2.0
+## The layers a sweep looks for him on, and for the world on.
+const BUDDY_LAYER := 2
+const WORLD_LAYER := 1
+## He knows a wind-up is aimed at him inside this range, like a gun's aim (D56).
+const THREAT_REACH := 360.0
+const THREAT_REFRESH_MSEC := 500
+
+## The row, as `AbilityTable` holds it. See the table's comment for the fields.
+var row: Dictionary = {}
+var body: WeaponBase
+
+## Activations started, presses refused, and times the effect landed on him — for the suites.
+## Never read by the simulation.
+var uses := 0
+var denied := 0
+var payoffs := 0
+## The multiplier each of the weapon's last hits was billed at on top of its own — through
+## `hit_multiplier`, or through `strike` — and the impulse each hit it handed him itself carried.
+var billed: Array[float] = []
+var struck: Array[float] = []
+
+var _active := false
+var _right_held := false
+var _pressed_usec := 0
+var _cooldown_seconds := 0.0
+var _ready_timer: Timer
+var _pip: Pip
+var _buddy: Buddy
+var _threatening := false
+var _threat_refresh_msec := 0
+var _chip: Texture2D
+
+func _ready() -> void:
+	# After the body's own chase in the same physics frame, so a hand offset written here is
+	# the last word on where the handle is before the step.
+	process_physics_priority = 1
+	set_physics_process(false)
+	set_process(false)
+	set_process_input(false)
+	_ready_timer = Timer.new()
+	_ready_timer.name = "Cooldown"
+	_ready_timer.one_shot = true
+	_ready_timer.timeout.connect(_on_cooled)
+	add_child(_ready_timer)
+
+func _exit_tree() -> void:
+	if _active:
+		_on_stop()
+	_active = false
+	_threaten(false)
+
+# --- reading it -------------------------------------------------------------------
+
+func ability_id() -> StringName:
+	return StringName(row.get("id", &""))
+
+func ability_name() -> String:
+	return String(row.get("name", ""))
+
+func archetype() -> StringName:
+	return StringName(row.get("archetype", &""))
+
+## Ready to use: not running and not cooling down.
+func is_ready() -> bool:
+	return not _active and (_ready_timer == null or _ready_timer.is_stopped())
+
+func is_active() -> bool:
+	return _active
+
+func is_cooling() -> bool:
+	return _ready_timer != null and not _ready_timer.is_stopped()
+
+func cooldown_left() -> float:
+	return _ready_timer.time_left if is_cooling() else 0.0
+
+## Seconds right has been held, 0 when it is not.
+func held_seconds() -> float:
+	if not _right_held:
+		return 0.0
+	return float(Time.get_ticks_usec() - _pressed_usec) / 1_000_000.0
+
+func right_held() -> bool:
+	return _right_held
+
+## Whether anything here runs a frame, for the budget assertions.
+func is_busy() -> bool:
+	return is_physics_processing() or is_processing() or is_processing_input()
+
+## What a hit from the weapon is multiplied by right now, on top of its own multiplier and its
+## damage augment. One outside a charged hit, a daze, a throw.
+func hit_multiplier() -> float:
+	return 1.0
+
+## Every multiplier the weapon's recent hits were billed at through this — one, and whatever a
+## charge, a daze or a throw armed them with. For a suite that checks each hit's number against
+## the data: a hit at any other multiplier is a bug.
+func multipliers() -> Array[float]:
+	var out: Array[float] = [1.0]
+	for m in billed:
+		if not out.has(m):
+			out.append(m)
+	return out
+
+# --- input, from WeaponBase ----------------------------------------------------------
+
+## Every event on the weapon, before its own grab and bin logic. True claims it.
+func take(event: InputEvent) -> bool:
+	var click := event as InputEventMouseButton
+	if click == null or click.button_index != MOUSE_BUTTON_RIGHT:
+		return false
+	if click.pressed:
+		# Shift+right is the bin and never ours.
+		if click.shift_pressed or body == null:
+			return false
+		if body.dragging:
+			press()
+			return true
+		# Out of the hand but still mid-effect — an axe in the air — a right-click on it is a second
+		# press, refused, not the bin: the same rule as mashing right on a cooling bat.
+		if _active and body.drag_area and body.drag_area.is_hovered:
+			denied += 1
+			_refuse()
+			return true
+		# Right on a weapon nobody holds bins it, as it always did.
+		return false
+	if _right_held:
+		release()
+		return true
+	return false
+
+## Every release, not only the unhandled ones: a release over a panel is the panel's, and an
+## ability that only let go on an unhandled release would charge forever (HeldGun learned this
+## first). Only listened for while right is down.
+func _input(event: InputEvent) -> void:
+	var click := event as InputEventMouseButton
+	if click and click.button_index == MOUSE_BUTTON_RIGHT and not click.pressed:
+		release()
+
+func press() -> void:
+	if _right_held or body == null:
+		return
+	if not is_ready() or not _can_start():
+		denied += 1
+		_refuse()
+		return
+	_right_held = true
+	_pressed_usec = Time.get_ticks_usec()
+	set_process_input(true)
+	_active = true
+	uses += 1
+	used.emit(ability_id())
+	_on_press()
+
+func release() -> void:
+	if not _right_held:
+		return
+	var seconds := held_seconds()
+	_right_held = false
+	set_process_input(false)
+	if _active:
+		_on_release(seconds)
+
+## The weapon left the hand. An effect that needs the hand ends here; one that does not — an
+## axe in the air — says so in `_on_dropped`.
+func on_dropped() -> void:
+	if _right_held:
+		_right_held = false
+		set_process_input(false)
+	if _active:
+		_on_dropped()
+	_update_pip()
+
+## The weapon landed a hit he billed (`WeaponBase.register_use`, from his attribution step).
+## Inside his `_integrate_forces`: record it here, act on it in `_physics_process`.
+func note_hit() -> void:
+	# What this hit is about to be billed at: he reads `hit_multiplier` on the next line of his
+	# attribution step, and `_on_hit` must not change it before he does.
+	billed.append(hit_multiplier())
+	if billed.size() > 16:
+		billed.pop_front()
+	if _active:
+		_on_hit()
+
+## The weapon was picked up: the pip comes back if it is still cooling.
+func on_picked_up() -> void:
+	_update_pip()
+
+# --- the archetype's hooks --------------------------------------------------------------
+
+## Whether it may start at all right now — a golf club with nobody to drive at, say.
+func _can_start() -> bool:
+	return true
+
+func _on_press() -> void:
+	pass
+
+func _on_release(_seconds: float) -> void:
+	pass
+
+func _on_tick(_delta: float) -> void:
+	pass
+
+func _on_hit() -> void:
+	pass
+
+## Default: an effect that needs the hand is over when the hand lets go.
+func _on_dropped() -> void:
+	finish()
+
+## Undo anything the effect changed on another body: an exception, a buddy's emitter.
+func _on_stop() -> void:
+	pass
+
+## 0..1 while something is filling (a charge, a rev), or -1 for nothing to show.
+func pip_fill() -> float:
+	return -1.0
+
+# --- running and finishing -------------------------------------------------------------
+
+## The physics tick, on for exactly as long as the effect needs it.
+func run(on: bool) -> void:
+	set_physics_process(on)
+
+func _physics_process(delta: float) -> void:
+	# Not while the hit-stop has physics switched off (D54): a torque or an offset applied to a
+	# stopped world is all handed over at once when it resumes.
+	if BaseDraggable.physics_frozen:
+		return
+	_on_tick(delta)
+	if _threatening and Time.get_ticks_msec() >= _threat_refresh_msec:
+		_threaten(true)
+
+## The effect is over: stop it, and start the cooldown (the row's own, or `seconds`).
+func finish(seconds: float = -1.0) -> void:
+	if not _active:
+		return
+	_active = false
+	run(false)
+	_threaten(false)
+	_on_stop()
+	var gap := seconds if seconds >= 0.0 else float(row.get("cooldown", 3.0))
+	if body and body.item_id != &"":
+		gap *= Progression.get_modifier(body.item_id, &"cooldown_mult")
+	_cooldown_seconds = maxf(gap, 0.05)
+	_ready_timer.start(_cooldown_seconds)
+	_update_pip()
+
+func _on_cooled() -> void:
+	_update_pip()
+	if body and body.dragging:
+		# Ready again: a small ring off the hand and a tick, so the player need not watch the pip.
+		var fx := fx()
+		if fx:
+			fx.ring(hand_world(), 22.0, tier_colour(), 0.2, 2.0)
+		sound(&"plink", -16.0, 1.6)
+
+## A press refused: a dull tick and the pip flashes.
+func _refuse() -> void:
+	sound(&"ui_denied", -16.0, 1.4)
+	if _pip:
+		_pip.flash()
+
+# --- the pip -----------------------------------------------------------------------------
+#
+# A ring by the hand: filling while something charges, emptying clockwise while it cools. Drawn
+# only while the weapon is held and there is something to show, and redrawn only then.
+
+func _update_pip() -> void:
+	var show := body != null and body.dragging and (is_cooling() or pip_fill() >= 0.0)
+	if show and _pip == null:
+		_pip = Pip.new()
+		_pip.name = "AbilityPip"
+		_pip.top_level = true
+		_pip.z_index = 40
+		add_child(_pip)
+	if _pip:
+		_pip.visible = show
+	set_process(show)
+	if show:
+		_draw_pip()
+
+func _process(_delta: float) -> void:
+	if body == null or not body.dragging:
+		_update_pip()
+		return
+	_draw_pip()
+
+func _draw_pip() -> void:
+	if _pip == null:
+		return
+	_pip.global_position = (hand_world() + Vector2(16, -16)).round()
+	var fill := pip_fill()
+	if fill >= 0.0:
+		_pip.show_fill(fill, tier_colour(), true)
+	elif is_cooling():
+		_pip.show_fill(1.0 - _ready_timer.time_left / maxf(_cooldown_seconds, 0.01), tier_colour(), false)
+
+## The ring. Eight pixels across, a dark track and the tier colour over it.
+class Pip extends Node2D:
+	const RADIUS := 6.0
+	const TRACK := Color("1a1714")
+	var fill := 0.0
+	var colour := Color.WHITE
+	var charging := false
+	var _flash_until := 0
+
+	func show_fill(value: float, tint: Color, is_charge: bool) -> void:
+		var v := clampf(value, 0.0, 1.0)
+		if is_equal_approx(v, fill) and tint == colour and is_charge == charging \
+				and Time.get_ticks_msec() > _flash_until:
+			return
+		fill = v
+		colour = tint
+		charging = is_charge
+		queue_redraw()
+
+	func flash() -> void:
+		_flash_until = Time.get_ticks_msec() + 180
+		queue_redraw()
+
+	func _draw() -> void:
+		var flashing := Time.get_ticks_msec() <= _flash_until
+		draw_circle(Vector2.ZERO, RADIUS + 2.0, TRACK)
+		draw_arc(Vector2.ZERO, RADIUS, 0.0, TAU, 20, Color("4a433a"), 3.0, false)
+		if fill > 0.0:
+			var tint := Color.WHITE if flashing else (colour.lightened(0.35) if charging else colour)
+			draw_arc(Vector2.ZERO, RADIUS, -PI * 0.5, -PI * 0.5 + TAU * fill,
+				maxi(4, int(20.0 * fill)), tint, 3.0, false)
+		elif flashing:
+			draw_arc(Vector2.ZERO, RADIUS, 0.0, TAU, 20, Color.WHITE, 3.0, false)
+
+# --- helpers for the archetypes ------------------------------------------------------------
+
+func buddy() -> Buddy:
+	if not is_instance_valid(_buddy) and is_inside_tree():
+		_buddy = get_tree().get_first_node_in_group(Buddy.GROUP_BUDDY) as Buddy
+	return _buddy
+
+func fx() -> WorldFX:
+	return WorldFX.of(body) if body else null
+
+func sound(id: StringName, volume_db: float = -8.0, pitch: float = 1.0, spread: float = 0.05) -> void:
+	AudioManager.play(id, spread, volume_db, pitch)
+
+## A number from the row, or a default.
+func num(key: String, fallback: float) -> float:
+	return float(row.get(key, fallback))
+
+func tier_colour() -> Color:
+	return WorldFX.harm_colour(body.juice_tier if body else 0)
+
+## His centre of mass in the world, or INF with nobody there.
+func him_world() -> Vector2:
+	var him := buddy()
+	if him == null:
+		return Vector2.INF
+	return him.global_transform * him.center_of_mass
+
+## Where the hand is: the handle the drag joint pins to, or the grip when nothing holds it.
+func hand_world() -> Vector2:
+	if body and body.dragging and body.handle:
+		return body.handle.global_position
+	return grip_world()
+
+func grip_world() -> Vector2:
+	return body.to_global(body.grip_offset)
+
+func com_world() -> Vector2:
+	return body.global_transform * body.center_of_mass
+
+## The end of the weapon furthest from the hand: the barrel of a bat, the blade's point.
+func tip_world() -> Vector2:
+	return body.to_global(body._find_tip())
+
+## Moment of inertia about the grip: the body's own about its centre of mass, plus m r² — the
+## held gun's arithmetic (D56).
+func pivot_inertia() -> float:
+	var arm := com_world() - grip_world()
+	var inertia := body.mass * 400.0
+	var state := PhysicsServer2D.body_get_direct_state(body.get_rid())
+	if state and state.inverse_inertia > 0.0:
+		inertia = 1.0 / state.inverse_inertia
+	return inertia + body.mass * arm.length_squared()
+
+## +1 if turning clockwise (as drawn, y down) swings the weapon's head toward him, -1 if the
+## other way. Clockwise when he is on the head's right as seen from the hand.
+func swing_sign() -> float:
+	var him := him_world()
+	if him == Vector2.INF:
+		return 1.0
+	var grip := grip_world()
+	var lever := com_world() - grip
+	var to_him := him - grip
+	var cross := lever.cross(to_him)
+	return 1.0 if cross >= 0.0 else -1.0
+
+## Spins the weapon about the hand by `omega` rad/s more, the way a wrist does it: a push on the
+## centre of mass across the lever, which the drag joint at the grip turns into a swing. A
+## torque about the centre of mass would spin it about the wrong point and yank the joint.
+func whip(omega: float) -> void:
+	var grip := grip_world()
+	var com := com_world()
+	var lever := com - grip
+	if lever.length_squared() < 1.0:
+		body.apply_torque_impulse(omega * pivot_inertia())
+		return
+	# The clockwise tangent (y down): a lever pointing right moves down when turned clockwise.
+	var tangent := Vector2(-lever.y, lever.x).normalized() * signf(omega)
+	body.apply_impulse(tangent * body.mass * absf(omega) * lever.length(), com - body.global_position)
+
+## Tells his face something happened (D74 `ability_event`). Deferred, so that the hit this
+## frame has already been dealt and the ability's own row takes the slot after it — the hit's
+## row would otherwise overwrite a daze or a launch the instant it began.
+func tell(event: StringName, at: Vector2) -> void:
+	_tell_now.call_deferred(event, at)
+
+func _tell_now(event: StringName, at: Vector2) -> void:
+	if is_inside_tree() and body:
+		EventBus.ability_event.emit(body.item_id, event, at)
+
+## He sees a wind-up aimed at him: D56's edges and half-second refresh, on the `windup` kind
+## the NPCs' tells already use, so the Nervous one flinches at a bat being cocked too.
+func threaten(on: bool) -> void:
+	if on:
+		var him := him_world()
+		on = him != Vector2.INF and hand_world().distance_to(him) <= THREAT_REACH
+	_threaten(on)
+
+func _threaten(on: bool) -> void:
+	var now := Time.get_ticks_msec()
+	if on == _threatening and (not on or now < _threat_refresh_msec):
+		return
+	_threatening = on
+	_threat_refresh_msec = now + THREAT_REFRESH_MSEC
+	if is_inside_tree() and body:
+		EventBus.threat_changed.emit(&"windup", body.global_position, 1.0 if on else 0.0)
+
+func is_threatening() -> bool:
+	return _threatening
+
+## The sprite the weapon is drawn with — wired, or found by what it is (the frying pan's scene
+## never wired one).
+func sprite() -> Sprite2D:
+	if body == null:
+		return null
+	if body.sprite is Sprite2D:
+		return body.sprite as Sprite2D
+	for child in body.get_children():
+		if child is Sprite2D:
+			return child
+	return null
+
+## A GPU emitter riding on the weapon, built on first use and kept: charge sparks at a bat's
+## barrel, exhaust off a chainsaw. `at` is body-local; `local` keeps the chips in its frame.
+func emitter(key: String, glyph: StringName, colour: Color, amount: int, at: Vector2,
+		velocity: Vector2, spread: float, lifetime: float, gravity: Vector2 = Vector2.ZERO,
+		local: bool = false, target: Node2D = null) -> GPUParticles2D:
+	var host: Node2D = target if target else body
+	var name_ := "Ability%s" % key.to_pascal_case()
+	var known := host.get_node_or_null(name_) as GPUParticles2D
+	if known:
+		return known
+	var em := GPUParticles2D.new()
+	em.name = name_
+	em.one_shot = false
+	em.emitting = false
+	em.local_coords = local
+	em.z_index = 31
+	em.amount = maxi(1, amount)
+	em.lifetime = lifetime
+	em.texture = _chip_texture() if glyph == &"chip" else UIStyle.glyph(glyph)
+	em.modulate = colour
+	em.position = at
+	var mat := ParticleProcessMaterial.new()
+	var speed := velocity.length()
+	mat.direction = Vector3(velocity.x, velocity.y, 0.0).normalized() if speed > 0.0 else Vector3(0, -1, 0)
+	mat.spread = spread
+	mat.initial_velocity_min = speed * 0.6
+	mat.initial_velocity_max = speed
+	mat.gravity = Vector3(gravity.x, gravity.y, 0.0)
+	mat.scale_min = 1.0
+	mat.scale_max = 2.0
+	if glyph != &"chip":
+		mat.angular_velocity_min = -360.0
+		mat.angular_velocity_max = 360.0
+	var curve := CurveTexture.new()
+	var shape := Curve.new()
+	shape.add_point(Vector2(0.0, 1.0))
+	shape.add_point(Vector2(0.7, 0.9))
+	shape.add_point(Vector2(1.0, 0.0))
+	curve.curve = shape
+	mat.scale_curve = curve
+	em.process_material = mat
+	host.add_child(em)
+	return em
+
+## Starts or stops an emitter, gated on Focus Mode like every moving thing (D21).
+func emit_from(em: GPUParticles2D, on: bool) -> void:
+	if em == null or not is_instance_valid(em):
+		return
+	var moving := Settings.focus_intensity != Settings.Intensity.OFF
+	if on and moving and not em.emitting:
+		em.emitting = true
+		em.restart()
+	elif not (on and moving):
+		em.emitting = false
+
+func _chip_texture() -> Texture2D:
+	if _chip == null:
+		var image := Image.create_empty(4, 4, false, Image.FORMAT_RGBA8)
+		image.fill(Color.WHITE)
+		_chip = ImageTexture.create_from_image(image)
+	return _chip
+
+## Any of the weapon's own shapes inside him right now — the question to ask before a collision
+## exception with him comes off, because a body let go of while inside him is thrown out of him by
+## the solver (D61: a teleport must clear the colliders; so must a pass-through).
+func overlaps_him() -> bool:
+	var him := buddy()
+	if him == null or not body.is_inside_tree():
+		return false
+	var space := body.get_world_2d().direct_space_state
+	for child in body.get_children():
+		var cs := child as CollisionShape2D
+		if cs == null or cs.shape == null or cs.disabled:
+			continue
+		var query := PhysicsShapeQueryParameters2D.new()
+		query.shape = cs.shape
+		query.transform = cs.global_transform
+		query.collision_mask = BUDDY_LAYER
+		query.collide_with_areas = false
+		for result in space.intersect_shape(query, 4):
+			if result.get("collider") == him:
+				return true
+	return false
+
+## Whether a world point is inside him, by his real collider grown a little.
+func touches_him(point: Vector2, margin: float = 0.0) -> bool:
+	var him := buddy()
+	return him != null and him.get_interaction_rect().grow(margin).has_point(point)
+
+## Bills him for an impulse the ability handed him, the gunshot's way (D7): the shove is
+## applied here and the same number is what he measures. `mult` is the multiplier on top of the
+## weapon's own.
+func strike(impulse: float, direction: Vector2, at: Vector2, mult: float = 1.0,
+		shove: float = 1.0) -> void:
+	var him := buddy()
+	if him == null or impulse <= 0.0:
+		return
+	him.apply_central_impulse(direction.normalized() * impulse * shove)
+	him.take_impulse(impulse, body.item_id, base_mult() * mult, at)
+	struck.append(impulse)
+	if struck.size() > 32:
+		struck.pop_front()
+	billed.append(mult)
+	if billed.size() > 16:
+		billed.pop_front()
+	payoffs += 1
+
+## The weapon's own multiplier with its damage augment, without anything this adds.
+func base_mult() -> float:
+	return Progression.damage_mult_for(body.item_id, body.damage_mult)

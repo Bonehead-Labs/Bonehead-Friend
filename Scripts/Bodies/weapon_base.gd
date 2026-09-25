@@ -13,6 +13,37 @@ extends BaseDraggable
 # it lived here, and the fifteen explosives, the trampoline and the fan all sold a mass node
 # that nothing read (D59).
 
+## What right does while it is in your hand (D74), if `AbilityTable` has a row for it: a child
+## built on `_ready`, or null. It sees every event first and claims a right press only while the
+## weapon is held (or its ability is still at work out of the hand) and never with Shift, so the
+## bin and every subclass's own right-click are exactly as they were.
+var ability: WeaponAbility
+
+func _ready() -> void:
+	super._ready()
+	ability = AbilityTable.attach(self)
+
+## Right while holding it is the ability — and while the ability is still at work out of the hand,
+## an axe in the air — and right on it lying on the desk still bins it.
+func right_click_is_mine() -> bool:
+	return ability != null and (dragging or ability.is_active())
+
+func _unhandled_input(event: InputEvent) -> void:
+	if ability and ability.take(event):
+		get_viewport().set_input_as_handled()
+		return
+	super._unhandled_input(event)
+
+func _start_drag() -> void:
+	super._start_drag()
+	if ability:
+		ability.on_picked_up()
+
+func _end_drag() -> void:
+	super._end_drag()
+	if ability:
+		ability.on_dropped()
+
 ## One swing that landed, reported to the contract board.
 ##
 ## Called by Bonehead from his attribution step, which is the only place in the game that
@@ -21,12 +52,19 @@ extends BaseDraggable
 ##
 ## Deliberately not folded into `effective_damage_mult()` below, even though he calls that
 ## on the same line: a getter that also emits is a trap for the first stat readout or test
-## that reads it.
+## that reads it. The ability hears of it here too, and only records it: the multiplier he reads
+## next must still be the one this hit was armed with.
 func register_use() -> void:
+	if ability:
+		ability.note_hit()
 	if item_id == &"":
 		return
 	EventBus.contract_event.emit(&"use:%s" % item_id, 1)
 
-## What Bonehead multiplies the raw contact impulse by.
+## What Bonehead multiplies the raw contact impulse by — the ability's share included, which is
+## one outside a charged hit, a daze or a throw.
 func effective_damage_mult() -> float:
-	return Progression.damage_mult_for(item_id, damage_mult)
+	var mult := Progression.damage_mult_for(item_id, damage_mult)
+	if ability:
+		mult *= ability.hit_multiplier()
+	return mult

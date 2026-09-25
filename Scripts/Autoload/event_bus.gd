@@ -63,6 +63,11 @@ signal threat_changed(kind: StringName, world_pos: Vector2, level: float)
 ## brain maps each to a row, and nothing in the simulation may listen. The toy pays through
 ## `kindness_given` / `kindness_sustained` like everything else.
 signal fidget_event(item_id: StringName, event: StringName, world_pos: Vector2)
+## A held weapon's ability did something he can react to (D74): `home_run`, `dazed`,
+## `sliced`, `grinding`, `quaked`, `fore`, `incoming`. Presentation only, like `fidget_event`:
+## the expression brain maps each to a row, and nothing in the simulation may listen. The hit
+## the ability lands is billed by him, like every other (D7).
+signal ability_event(item_id: StringName, event: StringName, world_pos: Vector2)
 
 # --- shell ---
 signal ui_panel_changed(panel: StringName)  ## &"" = all closed

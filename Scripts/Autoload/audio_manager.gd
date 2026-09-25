@@ -298,6 +298,110 @@ func _build_streams() -> void:
 	_streams[&"zoom"] = _wav(_zoom_samples())
 	_streams[&"twang"] = _wav(_twang_samples())
 	_streams[&"zip"] = _wav(_sweep_samples(0.11, 700.0, 1500.0))
+	# --- held weapons' abilities (D74) ---
+	#
+	# One voice each for the moments a CC0 recording does not cover: the air a swing moves, a bat
+	# connecting, a pan rung like a bell, a blade drawn, a two-stroke engine, a ball off a club face
+	# and the desk jumping. The engine is one short cycle the caller repeats at a climbing pitch.
+	_streams[&"whoosh"] = _wav(_whoosh_samples())
+	_streams[&"crack"] = _wav(_crack_samples())
+	_streams[&"bong"] = _wav(_bong_samples())
+	_streams[&"shing"] = _wav(_shing_samples())
+	_streams[&"rev"] = _wav(_rev_samples())
+	_streams[&"tock"] = _wav(_tick_samples(0.05, 1750.0, 1.0))
+	_streams[&"quake"] = _wav(_boom_samples(0.7, 42.0))
+
+## Air moved by something swung: noise through a band that sweeps up and back, inside a swell.
+func _whoosh_samples() -> PackedFloat32Array:
+	var duration := 0.26
+	var count := int(MIX_RATE * duration)
+	var out := PackedFloat32Array()
+	out.resize(count)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 20260926
+	var low := 0.0
+	var band := 0.0
+	for i in count:
+		var t := float(i) / float(MIX_RATE)
+		var progress := t / duration
+		# A one-pole low-pass whose corner rises and falls: the swing coming past the ear.
+		var corner := lerpf(0.04, 0.35, sin(PI * progress))
+		low = lerpf(low, rng.randf_range(-1.0, 1.0), corner)
+		band = lerpf(band, low, 0.5)
+		out[i] = clampf((low - band) * 2.2 * sin(PI * progress), -1.0, 1.0)
+	return out
+
+## Ash on a ball: a hard click, a short bright knock of wood, and a low thump under it.
+func _crack_samples() -> PackedFloat32Array:
+	var count := int(MIX_RATE * 0.18)
+	var out := PackedFloat32Array()
+	out.resize(count)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 20260927
+	for i in count:
+		var t := float(i) / float(MIX_RATE)
+		var click := rng.randf_range(-1.0, 1.0) * exp(-t * 700.0)
+		var wood := sin(TAU * 1180.0 * t) * 0.5 * exp(-t * 60.0) + sin(TAU * 2350.0 * t) * 0.2 * exp(-t * 90.0)
+		var thump := sin(TAU * 110.0 * t) * 0.5 * exp(-t * 22.0)
+		out[i] = clampf(click * 0.8 + wood + thump, -1.0, 1.0)
+	return out
+
+## A cast-iron pan struck like a bell: low partials that are not a chord, two of them a hair
+## apart so the ring beats, and a long tail. The follow-ups are the same bell played higher.
+func _bong_samples() -> PackedFloat32Array:
+	var duration := 1.1
+	var count := int(MIX_RATE * duration)
+	var out := PackedFloat32Array()
+	out.resize(count)
+	var partials := [[196.0, 0.34, 3.2], [199.0, 0.22, 3.4], [541.0, 0.22, 5.0],
+		[1058.0, 0.14, 8.0], [1690.0, 0.08, 12.0]]
+	for i in count:
+		var t := float(i) / float(MIX_RATE)
+		var value := 0.0
+		for partial in partials:
+			value += sin(TAU * float(partial[0]) * t) * float(partial[1]) * exp(-t * float(partial[2]))
+		out[i] = clampf(value * minf(t * 900.0, 1.0), -1.0, 1.0)
+	return out
+
+## A blade drawn: a bright ring that climbs, over a hiss of steel on the scabbard.
+func _shing_samples() -> PackedFloat32Array:
+	var duration := 0.32
+	var count := int(MIX_RATE * duration)
+	var out := PackedFloat32Array()
+	out.resize(count)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 20260928
+	var phase := 0.0
+	var last := 0.0
+	for i in count:
+		var t := float(i) / float(MIX_RATE)
+		var progress := t / duration
+		phase += TAU * lerpf(2900.0, 4700.0, sqrt(progress)) / float(MIX_RATE)
+		var noise := rng.randf_range(-1.0, 1.0)
+		var hiss := (noise - last) * 0.18 * (1.0 - progress)
+		last = noise
+		var ring := sin(phase) * 0.3 * minf(progress * 12.0, 1.0) * exp(-t * 7.0)
+		out[i] = clampf(ring + hiss, -1.0, 1.0)
+	return out
+
+## One turn of a two-stroke: a rasping buzz, a sawtooth with its own harmonics and a little
+## noise, a hundredth of a second of attack and release so a string of them runs together.
+func _rev_samples() -> PackedFloat32Array:
+	var duration := 0.13
+	var count := int(MIX_RATE * duration)
+	var out := PackedFloat32Array()
+	out.resize(count)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 20260929
+	var phase := 0.0
+	for i in count:
+		var t := float(i) / float(MIX_RATE)
+		phase += 92.0 / float(MIX_RATE)
+		var saw := (phase - floorf(phase)) * 2.0 - 1.0
+		var growl := saw * 0.32 + sin(TAU * phase * 2.0) * 0.12 + rng.randf_range(-1.0, 1.0) * 0.08
+		var envelope := minf(t * 100.0, 1.0) * minf((duration - t) * 100.0, 1.0)
+		out[i] = clampf(growl * envelope, -1.0, 1.0)
+	return out
 
 ## A spring let go: a tone that falls from high to low with a fast wobble riding on it, which is
 ## the whole difference between a boing and a slide whistle.

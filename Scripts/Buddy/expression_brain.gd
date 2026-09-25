@@ -236,6 +236,24 @@ const ROWS := {
 	&"riding": {"face": &"blissful", "tag": &"happy",
 		"motion": &"wiggle", "seconds": 1.2, "priority": REACTION, "gate": GATE_REACTIVE,
 		"sound": &"giggle"},
+	# --- K: held weapons' abilities (D74) ---
+	# Each arrives a frame after the hit it belongs to (`WeaponAbility.tell` is deferred), so it
+	# takes the slot from the hit's own row rather than being overwritten by it.
+	# The Home Run landed: thrown, and dizzy on the way down.
+	&"launched": {"face": &"shocked", "tag": &"hurt", "tail_face": &"dizzy",
+		"motion": &"impact_wobble", "seconds": 0.5, "tail": 0.9, "priority": HEAVY,
+		"gate": GATE_REACTIVE, "sound": &"gasp"},
+	# The BONG: a dizzy sway for as long as the pan keeps telling him, every half second. HEAVY,
+	# so an ordinary hit inside the daze does not end it.
+	&"dazed": {"face": &"dizzy", "tag": &"", "motion": &"wobble", "seconds": 0.8,
+		"priority": HEAVY, "gate": GATE_REACTIVE, "hold": true, "refresh": 0.8},
+	# The iaido blade has gone through him and he has not noticed yet: a frozen, wide-eyed beat,
+	# shorter than the cut's delay, so the hit that lands after it has the slot to itself.
+	&"sliced": {"face": &"shocked", "tag": &"", "motion": &"", "seconds": 0.28,
+		"priority": HEAVY, "gate": GATE_REACTIVE},
+	# The desk jumped under him.
+	&"quaked": {"face": &"shocked", "tag": &"flinch", "fallback": &"hurt", "motion": &"hop2",
+		"seconds": 0.5, "priority": HEAVY, "gate": GATE_REACTIVE},
 	# --- H: ambient ---
 	&"blink": {"face": &"asleep", "tag": &"",
 		"motion": &"", "seconds": 0.12, "priority": AMBIENT, "gate": GATE_SUBTLE},
@@ -264,6 +282,20 @@ const FIDGET_ROWS := {
 	&"clacking": &"calmed",
 	&"yoyo_trick": &"impressed",
 	&"ride": &"riding",
+}
+
+## What each held weapon's ability means on his face (D74). The ability says what happened
+## (`EventBus.ability_event`); this says how he takes it — four rows of its own, and the chainsaw's
+## grind, the golf ball and the thrown axe borrow the ones that already say it: cooked, startled,
+## ducking a blast. Only near him, like a threat.
+const ABILITY_ROWS := {
+	&"home_run": &"launched",
+	&"dazed": &"dazed",
+	&"sliced": &"sliced",
+	&"quaked": &"quaked",
+	&"grinding": &"cooking",
+	&"fore": &"startled",
+	&"incoming": &"blast",
 }
 
 ## The face he pulls when hit, by what hit him — keyed on category, not id, so ten entries
@@ -378,6 +410,8 @@ func _ready() -> void:
 	EventBus.automation_toggled.connect(_on_automation_toggled)
 	# I — fidget toys (D57)
 	EventBus.fidget_event.connect(_on_fidget_event)
+	# K — held weapons' abilities (D74)
+	EventBus.ability_event.connect(_on_ability_event)
 	# G — the idle brain, installed by main.gd after the buddy, so found a frame later.
 	_connect_idle_brain.call_deferred()
 	# H — posture
@@ -462,6 +496,21 @@ func _on_fidget_event(_item_id: StringName, event: StringName, world_pos: Vector
 	# move and then he dances on, rather than standing still for the rest of the song.
 	if started and _routine_hold != &"" and _routine_hold != row_id and _pending_hold == &"":
 		_pending_hold = _routine_hold
+
+# --- K: held weapons' abilities (D74) ----------------------------------------------------
+
+## A held weapon's ability did something to him. A hold (the daze, the grind) is kept alive by the
+## weapon telling him again; everything else plays once.
+func _on_ability_event(_item_id: StringName, event: StringName, world_pos: Vector2) -> void:
+	var row_id: StringName = ABILITY_ROWS.get(event, &"")
+	if row_id == &"" or buddy == null:
+		return
+	if world_pos != Vector2.INF and buddy.global_position.distance_to(world_pos) > THREAT_RANGE:
+		return
+	if bool((ROWS[row_id] as Dictionary).get("hold", false)):
+		hold(row_id, world_pos)
+	else:
+		react(row_id, 1.0, world_pos)
 
 # --- G: the idle brain at work -------------------------------------------------------
 
