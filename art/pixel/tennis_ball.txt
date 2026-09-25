@@ -1,18 +1,27 @@
-# Tennis ball — D62 redraw. A plain gold disc read as a coin. The two white seams curving in
-# from the sides are the whole identity of a tennis ball. Same 13x13.
+# Tennis ball — D75 redraw, over D62's. D62's gold disc with two near-straight white lines
+# still read as a coin: gold is a coin's colour, and seams bent by one pixel are stripes.
+#
+# What only a tennis ball has is the waist: the two halves of the felt are dumbbells, and face
+# on the seams bow in until they nearly meet in the middle, `) (` pinched to one pixel of felt.
+# The seams here bend by three pixels, not one.
+#
+# The palette has no yellow-green, so the felt is a checker of gold `Y` and ectoplasm `E`: at
+# 1x it averages to a pale lime, and up close the checker is the fuzz. The lower right is in
+# shadow with ectoplasm dark `e`, so it is a ball and not a badge. Same 13x13 as before, so
+# the collider (D55) and the scene do not move.
 cell: 64
 
 --- main
 ....KKKKK....
-..KKYYYYYKK..
-.KYWYYYYYWYK.
-.KYYWYYYWYYK.
-KYYYWYYYWYYYK
-KYYYWYYYWYYYK
-KYYYWYYYWYYYK
-KYYYWYYYWYYYK
-KYYYWYYYWYYBK
-.KYYWYYYWYBK.
-.KYWYYYYYWBK.
-..KKYYYYBKK..
+..KKEYEYEKK..
+.KWYEYEYEYWK.
+.KYWYEYEYWYK.
+KEYEWYEYWYEYK
+KYEYEWYWEYEeK
+KEYEYWYWYEYeK
+KYEYEWYWEYeeK
+KEYEWYEYWYeeK
+.KYWYEYEeWeK.
+.KWYEYEeYeWK.
+..KKYEeeeKK..
 ....KKKKK....

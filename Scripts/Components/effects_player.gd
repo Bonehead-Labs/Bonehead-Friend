@@ -106,7 +106,10 @@ float grime_shape(vec2 uv) {
 
 void fragment() {
 	vec4 tex = texture(TEXTURE, UV);
-	vec3 lit = tex.rgb * COLOR.rgb;
+	// `COLOR` already is the texture times the modulate. Multiplying by `tex` again squared
+	// every colour he has: the headphones drew at (8, 133, 126) instead of the palette's
+	// (46, 184, 179), and every mask below measured the squared colour (D75).
+	vec3 lit = COLOR.rgb;
 	float luma = dot(lit, vec3(0.299, 0.587, 0.114));
 	float sat = max(lit.r, max(lit.g, lit.b)) - min(lit.r, min(lit.g, lit.b));
 	// Bright and low-saturation only: the teal headphones and the black outline are both
@@ -126,7 +129,9 @@ void fragment() {
 		: UV;
 	float dirt = grime_shape(cell_uv) * grime * bone_mask;
 	vec3 grimed = mix(dressed, grime_color.rgb, dirt);
-	float alpha = tex.a * COLOR.a;
+	// `COLOR.a` already carries the texture's alpha (D75); `tex` is only read below for the raw
+	// colours the headphone masks are judged on.
+	float alpha = COLOR.a;
 	if (phones_off > 0.5) {
 		// Inline, not a function: a canvas shader cannot hand TEXTURE to one.
 		float hidden = phone_at(tex);

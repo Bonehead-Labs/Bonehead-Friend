@@ -212,11 +212,17 @@ static func _settle(sprite: Control) -> void:
 ## chip is a four-pixel square, the same one the world's payout numbers throw: pixel art must
 ## not have the one soft round particle on screen. Off at Focus Off and in headless like every
 ## other motion here, so no test ever meets one.
+##
+## `behind` puts the burst under the control's own face and over everything before it, for a
+## control that *is* words: a toast's chips burst out of its edges instead of across the line
+## it has just printed (D75). Every mastery rank used to arrive as "Baseball Bat rea[chips]
+## mastery 1".
 const CHIP_LIFETIME := 0.7
 static var _chip_texture: Texture2D
 static var _chip_materials: Dictionary = {}   ## speed -> ParticleProcessMaterial
 
-static func sparkle(control: Control, colour: Color, count: int = 14, speed: float = 180.0) -> void:
+static func sparkle(control: Control, colour: Color, count: int = 14, speed: float = 180.0,
+		behind: bool = false) -> void:
 	if not enabled() or control == null or not control.is_inside_tree():
 		return
 	var sparks := GPUParticles2D.new()
@@ -231,7 +237,8 @@ static func sparkle(control: Control, colour: Color, count: int = 14, speed: flo
 	sparks.modulate = colour
 	# Above its siblings in the same layer: a burst under the very row it celebrates is a
 	# burst nobody sees.
-	sparks.z_index = 60
+	sparks.z_index = 0 if behind else 60
+	sparks.show_behind_parent = behind
 	sparks.emitting = true
 	control.add_child(sparks)
 	control.get_tree().create_timer(CHIP_LIFETIME + 0.3).timeout.connect(sparks.queue_free)

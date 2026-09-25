@@ -318,6 +318,20 @@ func _the_spinner_spins() -> void:
 	_check("and he is entranced by it", watched)
 	Settings.focus_intensity = Settings.Intensity.OFF
 
+	# At the 30 fps idle cap a full spin turns 73 degrees a frame, past half a third of a turn,
+	# and three arms read as turning backwards (D73). The picture is capped below that and
+	# spins over a disc; the spin it pays by is not touched (D75).
+	spinner.launch(spinner.max_spin, false)
+	var drawn_from := spinner.rotor.rotation
+	var true_spin := spinner.spin
+	spinner._process(1.0 / 30.0)
+	var drawn := absf(spinner.rotor.rotation - drawn_from)
+	_check("at 30 fps a full spin is drawn turning forward, under half a third of a turn (%.0f deg, spinning %.0f)"
+		% [rad_to_deg(drawn), rad_to_deg(true_spin / 30.0)], drawn > 0.0 and drawn < TAU / 6.0)
+	_check("over its disc", spinner._blur != null and spinner._blur.is_blurred())
+	_check("and the spin it pays by is the true one (%.1f rad/s)" % spinner.spin,
+		spinner.spin > spinner.max_spin * 0.95)
+
 	# Runs down over about half a minute, then settles on a third of a turn. Fast-forwarded:
 	# thirty real seconds is not a test.
 	var seconds := 0.0
@@ -334,6 +348,7 @@ func _the_spinner_spins() -> void:
 	_check("and comes to rest on a third of a turn (%.3f off)" % minf(third, TAU / 3.0 - third),
 		minf(third, TAU / 3.0 - third) < 0.01)
 	_check("and stops running frames", not spinner.is_processing())
+	_check("with the disc put away", spinner._blur == null or not spinner._blur.is_blurred())
 
 	# The hub is not a zone: a left press there is a grab.
 	await _hover(hub)

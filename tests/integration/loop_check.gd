@@ -2674,9 +2674,15 @@ func _instance_of(item_id: StringName) -> BaseDraggable:
 	var item := ItemDB.get_item(item_id)
 	if item == null or item.scene == null:
 		return null
-	var body := item.scene.instantiate() as BaseDraggable
-	if body:
-		body.item_id = item_id
+	# Instanced, then cast: a cursor power's root is a plain Node2D, and `instantiate() as
+	# BaseDraggable` hands back null while the instance lives on outside the tree. Enumerating
+	# the catalog through here leaked all ten powers — and the fist's rigid body — at exit.
+	var node := item.scene.instantiate()
+	var body := node as BaseDraggable
+	if body == null:
+		node.free()
+		return null
+	body.item_id = item_id
 	return body
 
 func _he_goes_and_plays_with_his_toys() -> void:

@@ -17,7 +17,8 @@ extends FidgetToy
 
 ## The picture that turns: the body's own sprite, pivoted on the hub by the seed tool.
 @export var rotor: Node2D
-## Top speed, rad/s. Six turns a second — at sixty frames that is still a readable blur.
+## Top speed, rad/s. Six turns a second, which is faster than the picture is ever drawn turning:
+## `RotorBlur` caps that per frame and smears it (D75).
 @export var max_spin: float = 38.0
 ## Seconds for the spin to fall by e, before the "time between uses" node lengthens it.
 @export var decay_seconds: float = 9.0
@@ -35,6 +36,10 @@ const REST_STEP := TAU / 3.0
 const HIS_FLICK := 0.65
 ## How often the whirr sounds and the watching is re-checked, in seconds.
 const TICK_SECONDS := 0.35
+## Where the smear starts and where it is at full strength, rad/s: from a turn and a half a
+## second, when the arms stop being countable, to four.
+const BLUR_FROM := 9.0
+const BLUR_FULL := 25.0
 
 var spin := 0.0
 var _tick := 0.0
@@ -43,6 +48,7 @@ var _held := false
 var _stroke_rate := 0.0
 var _stroke_msec := 0
 var _settling := false
+var _blur: RotorBlur
 
 func _ready() -> void:
 	super._ready()
@@ -56,6 +62,7 @@ func _on_gesture(g: GestureZones.Gesture) -> void:
 			# A finger on it stops it.
 			_held = true
 			spin = 0.0
+			_rest_blur()
 			_stroke_rate = 0.0
 			_stroke_msec = Time.get_ticks_msec()
 			_settling = false
@@ -105,6 +112,7 @@ func is_spinning() -> bool:
 	return absf(spin) >= STOP_SPIN
 
 func _start_settling() -> void:
+	_rest_blur()
 	if rotor == null or _held:
 		return
 	var rest := snappedf(rotor.rotation, REST_STEP)
@@ -121,7 +129,11 @@ func _process(delta: float) -> void:
 		_settle(delta)
 		return
 	if rotor:
-		rotor.rotation += spin * delta
+		# Past half a third of a turn in a frame it reads as turning backwards: the picture is
+		# capped below that and wears a smear instead. `spin` is untouched.
+		if _blur == null:
+			_blur = RotorBlur.attach(rotor, REST_STEP, BLUR_FROM, BLUR_FULL)
+		_blur.turn(spin, delta)
 	var tau := decay_seconds / maxf(upgrade(&"cooldown_mult"), 0.05)
 	spin -= spin * delta / tau + signf(spin) * friction * delta
 	if absf(spin) < STOP_SPIN:
@@ -132,6 +144,10 @@ func _process(delta: float) -> void:
 	if _tick >= TICK_SECONDS:
 		_on_tick(_tick)
 		_tick = 0.0
+
+func _rest_blur() -> void:
+	if _blur:
+		_blur.rest()
 
 ## Coming to rest on a third of a turn, eased, so it stops looking exactly as it started.
 func _settle(delta: float) -> void:

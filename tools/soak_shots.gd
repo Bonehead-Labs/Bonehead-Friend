@@ -45,12 +45,15 @@ func _ready() -> void:
 	for item in ItemDB.all_items():
 		if item.scene == null:
 			continue
-		var probe := item.scene.instantiate() as BaseDraggable
+		# Instanced, then cast, then freed either way: a cursor power is not a body, and a null
+		# cast used to leave all ten of them alive at exit (D75).
+		var instance := item.scene.instantiate()
+		var probe := instance as BaseDraggable
 		var routine := IdleBrain.ROUTINE_NONE
 		if probe:
 			probe.item_id = item.id
 			routine = idle._routine_for(probe)
-			probe.free()
+		instance.free()
 		if routine != IdleBrain.ROUTINE_SOAK:
 			continue
 		index += 1

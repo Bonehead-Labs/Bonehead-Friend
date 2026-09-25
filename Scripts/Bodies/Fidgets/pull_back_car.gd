@@ -42,6 +42,11 @@ const NOTCHES := 8
 ## Wound less than this, letting go does nothing.
 const MIN_CHARGE := 0.12
 const WHEEL_RADIUS := 7.0
+## A wheel drives at up to twelve turns a second, so it wears `RotorBlur`'s smear (D75) from
+## here, rad/s — 140 px/s — and is fully smeared by the second figure. One bolt: its symmetry is
+## the whole turn.
+const WHEEL_BLUR_FROM := 20.0
+const WHEEL_BLUR_FULL := 55.0
 ## The motor: how hard it pushes toward its target speed, as an acceleration.
 const DRIVE_GAIN := 9.0
 const DRIVE_ACCEL := 1500.0
@@ -84,6 +89,8 @@ var _hop_deadline := 0
 var _riding := false
 var _ride_left := 0.0
 var _welds: Array[PinJoint2D] = []
+var _wheel_blurs: Array[RotorBlur] = []
+var _wheels_blurred := false
 
 ## Rides given, for the suite and the F3 overlay. Never read by the simulation.
 var rides := 0
@@ -234,13 +241,15 @@ func _physics_process(delta: float) -> void:
 		return
 	if not _driving or dragging or freeze:
 		if not freeze and absf(linear_velocity.x) > 1.0:
-			_turn_wheels(linear_velocity.x * delta)
+			_turn_wheels(linear_velocity.x * delta, delta)
+		elif _wheels_blurred:
+			_turn_wheels(0.0)
 		return
 	var along := linear_velocity.x * facing
 	var err := _target_speed - along
 	if err > 0.0:
 		apply_central_force(Vector2(facing * mass * minf(err * DRIVE_GAIN, DRIVE_ACCEL), 0.0))
-	_turn_wheels(linear_velocity.x * delta)
+	_turn_wheels(linear_velocity.x * delta, delta)
 	_drive_left -= delta
 	if along < STUCK_SPEED:
 		_stuck += delta
@@ -249,13 +258,28 @@ func _physics_process(delta: float) -> void:
 	if _drive_left <= 0.0 or _stuck >= STUCK_SECONDS:
 		_driving = false
 
-func _turn_wheels(distance: float) -> void:
+## Rolls the wheels `distance` along the desk. Given the tick's `delta`, the turn is a spin and
+## goes through the blur, capped per frame; without one (the hand winding it back) it is exactly
+## what the hand did, and the wheels are crisp.
+func _turn_wheels(distance: float, delta: float = 0.0) -> void:
 	if not animating():
+		if _wheels_blurred:
+			for blur in _wheel_blurs:
+				blur.rest()
+			_wheels_blurred = false
 		return
 	var turn := distance / WHEEL_RADIUS
-	for wheel in [rear_wheel, front_wheel]:
-		if wheel:
-			(wheel as Node2D).rotation += turn
+	if _wheel_blurs.is_empty():
+		for wheel in [rear_wheel, front_wheel]:
+			if wheel is Sprite2D:
+				_wheel_blurs.append(RotorBlur.attach(wheel, TAU, WHEEL_BLUR_FROM, WHEEL_BLUR_FULL))
+	for blur in _wheel_blurs:
+		if delta > 0.0:
+			blur.turn(turn / delta, delta)
+		else:
+			blur.rest()
+			(blur.get_parent() as Node2D).rotation += turn
+	_wheels_blurred = delta > 0.0 and absf(turn / delta) >= WHEEL_BLUR_FROM
 
 func _start_drag() -> void:
 	_end_ride(false)
@@ -362,7 +386,7 @@ func _ride_step(delta: float) -> void:
 	if move_and_collide(step) != null:
 		_end_ride(true)
 		return
-	_turn_wheels(step.x)
+	_turn_wheels(step.x, delta)
 
 ## Off he gets — with a little hop forward if the ride ended properly — and the car is a car
 ## again.

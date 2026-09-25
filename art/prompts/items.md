@@ -556,3 +556,16 @@ icon is `make_icons.py`'s two thirds, which keeps it.
 **Not redrawn:** the shotgun cursor's icon (turned, its pistol grip reads as a bent stick), the
 bats and the rolling pin (solid, their short side is their real width), the hornet and the
 swarm launcher (a speaker, but a legible one).
+
+## The tennis ball, a second time (2026-09-26, D75)
+
+D62's redraw kept the coin: a gold disc with two white lines bent by one pixel is a coin with
+stripes on it, and the lines read as straight at 1x. The grid (`art/pixel/tennis_ball.txt`,
+same 13x13) now leans on the one shape only a tennis ball has, the **waist**: face on, the two
+seams bow in by three pixels until a single pixel of felt is left between them, `) (`.
+
+**The palette has no yellow-green**, and a new colour is not this pass's to add. The felt is a
+checker of gold `Y` and ectoplasm `E`, which averages at 1x to a pale lime and up close is the
+fuzz; the lower right is in shadow with ectoplasm dark `e`. Tried and dropped: plain `E`, which
+is a mint; `Y` with a sparse `E` fleck, which is still gold; the D62 seams in the new felt,
+which are still stripes. The icon is the sprite at 2x (`pixel_icon.py`).

@@ -4,8 +4,10 @@ extends CaptureWindow
 ## five on the desk beside him, caught mid-use.
 ##
 ##   Godot --path <project> res://tools/fidget_shots.tscn        (NOT --headless: it draws)
+##   Godot --fixed-fps 30 --path <project> res://tools/fidget_shots.tscn   (the idle cap)
 ##
-## Files land in `user://fidget_shots/`. Its own save slot and settings file, through
+## The `motion-*` sheets are consecutive frames, a row per toy: a spin that strobes shows only
+## there, and only at the frame rate it strobes at (D75). Files land in `user://fidget_shots/`. Its own save slot and settings file, through
 ## `CaptureWindow._use_capture_slot()`, like every capture tool.
 
 const SIZE := Vector2i(1180, 760)
@@ -90,6 +92,12 @@ func _ready() -> void:
 	await _shot("03-desk")
 	# A moment later: the spinner has moved on, the jack has settled, he has reacted.
 	await _shot("04-desk-later")
+	# The spinner from a fresh flick, frame by frame, as it runs down (D75).
+	if spinner:
+		spinner.launch(spinner.max_spin, true)
+		await _strip("08-motion-spinner", [spinner], 12)
+		await _idle(60)
+		await _strip("09-motion-spinner-slower", [spinner], 12)
 	await _second_five(buddy, idle, floor_y)
 
 	_clear_slot()
@@ -155,7 +163,34 @@ func _second_five(buddy: Buddy, idle: IdleBrain, floor_y: float) -> void:
 		slinky._let_go()
 	await _shot("07-desk-toys2-later")
 	if car:
+		# Let go: it drives, and its wheels are the fastest thing on the desk (D75).
+		if cradle:
+			cradle.release(-1, deg_to_rad(40.0), true)
 		car._end_wind()
+		await _strip("10-motion-cradle-car", [cradle, car], 12, Vector2i(112, 96))
+
+## Consecutive frames around a few things, a row per thing and a column per frame, so motion
+## can be judged from a still (D75). Something turning past half its own symmetry in one frame
+## reads as turning backwards, and only frame to frame. Run the tool at `--fixed-fps 30` to see
+## what the idle frame cap shows, or 20 for Low Power.
+func _strip(name: String, targets: Array, frames: int, box: Vector2i = Vector2i(96, 96)) -> void:
+	if DisplayServer.get_name() == "headless":
+		print("  %s (staged; headless draws nothing)" % name)
+		return
+	var sheet := Image.create_empty(box.x * frames, box.y * targets.size(), false, Image.FORMAT_RGBA8)
+	sheet.fill(DESKTOP)
+	for f in frames:
+		await RenderingServer.frame_post_draw
+		var frame := _grab()
+		frame.convert(Image.FORMAT_RGBA8)
+		for row in targets.size():
+			var node := targets[row] as Node2D
+			if node == null or not is_instance_valid(node):
+				continue
+			var at := Vector2i(node.get_global_transform_with_canvas().origin) - box / 2
+			sheet.blit_rect(frame, Rect2i(at, box), Vector2i(f * box.x, row * box.y))
+	sheet.save_png("%s/%s.png" % [OUT, name])
+	print("  %s (%d frames, %.0f fps)" % [name, frames, 1.0 / maxf(get_process_delta_time(), 0.001)])
 
 ## Headless draws nothing, so there a shot is only the staging — which is still worth running,
 ## because it proves the staging itself works before anyone opens a window for it.

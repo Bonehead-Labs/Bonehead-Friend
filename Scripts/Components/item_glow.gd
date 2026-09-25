@@ -30,7 +30,10 @@ void fragment() {
 		+ texture(TEXTURE, UV - vec2(0.0, px.y)).a;
 	float edge = step(0.5, near) * (1.0 - step(0.5, tex.a));
 	float breath = mix(1.0, 0.72 + 0.28 * sin(TIME * 2.6), pulse);
-	vec4 body = vec4(tex.rgb * COLOR.rgb, tex.a * COLOR.a);
+	// `COLOR` already is the texture times the modulate: multiplying by `tex` again squared
+	// every colour, so an upgraded bat's wood drew at (112, 50, 16) instead of (169, 113, 63)
+	// and an item looked darker the more it had earned (D75).
+	vec4 body = COLOR;
 	vec4 halo = vec4(glow_color.rgb, glow * breath * edge);
 	COLOR = mix(body, halo, edge * step(0.01, glow));
 }
