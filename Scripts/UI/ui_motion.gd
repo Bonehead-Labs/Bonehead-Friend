@@ -37,8 +37,13 @@ const ROW_STEP := 0.022
 ## like waiting for a list to load.
 const ROW_CAP := 14
 
+## Motion in a headless run, for the length of one check. A suite that has to see a real
+## entrance — whether a card ever goes transparent on its way in — has no other way to, since
+## headless is exactly where motion is off. Never set by the game; always put back.
+static var run_in_headless := false
+
 static func enabled() -> bool:
-	if DisplayServer.get_name() == "headless":
+	if DisplayServer.get_name() == "headless" and not run_in_headless:
 		return false
 	return Settings.focus_intensity != Settings.Intensity.OFF
 
@@ -322,6 +327,9 @@ static func confirm(control: Control) -> void:
 
 ## One row unfurling. Scales up from a squashed state pinned to its top edge, so a column
 ## of them reads as cards being dealt rather than as a list fading in.
+##
+## It fades as well, so it is for rows *on* a card only. A card that sits straight on the window
+## unrolls instead — the HUD's toast used this and spent its first 0.18 s as smoked glass.
 static func rise(control: Control, delay: float = 0.0) -> void:
 	if not _live(control):
 		if is_instance_valid(control):
@@ -358,7 +366,10 @@ static func stagger(host: Node, step: float = ROW_STEP) -> void:
 ## The card unrolling from the strip it hangs off. It grows downward from its own top
 ## edge — the edge welded to the open tab — and never fades, because a fading card shows
 ## the player's desktop through the text printed on it.
-static func unroll(card: Control, from: int = Pivot.TOP) -> void:
+##
+## `sound` is off for a card that arrives on its own rather than because the player opened it —
+## the HUD's toast, which can land several times a minute.
+static func unroll(card: Control, from: int = Pivot.TOP, sound: bool = true) -> void:
 	if not _live(card):
 		return
 	pivot(card, from)
@@ -366,7 +377,8 @@ static func unroll(card: Control, from: int = Pivot.TOP) -> void:
 	var tween := _tween(card, &"_card_tween")
 	tween.tween_property(card, "scale", Vector2.ONE, CARD_TIME) \
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	_sfx(&"ui_open", -12.0, 0.03)
+	if sound:
+		_sfx(&"ui_open", -12.0, 0.03)
 
 ## The card rolling back up. `done` hides it — the caller cannot hide it up front or there
 ## would be nothing to animate, and cannot hide it after without knowing when the tween

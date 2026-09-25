@@ -1708,6 +1708,36 @@ punch still reads as a floppy disk and the satchel charge as a sack of gold, and
 redrawn after that lands rather than before. The walk has not been watched by a person on a
 real desk; frame strips and `art/preview/walk_*.gif` are what it was judged on.
 
+## D63 — Floating text never overlaps; a number with no room is not drawn (2026-09-25)
+
+**Decision.** Every rising line in `FXLayer` — payout, streak tag, rank, clean, knockout,
+rebirth — reserves the space it will pass through for its whole life, and a new one is placed
+where no live one will be at any moment of either's life. When there is no room within reach
+of the hit (2.6 of its own lines, never under 100px), a higher-ranked line takes the spot and
+puts the lesser ones away early; an equal or lesser one **is not drawn**. Headlines (rank ≥ 10)
+only step around other headlines and clear anything lesser from where they land. Tags are keyed:
+one streak tag, one combo tag, one rank line per item. The knockout's NEW BEST ROUND is a banner
+over the headline rather than a line under it.
+
+**Why.** `ui_shots` 16-juice printed "BASEBALE BATNRANK 43" — two rank-ups on one frame at one
+point — and a streak tag on its own number, and twelve hits in one frame on one pixel. A game
+that pays you in numbers cannot print them on top of each other. Dropping rather than queueing:
+a queued number arrives late and a stream from a turret never drains, and a number that could
+only be drawn over another one was never going to be read. The purse and the rate row count it
+either way.
+
+**How, and what it costs.** Checked against the *whole* life because the rise is an ease-out:
+a young number rises faster than an old one and catches it up. With no sideways drift both
+paths are closed-form, two quadratics differ by a quadratic, and "do they ever meet" is an
+endpoint-and-vertex check, including the punch-in at its true `TRANS_BACK` peak. It runs once
+per spawn and never per frame — about 0.1 ms in a debug build with a turret stream at one
+point, nothing at rest.
+
+*Consequence:* the fountain's coins stay outside the rule (a spray from one pixel cannot start
+apart): they draw beneath the lines and are thrown no higher than the headline. `ui_check`'s
+`numbers keep apart` suite checks every visible line's drawn rect pairwise, now and at four
+points through its rise.
+
 
 ## Recommendations not yet decided
 

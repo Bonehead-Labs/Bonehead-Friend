@@ -80,6 +80,14 @@ func setup(panel: Control, host: Control, edge: int, handle: Control = null) -> 
 	_mark.draw.connect(_draw_mark)
 	_mark.gui_input.connect(_on_mark_input)
 	host.add_child(_mark)
+	# The handle changes size on its own — the HUD card widens when its footer appears and
+	# grows a row when a streak starts — and nothing else wakes the drawer for that. The mark
+	# stayed where the old edge was, which put the pin *inside* the status card, beside the
+	# Bones figure, for as long as the player kept hitting him. A resize is an event like any
+	# other, so it costs nothing while nothing changes.
+	_handle.resized.connect(_wake)
+	if _handle != panel:
+		panel.resized.connect(_wake)
 	if panel.get_viewport():
 		_mouse = panel.get_viewport().get_mouse_position()
 	set_process(true)
