@@ -2602,6 +2602,97 @@ a whole fountain frame by frame and asserts nothing is drawn part-transparent an
 leaves by drawing in. A new variation, a new tab or a new room is covered by the sweep the day
 it lands.
 
+## D69 — Eight pictures that said the wrong thing, and icons thicker than what they label (2026-09-26)
+
+**Decision.** Eight item sprites are redrawn as grids in `art/pixel/`, the way D62 drew
+fourteen: the three weapons D62 held back until their colliders were re-authored (hole punch,
+satchel charge, letter opener) and the five that were the weakest left on a full contact sheet
+(halberd, tesla coil, mortar, heated blanket, and the scythe, recoloured). Every long item
+whose shop icon was a hairline gets an icon grid in `art/pixel/icons/` that is deliberately
+*thicker than the item*. Where a redraw moved a picture, its physics row moved with it (D25,
+D61), measured, and its scene was re-seeded alone with `--only`.
+
+**Why these eight.** The roster was laid out at game scale beside him on a dark and a light
+desk, and the same question asked as in D62: what does a player see in peripheral vision?
+
+| Item | read as | the redraw leans on |
+|---|---|---|
+| hole punch | a floppy disk | from above and to one side: a red lever plate, two coiled plungers with daylight between them, a sheet with two holes in it |
+| satchel charge | a sack of gold | green canvas, a leather strap arched over it, buckled straps, three red sticks out of the top, 3:00 chalked on the pocket |
+| letter opener | a brown stick | brass all through: a slim lit blade, a bolster one pixel proud, a red grip, a pommel |
+| halberd | a labrys on an invisible pole | one bearded axe, a hook, a spike, a wooden shaft that reads on a dark desk |
+| tesla coil | an arcade joystick | a steel toroid, a copper-wound column, the primary's copper spiral, one spark |
+| mortar | a telescope, dark end to end | short, fat and at seventy degrees: olive tube, flared muzzle, the bore, a bipod, a base plate |
+| heated blanket | a raw steak | a pink quilt folded once, its stitch crossings glowing where the wire runs, a turned-back corner, the controller |
+| scythe | an outline on a dark desk | the same pixels, recoloured: a steel blade with a white edge, a wooden snath |
+
+Four things were learned by drawing them wrong first. **Straight on, a hole punch is a table**:
+a lid on two legs with daylight between them, and every version drawn from the front read as a
+bench or a toaster; from above and to one side, with the sheet it has just punched, it is a hole
+punch. **A crossguard makes a sword**: the first letter opener was a gold dagger, and cutting the
+guard back to a bolster is what made it a desk tool. **Two holes in a frame is a face**: the
+punched sheet with its holes as dots in a white box smiled, until the holes became lenses; the
+satchel's chalked 3:00 did the same at two thirds, which is why it has its own icon. **A folded
+stack in red is dynamite**: the first blanket was three red folds and read as sticks.
+
+**Why the icons are drawn thicker than the items.** Every icon was measured for its content.
+Seven are under ten pixels on their short side (hunting rifle 6, pump shotgun 7, baseball bat 7,
+cricket bat 8, rolling pin 9, blunderbuss 9, the shotgun cursor 10), and three more pass only
+because a hairline is drawn at an angle (scythe, tyre iron and halberd, at about four pixels of
+picture per pixel of length). Turning a long thing 45 degrees does not rescue it: a rectangle
+L x T turned needs (L + T) / 1.41 of the square, so a 4:1 rifle drawn to scale grows by about an
+eighth — four pixels longer, one pixel thicker. So the icon has to be a caricature:
+
+- **The three long guns** are their own sprites with the barrel, stock, scope and fore-end rows
+  doubled (and eight columns of the rifle's barrel taken out), laid on the 45-degree lattice:
+  icon pixel (x, y) is sprite pixel (x - y, x + y), so a sprite row becomes an 8-connected
+  diagonal and nothing is resampled by a fraction. Across their own axis they went 6 -> 12,
+  7 -> 10 and 7 -> 11 px.
+- **The halberd and the scythe** are their own shapes turned 45 degrees at about two thirds,
+  with the pole shortened to what the corner leaves; **the tyre iron** is itself at full size
+  with fourteen rows of bar cut out of the middle. Picture per pixel of length went from 4.4,
+  3.6 and 4.3 to 9.0, 9.3 and 6.5.
+- **Left alone:** the bats and the rolling pin (their short side is the object's real width,
+  they are solid, and a diagonal gains under a pixel), and the shotgun cursor, whose pistol grip
+  turned 45 degrees reads as a bent stick. The satchel, tesla coil and heated blanket also got
+  icon grids, because stepped down their one telling detail — the time, the windings, the
+  quilting — turned to noise.
+
+**Colliders.** Six of the redraws are authored bodies and were re-authored against the new art
+with `collider_report -- --tables --shots --runs` before their scenes were written; the scythe's
+silhouette is byte-identical, so its D61 row stands, and the heated blanket kept its exact 42x30,
+so its derived collider (D55) and its scene are untouched.
+
+| Body | cover | air | overhang | what moved |
+|---|---|---|---|---|
+| hole punch | 97 % | 8 % | 6.2 px | two boxes became six that stop short of the parallelograms' empty corners |
+| satchel charge | 98 % | 4 % | 5.3 px | the pin moves from the charge to the top of the strap, the same lever from the weight |
+| letter opener | 93 % | 8 % | 0.0 px | blade, bolster, grip and pommel; grip and weight where they were |
+| halberd | 96 % | 5 % | 3.5 px | axe, beard and hook for two circles; weight two pixels toward the axe |
+| tesla coil | 97 % | 3 % | 1.8 px | toroid, column, spiral and base; the spark is light and not solid, and clear columns in the grid balance it so the coil stands, and shoots, on the centre line |
+| mortar | 90 % | 3 % | 1.0 px | it flips, so only the base plate and the tube's foot are solid (D61); pin at the top of that column, muzzle at the new bore |
+
+`swing_rig`, momentum handed to him, before -> after: hole punch 3,623 -> 3,760, letter opener
+2,553 -> 3,335, halberd 5,031 -> 5,010; the three references did not move (3,005 / 4,181 /
+3,224). The letter opener now sits inside the references' band rather than under it: it lands
+in one clean contact where it used to land two glancing ones. Peak weapon speed moved at most
+6 %. The halberd turns faster (4.8 -> 7.7 rad/s; the scythe below it is 6.9): Godot shares a
+body's mass out by shape area, the new head is drawn bigger, so more of its 16 kg sits beside
+the centre of mass and less along the shaft, and its inertia fell by a quarter.
+
+*Consequence:* `make_icons.py` skips any id with an icon grid, instead of writing a downscale
+over it — a full run would otherwise put the halberd's stick back (and would already have
+overwritten bubble wrap's). `pixel_icon.py`'s docstring says how the long things were drawn;
+each grid's header says what the old picture read as. A grid is centred by its width, clear
+columns included, which is how the tesla coil keeps its column on the centre line beside a
+spark: `brain_check` wants a turret that does not flip to shoot from within two pixels of its
+middle, and the first version, shifted by the spark, failed it. The mortar is less solid than
+it was, because what stands in both of its facings is now its base plate and the foot of its
+tube: mirroring shapes with the sprite is still the owner's call from D61. *Not drawn:* the
+hornet, which is small in the world; the swarm launcher, which reads as a speaker. *Not seen:*
+this pass ran headless on a machine the owner was using, so everything was judged from rendered
+previews at 1x, 2x and 8x on a dark and a light desk, never on a real one.
+
 
 ## Recommendations not yet decided
 

@@ -1,0 +1,38 @@
+# Satchel charge's shop icon (D69). The 42px sprite at two thirds turns the chalked 3:00 into
+# a face. Redrawn at 30px from the same parts: the strap arch, three sticks, the green bag and
+# its buckles, and the time kept at full size, because it is the one thing on it that says
+# somebody set this.
+id: satchel_charge
+cell: 32
+
+--- main
+............KKKKKK............
+..........KKnnnnnnKK..........
+.........KnnbbbbbbnnK.........
+........KnbbbnnnnbbbnK........
+.......KnbbnKKKKKKnbbnK.......
+......KnbbnKKWWWK.KnbbnK......
+.....KnbKKKKKPRrKKKKKbbnK.....
+.....KnbKWWWKPRrKWWWKnbnK.....
+....KnbbKPRrKPRrKPRrKnbbnK....
+....KnbnKPRrKPRrKPRrKKnbnK....
+....KnbnKPRrKPRrKPRrKKnbnK....
+.KKKKnbnKPRrKPRrKPRrKKnbnKKKK.
+KHHHHHHHKRRrKRRrKRRrKHHHHHHHHK
+KHHHHHHHKrrrKrrrKrrrKHHHHHHHHK
+KEEEEbnEEEEEEEEEEEEEEEEbnEqqqK
+KEeeebneeeeeeeeeeeeeeeebneqqqK
+KEeeebneeeeeeeeeeeeeeeebneqqqK
+KEeeebneeeeeeeeeeeeeeeebneqqqK
+KEeeebnqqqqqqqqqqqqqqqqbneqqqK
+KEeeGGGGqqqqqqqqqqqqqqGGGGqqqK
+KEeeGnnGqqqqqqqqqqqqqqGnnGqqqK
+KEeeGGGGqqqqqqqqqqqqqqGGGGqqqK
+KEeeebnqWWWqWqWWWqWWWqqbneqqqK
+KEeeebnqqqWqqqWqWqWqWqqbneqqqK
+KEeeebnqqWWqqqWqWqWqWqqbneqqqK
+KEeeebnqqqWqWqWqWqWqWqqbneqqqK
+KEeeebnqWWWqqqWWWqWWWqqbneqqqK
+KEeeebnqqqqqqqqqqqqqqqqbneqqqK
+KEeeebneeeeeeeeeeeeeeeebneqqqK
+.KKKKKKKKKKKKKKKKKKKKKKKKKKKK.

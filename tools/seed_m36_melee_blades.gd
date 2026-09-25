@@ -116,13 +116,16 @@ const BLADES := [
 		"mass": 2.8,
 		"damage": 2.3,
 		# Balanced at the bolster, which is where a desk tool balances: it does not swing,
-		# it goes in straight.
+		# it goes in straight. Blade, bolster, grip and pommel as drawn in D69; the grip pin
+		# sits where the handle meets the pommel, the same reach from the bolster as before.
 		"shapes": [
-			{"capsule": Vector2(5, 22), "at": Vector2(6, -6), "rot": 45.0},
-			{"rect": Vector2(8, 14), "at": Vector2(-8, 8), "rot": 45.0},
+			{"capsule": Vector2(4.5, 18), "at": Vector2(6.25, -6.75), "rot": 45.0},
+			{"rect": Vector2(3, 8), "at": Vector2(-1.75, 0.5), "rot": -45.0},
+			{"capsule": Vector2(4.5, 11.5), "at": Vector2(-6, 5.5), "rot": 45.0},
+			{"circle": 3.0, "at": Vector2(-10.5, 11.5)},
 		],
-		"com": Vector2(-1, 1),
-		"grip": Vector2(-10, 10),
+		"com": Vector2(-1, 0.5),
+		"grip": Vector2(-10, 9.5),
 		"grab": {"size": Vector2(18, 18), "at": Vector2(-8, 8)},
 		"tree": ["Honed Point", "Return to Sender", "Solid Brass"],
 		"device": [&"opener_mail_slot", "Mail Slot",
@@ -374,17 +377,19 @@ const BLADES := [
 		"mass": 16.0,
 		"damage": 2.1,
 		# A head on the end of the longest lever in the game: slow to bring round and very
-		# hard to stop once it is coming. The head is a socket and a blade either side of it,
-		# as separate pieces, because a halberd that hits with one box hits the same however
-		# it is turned. The spike is the top of the shaft.
+		# hard to stop once it is coming. The head is a socket, a bearded axe on one side and
+		# a hook on the other (D69), as separate pieces, because a halberd that hits with one
+		# box hits the same however it is turned. The spike is the top of the shaft. The
+		# weight sits a little toward the axe, because that is where the steel is.
 		"shapes": [
 			{"capsule": Vector2(5, 77), "at": Vector2(-0.5, -0.5)},
-			{"rect": Vector2(11, 12), "at": Vector2(-1, -29.5)},
-			{"circle": 5.5, "at": Vector2(-12, -29.5)},
-			{"circle": 5.5, "at": Vector2(10, -29.5)},
-			{"rect": Vector2(9, 7), "at": Vector2(-1, 33.5)},
+			{"rect": Vector2(7, 20), "at": Vector2(-0.5, -25)},
+			{"rect": Vector2(13, 18), "at": Vector2(9.5, -25)},
+			{"rect": Vector2(8, 4), "at": Vector2(11, -14)},
+			{"capsule": Vector2(5, 15), "at": Vector2(-9.5, -24), "rot": 58.7},
+			{"rect": Vector2(7, 3), "at": Vector2(-0.5, 36.5)},
 		],
-		"com": Vector2(-1, -29),
+		"com": Vector2(1, -27),
 		"grip": Vector2(-1, 26),
 		"grab": {"size": Vector2(18, 30), "at": Vector2(-1, 24)},
 		"tree": ["Ground Bill", "Guard Duty", "Iron-Shod Shaft"],

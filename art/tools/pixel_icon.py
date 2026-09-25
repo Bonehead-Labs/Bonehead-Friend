@@ -16,6 +16,17 @@ checkerboard. This one never resamples by a fraction:
 
 An item that fits neither — wider than 32 with no icon grid — is refused with a message
 rather than quietly resampled.
+
+**Long things get a drawn icon on the diagonal** (D69). A 56px rifle halved is 28x6 and a
+78px halberd is a one-pixel stick; turning either 45 degrees buys about an eighth and nothing
+else, because a thin thing stays thin. What works is an icon grid that is *thicker than the
+item*: the long guns are their own sprites with the barrel, stock and scope rows doubled (and
+some of the rifle's barrel taken out), laid on the 45-degree lattice (icon pixel (x, y) is
+sprite pixel (x - y, x + y), so a sprite row becomes an 8-connected diagonal and nothing is
+resampled by a fraction), and a bell rim redrawn where the lattice left it open; the halberd
+and the scythe are their own shapes at about two thirds with the pole shortened to what the
+corner leaves; the tyre iron is itself at full size with rows of bar cut out of the middle.
+The grid is the icon either way — `make_icons.py` skips any id that has one.
 """
 import os
 import sys

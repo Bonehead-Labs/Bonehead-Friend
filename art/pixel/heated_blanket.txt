@@ -1,0 +1,39 @@
+# Heated blanket — D69 redraw. "He has no skin to warm and loves it anyway." The generated one
+# was a red slab mottled darker red, tilted, with a grey plug: at 1x a raw steak. A blanket is
+# soft and patterned, and this one is electric: a pink quilt folded once, diamond-stitched with
+# the crossings glowing orange where the wire runs, one corner turned back to its cream lining,
+# and the controller on its cord in front. Same 42x30, so the scene's collider still fits.
+id: heated_blanket
+cell: 64
+
+--- main
+......................................K...
+....................KKKKKKKKKKKKKKKKKKPK..
+.KKKKKKKKKKKKKKKKKKKPPPPPPPPPPPPPPPPPPPK..
+KPPPPPPPPPPPPPPPPPPPpppPPpppppPPpppppPPK..
+KPPPpppppPPpppppPPpppppPPpppppPPpppppPPK..
+KPppPpppPppPpppPppPpppPppPpppPppPpppPppK..
+KppppPpPppppPpPppppPpPppppPpPppppPpPppppK.
+KmppppOppppppOppppppOppppppOppppppOpppppK.
+KmpppPpPppppPpPppppPpPppppPpPppppPpPppppK.
+KmppPpppPppPpppPppPpppPppPpppPppPpppPppPK.
+KmPPpppppPPpppppPPpppppPPpppppPPpppppPPpK.
+.KPPpppppPPpppppPPpppppPPpppppPPpppppPPpK.
+.KppPpppPppPpppPppPpppPppPpppPppPpppPppPK.
+.KpppPpPppppPpPppppPpPppppPpPppppPpPppppK.
+.KppppOppppppOppppppOppppppOppppppOppppppK
+.KmppPpPppppPpPppppPpPppppPpPppppPpPppppPK
+.KmpPpppPppPpppPppPpppPppPpppPppPpppPppPpK
+.KmPpppppPPpppppPPpppppPPpppppPPpcCCCCCCCK
+.KmPpppppPPpppppPPppppmmmmmmmmmmmmcCCCCCCK
+..KpmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmcCCCCCK
+..KmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmccCCCK
+..KmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmcCCK
+..KmmmhmmmmmmmmmmmmmmmKKKKKKKKKKKKKKKKKcCK
+..KmKKhKKKKKGGGGGGGGGGK................KCK
+...K.KhK...KggggggggggK.................K.
+.....KhKK..KgOYOghhhhgK...................
+......KhhKKKgOOOghhhhgK...................
+.......KKhhhgOOOggggggK...................
+.........KKKggggggggggK...................
+............KKKKKKKKKK....................

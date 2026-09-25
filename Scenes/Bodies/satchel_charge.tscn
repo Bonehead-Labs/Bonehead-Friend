@@ -6,24 +6,29 @@
 [ext_resource type="Script" path="res://Scripts/Components/effects_player.gd" id="4_isc72"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_gdakt"]
-size = Vector2(76, 40)
+size = Vector2(84, 50)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_f70ko"]
-size = Vector2(60, 12)
+size = Vector2(32, 18)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_q3mpc"]
-size = Vector2(46, 18)
+size = Vector2(44, 10)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_isc72"]
-size = Vector2(24, 6)
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_isc72"]
+radius = 4.5
+height = 24.0
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_o3qmq"]
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_o3qmq"]
+radius = 4.5
+height = 24.0
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_au556"]
 size = Vector2(60, 72)
 
-[sub_resource type="CircleShape2D" id="CircleShape2D_au556"]
+[sub_resource type="CircleShape2D" id="CircleShape2D_acyr7"]
 radius = 320.0
 
-[node name="_SatchelCharge" type="RigidBody2D" unique_id=1019248978 node_paths=PackedStringArray("explosion_area", "drag_area", "handle", "sprite", "collider", "Effects_Player")]
+[node name="_SatchelCharge" type="RigidBody2D" unique_id=118414122 node_paths=PackedStringArray("explosion_area", "drag_area", "handle", "sprite", "collider", "Effects_Player")]
 collision_layer = 4
 collision_mask = 7
 mass = 6.0
@@ -42,46 +47,52 @@ handle = NodePath("Handle")
 sprite = NodePath("Sprite")
 collider = NodePath("CollisionShape2D")
 Effects_Player = NodePath("EffectsPlayer")
-grip_offset = Vector2(-24, -32)
+grip_offset = Vector2(0, -37)
 
-[node name="Sprite" type="Sprite2D" parent="." unique_id=182255853]
+[node name="Sprite" type="Sprite2D" parent="." unique_id=682149756]
 scale = Vector2(2, 2)
 texture = ExtResource("2_f70ko")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1086239628]
-position = Vector2(1, 6)
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=985255088]
+position = Vector2(0, 15)
 shape = SubResource("RectangleShape2D_gdakt")
 
-[node name="CollisionShape2D2" type="CollisionShape2D" parent="." unique_id=511678400]
-position = Vector2(0, 32)
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="." unique_id=282308910]
+position = Vector2(-4, -19)
 shape = SubResource("RectangleShape2D_f70ko")
 
-[node name="CollisionShape2D3" type="CollisionShape2D" parent="." unique_id=2120226876]
-position = Vector2(-7, -26)
+[node name="CollisionShape2D3" type="CollisionShape2D" parent="." unique_id=972703755]
+position = Vector2(0, -35)
 shape = SubResource("RectangleShape2D_q3mpc")
 
-[node name="CollisionShape2D4" type="CollisionShape2D" parent="." unique_id=2029660209]
-position = Vector2(-6, -37)
-shape = SubResource("RectangleShape2D_isc72")
+[node name="CollisionShape2D4" type="CollisionShape2D" parent="." unique_id=860314209]
+position = Vector2(-24, -21)
+rotation = 0.69464105
+shape = SubResource("CapsuleShape2D_isc72")
 
-[node name="DraggableArea" type="Area2D" parent="." unique_id=1994313694]
+[node name="CollisionShape2D5" type="CollisionShape2D" parent="." unique_id=1691546602]
+position = Vector2(24, -21)
+rotation = -0.69464105
+shape = SubResource("CapsuleShape2D_o3qmq")
+
+[node name="DraggableArea" type="Area2D" parent="." unique_id=446631180]
 script = ExtResource("3_q3mpc")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=5430011]
-shape = SubResource("RectangleShape2D_o3qmq")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=287498374]
+shape = SubResource("RectangleShape2D_au556")
 
-[node name="Handle" type="StaticBody2D" parent="." unique_id=1922939002]
+[node name="Handle" type="StaticBody2D" parent="." unique_id=560721614]
 visible = false
 collision_layer = 0
 collision_mask = 0
 
-[node name="EffectsPlayer" type="Node" parent="." unique_id=655790249]
+[node name="EffectsPlayer" type="Node" parent="." unique_id=220672510]
 script = ExtResource("4_isc72")
 
-[node name="ExplosionArea" type="Area2D" parent="." unique_id=898343458]
+[node name="ExplosionArea" type="Area2D" parent="." unique_id=464204509]
 collision_layer = 0
 collision_mask = 6
 monitoring = false
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="ExplosionArea" unique_id=1186553347]
-shape = SubResource("CircleShape2D_au556")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="ExplosionArea" unique_id=1397634949]
+shape = SubResource("CircleShape2D_acyr7")

@@ -20,6 +20,11 @@ tennis ball goes x2 to 26px), and the exact fit otherwise. Going down, every out
 majority colour of the source area it covers rather than whichever pixel nearest-neighbour
 landed on, because every-Nth-pixel sampling drops one-pixel outlines at random; the outline is
 then closed again, since a block that was half outline and half fill can come out as fill.
+
+**An item with a drawn icon is left alone.** If `art/pixel/icons/<id>.txt` exists, the icon is
+that grid's (`pixel_icon.py`), and this tool skips the id and says so rather than writing a
+downscale over it. Before D69 a full run would have overwritten bubble wrap's drawn icon, and
+now it would put back the halberd's one-pixel stick.
 """
 import glob
 import os
@@ -29,6 +34,7 @@ from PIL import Image
 
 SRC = "Assets/sprites/items"
 OUT = "Assets/sprites/icons"
+ICON_GRIDS = "art/pixel/icons"
 ICON = 32
 MARGIN = 2
 OUTLINE = (0, 0, 0, 255)
@@ -110,6 +116,9 @@ def main():
             continue
         # A turret's split halves are not items.
         if item.endswith("_base") or item.endswith("_barrel"):
+            continue
+        if os.path.exists("%s/%s.txt" % (ICON_GRIDS, item)):
+            print("  %-20s drawn: %s/%s.txt (pixel_icon.py)" % (item, ICON_GRIDS, item))
             continue
         im = Image.open(path).convert("RGBA")
         bbox = im.getbbox()

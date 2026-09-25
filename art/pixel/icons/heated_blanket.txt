@@ -1,0 +1,28 @@
+# Heated blanket's shop icon (D69). Seven-pixel quilting at two thirds is speckle, so the icon
+# is the same quilt redrawn at 30px with the stitching every five pixels.
+id: heated_blanket
+cell: 32
+
+--- main
+..KKKKKKKKKKKKKKKKKKKKKKKKKK..
+.KPPPPPPPPPPPPPPPPPPPPPPPPPPK.
+KPPPPPPPPPPPPPPPPPPPPPPPPPPPK.
+KpPPpppPPpppPPpppPPpppPPpppPK.
+KPppPpPppPpPppPpPppPpPppPpPpK.
+KppppOppppOppppOppppOppppOppK.
+KPppPpPppPpPppPpPppPpPppPpPpK.
+KpPPpppPPpppPPpppPPpppPPpppPPK
+KmPPpppPPpppPPpppPPpppPPpppPPK
+KmppPpPppPpPppPpPppPpPppPpPppK
+KmpppOppppOppppOppppOppppOpppK
+.KppPpPppPpPppPpPppPpPppPpPppK
+.KPPpppPPpppPPpppPPpppPPcCCCCK
+.KPmmmmmmmmmmmmmmmmmmmmmmcCCCK
+.KmmmmmmmmmmmmmmmmmmmmmmmmcCCK
+.KmmmmmmmmmmmmmmmmmmmmmmmmmcCK
+.KmKKhKKKGGGGGGGGKKKKKKKKKKKcK
+..K.KhK.KgYOgggggK..........K.
+....KhKKKgOOghhhgK............
+.....KhhhgOOgggggK............
+......KKKggggggggK............
+.........KKKKKKKK.............

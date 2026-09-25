@@ -504,3 +504,55 @@ which rows and columns are which moving part. They were judged at 6x on a checke
 
 One lesson: **a pulled ball over an upright is noise at 32 px.** The cradle's icon hangs all
 five balls still, and only the 2x shop picture pulls one out.
+## The second drawn pass — eight more, and icons for long things (2026-09-26, D69)
+
+Same method as D62: every item laid out at game scale beside him on a dark and a light desk,
+asked what it reads as in peripheral vision, and the grid is the record — no prompt, no seed.
+Each file's header in `art/pixel/` says what the old sprite read as and what the new one leans
+on.
+
+| Item | before | after | read as | the redraw leans on |
+|---|---|---|---|---|
+| hole_punch | 26x24 | 28x22 | a floppy disk | from above and to one side: a red lever plate, two coiled plungers with daylight between, a sheet with two punched holes |
+| satchel_charge | 42x40 | 42x40 | a sack of gold | green canvas, a leather strap arched over it, two buckled straps, three red sticks, 3:00 chalked on the pocket |
+| letter_opener | 29x28 | 27x28 | a brown stick | brass all through: a slim blade lit along one edge, a bolster only a pixel proud, a red grip, a round pommel |
+| halberd | 31x78 | 32x78 | a labrys on an invisible pole | one bearded axe with its edge lit, a hook, a spike, a wooden shaft, a steel butt |
+| tesla_coil | 27x44 | 30x45 | an arcade joystick | a steel toroid, a column wound in copper, the primary's copper spiral round its foot, one spark |
+| mortar | 33x40 | 33x39 | a telescope | short, fat, seventy degrees: an olive tube, a flared muzzle with the bore showing, a bipod, a base plate |
+| heated_blanket | 42x30 | 42x30 | a raw steak | a pink quilt folded once, stitch crossings glowing where the wire runs, a turned-back corner, the controller on its cord |
+| scythe | 41x76 | 41x76 | an outline on a dark desk | the same pixels recoloured: a steel blade lit on its back with a white edge, a dark collar, a wooden snath |
+
+**Icons drawn, not stepped down** (`art/pixel/icons/<id>.txt`, built by `pixel_icon.py`, which
+`make_icons.py` now leaves alone). Content before -> after, and its thickness across its own
+axis:
+
+| Icon | before | after | how |
+|---|---|---|---|
+| hunting_rifle | 28x6 | 27x29 | sprite rows doubled, eight columns of barrel out, laid on the 45-degree lattice; 6 -> 12 px across |
+| pump_shotgun | 28x7 | 25x30 | barrel, tube and stock rows doubled, on the lattice; 7 -> 10 px across |
+| blunderbuss | 28x9 | 22x29 | barrel and stock rows doubled, on the lattice, bell rim redrawn by hand; 7 -> 11 px across |
+| halberd | 13x27 | 30x28 | its own shapes turned 45 degrees at two thirds, shaft shortened |
+| scythe | 15x26 | 25x26 | its recoloured pixels turned 45 degrees at five eighths, snath shortened |
+| tyre_iron | 14x25 | 25x30 | the sprite at full size with fourteen rows of bar cut out |
+| satchel_charge | 29x28 | 30x30 | redrawn at 30px so the chalked time stays a time |
+| tesla_coil | 17x29 | 24x30 | redrawn at 30px so the windings survive |
+| heated_blanket | 29x21 | 30x22 | redrawn at 30px with the stitching every five pixels |
+
+The hole punch and the letter opener fit the icon at 1x and are their own sprites; the mortar's
+icon is `make_icons.py`'s two thirds, which keeps it.
+
+**Four things learned drawing them wrong first.**
+
+- **Straight on, a hole punch is a table.** A lid on two legs with daylight between them read as
+  a bench, and filled in it read as a toaster. The three-quarter view with the sheet it has just
+  punched is the one that says hole punch.
+- **A crossguard makes a sword.** The first letter opener, in bright brass with a proper guard,
+  was a gold dagger. Cut back to a bolster it is a desk tool.
+- **Two holes in a frame is a face.** The punched sheet with round holes in a white box smiled
+  back; lens-shaped holes do not. The satchel's 3:00 made the same face at two thirds.
+- **A folded stack in red is dynamite.** The first heated blanket was three red folds lying on
+  each other and read as a bundle of sticks. A quilt is flat, patterned and soft-cornered.
+
+**Not redrawn:** the shotgun cursor's icon (turned, its pistol grip reads as a bent stick), the
+bats and the rolling pin (solid, their short side is their real width), the hornet and the
+swarm launcher (a speaker, but a legible one).

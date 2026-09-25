@@ -1,0 +1,37 @@
+# Tyre iron's shop icon (D69). The 48px sprite at a half was a three-pixel wire bent into an
+# L. This is the sprite itself at full size, pixel for pixel, with fourteen rows of bar taken
+# out of the middle: the socket and the bend are what say tyre iron, and they keep their width.
+id: tyre_iron
+cell: 32
+
+--- main
+..KKKKKKK................
+.KnnnnnnnK...............
+KnbbOYYYbKKKKKKKKKKK.....
+KnbbbYYYBHHHHHHHHHHHkkK..
+KnbbBYYYYhgggggggggccgHK.
+KnbbbYYYOkHHHHHHHHHHHgck.
+KnnbbOOObkkkkkkkkkkkkHggk
+.KnnbbbbnK..........KHnck
+..KKKKKKK............kHck
+.....................kHck
+.....................kHck
+.....................kHck
+.....................kHck
+.....................kHck
+.....................kHck
+.....................kHck
+.....................kHck
+.....................kHck
+.....................kHck
+.....................kHck
+.....................kHck
+.....................kHck
+.....................kHck
+.....................kHck
+.....................kHck
+.....................kHck
+.....................kHck
+.....................kHck
+......................kHK
+.......................K.

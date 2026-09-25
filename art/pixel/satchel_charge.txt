@@ -1,0 +1,50 @@
+# Satchel charge — D69 redraw. "A canvas bag with far too much in it. Somebody has written a
+# time on the side." The generated one was a brown sack with pale bricks spilling from the top,
+# which is a sack of gold. A satchel is canvas, square-cut and carried by its strap: a green
+# bag with the leather strap arched over it, two buckled straps down the front, three red
+# sticks standing out of the open top, and the time chalked on the pocket. No fuse — a satchel
+# charge is set by its time. Same 42x40.
+id: satchel_charge
+cell: 64
+
+--- main
+.................KKKKKKKK.................
+..............KKKnnnnnnnnKKK..............
+.............KnnnbbbbbbbbnnnK.............
+...........KKnnbbnnnnnnnnbbnnKK...........
+..........KnnbbnnnKKKKKKnnnbbnnK..........
+.........KnbbnnKKK......KKKnnbbnK.........
+........KnbbnKK..KKKK......KKnbbnK........
+.......KnbbnK...KWWWWK.......KnbbnK.......
+......KnnbnKKKKKKPRRrKKKKK....KnbnnK......
+......KnbnKKWWWWKPRRrKWWWWK....KnbnK......
+.....KnbnnKKPRRrKPRRrKPRRrK....KnnbnK.....
+.....KnbnK.KPRRrKPRRrKPRRrK.....KnbnK.....
+....KnbnK..KPRRrKPRRrKPRRrK......KnbnK....
+....KnbnK..KPRRrKPRRrKPRRrK......KnbnK....
+....KnbnK..KPRRrKPRRrKPRRrK......KnbnK....
+.KKKnbnKKKKKPRRrKPRRrKPRRrKKKKKKKKKnbnKKK.
+KHHHHHHHHHHKPRRrKPRRrKPRRrKHHHHHHHHHHHHHHK
+KHHHHHHHHHHKrrrrKrrrrKrrrrKHHHHHHHHHHHHHHK
+KEEEEEEEEEEbnnEEEEEEEEEEEEEEbnnEEEEEEqqqqK
+KEEeeeeeeeebnneeeeeeeeeeeeeebnneeeeeeqqqqK
+KEEeeeeeeeebnneeeeeeeeeeeeeebnneeeeeeqqqqK
+KEEeeeeeeeebnneeeeeeeeeeeeeebnneeeeeeqqqqK
+KEEeeeeeeeebnneeeeeeeeeeeeeebnneeeeeeqqqqK
+KEEeeeeeeeebnneeeeeeeeeeeeeebnneeeeeeqqqqK
+KEEeeeeqeeebnneeeeeeeeeeeeeebnneeeqeeqqqqK
+KEEeeeeqeeebnneeeeeeeeeeeeeebnneeeqeeqqqqK
+KEEeeeeqqqGGGGGqqqqqqqqqqqqGGGGGqqqeeqqqqK
+KEEeeeeqqqGnnnGqqqqqqqqqqqqGnnnGqqqeeqqqqK
+KEEeeeeqqqGnnnGqqqqqqqqqqqqGnnnGqqqeeqqqqK
+KEEeeeeqqqGGGGGqqqqqqqqqqqqGGGGGqqqeeqqqqK
+KEEeeeeqqqqbnnWWWqWqWWWqWWWqbnnqqqqeeqqqqK
+KEEeeeeqqqqbnnqqWqqqWqWqWqWqbnnqqqqeeqqqqK
+KEEeeeeqqqqbnnqWWqqqWqWqWqWqbnnqqqqeeqqqqK
+KEEeeeeqqqqbnnqqWqWqWqWqWqWqbnnqqqqeeqqqqK
+KEEeeeeqqqqbnnWWWqqqWWWqWWWqbnnqqqqeeqqqqK
+KEEeeeeqqqqbnnqqqqqqqqqqqqqqbnnqqqqeeqqqqK
+KEEeeeeeeeebnneeeeeeeeeeeeeebnneeeeeeqqqqK
+KEEeeeeeeeebnneeeeeeeeeeeeeebnneeeeeeqqqqK
+.KEeeeeeeeebnneeeeeeeeeeeeeebnneeeeeeqqqK.
+..KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK..
