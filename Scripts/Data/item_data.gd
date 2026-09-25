@@ -109,6 +109,15 @@ const CURRENCY_HEARTS := 1
 ## as that turret ran.
 @export var is_autonomous: bool = false
 
+## How to work it, in the player's hands: "Hold · Right-click to fire", "Right-drag the
+## crank". One short line, shown with the item and taught once when it first lands on the
+## desk. Empty means the default gesture (grab it, swing it, throw it) and says nothing.
+##
+## Data, not a per-class string, because the same class can be worked two ways — a fidget
+## spinner and a bubble wrap sheet are both zone toys — and because the line is written for
+## the player, which is the shop's business rather than the body's.
+@export var controls: String = ""
+
 ## Harm or kind. Read from the category, so an item is filed once and every system that
 ## cares — the shop's two front doors, the idle brain deciding what he would enjoy — agrees
 ## by construction rather than by two lists kept in step by hand.
