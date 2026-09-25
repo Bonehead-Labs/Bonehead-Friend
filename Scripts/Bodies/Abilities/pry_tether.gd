@@ -9,8 +9,8 @@ extends TetherAbility
 ## From then, while right is held, **pull the hand down and he goes up**: every pixel the hand drops
 ## below where it pressed lifts him `lever_ratio` pixels, up to `max_lift`, eased at `lift_speed`
 ## px/s, and tips him away from the bar by up to `tilt_degrees`, the way a crate tips when its near
-## edge is levered. The bar creaks a notch at a time, and its claw stays on him: a torque keeps it
-## pointed at his near corner as he rises, the held gun's PD about the grip (D56).
+## edge is levered. The bar creaks a notch at a time, and its claw stays on him: steered onto his
+## near corner as he rises, with the handle on the line from there toward the hand.
 ##
 ## **Let go of right, or lever him all the way, and he pops**: thrown up and over at `pop` px/s,
 ## scaled by how far he was levered, a third of that away from the bar, spun head over heels by
@@ -20,8 +20,7 @@ extends TetherAbility
 ## down, for half the cooldown.
 ##
 ## Row (as well as the base's `stiffness`, `max_accel`, `claim_seconds`): `reach`, `lever_ratio`,
-## `max_lift`, `lift_speed`, `tilt_degrees`, `hold_seconds`, `pop`, `spin`, `pry_force`, `pry_mult`,
-## `aim_frequency`, `aim_accel`.
+## `max_lift`, `lift_speed`, `tilt_degrees`, `hold_seconds`, `pop`, `spin`, `pry_force`, `pry_mult`.
 
 var _hand0 := Vector2.ZERO
 var _start := Vector2.ZERO
@@ -29,6 +28,7 @@ var _side := 1.0
 var _lift := 0.0
 var _creak_at := 0.0
 var _pop_pending := false
+var _offset := Vector2.ZERO
 
 ## For the suites: how high he was levered, and how hard the pop was.
 var last_lift := 0.0
@@ -120,7 +120,7 @@ func _hold(delta: float) -> void:
 	last_lift = maxf(last_lift, _lift)
 	steer(_anchor(), Vector2.ZERO, delta, num("stiffness", 16.0), num("max_accel", 9000.0))
 	_tip_him(delta)
-	_aim_claw()
+	_hold_bar(delta)
 	if absf(_lift - _creak_at) >= 10.0:
 		_creak_at = _lift
 		sound(&"creak", -10.0, lerpf(0.8, 1.3, lift()), 0.05)
@@ -143,30 +143,48 @@ func _tip_him(delta: float) -> void:
 	var change := clampf(want - him.angular_velocity, -30.0 * delta, 30.0 * delta)
 	him.apply_torque_impulse(change * inertia)
 
-## The claw kept on his corner: the held gun's PD about the grip, with the hand holding it up.
-func _aim_claw() -> void:
-	var grip := grip_world()
-	var bar := tip_world() - grip
-	var target := _wedge() - grip
-	if bar.length_squared() < 1.0 or target.length_squared() < 1.0:
-		return
-	var err := wrapf(target.angle() - bar.angle(), -PI, PI)
-	var inertia := pivot_inertia()
-	var w := num("aim_frequency", 12.0)
-	var pd := inertia * (w * w * err - 2.0 * 0.8 * w * body.angular_velocity)
-	var cap := inertia * num("aim_accel", 300.0)
-	var arm := com_world() - grip
-	var hold := -arm.x * body.mass * _gravity * body.gravity_scale
-	body.apply_torque(hold + clampf(pd, -cap, cap))
+## The bar kept on him: its claw on his near corner as he rises, and its handle on the line from
+## there toward the hand (`BaseDraggable.hand_offset`), each steered by an impulse at that point —
+## never a write (D54). Left to the drag joint the claw hung under the hand and he rose off it,
+## which read as him floating, not as a lever.
+func _hold_bar(delta: float) -> void:
+	var wedge := _wedge()
+	var cursor := _cursor()
+	var length := grip_world().distance_to(tip_world())
+	var out := cursor - wedge
+	var handle := wedge + (out.normalized() if out.length_squared() > 1.0 else Vector2.LEFT) * length
+	_set_offset(handle - cursor)
+	var com := com_world()
+	var lift := Vector2(0.0, -_gravity * body.gravity_scale * delta * 0.5)
+	for pair in [[grip_world(), handle], [tip_world(), wedge]]:
+		var at: Vector2 = pair[0]
+		var target: Vector2 = pair[1]
+		var r := at - com
+		var here := body.linear_velocity + Vector2(-r.y, r.x) * body.angular_velocity
+		var change := ((target - at) * 20.0 - here).limit_length(20000.0 * delta) + lift
+		body.apply_impulse(change * body.mass * 0.5, at - body.global_position)
+
+func _set_offset(offset: Vector2) -> void:
+	var delta := offset - _offset
+	_offset = offset
+	body.hand_offset = offset
+	if body.dragging and body.handle:
+		body.handle.global_position += delta
+
+func _on_stop() -> void:
+	_set_offset(Vector2.ZERO)
+	super._on_stop()
 
 ## He pops off the bar: up and over, spinning, and the lever's work billed once.
 func _pop() -> void:
 	var him := buddy()
 	var frac := lift()
 	if him == null or frac < 0.2:
+		_set_offset(Vector2.ZERO)
 		# Hardly lifted: set down, not popped, for half the cooldown once the claw is out of him.
 		_let_go(false, num("cooldown", 5.0) * 0.5)
 		return
+	_set_offset(Vector2.ZERO)
 	var up := num("pop", 900.0) * frac
 	var launch := Vector2(_side * up * 0.33, -up)
 	him.apply_central_impulse(launch * him.mass)

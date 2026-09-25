@@ -104,13 +104,23 @@ func _stage(id: StringName) -> void:
 	var idle := get_tree().get_first_node_in_group(IdleBrain.GROUP_IDLE_BRAIN) as IdleBrain
 	if idle:
 		idle._disturb()
-	# Him, standing still a little right of centre, on whatever the floor is.
+	# Him, standing still a little right of centre, on whatever the floor is — once he is back on
+	# his feet from anything the last weapon did: a flail flings him to the top of the window, and
+	# a stage measured from him in mid-air, or in a knockout, stages the next weapon at nothing.
+	for i in 600:
+		if not ExpressionBrain.KNOCKOUT_STATES.has(_buddy.state) and not _buddy.health.down:
+			break
+		await _idle(1)
 	_buddy.health.reset_meter()
 	_buddy.global_rotation = 0.0
 	_buddy.global_position = Vector2(float(SIZE.x) * 0.5 + 160.0, _buddy.global_position.y)
 	_buddy.linear_velocity = Vector2.ZERO
 	_buddy.angular_velocity = 0.0
 	await _idle(40)
+	for i in 240:
+		if _buddy.is_grounded() and _buddy.linear_velocity.length() < 5.0:
+			break
+		await _idle(1)
 	_n = 0
 	var ability_row := AbilityTable.row_for(id)
 	var centre := _buddy.get_interaction_rect().get_center()
