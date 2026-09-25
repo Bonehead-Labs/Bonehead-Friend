@@ -22,3 +22,7 @@ art/preview/*
 # Python bytecode from the art tools
 __pycache__/
 *.pyc
+
+# A worktree's own user:// (config/custom_user_dir_name), so parallel test runs cannot share a
+# save slot or a settings file. Local by definition; never commit one.
+override.cfg
