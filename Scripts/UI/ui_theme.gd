@@ -20,6 +20,8 @@ extends RefCounted
 ##   TileHot      a tile you can afford or have already taken
 ##   TileDead     a tile that is locked out; flat, sunk, no rule weight
 ##   Sunk         a well: a meter track, the gate strip, an empty state
+##   HowTo        how to work a toy, in the shop's detail pane (D57)
+##   Bubble       a toy speaking in the world: the fortune ball's answer (D57)
 ##   Chip         a HUD currency chip
 ##   TabButton    a page tab; toggled on it merges into the card below it
 ##   IconTab      a shop category — sprite over caption
@@ -199,6 +201,19 @@ static func _panels(theme: Theme) -> void:
 
 	theme.set_type_variation("Sunk", "PanelContainer")
 	theme.set_stylebox("panel", "Sunk", _box(UIStyle.SUNK, 10, 7))
+
+	# How to work a toy (D57). A note on the card rather than another object on it: sunk, and
+	# ruled down its left edge only, so it cannot be mistaken for the mastery well below it.
+	var how := _box(UIStyle.SUNK, 10, 6)
+	how.set_border_width_all(0)
+	how.border_width_left = UIStyle.BORDER_WIDTH
+	theme.set_type_variation("HowTo", "PanelContainer")
+	theme.set_stylebox("panel", "HowTo", how)
+
+	# A toy speaking in the world: the fortune ball's answer, over whatever the player's
+	# desktop is. Card stock inside the rule like every card, and snug around one line.
+	theme.set_type_variation("Bubble", "PanelContainer")
+	theme.set_stylebox("panel", "Bubble", _box(UIStyle.PANEL, 8, 3))
 
 	theme.set_type_variation("Chip", "PanelContainer")
 	theme.set_stylebox("panel", "Chip", _box(UIStyle.PANEL, 9, 5))
