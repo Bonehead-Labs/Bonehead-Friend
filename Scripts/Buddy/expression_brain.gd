@@ -254,6 +254,17 @@ const ROWS := {
 	# The desk jumped under him.
 	&"quaked": {"face": &"shocked", "tag": &"flinch", "fallback": &"hurt", "motion": &"hop2",
 		"seconds": 0.5, "priority": HEAVY, "gate": GATE_REACTIVE},
+	# Rolled flat by the rolling pin: a pancake for most of a second, then he springs back up
+	# (`flatten`, a squash through BuddyArt's accumulator), dizzy for the last of it.
+	&"flattened": {"face": &"shocked", "tag": &"", "tail_face": &"dizzy", "motion": &"flatten",
+		"seconds": 1.0, "tail": 0.35, "priority": HEAVY, "gate": GATE_REACTIVE},
+	# The monitor blue-screened and he stopped: a blank stare, his animation held at speed zero, for
+	# as long as the monitor keeps telling him. HEAVY, so nothing lighter unfreezes his face.
+	&"frozen": {"face": &"neutral", "tag": &"", "motion": &"", "seconds": 0.5,
+		"priority": HEAVY, "gate": GATE_REACTIVE, "hold": true, "refresh": 0.5, "speed": 0.0},
+	# Scalded by the office mug's coffee: crying and shivering while the steam comes off him.
+	&"scalded": {"face": &"crying", "tag": &"hurt", "motion": &"shiver", "seconds": 0.4,
+		"priority": PAIN, "gate": GATE_REACTIVE, "hold": true, "refresh": 0.45, "sound": &"gasp"},
 	# --- H: ambient ---
 	&"blink": {"face": &"asleep", "tag": &"",
 		"motion": &"", "seconds": 0.12, "priority": AMBIENT, "gate": GATE_SUBTLE},
@@ -296,6 +307,12 @@ const ABILITY_ROWS := {
 	&"grinding": &"cooking",
 	&"fore": &"startled",
 	&"incoming": &"blast",
+	# The blunt and desk nine: a six is a launch; a crosshair locked on him is a gun on him.
+	&"six": &"launched",
+	&"flattened": &"flattened",
+	&"frozen": &"frozen",
+	&"scalded": &"scalded",
+	&"targeted": &"aimed_at",
 }
 
 ## The face he pulls when hit, by what hit him — keyed on category, not id, so ten entries

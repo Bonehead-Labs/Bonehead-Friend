@@ -310,6 +310,18 @@ func _build_streams() -> void:
 	_streams[&"rev"] = _wav(_rev_samples())
 	_streams[&"tock"] = _wav(_tick_samples(0.05, 1750.0, 1.0))
 	_streams[&"quake"] = _wav(_boom_samples(0.7, 42.0))
+	# --- the blunt and desk nine (D74, second pass) ---
+	#
+	# A crowd for a six, a pancake, a stapler's chunk, the ricochet's falling ping, a machine that
+	# has stopped and one starting again, and coffee on bone. Everything else these nine say is
+	# already a voice above: the twang, the pop, the whirr, the key, the clack, the slosh.
+	_streams[&"applause"] = _wav(_applause_samples())
+	_streams[&"squish"] = _wav(_squish_samples())
+	_streams[&"staple"] = _wav(_staple_samples())
+	_streams[&"ricochet"] = _wav(_ricochet_samples())
+	_streams[&"bsod"] = _wav(_bsod_samples())
+	_streams[&"reboot"] = _wav(_chime_samples([392.0, 587.0, 784.0, 1175.0], 0.9))
+	_streams[&"sizzle"] = _wav(_sizzle_samples())
 
 ## Air moved by something swung: noise through a band that sweeps up and back, inside a swell.
 func _whoosh_samples() -> PackedFloat32Array:
@@ -803,6 +815,121 @@ func _chime_samples(notes: Array, duration: float) -> PackedFloat32Array:
 			var t := float(i - start) / float(MIX_RATE)
 			var envelope := exp(-t * 12.0)
 			out[i] = clampf(out[i] + sin(TAU * float(notes[n]) * t) * envelope * 0.35, -1.0, 1.0)
+	return out
+
+## A crowd on its feet: a roar of low noise that swells and falls, and over it a hundred claps —
+## each a click through a short band — scattered more thickly in the middle of it.
+func _applause_samples() -> PackedFloat32Array:
+	var duration := 1.1
+	var count := int(MIX_RATE * duration)
+	var out := PackedFloat32Array()
+	out.resize(count)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 20260930
+	var low := 0.0
+	for i in count:
+		var t := float(i) / float(MIX_RATE)
+		var swell := sin(PI * clampf(t / duration, 0.0, 1.0))
+		low = lerpf(low, rng.randf_range(-1.0, 1.0), 0.08)
+		out[i] = low * 0.5 * swell
+	for n in 110:
+		var at := clampf(rng.randfn(0.45, 0.22), 0.0, 0.95) * duration
+		var start := int(at * MIX_RATE)
+		var pitch := rng.randf_range(900.0, 2200.0)
+		for i in range(start, mini(count, start + int(MIX_RATE * 0.02))):
+			var t := float(i - start) / float(MIX_RATE)
+			out[i] += (rng.randf_range(-1.0, 1.0) * 0.6 + sin(TAU * pitch * t) * 0.3) * exp(-t * 260.0) * 0.5
+	for i in count:
+		out[i] = clampf(out[i], -1.0, 1.0)
+	return out
+
+## Something soft pressed flat: a low thump that sags in pitch, under a short wet smear of noise.
+func _squish_samples() -> PackedFloat32Array:
+	var duration := 0.26
+	var count := int(MIX_RATE * duration)
+	var out := PackedFloat32Array()
+	out.resize(count)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 20260931
+	var band := 0.0
+	var phase := 0.0
+	for i in count:
+		var t := float(i) / float(MIX_RATE)
+		phase += TAU * lerpf(150.0, 70.0, t / duration) / float(MIX_RATE)
+		band = lerpf(band, rng.randf_range(-1.0, 1.0), 0.3)
+		var thump := sin(phase) * 0.7 * exp(-t * 14.0)
+		var smear := band * 0.45 * exp(-t * 22.0)
+		out[i] = clampf((thump + smear) * minf(t * 400.0, 1.0), -1.0, 1.0)
+	return out
+
+## A stapler: the spring giving under the palm, and a fraction later the snap through the paper.
+func _staple_samples() -> PackedFloat32Array:
+	var give := _tick_samples(0.03, 420.0, 0.6)
+	var snap := _tick_samples(0.035, 2300.0, 1.0)
+	var gap := int(MIX_RATE * 0.018)
+	var out := PackedFloat32Array()
+	out.resize(gap + snap.size())
+	for i in out.size():
+		var value := give[i] * 0.6 if i < give.size() else 0.0
+		if i >= gap:
+			value += snap[i - gap] * 0.8
+		out[i] = clampf(value, -1.0, 1.0)
+	return out
+
+## A ricochet: the whine of metal off metal, a bright tone falling fast, a harder partial over it,
+## and a click at the front where it struck.
+func _ricochet_samples() -> PackedFloat32Array:
+	var duration := 0.34
+	var count := int(MIX_RATE * duration)
+	var out := PackedFloat32Array()
+	out.resize(count)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 20260932
+	var phase := 0.0
+	var phase2 := 0.0
+	for i in count:
+		var t := float(i) / float(MIX_RATE)
+		var progress := t / duration
+		var pitch := lerpf(2600.0, 850.0, sqrt(progress))
+		phase += TAU * pitch / float(MIX_RATE)
+		phase2 += TAU * pitch * 2.76 / float(MIX_RATE)
+		var envelope := minf(t * 600.0, 1.0) * exp(-t * 7.5)
+		var click := rng.randf_range(-1.0, 1.0) * exp(-t * 900.0)
+		out[i] = clampf((sin(phase) * 0.4 + sin(phase2) * 0.12) * envelope + click * 0.6, -1.0, 1.0)
+	return out
+
+## A machine that has stopped: a flat, buzzing minor chord of squares that cuts off.
+func _bsod_samples() -> PackedFloat32Array:
+	var duration := 0.42
+	var count := int(MIX_RATE * duration)
+	var out := PackedFloat32Array()
+	out.resize(count)
+	for i in count:
+		var t := float(i) / float(MIX_RATE)
+		var envelope := minf(t * 200.0, 1.0) * clampf((duration - t) * 30.0, 0.0, 1.0) * exp(-t * 1.5)
+		var a := signf(sin(TAU * 220.0 * t))
+		var b := signf(sin(TAU * 262.0 * t))
+		var c := signf(sin(TAU * 110.0 * t))
+		out[i] = clampf((a + b + c * 0.6) * 0.13 * envelope, -1.0, 1.0)
+	return out
+
+## Coffee on bone: a hiss that rises out of a spit of crackles, and dies away.
+func _sizzle_samples() -> PackedFloat32Array:
+	var duration := 0.6
+	var count := int(MIX_RATE * duration)
+	var out := PackedFloat32Array()
+	out.resize(count)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 20260933
+	var last := 0.0
+	for i in count:
+		var t := float(i) / float(MIX_RATE)
+		var noise := rng.randf_range(-1.0, 1.0)
+		var hiss := (noise - last) * 0.35
+		last = noise
+		var crackle := rng.randf_range(-1.0, 1.0) * 0.9 if rng.randf() < 0.004 else 0.0
+		var envelope := minf(t * 40.0, 1.0) * exp(-t * 4.0)
+		out[i] = clampf((hiss + crackle) * envelope, -1.0, 1.0)
 	return out
 
 func _wav(samples: PackedFloat32Array) -> AudioStreamWAV:

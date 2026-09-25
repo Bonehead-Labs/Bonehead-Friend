@@ -127,6 +127,16 @@ func _stage(id: StringName) -> void:
 	await _carry(start, 20)
 	var ability := _weapon.ability
 	print("  %s — %s" % [id, ability_row.get("name", "")])
+	# A hook of its archetype (the row names a `script`) stages by a method of its own when it has
+	# one, `_stage_<item id>`: its frames are not its archetype's.
+	var own := "_stage_%s" % id
+	if ability_row.has("script") and has_method(own):
+		await Callable(self, own).call(id, ability, centre, floor_y)
+		await _idle(30)
+		if is_instance_valid(_weapon):
+			_weapon.bin_myself()
+		await _idle(10)
+		return
 	match ability.archetype():
 		&"charge":
 			await _carry(centre + Vector2(-130.0, -20.0), 30)
@@ -234,6 +244,8 @@ func _stage(id: StringName) -> void:
 	if is_instance_valid(_weapon):
 		_weapon.bin_myself()
 	await _idle(10)
+
+# --- the blunt and desk nine (D74, second pass) --------------------------------------------
 
 ## The weapon held at `at` the way swing_rig holds one: its grip on a joint to its own handle.
 func _hold(at: Vector2) -> void:

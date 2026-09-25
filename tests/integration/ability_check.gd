@@ -217,7 +217,15 @@ func _check_ability(id: StringName) -> void:
 	var before_uses := ability.uses
 
 	var measured := {}
-	match archetype:
+	# A weapon whose row names a hook of its archetype drives by a method of its own,
+	# `_drive_<item id>`, because what the player does with it is not what the archetype's
+	# driver does: a bat's middle is aimed, a staple gun is held down, a tyre iron is thrown away
+	# from him. A hook with no driver of its own falls back to its archetype's.
+	var own := "_drive_%s" % id
+	var driver: StringName = &"hook" if row.has("script") and has_method(own) else archetype
+	match driver:
+		&"hook":
+			measured = await Callable(self, own).call(body, ability)
 		&"charge":
 			measured = await _drive_charge(body, ability as ChargeAbility)
 		&"dash":
@@ -518,6 +526,31 @@ func _drive_throw(body: WeaponBase, ability: ThrowAbility) -> Dictionary:
 	_check("and the hand still holding left catches it", ability.caught and body.dragging)
 	_check("at the hand", ability.grip_world().distance_to(hand) <= 120.0)
 	return {"speed": ability.last_throw_speed, "hits": ability.throw_hits, "trip": ability.last_trip}
+
+# --- the blunt and desk nine (D74, second pass) --------------------------------------------
+#
+# Each drives its own hook the way its line says, and asserts the thing that makes it itself.
+
+## The weapon's collision shapes as sizes, to compare before and after.
+func _shape_sizes(body: WeaponBase) -> Array:
+	var out := []
+	for child in body.get_children():
+		var cs := child as CollisionShape2D
+		if cs and cs.shape:
+			out.append([cs.shape.get_rect(), cs.disabled])
+	return out
+
+## Hits the ability handed him itself (`strike`) at a multiplier `m` on top of the weapon's own.
+func _boosted_strikes(body: WeaponBase, m: float) -> int:
+	var base := Progression.damage_mult_for(_id, body.damage_mult)
+	var n := 0
+	for info in _hits:
+		var own := false
+		for impulse in body.ability.struck:
+			own = own or absf(info.raw_impulse - impulse) <= 0.5
+		if own and (_capped(info) or absf(_mult_of(info) - base * m) <= 0.001 * base * m):
+			n += 1
+	return n
 
 # --- what each hit carried -------------------------------------------------------------------
 
@@ -846,8 +879,16 @@ func _leftovers() -> String:
 	for node in _stage.get_children():
 		if node is RigidBody2D and String(node.name).begins_with("GolfBall") and not node.is_queued_for_deletion():
 			return "a golf ball"
+		if node is AbilityShot and not node.is_queued_for_deletion():
+			return "a %s" % String(node.name).to_lower()
+	for child in _buddy.get_children():
+		for mark in ["StapleMarks", "BlueScreenScan", "AbilitySteam"]:
+			if String(child.name).begins_with(mark) and not child.is_queued_for_deletion():
+				return "%s still on him" % mark
 	if not _buddy.get_collision_exceptions().is_empty():
 		return "an exception on him"
+	if _buddy.freeze and not ExpressionBrain.KNOCKOUT_STATES.has(_buddy.state):
+		return "he is still frozen"
 	return ""
 
 func _clear_slot() -> void:
