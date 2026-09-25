@@ -102,6 +102,7 @@ func _ready() -> void:
 	await _the_payouts_are_visible()
 	await _the_big_numbers_dodge_the_hud()
 	await _the_numbers_keep_apart()
+	await _the_hud_reads_on_any_desk()
 	await _the_power_leaves_your_hands_free()
 	await _the_world_has_juice()
 	await _the_sounds_are_recorded()
@@ -1209,6 +1210,97 @@ func _quiet_numbers(fx: Node) -> void:
 	for child in fx.get_children():
 		if child is Label:
 			(child as Label).visible = false
+
+## The status corner has to read over whatever is behind the window: the dark desk the owner
+## captured, a chroma key, a photograph. Three failures, one suite.
+##
+## **The toast faded in.** `show_toast` called `UIMotion.rise`, which is for rows *on* a card and
+## takes them from alpha 0 — so the card itself, straight on a transparent window, spent its first
+## 0.18 s as smoked glass, and every toast in a burst restarted it. 16-juice caught "Wider Desk ·
+## $400" as dark ink on a dark strip. Headless has no motion, which is exactly why no suite saw
+## it: this one turns motion on for the length of the entrance and reads every frame.
+##
+## **The streak figure heated past legibility**, to an orange 2.25:1 on the card.
+##
+## **The pin stayed where the card's edge used to be.** The HUD card widens when its footer
+## appears, nothing woke the drawer, and the pin ended up inside the card beside the Bones figure.
+func _the_hud_reads_on_any_desk() -> void:
+	_suite("hud over the desk")
+	var hud := _find(_main, "HUD")
+	var toast := _find(hud, "Toast") as Control if hud else null
+	var words := hud.get("_toast_label") as Label if hud else null
+	if toast == null or words == null:
+		_check("the HUD's toast is present to test", false)
+		return
+	var saved := Settings.focus_intensity
+	Settings.focus_intensity = Settings.Intensity.NORMAL
+	UIMotion.run_in_headless = true
+	# The burst the capture caught, through the game's own wiring: a rank-up (a celebrated toast,
+	# which throws chips) and then the milestone it tipped over.
+	EventBus.mastery_rank_up.emit(&"mace", 5)
+	Milestones.milestone_claimed.emit(&"ladder_items", 1, 400)
+	var faintest := 1.0
+	for i in 24:
+		await get_tree().process_frame
+		if toast.visible:
+			faintest = minf(faintest, minf(_drawn_alpha(toast), _drawn_alpha(words)))
+	UIMotion.run_in_headless = false
+	_check("the toast is drawn at full strength through its whole entrance",
+		faintest >= 0.999, "faintest frame at alpha %.2f" % faintest)
+	_check("and it is the milestone that is showing", toast.visible
+		and words.text.begins_with("Wider Desk"), words.text)
+	var ratio := UIStyle.contrast(words.get_theme_color("font_color"), _surface_behind(words))
+	_check("its words are legible on its own card (%.2f:1)" % ratio, ratio >= 4.5)
+	var stale := 0
+	for child in toast.get_children():
+		if child is GPUParticles2D and not child.is_queued_for_deletion():
+			stale += 1
+	_check("with no chips left raining from the message before it", stale == 0,
+		"%d emitter(s)" % stale)
+
+	# The streak figure, at the heat it reaches on a real run.
+	var row := _find(hud, "StreakRow")
+	Economy._streak_deadline_msec = 0
+	for i in int(HUD.STREAK_HOT_AT) + 2:
+		EventBus.damage_dealt.emit(HitInfo.new(20.0, &"baseball_bat", Vector2(VIEW_SIZE) * 0.5, 1000.0))
+	await _settle()
+	var figure := _label_containing("x%d" % (int(HUD.STREAK_HOT_AT) + 2), row) if row else null
+	_check("a hot streak is on the card", figure != null)
+	if figure:
+		var hot := UIStyle.contrast(figure.get_theme_color("font_color"), _surface_behind(figure))
+		_check("and its figure is still legible at full heat (%.2f:1)" % hot, hot >= 4.5)
+	Economy._streak_deadline_msec = 0
+
+	# The pin follows the card when the card grows on its own.
+	var box := hud.get("_box") as Control
+	var mark := _find(hud, "DrawerMark") as Control
+	if box and mark:
+		var was := box.custom_minimum_size
+		box.custom_minimum_size = Vector2(was.x + 64.0, was.y)
+		await _settle()
+		var card := UIScale.screen_rect(box)
+		var pin := UIScale.screen_rect(mark)
+		_check("the pin stays beside the status card when the card widens",
+			not card.intersects(pin) and pin.position.x >= card.end.x,
+			"pin %s, card %s" % [pin, card])
+		box.custom_minimum_size = was
+		await _settle()
+		card = UIScale.screen_rect(box)
+		pin = UIScale.screen_rect(mark)
+		_check("and comes back in with it", pin.position.x - card.end.x < 8.0
+			and not card.intersects(pin), "pin %s, card %s" % [pin, card])
+
+	Settings.focus_intensity = saved
+	await get_tree().create_timer(FXLayer.LIFETIME).timeout
+
+## The alpha an item is actually drawn at: its own, times everything above it on its layer.
+func _drawn_alpha(item: CanvasItem) -> float:
+	var alpha := item.self_modulate.a
+	var walk: Node = item
+	while walk is CanvasItem:
+		alpha *= (walk as CanvasItem).modulate.a
+		walk = walk.get_parent()
+	return alpha
 
 ## Being armed no longer takes your hands away, and putting the power down is one click (D47).
 ##

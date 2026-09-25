@@ -641,10 +641,23 @@ func show_toast(text: String, seconds: float = 6.0) -> void:
 	# second apart is common in the first minutes, where rank 1 costs 100 XP.
 	if _toast_tween and _toast_tween.is_valid():
 		_toast_tween.kill()
+	# The chips a celebration threw belong to the message they celebrated. A rank-up toast
+	# replaced a tenth of a second later by a milestone used to rain its bone chips across the
+	# milestone's text.
+	for child in _toast.get_children():
+		if child is GPUParticles2D:
+			child.queue_free()
 	_toast_label.text = text
 	_toast.scale = Vector2.ONE
+	_toast.modulate = Color.WHITE
 	_toast.visible = true
-	UIMotion.rise(_toast)
+	# **Arrives by unrolling, never by fading in.** This was `UIMotion.rise`, which is for rows
+	# *on* a card and fades them from nothing — so the card itself went from alpha 0 to 1 over
+	# its first 0.18 s, over a transparent window: dark ink on a smoked-glass strip, the player's
+	# desktop showing through the words. Toasts arrive in bursts (a rank, then the milestone it
+	# tipped over, then the round), and each one restarted the fade, so on a busy desk the strip
+	# spent most of its time nearly invisible. Quiet, because toasts are frequent.
+	UIMotion.unroll(_toast, UIMotion.Pivot.TOP, false)
 	# Leaves by rolling up, never by fading: the window is transparent behind the card, and
 	# a half-faded toast is grey ink over the desktop (CLAUDE.md: never fade a card).
 	UIMotion.pivot(_toast, UIMotion.Pivot.TOP)
@@ -779,6 +792,11 @@ const COMBO_FROM := 1
 ## Bone-brown at a tap, orange by this many hits in a row — the same ramp the hit chips run.
 const STREAK_HOT_AT := 20.0
 const STREAK_HEAT := Color("ff8c1a")
+## The figure heats toward a burnt orange rather than to `STREAK_HEAT` itself, which is
+## 2.25:1 on the card: the numeral dropped under the 4.5:1 floor from the sixth hit on, and was
+## hardest to read exactly when the streak was worth reading. The bar under it, which is not
+## text, still runs all the way to the hot orange. 4.99:1 on `UIStyle.PANEL`.
+const STREAK_HEAT_INK := Color("b35000")
 
 var _streak_row: HBoxContainer
 var _streak_cells: Dictionary = {}     ## currency -> {"cell", "value", "bar", "fill"}
@@ -837,9 +855,9 @@ func _on_streak_payout(currency: StringName, _amount: float, _world_pos: Vector2
 			var record := streak >= 6 and streak >= int(Economy.stats.get("best_streak", 0))
 			(controls["value"] as Label).text = "x%d" % streak
 			var heat := clampf(float(streak) / STREAK_HOT_AT, 0.0, 1.0)
-			var colour := UIStyle.BONES.lerp(STREAK_HEAT, heat)
-			(controls["value"] as Label).add_theme_color_override("font_color", colour)
-			(controls["fill"] as StyleBoxFlat).bg_color = colour
+			(controls["value"] as Label).add_theme_color_override("font_color",
+				UIStyle.BONES.lerp(STREAK_HEAT_INK, heat))
+			(controls["fill"] as StyleBoxFlat).bg_color = UIStyle.BONES.lerp(STREAK_HEAT, heat)
 			(controls["cell"] as Control).visible = true
 			UIMotion.punch(controls["value"], 1.2 + 0.2 * heat)
 			if record:
