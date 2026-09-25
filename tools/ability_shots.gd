@@ -247,6 +247,58 @@ func _stage(id: StringName) -> void:
 
 # --- the blunt and desk nine (D74, second pass) --------------------------------------------
 
+func _stage_morning_star(id: StringName, ability: BristleAbility, centre: Vector2, _floor_y: float) -> void:
+	await _carry(centre + Vector2(-180.0, -40.0), 40)
+	await _shot("%s-ready" % id, 10)
+	ability.press()
+	ability.release()
+	await _shot("%s-fan" % id, 3)
+	for i in 30:
+		await _carry(_hand, 1)
+		if ability.last_hits > 0:
+			break
+	await _shot("%s-hit" % id, 2)
+	await _shot("%s-bald" % id, 20)
+	var gap := ability.cooldown_left()
+	for i in int(gap * 60.0):
+		await _carry(_hand, 1)
+		if ability.cooldown_left() <= gap * 0.45:
+			break
+	await _shot("%s-regrowing" % id)
+
+func _stage_stapler(id: StringName, ability: StapleGunAbility, centre: Vector2, _floor_y: float) -> void:
+	await _carry(centre + Vector2(-260.0, -40.0), 40)
+	ability.press()
+	await _shot("%s-firing" % id, 14)
+	await _carry(_hand, 50)
+	await _shot("%s-stapled" % id)
+	ability.release()
+
+func _stage_mechanical_keyboard(id: StringName, ability: KeycapBarrageAbility, centre: Vector2, _floor_y: float) -> void:
+	await _carry(centre + Vector2(-260.0, -60.0), 40)
+	ability.press()
+	ability.release()
+	await _shot("%s-fountain" % id, 14)
+	for i in 60:
+		await _carry(_hand, 1)
+		if ability.hits > 0:
+			break
+	await _shot("%s-rain" % id, 3)
+	await _shot("%s-bare" % id, 20)
+	await _shot("%s-home" % id, 40)
+
+func _stage_office_mug(id: StringName, ability: HotCoffeeAbility, centre: Vector2, _floor_y: float) -> void:
+	await _carry(centre + Vector2(-240.0, -60.0), 40)
+	ability.press()
+	ability.release()
+	await _shot("%s-splash" % id, 9)
+	for i in 60:
+		await _carry(_hand, 1)
+		if ability.scalds > 0:
+			break
+	await _shot("%s-scald" % id, 2)
+	await _shot("%s-steam" % id, 24)
+
 ## The weapon held at `at` the way swing_rig holds one: its grip on a joint to its own handle.
 func _hold(at: Vector2) -> void:
 	_hand = at

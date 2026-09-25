@@ -130,6 +130,48 @@ const ABILITIES := {
 		"out_seconds": 0.55, "return_speed": 1200.0, "return_accel": 5000.0, "catch_radius": 48.0,
 		"give_up_seconds": 3.0,
 	},
+	# --- the blunt and desk nine (D74, second pass) -------------------------------------------
+	# A tap: the five spikes facing him leave the head in a flat fan; the star is bald on that side
+	# until the cooldown has grown them back, one pop at a time. Close in, the whole fan lands.
+	&"morning_star": {
+		"id": &"bristle", "name": "Bristle", "archetype": &"projectile",
+		"script": "res://Scripts/Bodies/Abilities/bristle_ability.gd",
+		"controls": "Hold · Right: Bristle — fire its spikes at him; they grow back",
+		"cooldown": 5.0, "busy": 0.3, "worth": 1.7,
+		"spikes": 5, "fan_degrees": 20.0, "spike_speed": 1500.0, "spike_force": 1400.0,
+		"spike_mult": 1.0, "shove": 0.35,
+	},
+	# Held: five staples a second, dead straight at him, twenty to a strip; the strip running out
+	# is the reload. The only melee ability you hold down to keep firing. A staple is x0.3 of the
+	# stapler's own blow: at full weight one strip was fourteen ordinary hits.
+	&"stapler": {
+		"id": &"staple_gun", "name": "Staple Gun", "archetype": &"projectile",
+		"script": "res://Scripts/Bodies/Abilities/staple_gun_ability.gd",
+		"controls": "Hold · Right: Staple Gun — hold to staple him, twenty to a strip",
+		"cooldown": 6.0, "busy": 4.0, "worth": 4.0,
+		"rate": 5.0, "strip": 20, "staple_speed": 1400.0, "staple_force": 420.0,
+		"staple_mult": 0.3, "shove": 0.15, "pause": 0.4,
+	},
+	# A tap: eight caps pop off in a fountain, come down on his head one after another, and fly
+	# home to their keys with a clack. Light hits; the fun is the rain.
+	&"mechanical_keyboard": {
+		"id": &"keycap_barrage", "name": "Keycap Barrage", "archetype": &"projectile",
+		"script": "res://Scripts/Bodies/Abilities/keycap_barrage_ability.gd",
+		"controls": "Hold · Right: Keycap Barrage — tap and its keys rain down on him",
+		"cooldown": 4.5, "busy": 1.8, "worth": 2.0,
+		"caps": 8, "rain_seconds": 0.75, "stagger": 0.05, "spread": 40.0, "cap_force": 500.0,
+		"cap_mult": 1.0, "shove": 0.25, "home_after": 0.45, "home_seconds": 2.4,
+	},
+	# A tap: the coffee arcs out in a spatter; the first drop on him scalds (a light hit), stains
+	# him (grime) and he steams for 1.2 s, the steam biting twice more.
+	&"office_mug": {
+		"id": &"hot_coffee", "name": "Hot Coffee", "archetype": &"projectile",
+		"script": "res://Scripts/Bodies/Abilities/hot_coffee_ability.gd",
+		"controls": "Hold · Right: Hot Coffee — splash him; it scalds and it stains",
+		"cooldown": 4.0, "busy": 1.4, "worth": 1.2,
+		"drops": 7, "splash_speed": 620.0, "whip": 9.0, "scald_force": 900.0, "scald_mult": 1.0,
+		"shove": 0.2, "grime": 0.04, "steam_seconds": 1.2, "steam_ticks": 2, "steam_force": 450.0,
+	},
 }
 
 static func has(item_id: StringName) -> bool:

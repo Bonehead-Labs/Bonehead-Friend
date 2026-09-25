@@ -531,6 +531,115 @@ func _drive_throw(body: WeaponBase, ability: ThrowAbility) -> Dictionary:
 #
 # Each drives its own hook the way its line says, and asserts the thing that makes it itself.
 
+## Bristle: tapped from 180 px, the five spikes facing him fly, the fan lands, the star is bald on
+## that side, and they come back one at a time over the cooldown.
+func _drive_morning_star(body: WeaponBase, ability: BristleAbility) -> Dictionary:
+	# The head hangs below the hand: held here, it is level with his middle and clear of the desk.
+	await _mouse_to(_centre() + Vector2(-180.0, -100.0), 700.0)
+	await _steady(body, 60)
+	var total := ability.spikes_total()
+	_check("its picture has spikes to fire (%d found in the art)" % total, total >= 5)
+	var shapes := _shape_sizes(body)
+	_press(MOUSE_BUTTON_RIGHT)
+	await _step()
+	_release(MOUSE_BUTTON_RIGHT)
+	_check("a tap fires the %d spikes facing him" % int(ability.num("spikes", 5)),
+		ability.last_fired == int(ability.num("spikes", 5)))
+	_check("and the star is bald where they were (%d of %d left)" % [ability.spikes_present(), total],
+		ability.spikes_present() == total - ability.last_fired)
+	_check("only the picture changed: its colliders are its own", _shape_sizes(body) == shapes)
+	await _await_cond(func() -> bool: return ability.shots_in_flight() == 0, 60)
+	await _step(3)
+	_check("the fan lands on him (%d of %d)" % [ability.last_hits, ability.last_fired], ability.last_hits >= 3)
+	_check("each spike billed once, as its own impulse",
+		_hits_with_impulse(ability.num("spike_force", 900.0)) == ability.last_hits)
+	await _expect_face(&"incoming", &"blast")
+	var gap := ability.cooldown_left()
+	await _await_cond(func() -> bool: return ability.cooldown_left() <= gap * 0.45, int(gap * 60.0) + 30)
+	var midway := ability.spikes_present()
+	_check("halfway through the cooldown some have grown back (%d)" % midway,
+		midway > total - ability.last_fired and midway < total)
+	return {"fired": ability.last_fired, "landed": ability.last_hits, "spikes": total,
+		"midway": midway, "hits": _hits.size()}
+
+## Staple Gun: held from 260 px until the strip runs out: twenty staples, straight, most in him,
+## each billed once; the empty strip is the reload.
+func _drive_stapler(body: WeaponBase, ability: StapleGunAbility) -> Dictionary:
+	await _mouse_to(_centre() + Vector2(-260.0, -40.0), 700.0)
+	await _steady(body, 40)
+	_press(MOUSE_BUTTON_RIGHT)
+	await _step(30)
+	_check("held, it fires (%d staples in half a second)" % ability.fired, ability.fired >= 2)
+	_check("he sees it pointed at him", ability.is_threatening())
+	var strip := int(ability.num("strip", 20))
+	var marks_seen := false
+	for i in int(strip / ability.num("rate", 5.0) * 60.0) + 40:
+		if not ability.is_active():
+			break
+		marks_seen = marks_seen or _buddy.get_node_or_null("StapleMarks") != null
+		await _step()
+	_release(MOUSE_BUTTON_RIGHT)
+	await _step(30)
+	marks_seen = marks_seen or _buddy.get_node_or_null("StapleMarks") != null
+	_check("the whole strip, then it stops (%d)" % ability.fired, ability.fired == strip and not ability.is_active())
+	_check("most of them in him (%d)" % ability.landed, ability.landed >= int(strip * 0.6))
+	_check("each billed once, as its own impulse (%d)" % _hits_with_impulse(ability.num("staple_force", 420.0)),
+		_hits_with_impulse(ability.num("staple_force", 420.0)) == ability.landed)
+	_check("and they stay in him a while", marks_seen)
+	_check("the empty strip is the full reload (%.1f s)" % ability.cooldown_left(),
+		ability.cooldown_left() >= ability.num("cooldown", 6.0) * 0.8)
+	return {"fired": ability.fired, "landed": ability.landed, "hits": _hits.size()}
+
+## Keycap Barrage: tapped from 260 px, eight caps go up and come down on him, the keys show bare
+## switches, and every cap flies home.
+func _drive_mechanical_keyboard(body: WeaponBase, ability: KeycapBarrageAbility) -> Dictionary:
+	await _mouse_to(_centre() + Vector2(-260.0, -60.0), 700.0)
+	await _steady(body, 60)
+	_press(MOUSE_BUTTON_RIGHT)
+	await _step()
+	_release(MOUSE_BUTTON_RIGHT)
+	await _step(2)
+	var bare := body.get_node_or_null("BareKeys") as Node2D
+	_check("a tap pops %d caps off (%d out)" % [int(ability.num("caps", 8)), ability.caps_out()],
+		ability.fired == int(ability.num("caps", 8)) and ability.caps_out() == ability.fired)
+	_check("and the keys they left are bare", bare != null and bare.visible)
+	await _expect_face(&"incoming", &"blast")
+	var back := await _await_cond(func() -> bool: return not ability.is_active(), 300)
+	await _step(3)
+	_check("they rain down on him (%d of %d)" % [ability.hits, ability.fired], ability.hits >= 4)
+	_check("each billed once, as its own impulse",
+		_hits_with_impulse(ability.num("cap_force", 800.0)) == ability.hits)
+	_check("and every one flies home (%d)" % ability.home, back and ability.home == ability.fired)
+	_check("the keys are whole again", bare == null or not bare.visible)
+	return {"caps": ability.fired, "hits": ability.hits, "home": ability.home}
+
+## Hot Coffee: tapped from 240 px, the spatter reaches him, scalds him once, stains him, and the
+## steam bites twice more.
+func _drive_office_mug(body: WeaponBase, ability: HotCoffeeAbility) -> Dictionary:
+	await _mouse_to(_centre() + Vector2(-240.0, -60.0), 700.0)
+	await _steady(body, 60)
+	var grime_before := _buddy.grime.value if _buddy.grime else 0.0
+	_press(MOUSE_BUTTON_RIGHT)
+	await _step()
+	_release(MOUSE_BUTTON_RIGHT)
+	_check("a tap throws the coffee (%d drops)" % ability.thrown, ability.thrown == int(ability.num("drops", 7)))
+	var scalded := await _await_cond(func() -> bool: return ability.scalds > 0, 60)
+	await _step(3)
+	_check("it reaches him and scalds him, once", scalded and ability.scalds == 1
+		and _hits_with_impulse(ability.num("scald_force", 900.0)) == 1)
+	_check("and stains him (grime %.3f -> %.3f)" % [grime_before, _buddy.grime.value],
+		_buddy.grime.value > grime_before)
+	_check("he steams", _buddy.get_node_or_null("AbilitySteam") != null)
+	await _expect_face(&"scalded", &"scalded")
+	await _await_cond(func() -> bool: return not ability.is_active(), 150)
+	await _step(3)
+	_check("the steam bites %d more times (%d)" % [int(ability.num("steam_ticks", 2)), ability.steam_hits],
+		ability.steam_hits == int(ability.num("steam_ticks", 2))
+		and _hits_with_impulse(ability.num("steam_force", 450.0)) == ability.steam_hits)
+	_check("and stops", _buddy.get_node_or_null("AbilitySteam") == null)
+	return {"drops": ability.thrown, "scald": ability.scalds, "steam": ability.steam_hits,
+		"grime": ability.last_grime}
+
 ## The weapon's collision shapes as sizes, to compare before and after.
 func _shape_sizes(body: WeaponBase) -> Array:
 	var out := []

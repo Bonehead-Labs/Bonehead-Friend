@@ -14,3 +14,4 @@ scene = ExtResource("2_lu8y0")
 icon = ExtResource("1_jra3v")
 requires = Array[StringName]([&"frying_pan"])
 sort_order = 41
+controls = "Hold · Right: Staple Gun — hold to staple him, twenty to a strip"
