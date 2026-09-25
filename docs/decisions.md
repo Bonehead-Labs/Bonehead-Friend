@@ -3169,6 +3169,66 @@ on `ABILITY_STILL_TO_DO`, `item_check` 123 items and 0 failed. unit 242, ui 621,
 *Not done:* nobody has held any of these yet. The frames were looked at; the feel is the owner's.
 The capture tool cannot fetch the letter opener or pull the cleaver out, because a grab re-reads
 the OS pointer, so those two are only shown in `ability_check`.
+### The blunt and desk nine, built (2026-09-26)
+
+Nine rows off the sheet, each on an existing archetype with a hook script (the row's `script`).
+Measured in `ability_check` on its own desk; "worth" as above.
+
+| Weapon | Ability | Hook of | What you do | Measured |
+|---|---|---|---|---|
+| Morning star | Bristle | projectile | tap: the five spikes facing him leave the head in a flat 20-degree fan; the star is bald on that side and they pop back one at a time over the cooldown | 5 of 5 land from 180 px, each 1,400 billed once; 7 spikes found in the art; 1.7 |
+| Cricket bat | Middle It | stun | tap: the middle third of the face glows for 2 s; a hit with it on him is x2.5 and a six, straight up; an edge is an ordinary hit and the light stays on | he goes up 425 px, 30% of the swing's sideways speed left on him; landing is the bat's; 1.0 to 1.2 |
+| Rolling pin | Flatten | sustain | hold: it lies down level on the desk and rolls where you take it, over him, not into him; each pass flattens him (`flatten`, a squash through BuddyArt) at x1.5 | 2 passes a use, squash to 0.38 of his height, he moves under 1 px; 1.3 to 2.5 |
+| Stapler | Staple Gun | projectile | hold: five staples a second, dead straight, twenty to a strip; they stay in him for 3 s; the empty strip is the reload | 20 of 20 land from 260 px at x0.3 each; 4.0 |
+| Tyre iron | Ricochet | throw | tap: thrown into the desk (or along a flick), it banks off every surface straight at him, three banks, x(1 + 0.25 n) after the nth; then you fetch it | 3 banks, hits at x1.25 and x1.75; 2.4 |
+| War pick | Pinpoint | charge | hold: a crosshair walks from the beak onto his skull and locks (`aimed_at`); let go and the beak goes into that spot, x2.5, touching nothing else, almost no shove | the point within 13 to 18 px of the spot, 2,520 billed once, he moves under 1 px/s; 2.7 |
+| Mechanical keyboard | Keycap Barrage | projectile | tap: eight caps pop off in a fountain, rain on his head one after another, and fly home to bare red switches | 8 of 8 land, 8 of 8 home; 1.8 to 2.0 |
+| Monitor | Blue Screen | stun | tap near him: the screen blue-screens and he is a statue for 1.5 s; every swing that clangs off him is stored (a pip over his head) and all land on one frame at x1.3 when he reboots | 0 px moved while frozen; 3 to 5 stored, dealt on one frame, each once; 1.1 to 2.0 |
+| Office mug | Hot Coffee | projectile | tap: a spatter of seven drops on the low arc; the first on him scalds (a light hit and +0.04 grime), he steams and cries for 1.2 s and the steam bites twice more | 1 scald and 2 steam hits a use; 1.2 |
+
+They answer on the bus as the first eight do: `six` is the Home Run's `launched`, `targeted` is the
+held gun's `aimed_at`, `incoming` (spikes, banks, keycaps, coffee) ducks as the axe does, and three
+rows are new — `flattened`, `frozen` (a hold at body speed zero) and `scalded`. Seven voices are
+synthesised: applause, squish, staple, ricochet, bsod, reboot, sizzle. The spikes, staples, keycaps
+and coffee are one class, `AbilityShot` — the golf ball's rules (world collision only, a swept
+segment, billed once) with what it does after a hit or a landing (drop, stick, splat, fly home).
+`swing_rig`'s deterministic columns are identical to the digit for all nine and the three
+references with the abilities idle.
+
+**What cost time, measured.**
+
+- **A projectile hook's release drives a golf ball.** `ProjectileAbility._on_release` is the
+  Drive; a hook that fires on the press and does not override it hit him with a golf ball on the
+  frame the button came up, and finished the effect before the steam or the keycaps' return could
+  run. Every tap-fired hook overrides `_on_release` now.
+- **A spike on the far side of the ball is a spike aimed past him.** The fan was a fan from the
+  ball's centre and 2 of 5 landed from 180 px; each spike now aims from its own tip at its place in
+  that fan: 5 of 5. And a head hanging at desk height put two spikes into the desk.
+- **The middle is where the blade is in him, not where it touched first.** A cricket bat trails
+  flat behind a fast hand and the handle arrives first; held high, the toe grazes his skull. The
+  first rule (the midpoint of the blade's stretch inside him, in the band) middled a 16 px window of
+  hand heights. It is middled now if that stretch reaches the lit band. A bat stood exactly
+  upright on its grip also stays upright, which only a test hand is still enough to do. And the
+  bat, still in the swing, stopped the six at 43 px: he and the bat do not collide until he is clear.
+- **A 3 kg skeleton cannot be held still by impulses against a 14 kg monitor.** The first Blue
+  Screen kept him a live body and took his velocity off every tick; each swing still shoved him
+  61 px. He is frozen outright now, as a knockout freezes him (D4), and since a frozen body
+  measures nothing the monitor bills the stored swings itself, the thrown axe's way: `hit_force`
+  by how fast it came in, through `take_impulse`, once each, all on the reboot tick. If they would
+  knock him out the dump comes early; a hit dealt after the knockout is billed and never paid.
+- **The war pick's beak arrived 36 px wide of the spot** in a real window: a 12 kg head on a soft
+  joint lags the hand. The last of the drive is guided at the point (a damped spring on the beak,
+  applied there, capped): 13 px.
+- **Three keycaps orbited their keys** under a soft homing impulse; the steering is stiff now.
+- **At full weight one strip of staples was fourteen ordinary stapler hits.** A staple is x0.3.
+- **The pin turned to face him each time it crossed him.** It keeps the side it lay down on.
+
+**Pacing.** Uplifts 1.15 (the mug) to 1.32 (the tyre iron), inside the first eight's band. The
+first Reincarnation is 9:11:03 (was 9:11:08), 4/4: the sim's player favours earlier weapons.
+Each row's `worth` is its measured use, rounded up.
+
+*Not done:* the coffee's grime is not in the pacing model (0.04 a use; the sponge takes it off).
+The capture tool's frames were looked at for all nine; the owner has not used any of them yet.
 
 
 ## Recommendations not yet decided

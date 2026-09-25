@@ -555,6 +555,17 @@ func _advance_motion() -> void:
 			else:
 				_beat_look_x = -_motion_dir * 2.0 * a
 			finished = e >= d
+		&"flatten":
+			# Rolled flat (D74, the rolling pin): down to a pancake in a twentieth of a second, held
+			# there, then sprung back up through a tall overshoot that rings down. About his feet,
+			# like every squash here (`_foot_fix`), so he flattens onto the desk, not into the air.
+			var hold := d * 0.62
+			var f := clampf(e / 0.05, 0.0, 1.0)
+			if e > hold:
+				var r := e - hold
+				f = exp(-7.0 * r) * cos(TAU * 2.4 * r)
+			_squash = Vector2(1.0 + 0.45 * a * f, 1.0 - 0.62 * a * f)
+			finished = e >= d
 		&"lean_away":
 			_beat_look_x = _motion_dir * 2.0 * a
 			finished = e >= d

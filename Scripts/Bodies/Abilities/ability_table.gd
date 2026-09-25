@@ -227,6 +227,107 @@ const ABILITIES := {
 		"throw_speed": 1500.0, "point_force": 1600.0, "point_mult": 2.0, "shove": 0.5,
 		"align_frequency": 30.0, "flight_seconds": 1.2, "quiver_seconds": 0.6, "give_up_seconds": 3.0,
 	},
+
+	# --- the blunt and desk nine (D74, second pass) -------------------------------------------
+	# A tap: the five spikes facing him leave the head in a flat fan; the star is bald on that side
+	# until the cooldown has grown them back, one pop at a time. Close in, the whole fan lands.
+	&"morning_star": {
+		"id": &"bristle", "name": "Bristle", "archetype": &"projectile",
+		"script": "res://Scripts/Bodies/Abilities/bristle_ability.gd",
+		"controls": "Hold · Right: Bristle — fire its spikes at him; they grow back",
+		"cooldown": 5.0, "busy": 0.3, "worth": 1.7,
+		"spikes": 5, "fan_degrees": 20.0, "spike_speed": 1500.0, "spike_force": 1400.0,
+		"spike_mult": 1.0, "shove": 0.35,
+	},
+	# A tap lights the middle third of the face for 2 s; a hit with it on him is x2.5 and a six,
+	# straight up. Off the edge it is an ordinary hit and the light stays on: it is aimed, not armed.
+	# The middle meets him when the face comes through him; a fast flat sweep leads with the
+	# handle, and a hand held high grazes his skull with the toe.
+	&"cricket_bat": {
+		"id": &"middle_it", "name": "Middle It", "archetype": &"stun",
+		"script": "res://Scripts/Bodies/Abilities/middle_it_ability.gd",
+		"controls": "Hold · Right: Middle It — then hit him off the glowing middle for six",
+		"cooldown": 5.0, "busy": 1.5, "worth": 1.5,
+		"armed_seconds": 2.0, "middle_band": 0.34, "middle_mult": 2.5, "six_speed": 950.0,
+		"keep_sideways": 0.3, "claim_seconds": 2.5,
+	},
+	# Held: the pin goes down level on the desk and rolls where the hand takes it; each pass over
+	# his middle flattens him (a squash on his sprite) and is billed once, x1.5.
+	&"rolling_pin": {
+		"id": &"flatten", "name": "Flatten", "archetype": &"sustain",
+		"script": "res://Scripts/Bodies/Abilities/flatten_ability.gd",
+		"controls": "Hold · Right: Flatten — hold it down and roll it over him",
+		"cooldown": 5.0, "busy": 2.5, "worth": 2.5,
+		"fuel_seconds": 2.5, "lay_frequency": 12.0, "lay_accel": 300.0, "ride_px": 16.0,
+		"over_px": 34.0, "reach": 240.0, "roll_force": 1000.0, "roll_speed": 450.0,
+		"flatten_mult": 1.5, "pass_gap": 0.35, "shove": 0.1,
+	},
+	# Held: five staples a second, dead straight at him, twenty to a strip; the strip running out
+	# is the reload. The only melee ability you hold down to keep firing. A staple is x0.3 of the
+	# stapler's own blow: at full weight one strip was fourteen ordinary hits.
+	&"stapler": {
+		"id": &"staple_gun", "name": "Staple Gun", "archetype": &"projectile",
+		"script": "res://Scripts/Bodies/Abilities/staple_gun_ability.gd",
+		"controls": "Hold · Right: Staple Gun — hold to staple him, twenty to a strip",
+		"cooldown": 6.0, "busy": 4.0, "worth": 4.0,
+		"rate": 5.0, "strip": 20, "staple_speed": 1400.0, "staple_force": 420.0,
+		"staple_mult": 0.3, "shove": 0.15, "pause": 0.4,
+	},
+	# A tap throws it into the desk (or along a flick); every surface it meets banks it straight at
+	# him, faster each time, and a hit after the nth bank is x(1 + 0.25n). Three banks, then it
+	# falls where it falls and you go and get it.
+	&"tyre_iron": {
+		"id": &"ricochet", "name": "Ricochet", "archetype": &"throw",
+		"script": "res://Scripts/Bodies/Abilities/ricochet_ability.gd",
+		"controls": "Hold · Right: Ricochet — throw it at the desk and it banks into him",
+		"cooldown": 3.0, "busy": 2.0, "worth": 2.4,
+		"throw_speed": 1300.0, "flick_speed": 450.0, "skip_degrees": 55.0, "spin": 18.0,
+		"banks": 3, "bank_speed": 1300.0, "bank_gain": 0.1, "hit_force": 2000.0,
+		"bank_mult": 0.25, "shove": 0.5, "give_up_seconds": 3.5,
+	},
+	# Held: a crosshair walks from the beak onto his skull and locks; let go and the beak goes into
+	# that one spot, x2.5 with almost no shove. Let go early and the spot is wherever it had got to.
+	&"war_pick": {
+		"id": &"pinpoint", "name": "Pinpoint", "archetype": &"charge",
+		"script": "res://Scripts/Bodies/Abilities/pinpoint_ability.gd",
+		"controls": "Hold · Right: Pinpoint — hold till it locks on him, let go to strike",
+		"cooldown": 5.0, "busy": 1.4, "worth": 2.7,
+		"charge_seconds": 0.8, "cock_degrees": 70.0, "cock_frequency": 12.0, "cock_accel": 220.0,
+		"raise_px": 36.0, "drive_seconds": 0.09, "hold_seconds": 0.16, "return_seconds": 0.2,
+		"reach": 260.0, "pin_radius": 32.0, "pick_force": 1800.0, "pick_speed": 1300.0,
+		"pick_mult": 2.5, "shove": 0.15, "settle_seconds": 0.8,
+	},
+	# A tap: eight caps pop off in a fountain, come down on his head one after another, and fly
+	# home to their keys with a clack. Light hits; the fun is the rain.
+	&"mechanical_keyboard": {
+		"id": &"keycap_barrage", "name": "Keycap Barrage", "archetype": &"projectile",
+		"script": "res://Scripts/Bodies/Abilities/keycap_barrage_ability.gd",
+		"controls": "Hold · Right: Keycap Barrage — tap and its keys rain down on him",
+		"cooldown": 4.5, "busy": 1.8, "worth": 2.0,
+		"caps": 8, "rain_seconds": 0.75, "stagger": 0.05, "spread": 40.0, "cap_force": 500.0,
+		"cap_mult": 1.0, "shove": 0.25, "home_after": 0.45, "home_seconds": 2.4,
+	},
+	# A tap near him: the screen goes blue and he is a statue for 1.5 s; every swing that clangs off
+	# him is stored, and all are dealt on one frame at x1.3 when he comes back, which throws him.
+	&"monitor": {
+		"id": &"blue_screen", "name": "Blue Screen", "archetype": &"stun",
+		"script": "res://Scripts/Bodies/Abilities/blue_screen_ability.gd",
+		"controls": "Hold · Right: Blue Screen — freeze him; your hits land when he's back",
+		"cooldown": 6.0, "busy": 1.8, "worth": 2.0,
+		"reach": 420.0, "freeze_seconds": 1.5, "min_speed": 300.0, "hit_force": 1300.0,
+		"swing_speed": 1100.0, "dump_mult": 1.3, "dump_shove": 0.5, "dump_cap": 900.0,
+		"claim_seconds": 1.5,
+	},
+	# A tap: the coffee arcs out in a spatter; the first drop on him scalds (a light hit), stains
+	# him (grime) and he steams for 1.2 s, the steam biting twice more.
+	&"office_mug": {
+		"id": &"hot_coffee", "name": "Hot Coffee", "archetype": &"projectile",
+		"script": "res://Scripts/Bodies/Abilities/hot_coffee_ability.gd",
+		"controls": "Hold · Right: Hot Coffee — splash him; it scalds and it stains",
+		"cooldown": 4.0, "busy": 1.4, "worth": 1.2,
+		"drops": 7, "splash_speed": 620.0, "whip": 9.0, "scald_force": 900.0, "scald_mult": 1.0,
+		"shove": 0.2, "grime": 0.04, "steam_seconds": 1.2, "steam_ticks": 2, "steam_force": 450.0,
+	},
 }
 
 static func has(item_id: StringName) -> bool:

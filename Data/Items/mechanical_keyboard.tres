@@ -14,3 +14,4 @@ scene = ExtResource("2_hmcvv")
 icon = ExtResource("1_d8o2k")
 requires = Array[StringName]([&"hole_punch"])
 sort_order = 49
+controls = "Hold · Right: Keycap Barrage — tap and its keys rain down on him"

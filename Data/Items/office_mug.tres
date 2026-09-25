@@ -14,3 +14,4 @@ scene = ExtResource("2_hgcs6")
 icon = ExtResource("1_l2oet")
 requires = Array[StringName]([&"stapler"])
 sort_order = 43
+controls = "Hold · Right: Hot Coffee — splash him; it scalds and it stains"

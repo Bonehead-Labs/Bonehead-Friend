@@ -14,3 +14,4 @@ scene = ExtResource("2_hgygp")
 icon = ExtResource("1_ci23c")
 requires = Array[StringName]([&"nunchaku"])
 sort_order = 53
+controls = "Hold · Right: Bristle — fire its spikes at him; they grow back"

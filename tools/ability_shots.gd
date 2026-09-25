@@ -127,9 +127,12 @@ func _stage(id: StringName) -> void:
 	await _carry(start, 20)
 	var ability := _weapon.ability
 	print("  %s — %s" % [id, ability_row.get("name", "")])
-	# A hooked row that is used differently from its archetype brings a staging of its own,
-	# `_stage_<ability id>`, below.
+	# A hooked row that is used differently from its archetype brings a staging of its own: named
+	# for the ability (`_stage_<ability id>`, the blades) or for the weapon (`_stage_<item id>`,
+	# the blunt and desk nine). Its frames are not its archetype's.
 	var staging := "_stage_%s" % ability.ability_id()
+	if not has_method(staging) and ability_row.has("script"):
+		staging = "_stage_%s" % id
 	match &"hooked" if has_method(staging) else ability.archetype():
 		&"hooked":
 			await call(staging, id, ability, centre, floor_y)
@@ -439,3 +442,150 @@ func _shot(name: String, after: int = 0) -> void:
 	if OS.get_cmdline_user_args().has("--trace") and is_instance_valid(_weapon):
 		print("      hand %s handle %s grip %s him %s" % [_hand.round(), _weapon.handle.global_position.round(),
 			_weapon.to_global(_weapon.grip_offset).round(), _buddy.get_interaction_rect().get_center().round()])
+
+# --- the blunt and desk nine (D74, second pass) --------------------------------------------
+#
+# Each drives its own hook the way its line says, and asserts the thing that makes it itself.
+
+func _stage_morning_star(id: StringName, ability: BristleAbility, centre: Vector2, _floor_y: float) -> void:
+	await _carry(centre + Vector2(-180.0, -40.0), 40)
+	await _shot("%s-ready" % id, 10)
+	ability.press()
+	ability.release()
+	await _shot("%s-fan" % id, 3)
+	for i in 30:
+		await _carry(_hand, 1)
+		if ability.last_hits > 0:
+			break
+	await _shot("%s-hit" % id, 2)
+	await _shot("%s-bald" % id, 20)
+	var gap := ability.cooldown_left()
+	for i in int(gap * 60.0):
+		await _carry(_hand, 1)
+		if ability.cooldown_left() <= gap * 0.45:
+			break
+	await _shot("%s-regrowing" % id)
+
+func _stage_cricket_bat(id: StringName, ability: MiddleItAbility, centre: Vector2, _floor_y: float) -> void:
+	await _carry(centre + Vector2(-360.0, -110.0), 40)
+	await _carry(_hand, 60)
+	ability.press()
+	ability.release()
+	await _shot("%s-lit" % id, 6)
+	# ability_check's sweep: a run-up at an unhurried 450 px/s, then the middle aimed at his middle
+	# at the height it rides below the moving hand.
+	for attempt in 2:
+		if ability.sixes > 0 or not ability.is_active():
+			break
+		var him := _buddy.get_interaction_rect().get_center()
+		await _carry(Vector2(him.x - 360.0, him.y - 110.0), 10)
+		while _hand.x < him.x - 230.0:
+			await _carry(_hand + Vector2(450.0 / 60.0, 0.0), 1)
+		var line := him.y - (ability.middle_world().y - _hand.y)
+		while _hand.x < him.x + 200.0 and ability.sixes == 0 and ability.is_active():
+			await _carry(Vector2(_hand.x + 450.0 / 60.0, move_toward(_hand.y, line, 4.0)), 1)
+		print("    sweep %d: met the blade at %.2f, %d six" % [attempt, ability.last_blade_t, ability.sixes])
+	await _shot("%s-six" % id, 1)
+	await _shot("%s-up" % id, 14)
+	await _shot("%s-top" % id, 30)
+
+func _stage_rolling_pin(id: StringName, ability: FlattenAbility, centre: Vector2, floor_y: float) -> void:
+	await _carry(Vector2(centre.x - 190.0, floor_y - 60.0), 40)
+	ability.press()
+	await _carry(_hand, 24)
+	await _shot("%s-down" % id)
+	for i in 80:
+		await _carry(_hand.move_toward(Vector2(centre.x + 150.0, floor_y - 60.0), 500.0 / 60.0), 1)
+		if ability.passes > 0:
+			break
+	await _shot("%s-flattened" % id, 3)
+	await _shot("%s-pancake" % id, 12)
+	await _carry(_hand, 20)
+	await _shot("%s-springs-back" % id, 20)
+	ability.release()
+
+func _stage_stapler(id: StringName, ability: StapleGunAbility, centre: Vector2, _floor_y: float) -> void:
+	await _carry(centre + Vector2(-260.0, -40.0), 40)
+	ability.press()
+	await _shot("%s-firing" % id, 14)
+	await _carry(_hand, 50)
+	await _shot("%s-stapled" % id)
+	ability.release()
+
+func _stage_tyre_iron(id: StringName, ability: RicochetAbility, centre: Vector2, _floor_y: float) -> void:
+	await _carry(centre + Vector2(-250.0, -80.0), 40)
+	var hand := _hand
+	ability.press()
+	ability.release()
+	await _shot("%s-thrown" % id, 5)
+	for i in 60:
+		await _idle(1)
+		if ability.banks_done() > 0:
+			break
+	await _shot("%s-bank" % id, 1)
+	for i in 60:
+		await _idle(1)
+		if ability.throw_hits > 0:
+			break
+	await _shot("%s-hit" % id, 1)
+	await _shot("%s-after" % id, 16)
+	_hand = hand
+
+func _stage_war_pick(id: StringName, ability: PinpointAbility, centre: Vector2, _floor_y: float) -> void:
+	await _carry(centre + Vector2(-130.0, -60.0), 40)
+	ability.press()
+	await _shot("%s-aiming" % id, 18)
+	for i in 60:
+		await _carry(_hand, 1)
+		if ability.is_locked_on():
+			break
+	await _shot("%s-locked" % id, 6)
+	ability.release()
+	for i in 40:
+		await _carry(_hand, 1)
+		if ability.last_pick > 0.0 or not ability.is_driving():
+			break
+	print("    the beak came within %.0f px of the spot; the pick %.0f" % [ability.last_miss, ability.last_pick])
+	await _shot("%s-struck" % id, 1)
+	await _shot("%s-after" % id, 12)
+
+func _stage_mechanical_keyboard(id: StringName, ability: KeycapBarrageAbility, centre: Vector2, _floor_y: float) -> void:
+	await _carry(centre + Vector2(-260.0, -60.0), 40)
+	ability.press()
+	ability.release()
+	await _shot("%s-fountain" % id, 14)
+	for i in 60:
+		await _carry(_hand, 1)
+		if ability.hits > 0:
+			break
+	await _shot("%s-rain" % id, 3)
+	await _shot("%s-bare" % id, 20)
+	await _shot("%s-home" % id, 40)
+
+func _stage_monitor(id: StringName, ability: BlueScreenAbility, centre: Vector2, _floor_y: float) -> void:
+	await _carry(centre + Vector2(-150.0, -30.0), 40)
+	ability.press()
+	ability.release()
+	await _shot("%s-frozen" % id, 6)
+	for i in 30:
+		await _carry(_hand.move_toward(centre + Vector2(200.0, -30.0), 26.0), 1)
+	await _carry(centre + Vector2(-150.0, -30.0), 20)
+	await _shot("%s-stored" % id, 2)
+	for i in 90:
+		await _carry(_hand, 1)
+		if not ability.is_frozen():
+			break
+	await _shot("%s-dump" % id, 2)
+	await _shot("%s-after" % id, 10)
+
+func _stage_office_mug(id: StringName, ability: HotCoffeeAbility, centre: Vector2, _floor_y: float) -> void:
+	await _carry(centre + Vector2(-240.0, -60.0), 40)
+	ability.press()
+	ability.release()
+	await _shot("%s-splash" % id, 9)
+	for i in 60:
+		await _carry(_hand, 1)
+		if ability.scalds > 0:
+			break
+	await _shot("%s-scald" % id, 2)
+	await _shot("%s-steam" % id, 24)

@@ -14,3 +14,4 @@ scene = ExtResource("2_beton")
 icon = ExtResource("1_vctky")
 requires = Array[StringName]([&"crowbar"])
 sort_order = 44
+controls = "Hold · Right: Middle It — then hit him off the glowing middle for six"

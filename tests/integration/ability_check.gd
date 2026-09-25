@@ -217,9 +217,14 @@ func _check_ability(id: StringName) -> void:
 	var before_uses := ability.uses
 
 	var measured := {}
-	# A hooked row that is used differently from its archetype brings a driver named for its
-	# ability (`_drive_<ability id>`), below the eight.
+	# A hooked row that is used differently from its archetype brings a driver of its own, because
+	# what the player does with it is not what the archetype's driver does. The blades name theirs
+	# for the ability (`_drive_<ability id>`), the blunt and desk nine for the weapon
+	# (`_drive_<item id>`: a bat's middle is aimed, a staple gun is held down, a tyre iron is thrown
+	# away from him). A hook with neither falls back to its archetype's.
 	var own_driver := "_drive_%s" % row.get("id", "")
+	if not has_method(own_driver) and row.has("script"):
+		own_driver = "_drive_%s" % id
 	match &"hooked" if has_method(own_driver) else archetype:
 		&"hooked":
 			measured = await call(own_driver, body, ability)
@@ -1134,9 +1139,14 @@ func _leftovers() -> String:
 		for left in ["GhostBlade", "BladeTip"]:
 			if String(node.name).begins_with(left) and not node.is_queued_for_deletion():
 				return "a %s" % left
+		if node is AbilityShot and not node.is_queued_for_deletion():
+			return "a %s" % String(node.name).to_lower()
 	for child in _buddy.get_children():
 		if String(child.name).begins_with("SoulWisp") and not child.is_queued_for_deletion():
 			return "his soul, still out"
+		for mark in ["StapleMarks", "BlueScreenScan", "AbilitySteam"]:
+			if String(child.name).begins_with(mark) and not child.is_queued_for_deletion():
+				return "%s still on him" % mark
 	if not _buddy.get_collision_exceptions().is_empty():
 		return "an exception on him"
 	return ""
@@ -1158,3 +1168,376 @@ func _check(what: String, condition: bool) -> void:
 		_failed += 1
 		# `print`, not `printerr`: the suite's own Logger reads the error stream.
 		print("    FAIL %s" % what)
+
+# --- the blunt and desk nine (D74, second pass) --------------------------------------------
+#
+# Each drives its own hook the way its line says, and asserts the thing that makes it itself.
+
+## Bristle: tapped from 180 px, the five spikes facing him fly, the fan lands, the star is bald on
+## that side, and they come back one at a time over the cooldown.
+func _drive_morning_star(body: WeaponBase, ability: BristleAbility) -> Dictionary:
+	# The head hangs below the hand: held here, it is level with his middle and clear of the desk.
+	await _mouse_to(_centre() + Vector2(-180.0, -100.0), 700.0)
+	await _steady(body, 60)
+	var total := ability.spikes_total()
+	_check("its picture has spikes to fire (%d found in the art)" % total, total >= 5)
+	var shapes := _shape_sizes(body)
+	_press(MOUSE_BUTTON_RIGHT)
+	await _step()
+	_release(MOUSE_BUTTON_RIGHT)
+	_check("a tap fires the %d spikes facing him" % int(ability.num("spikes", 5)),
+		ability.last_fired == int(ability.num("spikes", 5)))
+	_check("and the star is bald where they were (%d of %d left)" % [ability.spikes_present(), total],
+		ability.spikes_present() == total - ability.last_fired)
+	_check("only the picture changed: its colliders are its own", _shape_sizes(body) == shapes)
+	await _await_cond(func() -> bool: return ability.shots_in_flight() == 0, 60)
+	await _step(3)
+	_check("the fan lands on him (%d of %d)" % [ability.last_hits, ability.last_fired], ability.last_hits >= 3)
+	_check("each spike billed once, as its own impulse",
+		_hits_with_impulse(ability.num("spike_force", 900.0)) == ability.last_hits)
+	await _expect_face(&"incoming", &"blast")
+	var gap := ability.cooldown_left()
+	await _await_cond(func() -> bool: return ability.cooldown_left() <= gap * 0.45, int(gap * 60.0) + 30)
+	var midway := ability.spikes_present()
+	_check("halfway through the cooldown some have grown back (%d)" % midway,
+		midway > total - ability.last_fired and midway < total)
+	return {"fired": ability.last_fired, "landed": ability.last_hits, "spikes": total,
+		"midway": midway, "hits": _hits.size()}
+
+## Middle It: lit, then swept through him until the middle meets him — an edge first if the hand
+## finds one — and the middled hit is x2.5 and sends him straight up.
+func _drive_cricket_bat(body: WeaponBase, ability: MiddleItAbility) -> Dictionary:
+	await _mouse_to(_centre() + Vector2(-220.0, -70.0), 700.0)
+	# Hanging from the hand, blade down, before the light goes on: where the middle hangs below the
+	# hand is what the sweeps aim with. (A bat balanced on its grip stays balanced, and a sweep at
+	# the height of his middle then passes over his head.)
+	for i in 120:
+		_move(_mouse)
+		await _step()
+		if i > 30 and ability.middle_world().y > _mouse.y + 30.0 and body.linear_velocity.length() < 25.0:
+			break
+	var hang := ability.middle_world().y - _mouse.y
+	_press(MOUSE_BUTTON_RIGHT)
+	await _step()
+	_release(MOUSE_BUTTON_RIGHT)
+	await _step()
+	var glow := body.get_node_or_null("MiddleGlow") as Node2D
+	_check("a tap lights the middle of the face", ability.is_armed() and glow != null and glow.visible)
+	var edges := 0
+	var start_y := _buddy.global_position.y
+	var rise := 0.0
+	var drift := 0.0
+	var six_frame := -1
+	var rides := 0.0
+	for attempt in 2:
+		if ability.sixes > 0 or not ability.is_active():
+			break
+		var him := _centre()
+		await _mouse_to(Vector2(him.x - 360.0, him.y - hang - 30.0), 1800.0)
+		# Not knocked out by an edge before it: a six he cannot take is not a six measured.
+		_buddy.health.reset_meter()
+		# A run-up at the sweep's own unhurried speed. Trailing behind a moving hand the bat tilts
+		# back, and how far below the hand its middle rides then is what the sweep aims with: the
+		# middle at his middle. (Measured: a fast flat sweep leads with the handle, a hand held
+		# high grazes his skull with the toe, and a bat's hang at rest varies run to run.)
+		while _mouse.x < him.x - 230.0:
+			_move(_mouse + Vector2(450.0 / 60.0, 0.0))
+			await _step()
+		rides = ability.middle_world().y - _mouse.y
+		var line := him.y - rides
+		while _mouse.x < him.x + 200.0 and ability.sixes == 0 and ability.is_active():
+			_move(Vector2(_mouse.x + 450.0 / 60.0, move_toward(_mouse.y, line, 4.0)))
+			await _step()
+		if ability.sixes == 0 and ability.last_blade_t >= 0.0:
+			edges += 1
+	# From the six: how high he goes, how much of the swing's sideways push was left on him, and
+	# where he comes down (a rise of 450 px is two seconds in the air).
+	for i in 170:
+		if ability.sixes > 0 and six_frame < 0:
+			six_frame = i
+		rise = maxf(rise, start_y - _buddy.global_position.y)
+		if six_frame >= 0 and i - six_frame <= 3:
+			drift = maxf(drift, absf(_buddy.linear_velocity.x))
+		await _step()
+	_check("a hit off the middle is a six (the blade met him at %.2f of its length)" % ability.last_blade_t,
+		ability.sixes == 1)
+	_check("billed at x%.2f on top of its own" % ability.num("middle_mult", 2.5),
+		_boosted_hits(body, ability.num("middle_mult", 2.5)) >= 1)
+	_check("and he goes straight up (%.0f px, %.0f px/s sideways at most)" % [rise, drift],
+		rise >= 120.0 and drift < ability.num("six_speed", 950.0) * 0.6)
+	_check("where he comes down is the bat's", _claimed_seen)
+	await _expect_face(&"six", &"launched")
+	_check("and the light goes out", glow == null or not glow.visible)
+	return {"blade_t": ability.last_blade_t, "rise": rise, "six": ability.last_six, "edges": edges,
+		"rides": rides, "hits": _hits.size()}
+
+## Flatten: laid down on the desk beside him and rolled across him and back: two passes, two
+## flattenings, and he is squashed on his sprite, not shoved along the desk.
+func _drive_rolling_pin(body: WeaponBase, ability: FlattenAbility) -> Dictionary:
+	var floor_y := _buddy.get_interaction_rect().end.y
+	var him_x := _centre().x
+	await _mouse_to(Vector2(him_x - 190.0, floor_y - 60.0), 700.0)
+	await _steady(body, 60)
+	var start_x := _buddy.global_position.x
+	_press(MOUSE_BUTTON_RIGHT)
+	await _step(24)
+	_check("held, it lies down level (%.0f degrees off)" % ability.level_error, ability.level_error <= 25.0)
+	var low := ability.com_world().y
+	_check("on the desk (%.0f px above it)" % (floor_y - low), floor_y - low <= 45.0)
+	var squashed := 1.0
+	var legs := [Vector2(him_x + 150.0, floor_y - 60.0), Vector2(him_x - 190.0, floor_y - 60.0)]
+	for leg in legs:
+		var guard := 0
+		while _mouse.distance_to(leg) > 8.0 and guard < 200:
+			_move(_mouse.move_toward(leg, 500.0 / 60.0))
+			await _step()
+			guard += 1
+			if _buddy.art:
+				squashed = minf(squashed, _buddy.art._squash.y)
+	for i in 12:
+		await _step()
+		if _buddy.art:
+			squashed = minf(squashed, _buddy.art._squash.y)
+	_release(MOUSE_BUTTON_RIGHT)
+	await _step(3)
+	_check("rolled across him and back: two passes (%d)" % ability.passes, ability.passes >= 2)
+	_check("each billed once, x%.1f, as its own impulse" % ability.num("flatten_mult", 1.5),
+		_boosted_strikes(body, ability.num("flatten_mult", 1.5)) >= 2)
+	_check("he is flattened on his sprite (squash %.2f)" % squashed, squashed <= 0.6)
+	await _expect_face(&"flattened", &"flattened")
+	var moved := absf(_buddy.global_position.x - start_x)
+	_check("rolled over, not shoved along (%.0f px)" % moved, moved <= 90.0)
+	await _await_cond(func() -> bool: return not ability.is_active(), 90)
+	_check("the exception comes off once it is clear of him",
+		not body.get_collision_exceptions().has(_buddy))
+	_check("and the hand is its own again", body.hand_offset == Vector2.ZERO)
+	return {"passes": ability.passes, "speed": ability.last_roll_speed, "impulse": ability.last_flatten,
+		"squash": squashed, "moved": moved}
+
+## Staple Gun: held from 260 px until the strip runs out: twenty staples, straight, most in him,
+## each billed once; the empty strip is the reload.
+func _drive_stapler(body: WeaponBase, ability: StapleGunAbility) -> Dictionary:
+	await _mouse_to(_centre() + Vector2(-260.0, -40.0), 700.0)
+	await _steady(body, 40)
+	_press(MOUSE_BUTTON_RIGHT)
+	await _step(30)
+	_check("held, it fires (%d staples in half a second)" % ability.fired, ability.fired >= 2)
+	_check("he sees it pointed at him", ability.is_threatening())
+	var strip := int(ability.num("strip", 20))
+	var marks_seen := false
+	for i in int(strip / ability.num("rate", 5.0) * 60.0) + 40:
+		if not ability.is_active():
+			break
+		marks_seen = marks_seen or _buddy.get_node_or_null("StapleMarks") != null
+		await _step()
+	_release(MOUSE_BUTTON_RIGHT)
+	await _step(30)
+	marks_seen = marks_seen or _buddy.get_node_or_null("StapleMarks") != null
+	_check("the whole strip, then it stops (%d)" % ability.fired, ability.fired == strip and not ability.is_active())
+	_check("most of them in him (%d)" % ability.landed, ability.landed >= int(strip * 0.6))
+	_check("each billed once, as its own impulse (%d)" % _hits_with_impulse(ability.num("staple_force", 420.0)),
+		_hits_with_impulse(ability.num("staple_force", 420.0)) == ability.landed)
+	_check("and they stay in him a while", marks_seen)
+	_check("the empty strip is the full reload (%.1f s)" % ability.cooldown_left(),
+		ability.cooldown_left() >= ability.num("cooldown", 6.0) * 0.8)
+	return {"fired": ability.fired, "landed": ability.landed, "hits": _hits.size()}
+
+## Ricochet: thrown from 250 px with the hand still, it goes into the desk, banks at him and hits
+## him harder than a straight throw, and is left where it falls.
+func _drive_tyre_iron(body: WeaponBase, ability: RicochetAbility) -> Dictionary:
+	await _mouse_to(_centre() + Vector2(-250.0, -80.0), 700.0)
+	await _steady(body, 60)
+	_press(MOUSE_BUTTON_RIGHT)
+	await _step()
+	_release(MOUSE_BUTTON_RIGHT)
+	_check("right throws it out of the hand", not body.dragging and ability.in_flight())
+	var done := await _await_cond(func() -> bool: return not ability.is_active(), 300)
+	await _step(3)
+	await _expect_face(&"incoming", &"blast")
+	_check("it banked off the world (%d banks, first at %s)" % [ability.banks_done(),
+		ability.bank_points[0].round() if not ability.bank_points.is_empty() else "none"],
+		ability.banks_done() >= 1)
+	_check("and hit him (%d, at %s)" % [ability.throw_hits, ability.hit_mults], ability.throw_hits >= 1)
+	var banked_hit := false
+	for m in ability.hit_mults:
+		banked_hit = banked_hit or m > 1.0
+	_check("a hit after a bank is worth more than a straight one", banked_hit)
+	var billed_ok := true
+	for impulse in ability.struck:
+		billed_ok = billed_ok and _hits_with_impulse(impulse) == 1
+	_check("each hit billed once, as its own impulse", billed_ok and not ability.struck.is_empty())
+	_check("it comes to rest and the throw is over", done)
+	_check("it does not come back: you fetch it", not body.dragging)
+	_check("the exception comes off", not body.get_collision_exceptions().has(_buddy))
+	return {"banks": ability.banks_done(), "hits": ability.throw_hits, "mults": str(ability.hit_mults),
+		"flight": ability.last_flight}
+
+## Pinpoint: held until the crosshair locks on his skull, let go, and the beak goes into that spot,
+## x2.5, touching nothing else on the way and barely moving him.
+func _drive_war_pick(body: WeaponBase, ability: PinpointAbility) -> Dictionary:
+	await _mouse_to(_centre() + Vector2(-130.0, -60.0), 700.0)
+	await _steady(body, 60)
+	_press(MOUSE_BUTTON_RIGHT)
+	await _step(4)
+	var cross := ability.get_node_or_null("PinpointCrosshair") as Node2D
+	_check("held, a crosshair appears at the beak", cross != null and cross.visible and ability.is_aiming())
+	await _step(int(ability.num("charge_seconds", 0.8) * 60.0) + 8)
+	var skull := _buddy.get_interaction_rect()
+	_check("and walks onto his skull and locks (%s)" % ability.spot().round(),
+		ability.is_locked_on() and skull.grow(4.0).has_point(ability.spot()))
+	await _expect_face(&"targeted", &"aimed_at")
+	var before_hits := _hits.size()
+	_release(MOUSE_BUTTON_RIGHT)
+	var struck := await _await_cond(func() -> bool: return ability.last_pick > 0.0 or not ability.is_driving(), 40)
+	var shove := await _peak_speed(20)
+	_check("let go, the beak goes into that spot (within %.0f px)" % ability.last_miss,
+		struck and ability.last_pick > 0.0)
+	var pick := _hit_with_impulse(ability.last_pick)
+	_check("billed once at x%.2f, as its own impulse (%.0f)" % [ability.num("pick_mult", 2.5), ability.last_pick],
+		pick != null and _hits_with_impulse(ability.last_pick) == 1 and absf(_mult_of(pick)
+		- Progression.damage_mult_for(_id, body.damage_mult) * ability.num("pick_mult", 2.5)) < 0.01)
+	_check("touching nothing else on the way (%d contact hits)" % (_hits.size() - before_hits - 1),
+		_hits.size() - before_hits == 1)
+	_check("and all of it on the spot: he barely moves (%.0f px/s)" % shove, shove <= 400.0)
+	await _await_cond(func() -> bool: return not ability.is_active(), 120)
+	_check("the exception comes off", not body.get_collision_exceptions().has(_buddy))
+	_check("and the hand is its own again", body.hand_offset == Vector2.ZERO)
+	return {"miss": ability.last_miss, "point": ability.last_point_speed, "pick": ability.last_pick,
+		"him": shove}
+
+## Keycap Barrage: tapped from 260 px, eight caps go up and come down on him, the keys show bare
+## switches, and every cap flies home.
+func _drive_mechanical_keyboard(body: WeaponBase, ability: KeycapBarrageAbility) -> Dictionary:
+	await _mouse_to(_centre() + Vector2(-260.0, -60.0), 700.0)
+	await _steady(body, 60)
+	_press(MOUSE_BUTTON_RIGHT)
+	await _step()
+	_release(MOUSE_BUTTON_RIGHT)
+	await _step(2)
+	var bare := body.get_node_or_null("BareKeys") as Node2D
+	_check("a tap pops %d caps off (%d out)" % [int(ability.num("caps", 8)), ability.caps_out()],
+		ability.fired == int(ability.num("caps", 8)) and ability.caps_out() == ability.fired)
+	_check("and the keys they left are bare", bare != null and bare.visible)
+	await _expect_face(&"incoming", &"blast")
+	var back := await _await_cond(func() -> bool: return not ability.is_active(), 300)
+	await _step(3)
+	_check("they rain down on him (%d of %d)" % [ability.hits, ability.fired], ability.hits >= 4)
+	_check("each billed once, as its own impulse",
+		_hits_with_impulse(ability.num("cap_force", 800.0)) == ability.hits)
+	_check("and every one flies home (%d)" % ability.home, back and ability.home == ability.fired)
+	_check("the keys are whole again", bare == null or not bare.visible)
+	return {"caps": ability.fired, "hits": ability.hits, "home": ability.home}
+
+## Blue Screen: refused out of reach; in reach he is a statue, swung at until he reboots — nothing
+## lands and nothing moves him — and then every stored swing is dealt on one frame, x1.3.
+func _drive_monitor(body: WeaponBase, ability: BlueScreenAbility) -> Dictionary:
+	await _mouse_to(_centre() + Vector2(-560.0, -40.0), 900.0)
+	await _steady(body, 30)
+	var refused := ability.denied
+	_press(MOUSE_BUTTON_RIGHT)
+	await _step()
+	_release(MOUSE_BUTTON_RIGHT)
+	await _step()
+	_check("out of reach, the press is refused", ability.denied == refused + 1 and not ability.is_active())
+	await _mouse_to(_centre() + Vector2(-150.0, -30.0), 900.0)
+	await _steady(body, 40)
+	var frames: Array[int] = []
+	var impulses: Array[float] = []
+	var on_hit := func(info: HitInfo) -> void:
+		if info.source_id == _id:
+			frames.append(Engine.get_physics_frames())
+			impulses.append(info.raw_impulse)
+	EventBus.damage_dealt.connect(on_hit)
+	_press(MOUSE_BUTTON_RIGHT)
+	await _step()
+	_release(MOUSE_BUTTON_RIGHT)
+	await _step(2)
+	var at := _buddy.global_position
+	_check("in reach, a tap freezes him", ability.is_frozen())
+	var screen := body.get_node_or_null("BlueScreen") as Node2D
+	_check("the screen goes blue", screen != null and screen.visible)
+	await _expect_face(&"frozen", &"frozen")
+	_check("staring, his animation held",
+		_buddy.art != null and _buddy.art.body != null and is_zero_approx(_buddy.art.body.speed_scale))
+	# Swung at him back and forth until the freeze is up, as a player does with a statue.
+	var drift := 0.0
+	var dealt_frozen := 0
+	var swings := 0
+	while ability.is_frozen() and swings < 8:
+		var him := _centre()
+		var target := Vector2(him.x + (200.0 if swings % 2 == 0 else -220.0), him.y - 40.0)
+		while _mouse.distance_to(target) > 1.0 and ability.is_frozen():
+			_move(_mouse.move_toward(target, 1100.0 / 60.0))
+			await _step()
+			if ability.is_frozen():
+				drift = maxf(drift, _buddy.global_position.distance_to(at))
+				dealt_frozen = frames.size()
+		swings += 1
+	_check("swung through: %d stored, none dealt while he was frozen" % ability.last_stored,
+		ability.last_stored >= 2 and dealt_frozen == 0)
+	_check("and a statue does not move (%.1f px)" % drift, drift <= 2.0)
+	await _await_cond(func() -> bool: return not ability.is_active(), 120)
+	await _step(3)
+	EventBus.damage_dealt.disconnect(on_hit)
+	# The dump's own hits are the ones it handed him; anything after is the monitor still swinging.
+	var dump_frames := {}
+	for i in frames.size():
+		for impulse in ability.struck:
+			if absf(impulses[i] - impulse) <= 0.5:
+				dump_frames[frames[i]] = true
+	_check("he comes back and all %d land at once, on one frame (%d frames)" % [ability.last_stored,
+		dump_frames.size()], ability.last_dumped == ability.last_stored and dump_frames.size() == 1)
+	_check("each once, at x%.2f" % ability.num("dump_mult", 1.3),
+		_boosted_strikes(body, ability.num("dump_mult", 1.3)) == ability.last_stored)
+	_check("and it throws him (%.0f px/s)" % ability.last_dump_speed, ability.last_dump_speed > 0.0)
+	_check("he is not frozen any more", not _buddy.freeze)
+	return {"stored": ability.last_stored, "dealt": frames.size(), "drift": drift,
+		"thrown": ability.last_dump_speed}
+
+## Hot Coffee: tapped from 240 px, the spatter reaches him, scalds him once, stains him, and the
+## steam bites twice more.
+func _drive_office_mug(body: WeaponBase, ability: HotCoffeeAbility) -> Dictionary:
+	await _mouse_to(_centre() + Vector2(-240.0, -60.0), 700.0)
+	await _steady(body, 60)
+	var grime_before := _buddy.grime.value if _buddy.grime else 0.0
+	_press(MOUSE_BUTTON_RIGHT)
+	await _step()
+	_release(MOUSE_BUTTON_RIGHT)
+	_check("a tap throws the coffee (%d drops)" % ability.thrown, ability.thrown == int(ability.num("drops", 7)))
+	var scalded := await _await_cond(func() -> bool: return ability.scalds > 0, 60)
+	await _step(3)
+	_check("it reaches him and scalds him, once", scalded and ability.scalds == 1
+		and _hits_with_impulse(ability.num("scald_force", 900.0)) == 1)
+	_check("and stains him (grime %.3f -> %.3f)" % [grime_before, _buddy.grime.value],
+		_buddy.grime.value > grime_before)
+	_check("he steams", _buddy.get_node_or_null("AbilitySteam") != null)
+	await _expect_face(&"scalded", &"scalded")
+	await _await_cond(func() -> bool: return not ability.is_active(), 150)
+	await _step(3)
+	_check("the steam bites %d more times (%d)" % [int(ability.num("steam_ticks", 2)), ability.steam_hits],
+		ability.steam_hits == int(ability.num("steam_ticks", 2))
+		and _hits_with_impulse(ability.num("steam_force", 450.0)) == ability.steam_hits)
+	_check("and stops", _buddy.get_node_or_null("AbilitySteam") == null)
+	return {"drops": ability.thrown, "scald": ability.scalds, "steam": ability.steam_hits,
+		"grime": ability.last_grime}
+
+## The weapon's collision shapes as sizes, to compare before and after.
+func _shape_sizes(body: WeaponBase) -> Array:
+	var out := []
+	for child in body.get_children():
+		var cs := child as CollisionShape2D
+		if cs and cs.shape:
+			out.append([cs.shape.get_rect(), cs.disabled])
+	return out
+
+## Hits the ability handed him itself (`strike`) at a multiplier `m` on top of the weapon's own.
+func _boosted_strikes(body: WeaponBase, m: float) -> int:
+	var base := Progression.damage_mult_for(_id, body.damage_mult)
+	var n := 0
+	for info in _hits:
+		var own := false
+		for impulse in body.ability.struck:
+			own = own or absf(info.raw_impulse - impulse) <= 0.5
+		if own and (_capped(info) or absf(_mult_of(info) - base * m) <= 0.001 * base * m):
+			n += 1
+	return n
