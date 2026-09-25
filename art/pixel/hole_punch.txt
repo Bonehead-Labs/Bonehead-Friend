@@ -1,0 +1,32 @@
+# Hole punch — D69 redraw. "A block of cast steel that exists to make confetti." The
+# generated one was drawn straight on: a cream square with a dark shutter in it, which is a
+# floppy disk. Straight on, a punch is a lid on two legs and reads as a table; from above and
+# to one side it is a lever, two spring plungers and the sheet they have just been through.
+# Three things carry it: the red lever plate, the coiled plungers with daylight between them,
+# and two punched holes in the paper on the steel base. 28x22, was 26x24.
+id: hole_punch
+cell: 64
+
+--- main
+......KKKKKKKKKKKKKKKKKKKKK.
+.....KRRRRRRRRRRRRRRRRRRRRRK
+....KRRPPPPPPPPPPPPPPPPPRRmK
+...KRRRRRRRRRRRRRRRRRRRRRmmK
+..KRRRRRRRRRRRRRRRRRRRRRmmK.
+.KrrrrrrrrrrrrrrrrrrrrrmmK..
+.KrrrrrrrrrrrrrrrrrrrrrmK...
+..KKKKWGGghKKKKKWGGghKKK....
+.....KhhhhhK...KhhhhhK......
+.....KWGGghK...KWGGghK......
+.....KhhhhhK...KhhhhhK......
+.....KWGGghKKKKKWGGghKKKKK..
+.....KhhhhhGGGGGhhhhhGGGGGK.
+....KHWGGghHGGGHWGGghHGGGhK.
+...KWWWWWWWWWWWWWWWWWWWWhhK.
+..KWWWWWKKWWWWWWWWKKWWWhhhK.
+.KWWWWWKHHKWWWWWWKHHKWhhhhK.
+KWWWWWWWWWWWWWWWWWWWWhhhhK..
+KccccccccccccccccccccghhhK..
+KgggggggggggggggggggghhKK...
+KhhhhhhhhhhhhhhhhhhhhhK.....
+.KKKKKKKKKKKKKKKKKKKKK......

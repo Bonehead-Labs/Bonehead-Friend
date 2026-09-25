@@ -116,13 +116,16 @@ const BLADES := [
 		"mass": 2.8,
 		"damage": 2.3,
 		# Balanced at the bolster, which is where a desk tool balances: it does not swing,
-		# it goes in straight.
+		# it goes in straight. Blade, bolster, grip and pommel as drawn in D69; the grip pin
+		# sits where the handle meets the pommel, the same reach from the bolster as before.
 		"shapes": [
-			{"capsule": Vector2(5, 22), "at": Vector2(6, -6), "rot": 45.0},
-			{"rect": Vector2(8, 14), "at": Vector2(-8, 8), "rot": 45.0},
+			{"capsule": Vector2(4.5, 18), "at": Vector2(6.25, -6.75), "rot": 45.0},
+			{"rect": Vector2(3, 8), "at": Vector2(-1.75, 0.5), "rot": -45.0},
+			{"capsule": Vector2(4.5, 11.5), "at": Vector2(-6, 5.5), "rot": 45.0},
+			{"circle": 3.0, "at": Vector2(-10.5, 11.5)},
 		],
-		"com": Vector2(-1, 1),
-		"grip": Vector2(-10, 10),
+		"com": Vector2(-1, 0.5),
+		"grip": Vector2(-10, 9.5),
 		"grab": {"size": Vector2(18, 18), "at": Vector2(-8, 8)},
 		"tree": ["Honed Point", "Return to Sender", "Solid Brass"],
 		"device": [&"opener_mail_slot", "Mail Slot",

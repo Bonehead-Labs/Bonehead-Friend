@@ -184,17 +184,19 @@ const EXPLOSIVES := [
 		"script": ThrowableBaseScript,
 		"mass": 6.0,
 		"blast": 320.0,
-		# The one silhouette here that is genuinely not a box: a sack with the charge sticking
-		# out of the top. Weight in the sack and the pin up on the charge, so it hangs the way
-		# a bag hangs and swings its own weight when you throw it.
+		# The one silhouette here that is genuinely not a box: a bag with the charge standing
+		# out of its mouth and a strap arched over both (D69). Weight in the bag and the pin at
+		# the top of the strap, so it hangs the way a bag hangs from a hand and swings its own
+		# weight when you throw it.
 		"shapes": [
-			{"rect": Vector2(38, 20), "at": Vector2(0.5, 3)},
-			{"rect": Vector2(30, 6), "at": Vector2(0, 16)},
-			{"rect": Vector2(23, 9), "at": Vector2(-3.5, -13)},
-			{"rect": Vector2(12, 3), "at": Vector2(-3, -18.5)},
+			{"rect": Vector2(42, 25), "at": Vector2(0, 7.5)},
+			{"rect": Vector2(16, 9), "at": Vector2(-2, -9.5)},
+			{"rect": Vector2(22, 5), "at": Vector2(0, -17.5)},
+			{"capsule": Vector2(4.5, 12), "at": Vector2(-12, -10.5), "rot": 39.8},
+			{"capsule": Vector2(4.5, 12), "at": Vector2(12, -10.5), "rot": -39.8},
 		],
 		"com": Vector2(0, 7),
-		"grip": Vector2(-12, -16),
+		"grip": Vector2(0, -18.5),
 		"grab": {"size": Vector2(30, 36), "at": Vector2(0, 0)},
 		"properties": {"damage_mult": 1.5, "throwable_delay": 3.5, "max_force": 22000.0},
 		"tree": ["Packed Full", "Courier Rates", "Reinforced Bag"],

@@ -218,10 +218,17 @@ const PHYSICS := {
 		"grip": Vector2(11, -4),
 		"grab": {"size": Vector2(28, 28), "at": Vector2(0, 0)},
 	},
+	# Drawn from above and to one side (D69), so its lever and its base are parallelograms:
+	# each is a stack of boxes that stops short of the empty corners, and the daylight
+	# between the two plungers stays open.
 	&"hole_punch": {
 		"shapes": [
-			{"rect": Vector2(26, 16), "at": Vector2(-0.5, -4)},
-			{"rect": Vector2(26, 8), "at": Vector2(-0.5, 8)},
+			{"rect": Vector2(27, 7), "at": Vector2(0.5, -7.5)},
+			{"rect": Vector2(7, 4), "at": Vector2(-5.5, -1.5)},
+			{"rect": Vector2(7, 4), "at": Vector2(4.5, -1.5)},
+			{"rect": Vector2(24, 4), "at": Vector2(1, 2)},
+			{"rect": Vector2(27, 4), "at": Vector2(-0.5, 6)},
+			{"rect": Vector2(25, 3), "at": Vector2(-2.5, 9.5)},
 		],
 		"com": Vector2(0, 2),
 		"grip": Vector2(0, -8),
