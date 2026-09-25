@@ -13,6 +13,7 @@ start the next milestone until the current gate passes.
 | M3.6 — The content explosion | 1 wk | ✅ **built** (2026-08-30) — 80 items, 50 jobs, arcade, milestones |
 | M3.7 — The desk you can clear, the kind half, a buddy who plays ([uplift-m3.7.md](uplift-m3.7.md)) | 1 wk | ✅ **built and drawn** (2026-08-30) — walk cycle and animation families outstanding |
 | M3.8 — The assessment's top ten ([assessment-2026-09.md](assessment-2026-09.md)) | 1–2 wk | 🟡 **code complete** (2026-09-06) — code fixes, kind rates, six hands-on items, HUD next-up, onboarding, sounds, the expressive buddy's Phase 1 (`ExpressionBrain`, D36), the walk and fall-floor fix ([plan-movement-hitboxes.md](plan-movement-hitboxes.md)) and the assessment's code findings all done; left: the five-minute playtest, a sandbox walk on two monitors, the owner decisions in [worklist-2026-09.md](worklist-2026-09.md) §4, and the art-generator items |
+| M3.9 — The toybox: held guns, fidget toys, verbs, and every item and behaviour tested alone | 2 days | 🟡 **code complete** (2026-09-26) — D56–D70, see below; left: the batched visual checks and a hands-on session with the new toys |
 | M4 — Demo / Next Fest | 2–3 wk | ⬜ |
 | M5 — 1.0 | 4+ wk | ⬜ |
 | M6 — The Arcade (post-1.0, [D32](decisions.md)) | 2–3 wk | ⬜ **planned** (2026-08-30) |
@@ -937,3 +938,35 @@ now proves with stepped physics rather than leaving to a playtest.
 he still has no walk cycle (travel is carried by facing and a bob behind `BuddyArt.travel()`,
 which a real stride replaces without changing a call site). The animation family table — six
 animations covering all twenty items — is in `docs/uplift-m3.7.md`.
+
+---
+
+## M3.9 — the toybox (2026-09-25 → 26, branch `m3.9-toybox`)
+
+The owner's brief: continue the last session's work, make everything the best it can be, far
+more fidget toys that use both buttons and click zones, guns you hold rather than only cursor
+powers, an Arcade with clear sections instead of soft boxes, and every object and every behaviour
+tested on its own to see whether it actually works. Built as parallel streams in worktrees, each
+merged only after the full suite set passed on the combined tree.
+
+| | What | Decision |
+|---|---|---|
+| Guns you hold | `HeldGun`: left carries, right fires, a torque controller aims it at him with weight, recoil kicks and settles. Revolver, SMG, pump shotgun, hunting rifle, blunderbuss, slingshot on a sixth harm tab; water pistol and bubble blaster on the kind side. He cowers when one is aimed. | D56, D66 |
+| Fidget toys | `GestureZones`: zones in art pixels and a gesture vocabulary per button, one input grammar for everything held. Bubble wrap, fidget spinner, jack-in-the-box, fortune ball, stress ball, slinky, Newton's cradle, pull-back car, yo-yo — each of which he uses himself. | D57, D66 |
+| Verbs on everyday things | `ItemVerbs`: 13 existing kind items gained a right-button verb (boombox tracks, record scratch, chimes, fish food, watering the plant, stirring tea…). | D67 |
+| The Arcade | Every room a hard-edged cabinet: marquee, stage, paytable, deck. | D58 |
+| The shell | Floating text never overlaps and leaves by shrinking; rules land on whole pixels at 1.25x; keys hold their size pressed; captions fit at 2x and 480x360. | D63, D68 |
+| Every item tested alone | `item_check`: 123 items, each used the way a player uses it. Found thrown hits never billed (the starter fist had never paid), five dead turrets, placebo augments on 40+ nodes, pulls weaker than floor friction. All fixed. | D59, D64, D65 |
+| Every behaviour tested alone | `brain_check`: every expression row, routine, critter and turret. Found a generator holding him in one face forever, a gorilla that could not walk, routines masked by their own toys. Fixed. | D60 |
+| Physics fidelity | 36 multi-collider weapons re-authored against their art; the collider guard now covers every authored body. | D55, D61 |
+| Art | 14 sprites redrawn as text grids, a walk cycle drawn from his own frames, headphones that fall with him, every new item hand-drawn. | D62, D69 |
+
+Found on the way and fixed outside any stream: the Dream Journal was never in an exported pack;
+all three paid headphone colours drew wrong (and there was no way back to teal); shop icons lost
+their outlines when scaled down.
+
+**Left:** every windowed check was deferred because the owner was using the machine — ui_shots
+(including `-- --arcade`), fidget_shots, ui_motion_shots, audit_shots, window_check, and a
+sandbox session with the new toys. The recorded sounds and the new synthesised ones have still
+not been heard by a person. The performance budget has not been re-measured on a release build
+since D42, and this milestone added per-frame work to held guns and spinning toys.

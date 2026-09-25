@@ -133,8 +133,18 @@ that are not obvious from the code:
   pressing it grows the key and its whole row.
 - **`UIMotion.rise` fades, so it is for rows on a card only.** A card sitting straight on the
   transparent window *unrolls* (scale only) — the HUD toast faded in from alpha 0 and read as a
-  ghost on a dark desk (D63). Headless has no motion at all; a check about an entrance sets
-  `UIMotion.run_in_headless` for its duration.
+  ghost on a dark desk (D63). **Nothing on the FX layer fades out either; it leaves by scale**
+  (D68) — a half-transparent number over the chroma backdrop is a grey smear. Headless has no
+  motion at all; a check about an entrance sets `UIMotion.run_in_headless` for its duration.
+- **StyleBox content margins are measured from the box's outer edge; the border is inside
+  them**, not stacked on it like CSS padding. Every Button state must have the same minimum
+  size as `normal` — build states with `UITheme._key_states` — or a key grows when pressed,
+  hovered or disabled, and its row with it (D68 found 26 such states).
+- **Rules are sized for the active Menu size**: `UIStyle.rule_width()` is 3px at whole factors
+  and 4px at the quarter steps between, so a rule lands on whole screen pixels at 1.25x (D68).
+  Size or draw a rule with it and re-read it on `theme_changed`, never `BORDER_WIDTH`. A strip of
+  equal keys fits its captions with `UIStyle.fit_captions` (icon first, then icon-only with the
+  word as a tooltip); `ui_check`'s "menu sizes" suite is the multi-scale check.
 - **Floating text goes through `FXLayer.spawn_number`'s placement** (D63): each line reserves
   the space its whole rise passes through, so concurrent texts never overlap. Never position a
   world label directly; give a headline `RANK_HEADLINE`, and a key if a newer one should
@@ -202,9 +212,28 @@ PROJ='C:\Users\George\Godot Projects\Projects\Bonehead_Friend\interactive-buddy-
 "$GODOT" --headless --path "$PROJ" res://tests/integration/item_check.tscn
 "$GODOT" --headless --path "$PROJ" res://tests/integration/item_check.tscn -- --only=fist,grenade --trace
 
-# The held guns (D56) and the fidget toys (D57) against real physics and real input
+# The held guns (D56), the fidget toys (D57, D66) and the verbs on everyday things (D67),
+# against real physics and real input
 "$GODOT" --headless --path "$PROJ" res://tests/integration/gun_check.tscn
 "$GODOT" --headless --path "$PROJ" res://tests/integration/fidget_check.tscn
+"$GODOT" --headless --path "$PROJ" res://tests/integration/toys2_check.tscn
+"$GODOT" --headless --path "$PROJ" res://tests/integration/verbs_check.tscn
+
+# Every behaviour of his, each on a desk of its own (D60): every ExpressionBrain row caught
+# live off its real signal, every routine toy, movement, knockout, mood, grime, the
+# personalities, the critters and the turrets. ~6.5 min; `-- --quick` does one toy per routine,
+# `-- --only idle.toys` one section. Run it before touching Scripts/Buddy, npc_* or turret_base.
+"$GODOT" --headless --path "$PROJ" res://tests/integration/brain_check.tscn
+
+# Seeders rewrite single items with `-- --only id,id` (never `--force`, which churns every
+# scene's unique ids and reverts later hand-tuned data): seed_m3_content, seed_m36_explosives,
+# seed_m36_melee_blades, seed_m36_melee_blunt, seed_m36_turrets, and seed_m35_trees, which also
+# takes node ids to re-seed one augment node. seed_bodies and seed_friendly have no flag: delete
+# the one scene and re-run them, since they write only what is missing (D62). A new augment effect key is three edits — the seeder's EFFECT table,
+# `AugmentPanel.EFFECT_WORDS` (loop_check fails a key with no words) and a verdict in
+# item_check's `_judge_augments`. A verb on an everyday thing is a row in `tools/verb_table.gd`
+# (D67): rebuild the scene through its seeder, then run `tools/seed_m310_verbs.tscn`;
+# verbs_check fails if a scene and its row disagree.
 
 # Author a weapon's physics row against its sprite (D61): coverage, overhang, grip and axis per
 # body, overlays in user://collider_audit; then re-seed only that scene with `-- --only <id>` on
@@ -376,11 +405,39 @@ GDScript quirks already paid for once each:
   every frame, so a held revolver's first recoil measured exactly 0° and a blast could not knock
   a held bat (fixed in D56: write only when the limit is actually exceeded). Same family as the
   fist that erased its own punch.
-- **Contacts are reported a step late.** `get_contact_impulse()` carries the *previous* step's
-  impulse, so it is 0 on the frame two bodies first touch — a thrown ball that bounces off him
-  in one step is never billed (item audit F1; the starter fist paid nothing because of it). In
-  `body_entered` a thrown ball has already stopped: keep a decaying peak speed, not last
-  frame's.
+- **Contacts are reported a step late, and not always.** `get_contact_impulse()` carries the
+  *previous* step's impulse, only if Godot re-matched the contact within 1 px on both bodies, and
+  a body asleep when a step begins gets no callback for it at all. So a hit that parts in one
+  step, slides, or lands on a dozing buddy reported 0 — the starter fist had never paid (item
+  audit F1). **`Buddy` bills from his own momentum now** (D64's ledger: velocity read at step
+  start by a `StepStart` child, the engine's report subtracted, the remainder split among
+  colliders that touched him and reported nothing, capped by the mass and closing speed behind
+  each). Anything else that needs the speed of an impact reads
+  `get_contact_collider_velocity_at_position` — the speed before the collision was solved — as
+  the trampoline does. In `body_entered` a thrown ball has already stopped: keep a decaying peak
+  speed, not last frame's.
+- **A field that moves him without touching him claims his impacts** (`Buddy.claim_impacts`,
+  every frame it acts, D65), so the floor he is thrown into bills the vortex or the fan, not
+  `world`.
+- **`kindness_sustained` means both kindness to him and a generator's income.** Check that it
+  lands on him before reacting as if he were being cared for (D60): one boombox anywhere on the
+  desk held him in `cared_for` for the rest of the session.
+- **A steering force needs a friction feed-forward on the ground and must not have one in the
+  air** (D60): a velocity P-term with no `m·g·μ` never starts a heavy body (the gorilla could not
+  walk), and pushing `≥ m·g` into a wall hangs a body on it by friction.
+- **An override equal to the generic default is not a specific statement.** Passing the
+  category's `shocked` face as an override locked out every personality's hurt face (D60).
+- **A test that places a body by teleport must clear both colliders**, not just stay in reach:
+  a flamethrower put down 8 px inside him was pushed over by the solver and looked like a
+  collider regression (D61, amended).
+- **SceneTreeTimer seconds are process time, not the wall clock.** Never check a timer callback
+  against `Time.get_ticks_msec()`; count runs instead (D67 — emitters that never stopped).
+- **A seed tool whose script fails to compile still writes the scene**, without that script's
+  exports. Read the seeder's log for `SCRIPT ERROR`, not only "wrote". A method named
+  `is_sleeping()` did it: it overrides `RigidBody2D`'s, and that warning is an error here.
+- **At boot he is still falling in from his spawn point.** A suite stands him up before putting
+  a toy "beside him", or the toy spawns in mid-air.
+- **Python on Windows writes CRLF** unless it opens files with `newline='\n'`.
 - **A timed gap is read against a timestamp taken before the press**, not after the handler's
   own work has run in between.
 - **`set_default_cursor_shape` pushes a synthetic mouse-motion event** back through the game, so
