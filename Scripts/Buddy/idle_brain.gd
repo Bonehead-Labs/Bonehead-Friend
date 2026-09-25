@@ -251,6 +251,13 @@ var _last_disturbance_msec := 0
 ## How long he must be left alone before starting. `IDLE_SECONDS` normally; `INVITED_SECONDS`
 ## when the player has just put a toy down for him (which is an offer, not an arrival).
 var _wait_seconds := IDLE_SECONDS
+## The toy just offered, and until when its own arrival is part of the offer. The shop drops a
+## toy from the middle of the window, which is where he stands: the ball lands on his head and
+## pays a catch, or a bowling ball lands a hit — and both read as the player arriving, so the
+## offer that had just shortened the wait to six seconds put it straight back to twenty-five.
+## "Spawn a ball and watch him play with it", again (D60).
+var _offer_id: StringName = &""
+var _offer_until_msec := 0
 var _cooldowns: Dictionary = {}   ## toy instance id -> earliest msec he will go back
 
 var _banked := 0.0
@@ -680,6 +687,7 @@ func _disturb() -> void:
 	# Back to the full wait. An arrival cancels an outstanding offer: if the player drops a
 	# ball and then starts hitting him, they are playing with him, not leaving him to it.
 	_wait_seconds = IDLE_SECONDS
+	_offer_id = &""
 	if _phase != PHASE_WATCHING:
 		_stand_down()
 
@@ -694,7 +702,7 @@ func _on_damage_dealt(info: HitInfo) -> void:
 	# desk meant the idle timer was reset every couple of seconds for the rest of the
 	# session** and he never reached the twenty-five seconds a routine needs to start. The
 	# player who bought automation to watch him potter about got the opposite.
-	if info.source_id == &"world" or _is_current_toy(info.source_id):
+	if info.source_id == &"world" or _is_current_toy(info.source_id) or _is_offer(info.source_id):
 		return
 	if _is_autonomous(info.source_id):
 		return
@@ -708,9 +716,9 @@ func _is_autonomous(source_id: StringName) -> bool:
 	return item != null and item.is_autonomous
 
 func _on_kindness_given(source_id: StringName, _value: float, _world_pos: Vector2) -> void:
-	# The toy he is playing with paying him is not somebody arriving. Anything else is — a pet
-	# is the clearest "I am here" in the game.
-	if _is_current_toy(source_id):
+	# The toy he is playing with paying him is not somebody arriving, and nor is the toy just
+	# offered landing on him. Anything else is — a pet is the clearest "I am here" in the game.
+	if _is_current_toy(source_id) or _is_offer(source_id):
 		return
 	_disturb()
 
@@ -751,6 +759,9 @@ func _on_item_spawned(item: Node2D) -> void:
 	# moment a new player is most likely to be trying it.
 	_last_disturbance_msec = Time.get_ticks_msec()
 	_wait_seconds = INVITED_SECONDS
+	# For as long as he is being given to wait, what the toy does on arrival is the offer.
+	_offer_id = body.item_id
+	_offer_until_msec = _last_disturbance_msec + int(INVITED_SECONDS * 1000.0)
 
 func _on_item_despawned(item: Node2D) -> void:
 	if item == _target:
@@ -859,6 +870,10 @@ func _resolve_buddy() -> bool:
 ## be silently exempt from interrupting him for as long as he had no target.
 func _is_current_toy(source_id: StringName) -> bool:
 	return _target_id != &"" and source_id == _target_id
+
+## Whether an id is the toy just put down for him, still arriving.
+func _is_offer(source_id: StringName) -> bool:
+	return _offer_id != &"" and source_id == _offer_id and Time.get_ticks_msec() < _offer_until_msec
 
 func _is_busy_state() -> bool:
 	return _buddy.state == &"dragged" or _is_knockout_state(_buddy.state)
