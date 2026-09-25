@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/bubble_wrap.png" id="1_pdv2u"]
+[ext_resource type="PackedScene" path="res://Scenes/Fidgets/bubble_wrap.tscn" id="2_rdame"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_fpnlh"]
+
+[resource]
+script = ExtResource("3_fpnlh")
+id = &"bubble_wrap"
+display_name = "Bubble Wrap"
+description = "Eight bubbles. He wants to pop every one of them, and so do you."
+category = 4
+cost = 120
+currency = 1
+scene = ExtResource("2_rdame")
+icon = ExtResource("1_pdv2u")
+sort_order = 70
+controls = "Click a bubble to pop it · Right-drag across the sheet to pop a run"

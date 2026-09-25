@@ -1,0 +1,156 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Bodies/Fidgets/bubble_wrap.gd" id="1_vvu5s"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/bubble_wrap_sheet.png" id="2_t3lst"]
+[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_rl7mx"]
+[ext_resource type="Script" path="res://Scripts/Components/effects_player.gd" id="4_d7lid"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/bubble_wrap_bubble.png" id="5_ripcw"]
+[ext_resource type="Script" path="res://Scripts/Bodies/gesture_zones.gd" id="6_u7ita"]
+
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_vvu5s"]
+friction = 0.9
+bounce = 0.05
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_t3lst"]
+size = Vector2(82, 46)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_rl7mx"]
+size = Vector2(98, 62)
+
+[node name="_BubbleWrap" type="RigidBody2D" unique_id=1411994159 node_paths=PackedStringArray("bubble_layer", "gestures", "drag_area", "handle", "sprite", "collider", "Effects_Player")]
+collision_layer = 4
+collision_mask = 7
+mass = 0.3
+physics_material_override = SubResource("PhysicsMaterial_vvu5s")
+lock_rotation = true
+contact_monitor = true
+max_contacts_reported = 4
+script = ExtResource("1_vvu5s")
+bubble_layer = NodePath("Bubbles")
+gestures = NodePath("GestureZones")
+item_id = &"bubble_wrap"
+drag_area = NodePath("DraggableArea")
+handle = NodePath("Handle")
+sprite = NodePath("Sprite")
+collider = NodePath("CollisionShape2D")
+Effects_Player = NodePath("EffectsPlayer")
+
+[node name="Sprite" type="Sprite2D" parent="." unique_id=129023921]
+scale = Vector2(2, 2)
+texture = ExtResource("2_t3lst")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=54733259]
+shape = SubResource("RectangleShape2D_t3lst")
+
+[node name="DraggableArea" type="Area2D" parent="." unique_id=561315591]
+script = ExtResource("3_rl7mx")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=178496482]
+shape = SubResource("RectangleShape2D_rl7mx")
+
+[node name="Handle" type="StaticBody2D" parent="." unique_id=1044760876]
+visible = false
+collision_layer = 0
+collision_mask = 0
+
+[node name="EffectsPlayer" type="Node" parent="." unique_id=2027908704]
+script = ExtResource("4_d7lid")
+
+[node name="Bubbles" type="Node2D" parent="." unique_id=476278299]
+
+[node name="Bubble0" type="Sprite2D" parent="Bubbles" unique_id=1739049729]
+scale = Vector2(2, 2)
+texture = ExtResource("5_ripcw")
+
+[node name="Bubble1" type="Sprite2D" parent="Bubbles" unique_id=672540743]
+position = Vector2(18, 0)
+scale = Vector2(2, 2)
+texture = ExtResource("5_ripcw")
+
+[node name="Bubble2" type="Sprite2D" parent="Bubbles" unique_id=2093637458]
+position = Vector2(36, 0)
+scale = Vector2(2, 2)
+texture = ExtResource("5_ripcw")
+
+[node name="Bubble3" type="Sprite2D" parent="Bubbles" unique_id=238710315]
+position = Vector2(54, 0)
+scale = Vector2(2, 2)
+texture = ExtResource("5_ripcw")
+
+[node name="Bubble4" type="Sprite2D" parent="Bubbles" unique_id=846534440]
+position = Vector2(0, 18)
+scale = Vector2(2, 2)
+texture = ExtResource("5_ripcw")
+
+[node name="Bubble5" type="Sprite2D" parent="Bubbles" unique_id=1358950543]
+position = Vector2(18, 18)
+scale = Vector2(2, 2)
+texture = ExtResource("5_ripcw")
+
+[node name="Bubble6" type="Sprite2D" parent="Bubbles" unique_id=225864066]
+position = Vector2(36, 18)
+scale = Vector2(2, 2)
+texture = ExtResource("5_ripcw")
+
+[node name="Bubble7" type="Sprite2D" parent="Bubbles" unique_id=718685977]
+position = Vector2(54, 18)
+scale = Vector2(2, 2)
+texture = ExtResource("5_ripcw")
+
+[node name="GestureZones" type="Node" parent="." unique_id=2021303217]
+script = ExtResource("6_u7ita")
+zones = [{
+"at": Vector2(-14, -5),
+"id": &"b0",
+"left": "tap",
+"rect": Vector2(9, 9),
+"right": "claim"
+}, {
+"at": Vector2(-5, -5),
+"id": &"b1",
+"left": "tap",
+"rect": Vector2(9, 9),
+"right": "claim"
+}, {
+"at": Vector2(4, -5),
+"id": &"b2",
+"left": "tap",
+"rect": Vector2(9, 9),
+"right": "claim"
+}, {
+"at": Vector2(13, -5),
+"id": &"b3",
+"left": "tap",
+"rect": Vector2(9, 9),
+"right": "claim"
+}, {
+"at": Vector2(-14, 4),
+"id": &"b4",
+"left": "tap",
+"rect": Vector2(9, 9),
+"right": "claim"
+}, {
+"at": Vector2(-5, 4),
+"id": &"b5",
+"left": "tap",
+"rect": Vector2(9, 9),
+"right": "claim"
+}, {
+"at": Vector2(4, 4),
+"id": &"b6",
+"left": "tap",
+"rect": Vector2(9, 9),
+"right": "claim"
+}, {
+"at": Vector2(13, 4),
+"id": &"b7",
+"left": "tap",
+"rect": Vector2(9, 9),
+"right": "claim"
+}, {
+"at": Vector2(-0.5, -0.5),
+"backing": true,
+"id": &"sheet",
+"rect": Vector2(39, 21),
+"right": "claim"
+}]

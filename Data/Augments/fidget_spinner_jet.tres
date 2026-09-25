@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_k4xiw"]
+
+[resource]
+script = ExtResource("1_k4xiw")
+id = &"fidget_spinner_jet"
+item_id = &"fidget_spinner"
+display_name = "Air Jet"
+description = "A little nozzle that keeps it spinning in front of him while you are away."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 1400
+currency = 1
+is_automation = true
+automation_rate = 1.3
+device_mount = &"tripod"
+requires_mastery = 25

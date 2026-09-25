@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_tbbe7"]
+
+[resource]
+script = ExtResource("1_tbbe7")
+id = &"jack_in_the_box_key"
+item_id = &"jack_in_the_box"
+display_name = "Clockwork Key"
+description = "Winds itself, pops itself, resets itself. He still jumps."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 3800
+currency = 1
+is_automation = true
+automation_rate = 4.5
+device_mount = &"tripod"
+requires_mastery = 25

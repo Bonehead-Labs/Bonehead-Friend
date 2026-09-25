@@ -267,6 +267,19 @@ func _build_streams() -> void:
 	_streams[&"bounce"] = _wav(_bounce_samples())
 	_streams[&"splash"] = _wav(_splash_samples())
 
+	# --- fidget toys (D57) ---
+	#
+	# Small, because they repeat: a bubble pops eight times in three seconds and a crank plinks
+	# four times a turn. `plink` is one music-box note that the jack-in-the-box plays its tune
+	# on by pitch; `giggle` is three of his breaths, rising, which is what a skeleton laughing
+	# sounds like when he has no lungs.
+	_streams[&"pop"] = _wav(_tick_samples(0.035, 1500.0, 1.0))
+	_streams[&"plink"] = _wav(_chime_samples([1318.0], 0.22))
+	_streams[&"whirr"] = _wav(_tick_samples(0.045, 210.0, 0.25))
+	_streams[&"squeak"] = _wav(_voice_samples(0.16, 820.0, 1480.0, 0.05))
+	_streams[&"slosh"] = _wav(_splash_samples())
+	_streams[&"giggle"] = _wav(_giggle_samples())
+
 ## A woodblock tick: one decaying sine with a noise transient on the front. The transient
 ## is what makes it read as a physical contact rather than as a beep.
 func _tick_samples(duration: float, pitch: float, noise: float) -> PackedFloat32Array:
@@ -499,6 +512,18 @@ func _bounce_samples() -> PackedFloat32Array:
 		var pitch := 180.0 + 520.0 * sin(PI * progress)
 		phase += TAU * pitch / float(MIX_RATE)
 		out[i] = clampf(sin(phase) * 0.55 * exp(-t * 6.5), -1.0, 1.0)
+	return out
+
+## Three short rising breaths with gaps: a laugh from someone with no lungs.
+func _giggle_samples() -> PackedFloat32Array:
+	var out := PackedFloat32Array()
+	var gap := int(MIX_RATE * 0.035)
+	for n in 3:
+		var blip := _voice_samples(0.09, 420.0 + 60.0 * n, 640.0 + 80.0 * n, 0.35)
+		out.append_array(blip)
+		var silence := PackedFloat32Array()
+		silence.resize(gap)
+		out.append_array(silence)
 	return out
 
 ## Water. Filtered noise that opens and closes, with no pitch in it at all.

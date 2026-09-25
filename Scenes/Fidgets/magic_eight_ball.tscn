@@ -1,0 +1,64 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Bodies/Fidgets/magic_eight_ball.gd" id="1_mb82a"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/magic_eight_ball.png" id="2_0h6l8"]
+[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_j4voj"]
+[ext_resource type="Script" path="res://Scripts/Components/effects_player.gd" id="4_4c2ve"]
+[ext_resource type="Script" path="res://Scripts/Bodies/gesture_zones.gd" id="5_d58a4"]
+
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_mb82a"]
+friction = 0.8
+bounce = 0.3
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_0h6l8"]
+size = Vector2(44, 44)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_j4voj"]
+size = Vector2(60, 60)
+
+[node name="_MagicEightBall" type="RigidBody2D" unique_id=498134498 node_paths=PackedStringArray("gestures", "drag_area", "handle", "sprite", "collider", "Effects_Player")]
+collision_layer = 4
+collision_mask = 7
+mass = 0.6
+physics_material_override = SubResource("PhysicsMaterial_mb82a")
+contact_monitor = true
+max_contacts_reported = 4
+script = ExtResource("1_mb82a")
+gestures = NodePath("GestureZones")
+item_id = &"magic_eight_ball"
+drag_area = NodePath("DraggableArea")
+handle = NodePath("Handle")
+sprite = NodePath("Sprite")
+collider = NodePath("CollisionShape2D")
+Effects_Player = NodePath("EffectsPlayer")
+
+[node name="Sprite" type="Sprite2D" parent="." unique_id=995763747]
+scale = Vector2(2, 2)
+texture = ExtResource("2_0h6l8")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=396404432]
+shape = SubResource("RectangleShape2D_0h6l8")
+
+[node name="DraggableArea" type="Area2D" parent="." unique_id=734883017]
+script = ExtResource("3_j4voj")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=2074692582]
+shape = SubResource("RectangleShape2D_j4voj")
+
+[node name="Handle" type="StaticBody2D" parent="." unique_id=64658169]
+visible = false
+collision_layer = 0
+collision_mask = 0
+
+[node name="EffectsPlayer" type="Node" parent="." unique_id=1809093438]
+script = ExtResource("4_4c2ve")
+
+[node name="GestureZones" type="Node" parent="." unique_id=693312877]
+script = ExtResource("5_d58a4")
+zones = [{
+"at": Vector2(0, 0),
+"circle": 10.5,
+"id": &"ball",
+"right": "tap"
+}]
+action_enabled = true

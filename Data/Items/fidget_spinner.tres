@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/fidget_spinner.png" id="1_uqx6k"]
+[ext_resource type="PackedScene" path="res://Scenes/Fidgets/fidget_spinner.tscn" id="2_nee87"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_gx1rd"]
+
+[resource]
+script = ExtResource("3_gx1rd")
+id = &"fidget_spinner"
+display_name = "Fidget Spinner"
+description = "It does nothing at all, very quickly. He cannot look away from it."
+category = 4
+cost = 1200
+currency = 1
+scene = ExtResource("2_nee87")
+icon = ExtResource("1_uqx6k")
+sort_order = 74
+controls = "Right-drag across an arm to spin it"

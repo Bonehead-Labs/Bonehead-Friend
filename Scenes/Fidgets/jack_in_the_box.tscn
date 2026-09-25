@@ -1,0 +1,91 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Bodies/Fidgets/jack_in_the_box.gd" id="1_w4kbu"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/jack_in_the_box_box.png" id="2_gsjdl"]
+[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_7ddls"]
+[ext_resource type="Script" path="res://Scripts/Components/effects_player.gd" id="4_bstq4"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/jack_in_the_box_jack.png" id="5_ca2nf"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/jack_in_the_box_lid.png" id="6_tef1r"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/jack_in_the_box_crank.png" id="7_51qm4"]
+[ext_resource type="Script" path="res://Scripts/Bodies/gesture_zones.gd" id="8_v1ioc"]
+
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_w4kbu"]
+friction = 0.9
+bounce = 0.05
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_gsjdl"]
+size = Vector2(48, 40)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_7ddls"]
+size = Vector2(64, 56)
+
+[node name="_JackInTheBox" type="RigidBody2D" unique_id=1972937899 node_paths=PackedStringArray("lid", "crank", "jack", "gestures", "drag_area", "handle", "sprite", "collider", "Effects_Player")]
+collision_layer = 4
+collision_mask = 7
+mass = 1.2
+physics_material_override = SubResource("PhysicsMaterial_w4kbu")
+contact_monitor = true
+max_contacts_reported = 4
+script = ExtResource("1_w4kbu")
+lid = NodePath("Lid")
+crank = NodePath("Crank")
+jack = NodePath("Jack")
+gestures = NodePath("GestureZones")
+item_id = &"jack_in_the_box"
+drag_area = NodePath("DraggableArea")
+handle = NodePath("Handle")
+sprite = NodePath("Sprite")
+collider = NodePath("CollisionShape2D")
+Effects_Player = NodePath("EffectsPlayer")
+
+[node name="Sprite" type="Sprite2D" parent="." unique_id=426070959]
+scale = Vector2(2, 2)
+texture = ExtResource("2_gsjdl")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1304603782]
+shape = SubResource("RectangleShape2D_gsjdl")
+
+[node name="DraggableArea" type="Area2D" parent="." unique_id=699378386]
+script = ExtResource("3_7ddls")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=1400609387]
+shape = SubResource("RectangleShape2D_7ddls")
+
+[node name="Handle" type="StaticBody2D" parent="." unique_id=1148075280]
+visible = false
+collision_layer = 0
+collision_mask = 0
+
+[node name="EffectsPlayer" type="Node" parent="." unique_id=951027977]
+script = ExtResource("4_bstq4")
+
+[node name="Jack" type="Sprite2D" parent="." unique_id=311960161]
+z_index = -1
+scale = Vector2(2, 2)
+texture = ExtResource("5_ca2nf")
+
+[node name="Lid" type="Sprite2D" parent="." unique_id=1165425283]
+position = Vector2(-24, -18)
+scale = Vector2(2, 2)
+texture = ExtResource("6_tef1r")
+offset = Vector2(12, 9)
+
+[node name="Crank" type="Sprite2D" parent="." unique_id=1422632161]
+position = Vector2(26, 2)
+scale = Vector2(2, 2)
+texture = ExtResource("7_51qm4")
+offset = Vector2(-13, -1)
+
+[node name="GestureZones" type="Node" parent="." unique_id=828750557]
+script = ExtResource("8_v1ioc")
+zones = [{
+"at": Vector2(13, 1),
+"circle": 7.0,
+"id": &"crank",
+"right": "claim"
+}, {
+"at": Vector2(0, -20),
+"id": &"lid",
+"rect": Vector2(26, 24),
+"right": "tap"
+}]

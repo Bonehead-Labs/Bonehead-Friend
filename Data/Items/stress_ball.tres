@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/stress_ball.png" id="1_gbaex"]
+[ext_resource type="PackedScene" path="res://Scenes/Fidgets/stress_ball.tscn" id="2_g0ik6"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_lqh2y"]
+
+[resource]
+script = ExtResource("3_lqh2y")
+id = &"stress_ball"
+display_name = "Stress Ball"
+description = "Squeeze it until you feel better. Or throw it at him; he always catches."
+category = 4
+cost = 450
+currency = 1
+scene = ExtResource("2_g0ik6")
+icon = ExtResource("1_gbaex")
+sort_order = 72
+controls = "Hold it, then hold right-click to squeeze · Throw it at him"

@@ -1,0 +1,27 @@
+# Fortune ball (D57). A black ball on somebody's black terminal is a hole in the screen, so
+# it carries two bright things that are not optional: the white disc with the 8, and a grey
+# rim light down its shadow side (the D45 lesson — every item needs a second, bright material).
+id: magic_eight_ball
+cell: 64
+
+--- main
+........hhhh........
+.....hhhhHHHHHk.....
+....hgghhhHHHHkk....
+...hggghhHHHHHkkk...
+..hggghhhWWWHHHkkk..
+.hggghhWWWWWWWHHkkk.
+.hgghhWWWKKKWCHHkkh.
+.hghhhWWWKWKWCCHkkh.
+hhhhhhWWWWKWWCCHkkkh
+hhhhhhWWWKWKWCCHkkkh
+HhhhhhhWWKKKWCHHkkkh
+HHhhhhhWCCCCCCHkkkkh
+.HHHhhHHHCCCHHkkkkh.
+.HHHHHHHHHHHkkkkkkh.
+.HHHHHHHHHHkkkkkkhh.
+..kHHHHHHkkkkkkkkh..
+...kkkkkkkkkkkkkh...
+....kkkkkkkkkkhh....
+.....kkkkkkhhhh.....
+........hhhh........
