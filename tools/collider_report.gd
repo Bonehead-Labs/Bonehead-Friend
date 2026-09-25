@@ -4,15 +4,16 @@ extends Node
 ## against its own picture by `ColliderAudit`, one row each.
 ##
 ##   Godot --headless --path <project> res://tools/collider_report.tscn
-##       [-- --all] [--only id,id] [--shots] [--runs] [--csv]
+##       [-- --all] [--only id,id] [--tables] [--shots] [--runs] [--csv]
 ##
-## `--all` adds the single-collider bodies D55 already guards; by default only bodies with
-## several shapes are listed, because those are the ones authored by hand in a seed table.
+## By default only the authored bodies are listed (`ColliderAudit.is_authored`: several shapes,
+## or one that is offset, turned or round); `--all` adds the derived boxes D55 already guards.
 ## `--shots` writes an overlay per body to `user://collider_audit/<id>.png` — the sprite at 4x
-## with the shapes tinted over it, green on the picture and red off it, grip in blue and centre
-## of mass in yellow, on a grid every 4 art pixels. Read shape coordinates off that, not off the
-## sprite alone: the grid's dark lines are the origin the seed tables measure from. `--runs`
-## prints the picture as opaque runs per art-pixel row, which is where exact extents come from.
+## in its own colours, the shapes outlined in magenta, any shape area off the picture in pink,
+## grip in blue and centre of mass in yellow, on a grid every 4 art pixels. Read shape
+## coordinates off that, not off the sprite alone: the grid's black lines are the origin the
+## seed tables measure from. `--runs` prints the picture as opaque runs per art-pixel row, which
+## is where exact extents come from. The authoring loop is all three with `--tables`.
 ##
 ## Runs against the real ItemDB, so it measures the scenes that ship rather than the tables
 ## that were meant to produce them — a scene frozen against replaced art shows up here, and
