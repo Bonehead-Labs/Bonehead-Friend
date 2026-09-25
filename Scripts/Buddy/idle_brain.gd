@@ -255,6 +255,10 @@ var _cooldowns: Dictionary = {}   ## toy instance id -> earliest msec he will go
 
 var _banked := 0.0
 var _bank_position := Vector2.ZERO
+## Everything the brain itself has paid, in kindness value, for the life of this node. The
+## brain and the toy attribute to the same id, so without this nothing outside can tell whose
+## payment a Heart was — and "never both" is the one rule about money this file keeps.
+var paid_value := 0.0
 
 var _gravity := 980.0
 var _climb_timer := 0.0
@@ -835,6 +839,7 @@ func _flush() -> void:
 		return
 	# Attributed to the toy, so its mastery, its augments and its tree all apply — and so the
 	# floating number appears over the thing he is playing with.
+	paid_value += _banked
 	EventBus.kindness_sustained.emit(_target_id, _banked, _bank_position)
 	_banked = 0.0
 
