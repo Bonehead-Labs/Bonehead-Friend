@@ -1,0 +1,27 @@
+# The cradle is 47 grid px wide, too wide to step down to the icon's 32 by a whole number,
+# so the icon is drawn small on purpose (art/tools/pixel_icon.py): the same bar, uprights,
+# plinth and five balls, hanging still — at 32px a pulled ball merges into the upright.
+id: newtons_cradle
+outline: off
+
+--- main
+KKKKKKKKKKKKKKKKKKKKKKKKKKKKKK
+KGGGGGGGGGGGGGGGGGGGGGGGGGGGGK
+KhhhhhhhhhhhhhhhhhhhhhhhhhhhhK
+KKKKKKKKKKKKKKKKKKKKKKKKKKKKKK
+KGK..g....g....g....g....g.KGK
+KGK..g....g....g....g....g.KGK
+KGK..g....g....g....g....g.KGK
+KGK..g....g....g....g....g.KGK
+KGK..g....g....g....g....g.KGK
+KGK.KKK..KKK..KKK..KKK..KKKKGK
+KGKKWGgKKWGgKKWGgKKWGgKKWGgKGK
+KGKKGGgKKGGgKKGGgKKGGgKKGGgKGK
+KGKKGghKKGghKKGghKKGghKKGghKGK
+KGK.KKK..KKK..KKK..KKK..KKKKGK
+KGK........................KGK
+KGK........................KGK
+KKKKKKKKKKKKKKKKKKKKKKKKKKKKKK
+KBBBBBBBBBBBBBBBBBBBBBBBBBBBBK
+KbbbbbbbbbbbbbbbbbbbbbbbbbbbbK
+KKKKKKKKKKKKKKKKKKKKKKKKKKKKKK

@@ -1,0 +1,65 @@
+# Slinky (D66). A rainbow plastic one, because a steel one is a grey smudge at 1x on a dark
+# desk and the colours are what make it read as coils rather than as a tin can. `main` is the
+# toy at rest — seven coils stacked, the top one open so the hole says "spring" — and is the
+# body, the collider and the shop picture.
+#
+# `ring0`..`ring5` are one coil each, seen edge-on, one per colour in the stack's own order.
+# Stretched, the toy hides `main` and lays these along the curve between its two ends
+# (Slinky._lay_coil), cycling the colours, so a pulled slinky is the same six colours spread
+# out. Each ring is 16 wide like the stack, so a coil does not change width as it opens.
+id: slinky
+cell: 64
+
+--- main
+....KKKKKKKKKK....
+..KKRRRRRRRRRRKK..
+.KRRRkkkkkkkkRRRK.
+.KrRRRRRRRRRRRRrK.
+.KKrrrrrrrrrrrrKK.
+.KOOWOOOOOOOOOOOK.
+.KKbbbbbbbbbbbbKK.
+.KYYWYYYYYYYYYYYK.
+.KKOOOOOOOOOOOOKK.
+.KEEWEEEEEEEEEEEK.
+.KKeeeeeeeeeeeeKK.
+.KAAWAAAAAAAAAAAK.
+.KKaaaaaaaaaaaaKK.
+.KppWpppppppppppK.
+..KKmmmmmmmmmmKK..
+....KKKKKKKKKK....
+
+--- ring0
+.KKKKKKKKKKKKKK.
+KRRWRRRRRRRRRRRK
+KrrrrrrrrrrrrrrK
+.KKKKKKKKKKKKKK.
+
+--- ring1
+.KKKKKKKKKKKKKK.
+KOOWOOOOOOOOOOOK
+KbbbbbbbbbbbbbbK
+.KKKKKKKKKKKKKK.
+
+--- ring2
+.KKKKKKKKKKKKKK.
+KYYWYYYYYYYYYYYK
+KOOOOOOOOOOOOOOK
+.KKKKKKKKKKKKKK.
+
+--- ring3
+.KKKKKKKKKKKKKK.
+KEEWEEEEEEEEEEEK
+KeeeeeeeeeeeeeeK
+.KKKKKKKKKKKKKK.
+
+--- ring4
+.KKKKKKKKKKKKKK.
+KAAWAAAAAAAAAAAK
+KaaaaaaaaaaaaaaK
+.KKKKKKKKKKKKKK.
+
+--- ring5
+.KKKKKKKKKKKKKK.
+KppWpppppppppppK
+KmmmmmmmmmmmmmmK
+.KKKKKKKKKKKKKK.

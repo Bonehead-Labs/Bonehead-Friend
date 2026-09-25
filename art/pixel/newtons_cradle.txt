@@ -1,0 +1,109 @@
+# Newton's cradle (D66). `main` is the shop picture: the frame and five steel balls with the
+# left one pulled out, which is the pose everybody knows the toy by. The toy itself is two
+# parts on one 47x28 grid, so they line up in the cell with no offsets:
+#
+#   frame  the body: a steel bar on two uprights over a wooden plinth. The collider and the
+#          glow are this.
+#   ball   one ball on its string, drawn in the middle slot (column 23). The seed tool puts
+#          five of them 7 grid px apart (columns 9, 16, 23, 30, 37), each turning about the top
+#          of its own string: the grid corner (23.5, 4) for this one, where the string meets
+#          the bar.
+#
+# Seven-pixel balls because a five-pixel one is a three-pixel dot inside its outline at 1x;
+# a one-pixel string because anything wider is a bar. `outline: off` for the same reason — the
+# closer would wrap the string in black and make it three pixels wide — so every outline here
+# is drawn by hand.
+id: newtons_cradle
+cell: 64
+outline: off
+
+--- main
+...............................................
+.KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK.
+.KGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGK.
+.KhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhK.
+.KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK.
+..KGhK...g......g......g......g......g...KGhK..
+..KGhK...g......g......g......g......g...KGhK..
+..KGhK..g.......g......g......g......g...KGhK..
+..KGhK..g.......g......g......g......g...KGhK..
+..KGhK..g.......g......g......g......g...KGhK..
+..KGhK.g........g......g......g......g...KGhK..
+..KGhKg.........g......g......g......g...KGhK..
+..KGhKg.........g......g......g......g...KGhK..
+..KGhKg.........g......g......g......g...KGhK..
+..KGhK..........g......g......g......g...KGhK..
+..KKKK..........g......g......g......g...KGhK..
+..KWGGK........KKK....KKK....KKK....KKK..KGhK..
+.KWGGGgK......KWGGK..KWGGK..KWGGK..KWGGK.KGhK..
+.KGGGggK.....KWGGGgKKWGGGgKKWGGGgKKWGGGgKKGhK..
+.KGGgghK.....KGGGggKKGGGggKKGGGggKKGGGggKKGhK..
+..KgghK......KGGgghKKGGgghKKGGgghKKGGgghKKGhK..
+..KKKK........KgghK..KgghK..KgghK..KgghK.KGhK..
+..KGhK.........KKK....KKK....KKK....KKK..KGhK..
+..KGhK...................................KGhK..
+KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK
+KBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBK
+KbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbK
+KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK
+
+--- frame
+...............................................
+.KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK.
+.KGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGK.
+.KhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhK.
+.KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK.
+..KGhK...................................KGhK..
+..KGhK...................................KGhK..
+..KGhK...................................KGhK..
+..KGhK...................................KGhK..
+..KGhK...................................KGhK..
+..KGhK...................................KGhK..
+..KGhK...................................KGhK..
+..KGhK...................................KGhK..
+..KGhK...................................KGhK..
+..KGhK...................................KGhK..
+..KGhK...................................KGhK..
+..KGhK...................................KGhK..
+..KGhK...................................KGhK..
+..KGhK...................................KGhK..
+..KGhK...................................KGhK..
+..KGhK...................................KGhK..
+..KGhK...................................KGhK..
+..KGhK...................................KGhK..
+..KGhK...................................KGhK..
+KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK
+KBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBK
+KbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbK
+KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK
+
+--- ball
+...............................................
+...............................................
+...............................................
+...............................................
+...............................................
+.......................g.......................
+.......................g.......................
+.......................g.......................
+.......................g.......................
+.......................g.......................
+.......................g.......................
+.......................g.......................
+.......................g.......................
+.......................g.......................
+.......................g.......................
+.......................g.......................
+......................KKK......................
+.....................KWGGK.....................
+....................KWGGGgK....................
+....................KGGGggK....................
+....................KGGgghK....................
+.....................KgghK.....................
+......................KKK......................
+...............................................
+...............................................
+...............................................
+...............................................
+...............................................
+
