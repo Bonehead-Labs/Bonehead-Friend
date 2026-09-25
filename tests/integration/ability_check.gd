@@ -550,6 +550,37 @@ func _drive_momentum(body: WeaponBase, ability: MomentumAbility) -> Dictionary:
 		and is_equal_approx(body.angular_damp, damp_before) and body.angular_damp_mode == mode_before)
 	return {"hits": _hits.size(), "chain": ability.best_chain, "broken": ability.chains_broken}
 
+## Embed: thrown from 250 px, it goes in, rides him, ticks, and drops out at his feet.
+func _drive_embed(body: WeaponBase, ability: EmbedAbility) -> Dictionary:
+	await _approach(body, Vector2(-250.0, -80.0))
+	_press(MOUSE_BUTTON_RIGHT)
+	await _step()
+	_release(MOUSE_BUTTON_RIGHT)
+	_check("right throws it out of the hand", not body.dragging and ability.is_active())
+	var hit := await _await_cond(func() -> bool: return ability.lodged, 60)
+	_check("it goes in (%.0f px/s thrown, %.0f)" % [ability.last_throw_speed, ability.last_hit], hit)
+	await _step(3)
+	var local := _buddy.global_transform.affine_inverse() * body.global_transform
+	await _step(12)
+	var later := _buddy.global_transform.affine_inverse() * body.global_transform
+	_check("and rides with him (%.1f px drift in his frame)" % local.origin.distance_to(later.origin),
+		ability.is_lodged() and local.origin.distance_to(later.origin) < 1.0 and body.freeze
+		and body.collision_layer == 0)
+	_check("the throw is billed once, as its own impulse (%.0f)" % ability.last_hit,
+		_hits_with_impulse(ability.last_hit) == 1)
+	await _expect_face(&"skewered", &"skewered")
+	await _await_cond(func() -> bool: return not ability.is_lodged(), 240)
+	await _step(3)
+	var ticks := _hits_with_impulse(ability.num("tick_force", 600.0))
+	_check("it worked in, a hit a tick (%d ticks, %d billed)" % [ability.ticks, ticks],
+		ability.ticks >= 4 and ticks == ability.ticks)
+	_check("then came out (%s), unfrozen, its layers back" % ability.came_out,
+		not body.freeze and body.collision_layer != 0 and ability.came_out != &"")
+	await _await_cond(func() -> bool: return not ability.is_active(), 240)
+	_check("and the exception came off once it was clear", not body.get_collision_exceptions().has(_buddy))
+	return {"throw": ability.last_hit, "ticks": ability.ticks, "out": String(ability.came_out),
+		"hits": _hits.size()}
+
 ## En Garde: right held, it points itself at him; lunges along the blade are thrusts, x2.
 func _drive_en_garde(body: WeaponBase, ability: EnGardeAbility) -> Dictionary:
 	await _approach(body, Vector2(-200.0, -40.0))
@@ -590,6 +621,35 @@ func _drive_flurry(body: WeaponBase, ability: FlurryAbility) -> Dictionary:
 		ability.jabs_landed >= 4 and ability.struck.is_empty())
 	_check("the hand is its own again", body.hand_offset == Vector2.ZERO and not ability.is_active())
 	return {"jabs": ability.jabs, "landed": ability.jabs_landed, "hits": _hits.size()}
+
+## Special Delivery: thrown from 260 px, point first and straight; x2 on him; stuck where it lands,
+## nothing running; and the cooldown starts when it is fetched.
+func _drive_special_delivery(body: WeaponBase, ability: DeliveryAbility) -> Dictionary:
+	await _approach(body, Vector2(-260.0, -60.0))
+	_press(MOUSE_BUTTON_RIGHT)
+	await _step()
+	_release(MOUSE_BUTTON_RIGHT)
+	_check("right throws it out of the hand", not body.dragging and ability.in_flight())
+	var hit := await _await_cond(func() -> bool: return ability.point_hits > 0, 60)
+	_check("point first all the way (%.2f rad off its flight at worst)" % ability.worst_heading,
+		ability.worst_heading <= 0.35)
+	_check("and the point arrives (%.0f)" % ability.last_hit, hit)
+	await _step(3)
+	var chop := _hit_with_impulse(ability.last_hit)
+	_check("billed once, x%.1f on the point" % ability.num("point_mult", 2.0), chop != null
+		and _hits_with_impulse(ability.last_hit) == 1 and absf(_mult_of(chop)
+		- Progression.damage_mult_for(_id, body.damage_mult) * ability.num("point_mult", 2.0)) < 0.01)
+	await _expect_face(&"delivered", &"pricked")
+	var stuck := await _await_cond(func() -> bool: return ability.is_stuck(), 180)
+	_check("it sticks where it lands (%s)" % ability.stuck_at.round(), stuck)
+	await _step(60)
+	_check("and waits there: nothing runs, and no cooldown yet", body.freeze and not ability.is_busy()
+		and not ability.is_cooling() and ability.is_active())
+	await _grab(body)
+	await _step(2)
+	_check("fetched, the cooldown starts", ability.fetched and ability.is_cooling() and body.dragging
+		and not body.freeze)
+	return {"speed": ability.last_throw_speed, "point": ability.last_hit, "hits": _hits.size()}
 
 ## The hand to where a blade's ability starts, round him rather than through him — over his head,
 ## across, and down — and him still again before anything is counted, so a blade carried into

@@ -145,6 +145,17 @@ const ABILITIES := {
 		"fuel_seconds": 4.0, "heave": 6.0, "carry_spin": 6.0, "carry_accel": 40.0, "keep_speed": 220.0,
 		"stop_grace": 0.3, "step_mult": 0.15, "max_mult": 1.6,
 	},
+	# Thrown end over end; in him, it stays in him for 3 s and works in a light hit every half second,
+	# then drops out at his feet.
+	&"cleaver": {
+		"id": &"embed", "name": "Embed", "archetype": &"throw",
+		"script": "res://Scripts/Bodies/Abilities/embed_ability.gd",
+		"controls": "Hold · Right: Embed — throw it; it sticks in him and keeps biting",
+		"cooldown": 5.0, "busy": 3.6, "worth": 3.0,
+		"throw_speed": 1000.0, "spin": 14.0, "hit_force": 1800.0, "throw_mult": 1.0, "shove": 0.4,
+		"out_seconds": 0.7, "lodge_seconds": 3.0, "tick_seconds": 0.5, "tick_force": 600.0,
+		"tick_mult": 1.0, "give_up_seconds": 3.0,
+	},
 	# Hold: it points itself at him like a held gun (D56); a thrust along the blade is x2, a swipe
 	# across it x0.5.
 	&"rapier": {
@@ -163,6 +174,16 @@ const ABILITIES := {
 		"cooldown": 5.0, "busy": 2.0, "worth": 1.8,
 		"fuel_seconds": 2.0, "jab_rate": 6.0, "jab_px": 50.0, "jab_draw": 0.2, "jab_out": 0.3,
 		"kick": 300.0, "reach": 150.0, "aim_frequency": 16.0, "aim_accel": 320.0,
+	},
+	# Tap: point-first in a dead straight line, x2 on the point, and it sticks where it lands. The
+	# cooldown starts when you fetch it, so `busy` counts the walk.
+	&"letter_opener": {
+		"id": &"special_delivery", "name": "Special Delivery", "archetype": &"throw",
+		"script": "res://Scripts/Bodies/Abilities/delivery_ability.gd",
+		"controls": "Hold · Right: Special Delivery — thrown point-first; go and fetch it",
+		"cooldown": 1.0, "busy": 3.0, "worth": 1.3,
+		"throw_speed": 1500.0, "point_force": 1600.0, "point_mult": 2.0, "shove": 0.5,
+		"align_frequency": 30.0, "flight_seconds": 1.2, "quiver_seconds": 0.6, "give_up_seconds": 3.0,
 	},
 }
 

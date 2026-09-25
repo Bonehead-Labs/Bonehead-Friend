@@ -259,6 +259,28 @@ func _stage_momentum(id: StringName, ability: WeaponAbility, centre: Vector2, _f
 	await _shot("%s-chain" % id, 2)
 	ability.release()
 
+## Embed: thrown, lodged in him, a tick of bone dust, and out.
+func _stage_embed(id: StringName, ability: WeaponAbility, centre: Vector2, _floor_y: float) -> void:
+	await _carry(centre + Vector2(-260.0, -80.0), 40)
+	var embed := ability as EmbedAbility
+	ability.press()
+	await _shot("%s-thrown" % id, 6)
+	for i in 40:
+		await _idle(1)
+		if embed.lodged:
+			break
+	await _shot("%s-lodged" % id, 2)
+	for i in 40:
+		await _idle(1)
+		if embed.ticks > 0:
+			break
+	await _shot("%s-tick" % id, 1)
+	for i in 200:
+		await _idle(1)
+		if not embed.is_lodged():
+			break
+	await _shot("%s-out" % id, 8)
+
 ## En Garde: on guard at him, and a lunge.
 func _stage_en_garde(id: StringName, ability: WeaponAbility, centre: Vector2, _floor_y: float) -> void:
 	await _carry(centre + Vector2(-200.0, -40.0), 40)
@@ -280,6 +302,23 @@ func _stage_flurry(id: StringName, ability: WeaponAbility, centre: Vector2, _flo
 	await _shot("%s-flurry" % id, 14)
 	await _carry(_hand, 60)
 	ability.release()
+
+## Special Delivery: point first across the desk, the point arriving, and stuck where it landed.
+func _stage_special_delivery(id: StringName, ability: WeaponAbility, centre: Vector2, _floor_y: float) -> void:
+	await _carry(centre + Vector2(-260.0, -60.0), 40)
+	var delivery := ability as DeliveryAbility
+	ability.press()
+	await _shot("%s-flight" % id, 4)
+	for i in 40:
+		await _idle(1)
+		if delivery.point_hits > 0:
+			break
+	await _shot("%s-point" % id, 1)
+	for i in 120:
+		await _idle(1)
+		if delivery.is_stuck():
+			break
+	await _shot("%s-stuck" % id, 3)
 
 ## The weapon held at `at` the way swing_rig holds one: its grip on a joint to its own handle.
 func _hold(at: Vector2) -> void:
