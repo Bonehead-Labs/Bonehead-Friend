@@ -2592,6 +2592,13 @@ func spawner_count_of(item_id: StringName) -> int:
 			count += 1
 	return count
 
+## The first spawned body with this id, or null.
+func _spawned(item_id: StringName) -> BaseDraggable:
+	for node in get_tree().get_nodes_in_group(&"spawned_item"):
+		if node is BaseDraggable and (node as BaseDraggable).item_id == item_id:
+			return node as BaseDraggable
+	return null
+
 ## An item's scene, instanced but never added to the tree — enough to ask a question about
 ## its switches. The caller frees it.
 func _instance_of(item_id: StringName) -> BaseDraggable:
@@ -2710,20 +2717,22 @@ func _he_goes_and_plays_with_his_toys() -> void:
 	for i in 420:
 		await get_tree().physics_frame
 		closest = minf(closest, absf(toy_x - buddy.global_position.x))
-		lowest_vy = minf(lowest_vy, buddy.linear_velocity.y)
 		most_tilt = maxf(most_tilt, absf(wrapf(buddy.rotation, -PI, PI)))
 		var phase := brain.phase_name()
 		if phase == &"travelling":
+			lowest_vy = minf(lowest_vy, buddy.linear_velocity.y)
 			locked_while_travelling = locked_while_travelling and buddy.lock_rotation
 			if buddy.art and buddy.art.body and buddy.art.body.flip_h:
 				faced_left_while_walking = true
 		elif phase == &"playing":
 			frames_playing += 1
-			if buddy.get_colliding_bodies().any(func(b: Node) -> bool:
-					return b is BaseDraggable and (b as BaseDraggable).item_id == &"beanbag"):
+			# In it, not against it (D70): the bag lets him in and pins him in the seat, and the
+			# two pass through each other while he sits, so it is the bag that knows.
+			var bag := _spawned(&"beanbag") as FriendlyBase
+			if bag and bag.is_seated(buddy):
 				frames_in_contact += 1
-			if absf(buddy.linear_velocity.y) < 100.0:
-				frames_settled += 1
+				if absf(buddy.linear_velocity.y) < 100.0:
+					frames_settled += 1
 	EventBus.damage_dealt.disconnect(_observe)
 
 	# Distance closed, not "x increased": he can overshoot a target he is standing in, and
@@ -2738,15 +2747,15 @@ func _he_goes_and_plays_with_his_toys() -> void:
 		Economy.balance_of(Economy.HEARTS) > hearts_before)
 	_check("walking to a toy costs him nothing (%d hits, %.1f damage)"
 		% [_observed.size(), buddy.health.damage], _observed.is_empty() and buddy.health.damage == 0.0)
-	_check("he walks, he does not hop (fastest rise %.0f px/s)" % -lowest_vy, lowest_vy > -150.0)
+	_check("he walks there, he does not hop there (fastest rise %.0f px/s)" % -lowest_vy, lowest_vy > -150.0)
 	_check("he stays upright (worst tilt %.1f deg)" % rad_to_deg(most_tilt), most_tilt < 0.1)
 	_check("and rotation is locked while he travels", locked_while_travelling)
-	_check("he is actually in it: touching the beanbag on %d of %d playing frames"
+	_check("he is actually in it, not leaning on it: sat in the beanbag on %d of %d playing frames"
 			% [frames_in_contact, frames_playing],
-		frames_playing > 0 and frames_in_contact >= int(frames_playing * 0.9))
-	_check("and settled there, not bouncing (%d of %d frames under 100 px/s)"
-			% [frames_settled, frames_playing],
-		frames_playing > 0 and frames_settled >= int(frames_playing * 0.95))
+		frames_playing > 0 and frames_in_contact >= int(frames_playing * 0.7))
+	_check("and settled there, not bouncing (%d of %d frames in it under 100 px/s)"
+			% [frames_settled, frames_in_contact],
+		frames_in_contact > 0 and frames_settled >= int(frames_in_contact * 0.95))
 
 	# The art half. He has no walk tag, so travel is carried by facing and a bob — and the
 	# bob is a heartbeat that decays, so nothing can leave him bobbing on the spot.

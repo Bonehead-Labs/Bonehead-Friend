@@ -440,6 +440,20 @@ func _physics_process(delta: float) -> void:
 				_climb()
 		return
 
+	# A soak is sat *in* (D70). Once the toy has him — hopping in, sitting, or climbing out — it
+	# is the toy's to move him, and the brain does not steer. Beside it, on his feet, he asks to
+	# be let in; the toy hops him over its edge and pins him in the seat.
+	if _routine == ROUTINE_SOAK:
+		var seat := _target as FriendlyBase
+		if seat and seat.is_hosting():
+			_lost_seconds = 0.0
+			return
+		if seat and reached and _climb_timer <= 0.0 and _climbs_this_trip < MAX_CLIMBS_PER_TRIP \
+				and _buddy.is_grounded():
+			_climb_timer = CLIMB_INTERVAL
+			_climbs_this_trip += 1
+			if seat.take_in(_buddy):
+				return
 	# Playing. The steer never stops, so a skeleton who rolls out of the hot tub climbs back
 	# in rather than sitting beside it earning nothing for the rest of his dwell — but with
 	# the same patience the travelling branch has: walk first, and climb only once walking
@@ -841,6 +855,7 @@ func _stand_down() -> void:
 	# The player arrived: from here on what happens to him is theirs.
 	if is_instance_valid(_buddy):
 		_buddy.end_own_play(true)
+	_let_out()
 	# Deliberately no cooldown: he was interrupted, not bored, and a toy he never got to play
 	# with should still be there when the player leaves again.
 	_target = null
@@ -852,6 +867,7 @@ func _stand_down() -> void:
 func _finish(cool: bool) -> void:
 	_flush()
 	# Still his own play until he comes to rest: a trampoline goes on throwing him after the dwell.
+	_let_out()
 	if is_instance_valid(_buddy):
 		_buddy.end_own_play(false)
 	var reason: StringName = &"toy_gone"
@@ -864,6 +880,12 @@ func _finish(cool: bool) -> void:
 	_routine = ROUTINE_NONE
 	routine_ended.emit(reason)
 	_enter(PHASE_WANDERING)
+
+## Out of whatever he is sitting in, with a hop over its side (D70). Nothing if he is not in it.
+func _let_out() -> void:
+	var seat := _target as FriendlyBase
+	if seat and is_instance_valid(seat) and seat.is_hosting():
+		seat.let_out(true)
 
 func _enter(phase: StringName) -> void:
 	_phase = phase

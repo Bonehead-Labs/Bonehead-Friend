@@ -1167,6 +1167,7 @@ func _play_routine(id: StringName, routine: int) -> bool:
 	# What he looks like while he does it: the routine's own row (plan §2G) is the whole reason
 	# the idle brain is visible at all.
 	var look: StringName = ExpressionBrain.ROUTINE_HOLDS.get(routine, &"")
+	var seated := 0
 	var look_frames := 0
 	var lost_frames := 0
 	var instead := {}
@@ -1189,12 +1190,21 @@ func _play_routine(id: StringName, routine: int) -> bool:
 			# going empty, or the generic `cared_for` sitting over the routine's own look.
 			if f >= 30 and (beat == &"" or beat == &"cared_for"):
 				lost_frames += 1
-			if toy in _buddy.get_colliding_bodies():
+			# Sitting in it is touching it: the two pass through each other while he is in (D70).
+			var friendly_toy := toy as FriendlyBase
+			if toy in _buddy.get_colliding_bodies() or (friendly_toy and friendly_toy.touches(_buddy)):
 				contact += 1
 			var mine := _buddy.get_interaction_rect()
 			var its := toy.get_interaction_rect()
-			if mine.end.y <= its.position.y + 16.0 and mine.position.x < its.end.x and mine.end.x > its.position.x:
+			var on := mine.end.y <= its.position.y + 16.0 and mine.position.x < its.end.x \
+				and mine.end.x > its.position.x
+			# In it: his middle over its middle and his feet off the floor it stands on.
+			var in_it := mine.get_center().x > its.position.x and mine.get_center().x < its.end.x \
+				and mine.end.y <= its.end.y - 12.0
+			if on or in_it:
 				on_top += 1
+			if friendly_toy and friendly_toy.is_seated(_buddy):
+				seated += 1
 			if _idle.phase_name() != IdleBrain.PHASE_PLAYING:
 				break
 	var play_seconds := float(Time.get_ticks_usec() - play_start) / 1.0e6
@@ -1228,6 +1238,10 @@ func _play_routine(id: StringName, routine: int) -> bool:
 			IdleBrain.ROUTINE_SOAK:
 				if toy_sustained <= 0.0:
 					problems.append("sitting in it paid nothing (in contact %d of %d frames)" % [contact, play_frames])
+				# In it, not against it (D70; AI audit B found 0 of 9 soak toys with him on or in them).
+				if seated == 0 or on_top < play_frames / 3:
+					problems.append("he never got in it (sat in it %d of %d frames, over or in it %d)"
+						% [seated, play_frames, on_top])
 			IdleBrain.ROUTINE_SCRUB:
 				if cleaned <= 0.0 or toy_sustained <= 0.0:
 					problems.append("the scrub cleaned %.3f and paid %.2f" % [cleaned, toy_sustained])
@@ -1247,9 +1261,9 @@ func _play_routine(id: StringName, routine: int) -> bool:
 			problems.append("wore '%s' on %d of %d frames, lost it on %d (instead: %s)" % [look, look_frames,
 				play_frames, lost_frames, _list(instead.keys().map(func(k: Variant) -> String:
 					return "%s x%d" % [k if String(k) != "" else "nothing", instead[k]]))])
-	var line := "%s: %.0f px in %.1f s (%d hops, tilt %.1f deg); playing %.1f s, touching %d/%d frames, on it %d; toy paid %.2f sustained + %.2f acts + %d hits, brain %.2f%s" % [
+	var line := "%s: %.0f px in %.1f s (%d hops, tilt %.1f deg); playing %.1f s, touching %d/%d frames, on or in it %d (sat in it %d); toy paid %.2f sustained + %.2f acts + %d hits, brain %.2f%s" % [
 		name_, start_gap - closest, walk_seconds, hops, rad_to_deg(tilt), play_seconds, contact,
-		play_frames, on_top, toy_sustained, toy_given, toy_hits, brain_paid,
+		play_frames, on_top, seated, toy_sustained, toy_given, toy_hits, brain_paid,
 		(", cleaned %.2f" % cleaned) if routine == IdleBrain.ROUTINE_SCRUB else ""]
 	if routine == IdleBrain.ROUTINE_PLAY and walk_seconds > 0.6:
 		line += "; its own rate while he walked %.2f/s, while he danced %.2f/s" % [
