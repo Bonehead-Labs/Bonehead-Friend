@@ -151,8 +151,10 @@ const ROWS := {
 	&"asleep": {"face": &"asleep", "tag": &"sleep", "fallback": &"idle_sad",
 		"motion": &"slow_bob", "seconds": 1.0, "priority": AMBIENT, "gate": GATE_SUBTLE,
 		"hold": true, "refresh": 0.0, "speed": 0.35, "sound": &"yawn"},
+	# The tail is what shows the tail face: without one the reunion stayed `shocked` for the
+	# whole beat and never reached the `happy` the row asks for (D60).
 	&"reunion": {"face": &"shocked", "tag": &"happy", "tail_face": &"happy",
-		"motion": &"hop2", "seconds": 1.2, "priority": REACTION, "gate": GATE_REACTIVE,
+		"motion": &"hop2", "seconds": 1.2, "tail": 0.4, "priority": REACTION, "gate": GATE_REACTIVE,
 		"sound": &"greet"},
 	&"welcome_back": {"face": &"happy", "tag": &"",
 		"motion": &"gaze", "seconds": 0.4, "priority": ATTENTION, "gate": GATE_NORMAL},
