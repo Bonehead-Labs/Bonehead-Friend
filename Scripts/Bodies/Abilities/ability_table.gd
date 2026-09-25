@@ -61,7 +61,7 @@ const ABILITIES := {
 	# them a use. Hence the long cooldown.
 	&"mace": {
 		"id": &"lead_heart", "name": "Lead Heart", "archetype": &"transform",
-		"controls": "Hold · Right: Lead Heart — tap: for 4 s it weighs double and every blow lands harder",
+		"controls": "Hold · Right: Lead Heart — for 4 s it weighs double and hits harder",
 		"cooldown": 10.0, "busy": 4.0, "worth": 6.0,
 		"seconds": 4.0, "mass_mult": 2.0, "hit_mult": 1.2, "quake": 7.0,
 		"tint": "ff5a2e", "shade": "ff9c86", "glow": 0.7, "pulse": 0.7, "embers": "ff9a3c", "ember_at": 0.9,
@@ -73,7 +73,7 @@ const ABILITIES := {
 	# Drawn through him for the four seconds, twelve burns: 3.5 ordinary sabre hits.
 	&"energy_sabre": {
 		"id": &"ignite", "name": "Ignite", "archetype": &"transform",
-		"controls": "Hold · Right: Ignite — tap to light it for 4 s; it passes through him and burns",
+		"controls": "Hold · Right: Ignite — lit for 4 s, it passes through him and burns",
 		"cooldown": 6.0, "busy": 4.0, "worth": 3.5,
 		"seconds": 4.0, "phase": true, "burn_seconds": 0.2, "burn_force": 700.0, "burn_mult": 0.8,
 		"shove": 0.3, "tint": "8ff8ff", "glow": 0.75, "embers": "d8fdff", "ember_at": 0.65,
@@ -86,7 +86,7 @@ const ABILITIES := {
 	# lands, which are the flail's: 1.8 to 2.4 ordinary flail hits a use.
 	&"flail": {
 		"id": &"wrap", "name": "Wrap", "archetype": &"tether",
-		"controls": "Hold · Right: Wrap — hit him with right held, swing him round, let go to fling",
+		"controls": "Hold · Right: Wrap — hit him with it held, swing him, let go to fling",
 		"cooldown": 6.0, "busy": 2.5, "worth": 2.4,
 		"armed_seconds": 1.5, "catch_mult": 1.0, "hold_seconds": 2.5, "rope": 70.0, "stiffness": 14.0,
 		"max_accel": 40000.0, "leash": 420.0, "reaction": 0.5, "fling_mult": 1.8, "fling_min": 800.0,
@@ -99,7 +99,7 @@ const ABILITIES := {
 	&"halberd": {
 		"id": &"hook_and_spike", "name": "Hook and Spike", "archetype": &"tether",
 		"script": "res://Scripts/Bodies/Abilities/hook_tether.gd",
-		"controls": "Hold · Right: Hook and Spike — tap: the hook flies at him and reels him onto the spike",
+		"controls": "Hold · Right: Hook and Spike — hook him from afar, onto the spike",
 		"cooldown": 5.0, "busy": 0.8, "worth": 2.5,
 		"reach": 220.0, "hook_speed": 1400.0, "reel_speed": 900.0, "reel_seconds": 0.8,
 		"max_accel": 12000.0, "reaction": 0.4, "leash": 400.0, "spike_force": 2400.0,
@@ -111,7 +111,7 @@ const ABILITIES := {
 	&"crowbar": {
 		"id": &"pry", "name": "Pry", "archetype": &"tether",
 		"script": "res://Scripts/Bodies/Abilities/pry_tether.gd",
-		"controls": "Hold · Right: Pry — claw against him, hold and pull down to lever him up and over",
+		"controls": "Hold · Right: Pry — claw against him, pull the hand down to lever",
 		"cooldown": 5.0, "busy": 1.2, "worth": 2.3,
 		"reach": 40.0, "lever_ratio": 1.2, "max_lift": 90.0, "lift_speed": 260.0, "tilt_degrees": 30.0,
 		"hold_seconds": 2.5, "stiffness": 16.0, "max_accel": 9000.0, "reaction": 0.3,

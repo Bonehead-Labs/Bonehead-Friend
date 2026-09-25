@@ -14,4 +14,4 @@ scene = ExtResource("2_ijhuq")
 icon = ExtResource("1_alps1")
 requires = Array[StringName]([&"rolling_pin"])
 sort_order = 42
-controls = "Hold · Right: Pry — claw against him, hold and pull down to lever him up and over"
+controls = "Hold · Right: Pry — claw against him, pull the hand down to lever"

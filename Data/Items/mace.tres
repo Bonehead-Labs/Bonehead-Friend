@@ -13,4 +13,4 @@ cost = 900
 scene = ExtResource("2_frwac")
 icon = ExtResource("1_frwac")
 sort_order = 10
-controls = "Hold · Right: Lead Heart — tap: for 4 s it weighs double and every blow lands harder"
+controls = "Hold · Right: Lead Heart — for 4 s it weighs double and hits harder"
