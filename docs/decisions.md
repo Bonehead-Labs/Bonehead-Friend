@@ -1476,6 +1476,50 @@ against sprites replaced in D45. None of that is a one-line fix and all of it ch
 game plays, so it is left for the owner to direct rather than guessed at in a sweep. The
 layers themselves are fine: 97 bodies on layer 4 / mask 7, the buddy on 2 / 5.
 
+## D60 — Every AI mechanic is tested on a desk of its own, by what can be seen (2026-09-25)
+
+**Decision.** `tests/integration/brain_check.tscn` tests each thing that acts on its own — the
+expression brain, the idle brain, his body, mood and grime, the personalities, the critters and
+the turrets — one at a time, each on a 1280x720 SubViewport with the real `WorldBounds`, a spawner
+and a fresh buddy. It fires every trigger through the signal the game fires it on and asserts
+what can be seen: the face, the tag, the displacement, who paid, where he ended up. Every row,
+routine toy, personality, critter and turret is enumerated from `ExpressionBrain.ROWS` and
+`ItemDB`, never listed, so content added later arrives covered. The owner asked for it after
+"spawn a ball and watch him play with it" had shipped showing nothing twice.
+
+**Why a second suite, and why a SubViewport.** loop_check proves the wiring by calling handlers
+directly, because emitting most signals on the real bus would pay money mid-economy — and so it
+could not see a single one of the eleven faults below, every one of which sits *between* two
+systems. And a headless root viewport is 64x64: every wall, home point, window edge and exit
+derived from it is meaningless, which loop_check survives only by keeping its whole desk outside
+the window. A SubViewport gives the game's own geometry for free.
+
+**What it found, and fixed, one commit each:** one generator anywhere on the desk held him in
+`cared_for` forever (`kindness_sustained` meant both "kind to him" and "income"); the idle brain's
+routine looks were masked on 0 of 96 frames and ended by the first interruption; walker NPCs had
+no friction feed-forward, so the gorilla never moved and nothing moved at Focus Off; five of eight
+turrets have dealt no damage since D54 (damage read off an 18 px falloff); a generic category face
+passed as an override locked out every personality's hurt face; a ball dropped from the shop onto
+his head cancelled its own offer; the weapon-side balls were never chosen; the walk's push glued
+him to the side of anything he hopped at; leaving animals walked into him for fourteen seconds;
+the raccoon's throw spent itself on the raccoon; the reunion's tail face had no tail. Each is
+written up with its root cause and numbers in `docs/ai-audit-2026-09.md`.
+
+**Clocks are skewed, physics is real.** The expression brain's `_clock_skew` and its own timer,
+backdated idle-brain timestamps and a hand-driven think tick replace waiting — but physics runs
+in real time, because `--fixed-fps` would put the simulation ahead of every millisecond deadline
+in the game. About six minutes; `-- --quick` takes one toy per routine, `-- --only idle.toys` one
+section.
+
+*Consequence:* a reaction row nobody asks for, a `connect()` in `ExpressionBrain._ready` no real
+trigger drives, or a row no trigger produces is reported — a known one fails, a new one is a
+note, so the next stream's rows are covered by the presentation pass until someone gives them a
+trigger. `IdleBrain.paid_value` exists so a test can tell the brain's payment from the toy's; the
+"never both" rule is otherwise unobservable. The design questions the audit could only measure —
+Focus Off earning nothing from 26 of 33 routine toys, soaking against furniture rather than in it,
+weapon balls that cannot pay, a 4,640 px/s gorilla slam, contact damage from animal bodies, a toy
+outside the window — are in the audit for the owner.
+
 ## Recommendations not yet decided
 
 Carried in the spec, owner's call before they matter:
