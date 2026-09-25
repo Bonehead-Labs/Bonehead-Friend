@@ -2150,7 +2150,7 @@ so its derived collider (D55) and its scene are untouched.
 | satchel charge | 98 % | 4 % | 5.3 px | the pin moves from the charge to the top of the strap, the same lever from the weight |
 | letter opener | 93 % | 8 % | 0.0 px | blade, bolster, grip and pommel; grip and weight where they were |
 | halberd | 96 % | 5 % | 3.5 px | axe, beard and hook for two circles; weight two pixels toward the axe |
-| tesla coil | 97 % | 3 % | 1.8 px | follows the column 2.5 px left of centre; the spark is light and not solid |
+| tesla coil | 97 % | 3 % | 1.8 px | toroid, column, spiral and base; the spark is light and not solid, and clear columns in the grid balance it so the coil stands, and shoots, on the centre line |
 | mortar | 90 % | 3 % | 1.0 px | it flips, so only the base plate and the tube's foot are solid (D61); pin at the top of that column, muzzle at the new bore |
 
 `swing_rig`, momentum handed to him, before -> after: hole punch 3,623 -> 3,760, letter opener
@@ -2164,12 +2164,15 @@ the centre of mass and less along the shaft, and its inertia fell by a quarter.
 *Consequence:* `make_icons.py` skips any id with an icon grid, instead of writing a downscale
 over it — a full run would otherwise put the halberd's stick back (and would already have
 overwritten bubble wrap's). `pixel_icon.py`'s docstring says how the long things were drawn;
-each grid's header says what the old picture read as. The mortar is less solid than it was,
-because what stands in both of its facings is now its base plate and the foot of its tube:
-mirroring shapes with the sprite is still the owner's call from D61. *Not drawn:* the hornet,
-which is small in the world; the swarm launcher, which reads as a speaker. *Not seen:* this pass
-ran headless on a machine the owner was using, so everything was judged from rendered previews
-at 1x, 2x and 8x on a dark and a light desk, never on a real one.
+each grid's header says what the old picture read as. A grid is centred by its width, clear
+columns included, which is how the tesla coil keeps its column on the centre line beside a
+spark: `brain_check` wants a turret that does not flip to shoot from within two pixels of its
+middle, and the first version, shifted by the spark, failed it. The mortar is less solid than
+it was, because what stands in both of its facings is now its base plate and the foot of its
+tube: mirroring shapes with the sprite is still the owner's call from D61. *Not drawn:* the
+hornet, which is small in the world; the swarm launcher, which reads as a speaker. *Not seen:*
+this pass ran headless on a machine the owner was using, so everything was judged from rendered
+previews at 1x, 2x and 8x on a dark and a light desk, never on a real one.
 
 ## Recommendations not yet decided
 

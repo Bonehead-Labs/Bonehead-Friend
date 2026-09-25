@@ -149,21 +149,21 @@ const TURRETS := {
 		"turret": {
 			"fire_interval": 1.6, "blast_radius": 64.0, "blast_force": 2400.0,
 			"damage_mult": 1.35, "pellets": 1, "spread": 0.0, "max_range": 300.0,
-			"aim_lean_degrees": 5.0, "muzzle": Vector2(-2.5, -22), "faces": 1.0, "flips": false, "recoil_pixels": 1.0,
+			"aim_lean_degrees": 5.0, "muzzle": Vector2(-0.5, -22), "faces": 1.0, "flips": false, "recoil_pixels": 1.0,
 		},
 		# Toroid, copper column, the primary's spiral and the base (D69). The spark drawn off the
-		# rim is light, like the lattice's beams, and is not solid; it is also why the column
-		# sits two and a half pixels left of the picture's centre.
+		# rim is light, like the lattice's beams, and is not solid; the grid carries clear columns
+		# on the left to balance it, so the coil stands on the centre and shoots from its top.
 		"body": {
 			"mass": 14.0,
 			"shapes": [
-				{"rect": Vector2(27, 14), "at": Vector2(-2.5, 15)},
-				{"rect": Vector2(23, 4), "at": Vector2(-2.5, 6)},
-				{"rect": Vector2(11, 13), "at": Vector2(-2.5, -2.5)},
-				{"capsule": Vector2(12, 27), "at": Vector2(-2.5, -15.5), "rot": 90.0},
+				{"rect": Vector2(27, 14), "at": Vector2(-0.5, 15)},
+				{"rect": Vector2(23, 4), "at": Vector2(-0.5, 6)},
+				{"rect": Vector2(11, 13), "at": Vector2(-0.5, -2.5)},
+				{"capsule": Vector2(12, 27), "at": Vector2(-0.5, -15.5), "rot": 90.0},
 			],
-			"com": Vector2(-2.5, 15), "grip": Vector2(-2.5, -16),
-			"grab": {"size": Vector2(30, 48), "at": Vector2(-1.5, -1)},
+			"com": Vector2(-0.5, 15), "grip": Vector2(-0.5, -16),
+			"grab": {"size": Vector2(30, 48), "at": Vector2(0.5, -1)},
 		},
 		"tree": ["More Windings", "Shock Damages", "Shorter Charge"],
 		"device": [&"tesla_coil_grid_tap", "Grid Tap",
