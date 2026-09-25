@@ -191,8 +191,8 @@ func _host() -> Node:
 func refresh_augments() -> void:
 	_prune()
 	for node in _active:
-		if node is WeaponBase:
-			(node as WeaponBase).apply_augments()
+		if node is BaseDraggable:
+			(node as BaseDraggable).apply_augments()
 		# And how it looks (D41): the glow, the trail and the aura follow the tier, which a
 		# purchase or a rank just moved. Duck-typed: NPCs and toys are on the desk too.
 		if node.has_method("apply_juice"):

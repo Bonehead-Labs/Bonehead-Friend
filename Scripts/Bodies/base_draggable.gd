@@ -44,7 +44,25 @@ func _ready() -> void:
 	custom_integrator = false
 	continuous_cd = RigidBody2D.CCD_MODE_CAST_RAY
 	add_to_group(GROUP_INTERACTIVE)
+	_spawn_mass = mass
+	apply_augments()
 	apply_juice()
+
+## The mass the scene was authored with, before any Weight augment.
+var _spawn_mass: float = 0.0
+
+## Re-reads the player's augment levels. Called on spawn and whenever a tree purchase lands, so
+## an upgrade bought with the thing already on screen takes effect immediately.
+##
+## Here rather than on `WeaponBase`, where it used to live: a `mass_mult` node is sold for
+## every body with a tree — "Heavier Casing" on each of the fifteen explosives, "Steel Frame"
+## on the trampoline, "Cast Base" on the fan — and on all of those it was read by nothing, a
+## Bones price for a placebo (D59). Mass is what turns a swing or a throw into an impulse, so
+## the node is felt in the physics rather than only in the numbers.
+func apply_augments() -> void:
+	if item_id == &"" or _spawn_mass <= 0.0:
+		return
+	mass = maxf(0.01, _spawn_mass * Progression.get_modifier(item_id, &"mass_mult"))
 
 ## World-space rect worth treating as a click target. Derived from the actual collision
 ## shape where there is one, so a mace and a grenade get appropriately sized regions.
