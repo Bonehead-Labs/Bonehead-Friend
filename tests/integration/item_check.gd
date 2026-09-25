@@ -982,9 +982,10 @@ const ABILITY_STANDOFF := {
 
 ## A weapon whose ability wants a different hand from its archetype's (D74, second pass): where
 ## the hand starts relative to his middle, where it goes while the ability works, and how fast. A
-## cricket bat's middle meets him when the hand goes over his head unhurried, the way
-## ability_check found it.
+## rolling pin is rolled across him on the desk; a cricket bat's middle meets him when the hand
+## goes over his head unhurried, the way ability_check found it.
 const ABILITY_HAND := {
+	&"rolling_pin": [Vector2(-190, 40), Vector2(150, 40), 450.0],
 	&"cricket_bat": [Vector2(-200, -105), Vector2(200, -105), 450.0],
 }
 

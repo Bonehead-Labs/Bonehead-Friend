@@ -14,3 +14,4 @@ scene = ExtResource("2_gquhr")
 icon = ExtResource("1_tmcvb")
 requires = Array[StringName]([&"mace"])
 sort_order = 40
+controls = "Hold · Right: Flatten — hold it down and roll it over him"

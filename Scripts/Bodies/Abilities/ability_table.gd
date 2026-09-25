@@ -153,6 +153,17 @@ const ABILITIES := {
 		"armed_seconds": 2.0, "middle_band": 0.34, "middle_mult": 2.5, "six_speed": 950.0,
 		"keep_sideways": 0.3, "claim_seconds": 2.5,
 	},
+	# Held: the pin goes down level on the desk and rolls where the hand takes it; each pass over
+	# his middle flattens him (a squash on his sprite) and is billed once, x1.5.
+	&"rolling_pin": {
+		"id": &"flatten", "name": "Flatten", "archetype": &"sustain",
+		"script": "res://Scripts/Bodies/Abilities/flatten_ability.gd",
+		"controls": "Hold · Right: Flatten — hold it down and roll it over him",
+		"cooldown": 5.0, "busy": 2.5, "worth": 2.5,
+		"fuel_seconds": 2.5, "lay_frequency": 12.0, "lay_accel": 300.0, "ride_px": 16.0,
+		"over_px": 34.0, "reach": 240.0, "roll_force": 1000.0, "roll_speed": 450.0,
+		"flatten_mult": 1.5, "pass_gap": 0.35, "shove": 0.1,
+	},
 	# Held: five staples a second, dead straight at him, twenty to a strip; the strip running out
 	# is the reload. The only melee ability you hold down to keep firing. A staple is x0.3 of the
 	# stapler's own blow: at full weight one strip was fourteen ordinary hits.
@@ -163,6 +174,18 @@ const ABILITIES := {
 		"cooldown": 6.0, "busy": 4.0, "worth": 4.0,
 		"rate": 5.0, "strip": 20, "staple_speed": 1400.0, "staple_force": 420.0,
 		"staple_mult": 0.3, "shove": 0.15, "pause": 0.4,
+	},
+	# A tap throws it into the desk (or along a flick); every surface it meets banks it straight at
+	# him, faster each time, and a hit after the nth bank is x(1 + 0.25n). Three banks, then it
+	# falls where it falls and you go and get it.
+	&"tyre_iron": {
+		"id": &"ricochet", "name": "Ricochet", "archetype": &"throw",
+		"script": "res://Scripts/Bodies/Abilities/ricochet_ability.gd",
+		"controls": "Hold · Right: Ricochet — throw it at the desk and it banks into him",
+		"cooldown": 3.0, "busy": 2.0, "worth": 2.4,
+		"throw_speed": 1300.0, "flick_speed": 450.0, "skip_degrees": 55.0, "spin": 18.0,
+		"banks": 3, "bank_speed": 1300.0, "bank_gain": 0.1, "hit_force": 2000.0,
+		"bank_mult": 0.25, "shove": 0.5, "give_up_seconds": 3.5,
 	},
 	# Held: a crosshair walks from the beak onto his skull and locks; let go and the beak goes into
 	# that one spot, x2.5 with almost no shove. Let go early and the spot is wherever it had got to.

@@ -14,3 +14,4 @@ scene = ExtResource("2_fti1f")
 icon = ExtResource("1_gl7k1")
 requires = Array[StringName]([&"cricket_bat"])
 sort_order = 45
+controls = "Hold · Right: Ricochet — throw it at the desk and it banks into him"

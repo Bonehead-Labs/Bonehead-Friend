@@ -289,6 +289,21 @@ func _stage_cricket_bat(id: StringName, ability: MiddleItAbility, centre: Vector
 	await _shot("%s-up" % id, 14)
 	await _shot("%s-top" % id, 30)
 
+func _stage_rolling_pin(id: StringName, ability: FlattenAbility, centre: Vector2, floor_y: float) -> void:
+	await _carry(Vector2(centre.x - 190.0, floor_y - 60.0), 40)
+	ability.press()
+	await _carry(_hand, 24)
+	await _shot("%s-down" % id)
+	for i in 80:
+		await _carry(_hand.move_toward(Vector2(centre.x + 150.0, floor_y - 60.0), 500.0 / 60.0), 1)
+		if ability.passes > 0:
+			break
+	await _shot("%s-flattened" % id, 3)
+	await _shot("%s-pancake" % id, 12)
+	await _carry(_hand, 20)
+	await _shot("%s-springs-back" % id, 20)
+	ability.release()
+
 func _stage_stapler(id: StringName, ability: StapleGunAbility, centre: Vector2, _floor_y: float) -> void:
 	await _carry(centre + Vector2(-260.0, -40.0), 40)
 	ability.press()
@@ -296,6 +311,25 @@ func _stage_stapler(id: StringName, ability: StapleGunAbility, centre: Vector2, 
 	await _carry(_hand, 50)
 	await _shot("%s-stapled" % id)
 	ability.release()
+
+func _stage_tyre_iron(id: StringName, ability: RicochetAbility, centre: Vector2, _floor_y: float) -> void:
+	await _carry(centre + Vector2(-250.0, -80.0), 40)
+	var hand := _hand
+	ability.press()
+	ability.release()
+	await _shot("%s-thrown" % id, 5)
+	for i in 60:
+		await _idle(1)
+		if ability.banks_done() > 0:
+			break
+	await _shot("%s-bank" % id, 1)
+	for i in 60:
+		await _idle(1)
+		if ability.throw_hits > 0:
+			break
+	await _shot("%s-hit" % id, 1)
+	await _shot("%s-after" % id, 16)
+	_hand = hand
 
 func _stage_war_pick(id: StringName, ability: PinpointAbility, centre: Vector2, _floor_y: float) -> void:
 	await _carry(centre + Vector2(-130.0, -60.0), 40)

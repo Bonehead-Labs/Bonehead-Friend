@@ -496,7 +496,7 @@ func _state_box(theme: Theme, state: String, type_name: String) -> StyleBox:
 const ABILITY_STILL_TO_DO: Array[StringName] = [
 	&"boxcutter", &"cleaver", &"crowbar", &"energy_sabre", &"flail", &"greatsword", &"halberd",
 	&"hole_punch", &"katar", &"letter_opener", &"mace", &"machete", &"monitor", &"pipe_wrench",
-	&"rapier", &"rolling_pin", &"scythe", &"shears", &"sickle", &"tyre_iron",
+	&"rapier", &"scythe", &"shears", &"sickle",
 ]
 
 ## Every melee weapon has an ability (D74): a row in `AbilityTable`, or a right-while-holding

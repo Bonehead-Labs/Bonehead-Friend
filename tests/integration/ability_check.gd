@@ -629,6 +629,49 @@ func _drive_cricket_bat(body: WeaponBase, ability: MiddleItAbility) -> Dictionar
 	return {"blade_t": ability.last_blade_t, "rise": rise, "six": ability.last_six, "edges": edges,
 		"rides": rides, "hits": _hits.size()}
 
+## Flatten: laid down on the desk beside him and rolled across him and back: two passes, two
+## flattenings, and he is squashed on his sprite, not shoved along the desk.
+func _drive_rolling_pin(body: WeaponBase, ability: FlattenAbility) -> Dictionary:
+	var floor_y := _buddy.get_interaction_rect().end.y
+	var him_x := _centre().x
+	await _mouse_to(Vector2(him_x - 190.0, floor_y - 60.0), 700.0)
+	await _steady(body, 60)
+	var start_x := _buddy.global_position.x
+	_press(MOUSE_BUTTON_RIGHT)
+	await _step(24)
+	_check("held, it lies down level (%.0f degrees off)" % ability.level_error, ability.level_error <= 25.0)
+	var low := ability.com_world().y
+	_check("on the desk (%.0f px above it)" % (floor_y - low), floor_y - low <= 45.0)
+	var squashed := 1.0
+	var legs := [Vector2(him_x + 150.0, floor_y - 60.0), Vector2(him_x - 190.0, floor_y - 60.0)]
+	for leg in legs:
+		var guard := 0
+		while _mouse.distance_to(leg) > 8.0 and guard < 200:
+			_move(_mouse.move_toward(leg, 500.0 / 60.0))
+			await _step()
+			guard += 1
+			if _buddy.art:
+				squashed = minf(squashed, _buddy.art._squash.y)
+	for i in 12:
+		await _step()
+		if _buddy.art:
+			squashed = minf(squashed, _buddy.art._squash.y)
+	_release(MOUSE_BUTTON_RIGHT)
+	await _step(3)
+	_check("rolled across him and back: two passes (%d)" % ability.passes, ability.passes >= 2)
+	_check("each billed once, x%.1f, as its own impulse" % ability.num("flatten_mult", 1.5),
+		_boosted_strikes(body, ability.num("flatten_mult", 1.5)) >= 2)
+	_check("he is flattened on his sprite (squash %.2f)" % squashed, squashed <= 0.6)
+	await _expect_face(&"flattened", &"flattened")
+	var moved := absf(_buddy.global_position.x - start_x)
+	_check("rolled over, not shoved along (%.0f px)" % moved, moved <= 90.0)
+	await _await_cond(func() -> bool: return not ability.is_active(), 90)
+	_check("the exception comes off once it is clear of him",
+		not body.get_collision_exceptions().has(_buddy))
+	_check("and the hand is its own again", body.hand_offset == Vector2.ZERO)
+	return {"passes": ability.passes, "speed": ability.last_roll_speed, "impulse": ability.last_flatten,
+		"squash": squashed, "moved": moved}
+
 ## Staple Gun: held from 260 px until the strip runs out: twenty staples, straight, most in him,
 ## each billed once; the empty strip is the reload.
 func _drive_stapler(body: WeaponBase, ability: StapleGunAbility) -> Dictionary:
@@ -656,6 +699,36 @@ func _drive_stapler(body: WeaponBase, ability: StapleGunAbility) -> Dictionary:
 	_check("the empty strip is the full reload (%.1f s)" % ability.cooldown_left(),
 		ability.cooldown_left() >= ability.num("cooldown", 6.0) * 0.8)
 	return {"fired": ability.fired, "landed": ability.landed, "hits": _hits.size()}
+
+## Ricochet: thrown from 250 px with the hand still, it goes into the desk, banks at him and hits
+## him harder than a straight throw, and is left where it falls.
+func _drive_tyre_iron(body: WeaponBase, ability: RicochetAbility) -> Dictionary:
+	await _mouse_to(_centre() + Vector2(-250.0, -80.0), 700.0)
+	await _steady(body, 60)
+	_press(MOUSE_BUTTON_RIGHT)
+	await _step()
+	_release(MOUSE_BUTTON_RIGHT)
+	_check("right throws it out of the hand", not body.dragging and ability.in_flight())
+	var done := await _await_cond(func() -> bool: return not ability.is_active(), 300)
+	await _step(3)
+	await _expect_face(&"incoming", &"blast")
+	_check("it banked off the world (%d banks, first at %s)" % [ability.banks_done(),
+		ability.bank_points[0].round() if not ability.bank_points.is_empty() else "none"],
+		ability.banks_done() >= 1)
+	_check("and hit him (%d, at %s)" % [ability.throw_hits, ability.hit_mults], ability.throw_hits >= 1)
+	var banked_hit := false
+	for m in ability.hit_mults:
+		banked_hit = banked_hit or m > 1.0
+	_check("a hit after a bank is worth more than a straight one", banked_hit)
+	var billed_ok := true
+	for impulse in ability.struck:
+		billed_ok = billed_ok and _hits_with_impulse(impulse) == 1
+	_check("each hit billed once, as its own impulse", billed_ok and not ability.struck.is_empty())
+	_check("it comes to rest and the throw is over", done)
+	_check("it does not come back: you fetch it", not body.dragging)
+	_check("the exception comes off", not body.get_collision_exceptions().has(_buddy))
+	return {"banks": ability.banks_done(), "hits": ability.throw_hits, "mults": str(ability.hit_mults),
+		"flight": ability.last_flight}
 
 ## Pinpoint: held until the crosshair locks on his skull, let go, and the beak goes into that spot,
 ## x2.5, touching nothing else on the way and barely moving him.
