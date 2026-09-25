@@ -786,6 +786,72 @@ func _drive_mechanical_keyboard(body: WeaponBase, ability: KeycapBarrageAbility)
 	_check("the keys are whole again", bare == null or not bare.visible)
 	return {"caps": ability.fired, "hits": ability.hits, "home": ability.home}
 
+## Blue Screen: refused out of reach; in reach he is a statue, swung at until he reboots — nothing
+## lands and nothing moves him — and then every stored swing is dealt on one frame, x1.3.
+func _drive_monitor(body: WeaponBase, ability: BlueScreenAbility) -> Dictionary:
+	await _mouse_to(_centre() + Vector2(-560.0, -40.0), 900.0)
+	await _steady(body, 30)
+	var refused := ability.denied
+	_press(MOUSE_BUTTON_RIGHT)
+	await _step()
+	_release(MOUSE_BUTTON_RIGHT)
+	await _step()
+	_check("out of reach, the press is refused", ability.denied == refused + 1 and not ability.is_active())
+	await _mouse_to(_centre() + Vector2(-150.0, -30.0), 900.0)
+	await _steady(body, 40)
+	var frames: Array[int] = []
+	var impulses: Array[float] = []
+	var on_hit := func(info: HitInfo) -> void:
+		if info.source_id == _id:
+			frames.append(Engine.get_physics_frames())
+			impulses.append(info.raw_impulse)
+	EventBus.damage_dealt.connect(on_hit)
+	_press(MOUSE_BUTTON_RIGHT)
+	await _step()
+	_release(MOUSE_BUTTON_RIGHT)
+	await _step(2)
+	var at := _buddy.global_position
+	_check("in reach, a tap freezes him", ability.is_frozen())
+	var screen := body.get_node_or_null("BlueScreen") as Node2D
+	_check("the screen goes blue", screen != null and screen.visible)
+	await _expect_face(&"frozen", &"frozen")
+	_check("staring, his animation held",
+		_buddy.art != null and _buddy.art.body != null and is_zero_approx(_buddy.art.body.speed_scale))
+	# Swung at him back and forth until the freeze is up, as a player does with a statue.
+	var drift := 0.0
+	var dealt_frozen := 0
+	var swings := 0
+	while ability.is_frozen() and swings < 8:
+		var him := _centre()
+		var target := Vector2(him.x + (200.0 if swings % 2 == 0 else -220.0), him.y - 40.0)
+		while _mouse.distance_to(target) > 1.0 and ability.is_frozen():
+			_move(_mouse.move_toward(target, 1100.0 / 60.0))
+			await _step()
+			if ability.is_frozen():
+				drift = maxf(drift, _buddy.global_position.distance_to(at))
+				dealt_frozen = frames.size()
+		swings += 1
+	_check("swung through: %d stored, none dealt while he was frozen" % ability.last_stored,
+		ability.last_stored >= 2 and dealt_frozen == 0)
+	_check("and a statue does not move (%.1f px)" % drift, drift <= 2.0)
+	await _await_cond(func() -> bool: return not ability.is_active(), 120)
+	await _step(3)
+	EventBus.damage_dealt.disconnect(on_hit)
+	# The dump's own hits are the ones it handed him; anything after is the monitor still swinging.
+	var dump_frames := {}
+	for i in frames.size():
+		for impulse in ability.struck:
+			if absf(impulses[i] - impulse) <= 0.5:
+				dump_frames[frames[i]] = true
+	_check("he comes back and all %d land at once, on one frame (%d frames)" % [ability.last_stored,
+		dump_frames.size()], ability.last_dumped == ability.last_stored and dump_frames.size() == 1)
+	_check("each once, at x%.2f" % ability.num("dump_mult", 1.3),
+		_boosted_strikes(body, ability.num("dump_mult", 1.3)) == ability.last_stored)
+	_check("and it throws him (%.0f px/s)" % ability.last_dump_speed, ability.last_dump_speed > 0.0)
+	_check("he is not frozen any more", not _buddy.freeze)
+	return {"stored": ability.last_stored, "dealt": frames.size(), "drift": drift,
+		"thrown": ability.last_dump_speed}
+
 ## Hot Coffee: tapped from 240 px, the spatter reaches him, scalds him once, stains him, and the
 ## steam bites twice more.
 func _drive_office_mug(body: WeaponBase, ability: HotCoffeeAbility) -> Dictionary:

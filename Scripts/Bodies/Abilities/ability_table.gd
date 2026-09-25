@@ -209,6 +209,17 @@ const ABILITIES := {
 		"caps": 8, "rain_seconds": 0.75, "stagger": 0.05, "spread": 40.0, "cap_force": 500.0,
 		"cap_mult": 1.0, "shove": 0.25, "home_after": 0.45, "home_seconds": 2.4,
 	},
+	# A tap near him: the screen goes blue and he is a statue for 1.5 s; every swing that clangs off
+	# him is stored, and all are dealt on one frame at x1.3 when he comes back, which throws him.
+	&"monitor": {
+		"id": &"blue_screen", "name": "Blue Screen", "archetype": &"stun",
+		"script": "res://Scripts/Bodies/Abilities/blue_screen_ability.gd",
+		"controls": "Hold · Right: Blue Screen — freeze him; your hits land when he's back",
+		"cooldown": 6.0, "busy": 1.8, "worth": 2.0,
+		"reach": 420.0, "freeze_seconds": 1.5, "min_speed": 300.0, "hit_force": 1300.0,
+		"swing_speed": 1100.0, "dump_mult": 1.3, "dump_shove": 0.5, "dump_cap": 900.0,
+		"claim_seconds": 1.5,
+	},
 	# A tap: the coffee arcs out in a spatter; the first drop on him scalds (a light hit), stains
 	# him (grime) and he steams for 1.2 s, the steam biting twice more.
 	&"office_mug": {

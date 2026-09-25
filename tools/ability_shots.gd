@@ -362,6 +362,22 @@ func _stage_mechanical_keyboard(id: StringName, ability: KeycapBarrageAbility, c
 	await _shot("%s-bare" % id, 20)
 	await _shot("%s-home" % id, 40)
 
+func _stage_monitor(id: StringName, ability: BlueScreenAbility, centre: Vector2, _floor_y: float) -> void:
+	await _carry(centre + Vector2(-150.0, -30.0), 40)
+	ability.press()
+	ability.release()
+	await _shot("%s-frozen" % id, 6)
+	for i in 30:
+		await _carry(_hand.move_toward(centre + Vector2(200.0, -30.0), 26.0), 1)
+	await _carry(centre + Vector2(-150.0, -30.0), 20)
+	await _shot("%s-stored" % id, 2)
+	for i in 90:
+		await _carry(_hand, 1)
+		if not ability.is_frozen():
+			break
+	await _shot("%s-dump" % id, 2)
+	await _shot("%s-after" % id, 10)
+
 func _stage_office_mug(id: StringName, ability: HotCoffeeAbility, centre: Vector2, _floor_y: float) -> void:
 	await _carry(centre + Vector2(-240.0, -60.0), 40)
 	ability.press()

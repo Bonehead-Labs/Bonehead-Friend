@@ -14,3 +14,4 @@ scene = ExtResource("2_yaqef")
 icon = ExtResource("1_g46cf")
 requires = Array[StringName]([&"mechanical_keyboard"])
 sort_order = 52
+controls = "Hold · Right: Blue Screen — freeze him; your hits land when he's back"
