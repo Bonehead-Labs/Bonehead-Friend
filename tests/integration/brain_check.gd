@@ -1615,20 +1615,47 @@ func _block(centre: Vector2, size: Vector2) -> StaticBody2D:
 func _idle_focus_off() -> void:
 	_begin("idle brain — Focus Off")
 	await _stage("idle focus off", true)
-	for id in [&"trampoline", &"boombox", &"beanbag"]:
+	# Every toy he has a routine for, not three (D70): Off is the promise that a player in a
+	# meeting can stop the desk moving without giving up the income (D21), and the audit found 26
+	# of 33 routine toys earning nothing at Off — every one that pays only for touch.
+	var toys := _routine_toys()
+	if not _toys.is_empty():
+		var picked: Array[Array] = []
+		for entry in toys:
+			if _toys.has(String(entry[0])):
+				picked.append(entry)
+		toys = picked
+	var earning := 0
+	var counted := 0
+	var silent: Array[String] = []
+	for entry in toys:
+		var id: StringName = entry[0]
 		_idle._disturb()
 		_clear_desk()
 		await _frames(3)
 		_focus(Settings.Intensity.NORMAL)
-		await _spawn_toy(id, 300.0)
-		_place(Vector2(700.0, HOME.y))
+		_buddy.grime.set_value(0.8 if int(entry[1]) == IdleBrain.ROUTINE_SCRUB else 0.0)
+		Economy.grime = _buddy.grime.value
+		var toy := await _spawn_toy(id, 300.0)
+		# Six hundred px off: at Off he does not walk, and nothing about "there" may depend on
+		# being near it — a jack he wound himself laughed only within earshot.
+		_place(Vector2(900.0, HOME.y))
 		await _frames(20)
+		if not is_instance_valid(toy):
+			_check("'%s' survives being put down" % id, false)
+			continue
 		_focus(Settings.Intensity.OFF)
+		# Asked now: food is eaten, and a toy that is gone cannot be asked anything.
+		var pays_hearts := toy is FriendlyBase or toy.has_method(&"idle_use") \
+			or _idle._brain_pays(int(entry[1]))
 		var at := _buddy.global_position
+		# A fortune ball's yes is a coin toss: seeded, so the verdict is not one.
+		seed(hash(String(id)))
 		var paid_before := _idle.paid_value
 		_reset_log()
 		_idle.pretend_idle()
 		_idle.think_now()
+		var chose := _idle.target_id() == id
 		var skipped := _idle.phase_name() == IdleBrain.PHASE_PLAYING
 		for f in 90:
 			await get_tree().physics_frame
@@ -1637,17 +1664,43 @@ func _idle_focus_off() -> void:
 		var moved := _buddy.global_position.distance_to(at)
 		var brain_paid := _idle.paid_value - paid_before
 		var toy_paid := maxf(_value_from(_sustained, id) - brain_paid, 0.0) + _value_from(_given, id)
-		var routine := _idle._routine
-		_measure("%s at Off: skipped the walk %s, moved %.1f px, brain paid %.2f, toy paid %.2f over three thinks"
-			% [id, skipped, moved, brain_paid, toy_paid])
-		_check("at Off he does not walk to the %s (moved %.1f px)" % [id, moved], skipped and moved < 3.0)
-		if _idle._brain_pays(routine):
-			_check("and the %s still earns: the brain pays for it (%.2f)" % [id, brain_paid], brain_paid > 0.0)
-		elif toy_paid <= 0.0 and brain_paid <= 0.0:
-			# A design question rather than a failure: see docs/ai-audit-2026-09.md.
-			_note("at Off a %s routine earns nothing — he is not touching it, and only the toy pays for touch"
-				% ROUTINE_NAMES.get(routine, "?"))
+		# A toy that pays in lumps — a wound jack's laugh, the ball's yes — gets the rest of the dwell.
+		var thinks := 3
+		while pays_hearts and brain_paid <= 0.0 and toy_paid <= 0.0 and thinks < 12 \
+				and _idle.phase_name() == IdleBrain.PHASE_PLAYING:
+			# A second between thinks, not half of one: the jack laughs 0.55 s after it pops, and a
+			# think sooner than that shuts the lid on the laugh.
+			for f in 60:
+				await get_tree().physics_frame
+			_idle.think_now()
+			thinks += 1
+			brain_paid = _idle.paid_value - paid_before
+			toy_paid = maxf(_value_from(_sustained, id) - brain_paid, 0.0) + _value_from(_given, id)
+		# The jack laughs a beat after it pops, and a trickle is flushed half a second after that.
+		if pays_hearts and brain_paid <= 0.0 and toy_paid <= 0.0:
+			await _frames(75)
+			toy_paid = maxf(_value_from(_sustained, id) - brain_paid, 0.0) + _value_from(_given, id)
+		moved = maxf(moved, _buddy.global_position.distance_to(at))
+		var routine := int(entry[1])
+		_measure("%s at Off: skipped the walk %s, moved %.1f px, brain paid %.2f, toy paid %.2f over %d thinks"
+			% [id, skipped, moved, brain_paid, toy_paid, thinks])
+		_check("at Off he does not walk to the %s (moved %.1f px)" % [id, moved], chose and skipped and moved < 3.0)
+		# A weapon-side ball is played with for its own sake at any Focus: his own play mints no
+		# Bones (D70) and it has no Hearts to pay.
+		if not pays_hearts:
+			_note("at Off, as at any Focus, a %s is played with for its own sake" % id)
+			continue
+		counted += 1
+		if brain_paid > 0.0 or toy_paid > 0.0:
+			earning += 1
+		else:
+			silent.append("%s (%s)" % [id, ROUTINE_NAMES.get(routine, "?")])
+	_measure("at Off, %d of %d routine toys that pay Hearts earned within a dwell%s" % [earning,
+		counted, "" if silent.is_empty() else "; silent: " + _list(silent)])
+	_check("at Off every routine toy that pays Hearts still earns (%d of %d%s)" % [earning, counted,
+		"" if silent.is_empty() else "; silent: " + _list(silent)], silent.is_empty() and counted > 0)
 	_idle._disturb()
+	_clear_desk()
 	_focus(Settings.Intensity.NORMAL)
 	_end()
 

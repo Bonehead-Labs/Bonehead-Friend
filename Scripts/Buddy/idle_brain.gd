@@ -391,6 +391,15 @@ func _tick_play() -> void:
 	# with it and pays for that itself — so this is still a routine the brain pays nothing for.
 	if _routine == ROUTINE_FIDGET and (_focus_off() or _touching_target()):
 		_target.call(&"idle_use", _buddy)
+	# At Focus Off he is simply there and touches nothing (D21, D36), and every other kind toy
+	# pays only for touch — so it is asked to pay for his presence instead, as itself (D70). The
+	# brain still pays nothing it did not do. Food can be eaten by it, which ends the routine.
+	elif _focus_off() and not _brain_pays(_routine) and not _in_contact():
+		var friendly := _target as FriendlyBase
+		if friendly:
+			friendly.pay_presence(_buddy, THINK_SECONDS)
+			if _phase != PHASE_PLAYING:
+				return
 	if _phase_seconds >= DWELL_SECONDS:
 		_finish(true)
 

@@ -143,6 +143,37 @@ func _physics_process(delta: float) -> void:
 	if _since_flush >= FLUSH_SECONDS:
 		_flush()
 
+## He is at this toy without touching it, for `seconds`: Focus Off, where he does not walk to
+## anything (D21, D36) and the idle brain has him "simply there". Everything this class pays for
+## him is paid for touch, so at Off the soaks, scrubs, snacks and balls — 21 of the 40 routine
+## toys that pay Hearts — earned nothing, and D21 promises that Off still earns (D70).
+##
+## So the brain asks the toy to pay what that much contact would have paid, and the toy pays it
+## as itself, down the same roads: a touching rate as a trickle, the grime the sponge takes off
+## him, a helping at the contact cooldown as an act — eaten, if it is food. Still the toy paying
+## and the brain paying nothing; and never on top of real contact, which pays for itself.
+func pay_presence(him: Buddy, seconds: float) -> void:
+	if him == null or seconds <= 0.0 or _touching_buddy() == him:
+		return
+	var value := value_multiplier()
+	if hearts_per_second_touching > 0.0:
+		_bank(hearts_per_second_touching * value * seconds, him.global_position)
+	if cleans_grime and him.grime:
+		var removed := him.grime.clean(ItemDB.balance.sponge_clean_rate * seconds)
+		if removed > 0.0:
+			_bank(removed * ItemDB.balance.hearts_per_grime_cleaned * value, him.global_position)
+	_flush()
+	if hearts_per_contact > 0.0:
+		var now := Time.get_ticks_msec()
+		if now >= _next_contact_msec:
+			var gap := contact_cooldown * Progression.get_modifier(item_id, &"cooldown_mult")
+			_next_contact_msec = now + int(gap * 1000.0)
+			_pay_event(hearts_per_contact * value, him.global_position)
+			if consume_on_use:
+				_eaten += 1
+				if _eaten >= servings:
+					_despawn()
+
 ## The kindness-value multiplier, which on this side of the economy is what `damage_mult`
 ## means (docs/economy.md).
 ##
