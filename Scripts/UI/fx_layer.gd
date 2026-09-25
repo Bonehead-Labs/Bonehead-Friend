@@ -231,11 +231,31 @@ func _on_payout(currency: StringName, amount: float, world_pos: Vector2, source_
 	# Hearts sit a touch below the hit so the two economies do not stack on the same pixel
 	# when a kind item and a weapon are both in play.
 	var offset := Vector2(0, 0) if currency == &"bones" else Vector2(0, 14)
-	var placed := spawn_number("+%s" % _format(amount), world_pos + offset, ramp[tier], 1.0, tier)
+	var aim := world_pos + offset
+	if currency == Economy.HEARTS and not Economy.paying_kind_act:
+		aim = _over_his_head(aim)
+	var placed := spawn_number("+%s" % _format(amount), aim, ramp[tier], 1.0, tier)
 	# The tag rides the number where it was actually put, not where it was aimed: a number
 	# stepped aside to make room would otherwise leave its tag hanging over somebody else's.
 	if placed.is_finite():
 		_tag_streak(currency, source_id, placed, ramp, tier)
+
+## Clear of the top of his head, where a trickle aimed at him starts: half a small number and
+## a little air.
+const HEAD_CLEARANCE := 16.0
+
+## **A trickle never sits on his face** (D75). A soak and his own play bank their Hearts at his
+## centre, so for as long as he sat in the hot tub a pale number printed on white bone arrived
+## over his face twice a second, and read as neither. A trickle aimed anywhere on him now rises
+## from over his head. An act keeps its spot, as a hit does: a pet lands where the hand was.
+func _over_his_head(aim: Vector2) -> Vector2:
+	var him := get_tree().get_first_node_in_group(&"buddy")
+	if him == null or not him.has_method("get_interaction_rect"):
+		return aim
+	var rect: Rect2 = him.get_interaction_rect()
+	if not rect.grow(4.0).has_point(aim):
+		return aim
+	return Vector2(rect.get_center().x, rect.position.y - HEAD_CLEARANCE)
 
 ## The streak and the combo, drawn. The kindness combo swung the payout up to x3 and the
 ## damage streak is the genre's whole feeling of momentum, and neither was ever on screen
