@@ -2000,6 +2000,142 @@ apart): they draw beneath the lines and are thrown no higher than the headline. 
 points through its rise.
 
 
+## D67 — Everyday things have verbs: the right button on what used to be only put down (2026-09-25)
+
+**Decision.** Thirteen items that were "put it down and wait" get one thing to do with them in
+your hands: squeeze the duck, change the boombox's track, stroke the wind chimes, feed the fish,
+churn the lava lamp, water the plant, change the fairy lights, scratch the record, crank the
+bubble machine, stir the tea, run the hot tub's jets, pull the party popper, aim the fan. Each
+verb is a row in `tools/verb_table.gd` — zones, gesture, what it pays, what it looks and sounds
+like, what his face does — on a new component, `ItemVerbs`, that rides beside D57's
+`GestureZones` on the body the item already had. No item changed class and no item stopped
+doing what it did.
+
+**Why.** The owner: "a lot more creative fidget style click and drag objects we can do that
+utilise a combination of left and right click, utilise different click zones etc." D57 built
+the grammar and five new toys on it; the thirty kind items already on the shelf were still
+furniture. His hour-long session log shows what he actually used: the beanbag, the sponge and
+the open hand — the things you *do* something with.
+
+**The grammar is D57's, unchanged.** Left carries. Right on a zone is that zone's verb; right in
+the hand is the item's own action (the popper). Right anywhere else on the item still bins it —
+the boombox's speakers, the tank's stand, the lamp's foot — and Shift+right bins it anywhere,
+which matters for the duck, the lights and the chimes: they are zone from edge to edge.
+Hovering a verb's zone shows the pointing hand. Each item teaches its line once, on first
+landing, and the shop's HowTo strip shows it (`ItemData.controls`, written by
+`tools/seed_m310_verbs.tscn`).
+
+**A component, not a class, and a row, not a script** (D8). `ItemVerbs` reads its rows from the
+scene; the two seeders that own these scenes call `VerbTable.attach()` on every body they build,
+so a scene rebuilt from its seeder comes back with its verbs. A row names its zone and gesture
+(tap, press, cross, crank every N radians, drag every N pixels, action), its payment (`value`,
+`cooldown`, `once`, and the conditions `near` and `touching`), whether it `consume`s the item,
+a `cycle` of states with a colour and a note each, sound, bursts, and a small vocabulary of
+effects: `squash` and `swing` about an anchor in art pixels, `tint` and `tempo` on the sprite and
+the ambient emitter, and `surge`, a GPU emitter in the item's own frame for a few seconds. The
+one verb that needed code is the fan's, and it is one method on `WindSource` the row names
+(`call: aim_at`). Staying `FriendlyBase` matters beyond tidiness: `item_check` picks its driver
+by exact class, and every one of these items is still driven, and passes, as what it was.
+
+**Ranked by delight per hour of work, and what was built.**
+
+| Item | The verb | What you see | Pays (value / cooldown) | His face |
+|---|---|---|---|---|
+| Rubber duck | right-click it | squashes about its belly, squeaks, hearts | 2 / 1.5 s | amused |
+| Boombox | right-click the buttons | next of four tracks: its notes change colour and tempo | 4 / 4 s | a new move, then dances on |
+| Wind chimes | right-drag across the tubes | each tube it crosses rings its note; the chime rocks on its hook | 3 / 3 s, once a stroke | grooves |
+| Party popper | hold it, right-click | a bang and confetti in four colours; it is used up | 45, once, only near him | laughs |
+| Fish tank | right-click the lid | flakes drift down, the fish come up for them, the water bubbles | 12 / 15 s | watches |
+| Lava lamp | right-click the glass | wax rises through the glass for five seconds; the lamp rocks | 8 / 8 s | watches |
+| Houseplant | right-click the leaves | water falls on it, then it stands up a little taller | 6 / 20 s | amused |
+| Fairy lights | right-click the lights | warm, rose, sky, mint — the bulbs and their twinkle | 3 / 4 s | watches |
+| Record player | right-drag across the record | a scratch every 8 art px, higher pushed and lower pulled | 5 / 4 s | grooves |
+| Bubble machine | right-drag circles on the fan | a tick a quarter turn, a flurry from the chimney a turn | 5 / 4 s | watches |
+| Cup of tea | right-drag circles in the cup | a clink a half turn; two turns and it steams — a proper cup | 5, once a cup | amused |
+| Hot tub | right-click the jets | the water boils with bubbles for five seconds | 10 / 8 s, only while he is in it | pampered |
+| Desk fan | right-drag from its face | the wind turns to the cursor, level to 50° either side; a line shows where | nothing — the verb is the physics | — |
+
+*Considered, and left for later:* the **birthday cake**'s candles (blow them out, relight them —
+good, but it is food and is gone the moment he touches it); the **massage chair**'s programme
+button (the hot tub's jets again, with nothing new to draw); the **beanbag** plumped (a squash
+on the thing he already sinks into — the tell is him, not it); the **hammock** rocked (the sprite
+can rock but he cannot rock in it, so it reads as broken); the **chocolate fountain** dipped
+(there is nothing in the player's hand to dip).
+
+*Rejected as busywork:* the **pizza, donuts, ice cream and noodles** (each lives a few seconds
+before he eats it); the **foot spa, paddling pool and heated blanket** (a splash or a dial that
+is the jets again, or invisible); the **jigsaw** (a piece placed needs a drawing per piece, and a
+verb without a visible result is a click for money); the **kite**, **tennis ball** and
+**baseball** (throwing already *is* the verb); the **sponge, towel and duster** (rubbing him
+already is); the **trampoline** and **beach ball** (another stream's).
+
+**What a verb pays, and why so little.** A verb is an act — the combo, the contract board and
+the per-act Dollars see it, and the item's value node scales it — paid on the bus exactly as
+`FidgetToy.pay_act` pays, so Economy is still the only thing that mints anything. It is sized
+against petting, the kind side's hands-on baseline of one value a stroke at three or four
+strokes a second: one act is a few seconds of petting, and **no verb pays faster than 1.5 value
+a second however fast it is clicked** (value / cooldown; `verbs_check` asserts the ceiling on
+every row), which is below each item's own rate — a rate that pays whether anyone is there or
+not. A player going round the desk working one verb after another, a click every second or
+two, earns about what stroking him would have, and stroking him is what `pacing_sim` models
+for every second of kind play. The simulator reads nothing a verb changes and does not move:
+first Reincarnation 9:41:19, first automation at 15:33 of play, worst dead stretch 1:10. It
+would move if a verb were ever priced like a generator, which is what the ceiling is for.
+
+No verb can make an item pay twice for one thing: a cooldown bounds each, the popper pulled is
+the popper gone (and thrown, the same), the tea is stirred once a cup, and the jets pay only for
+the soak they improve. A verb still plays during its cooldown — the lamp still churns, the
+chimes still ring — it only does not pay.
+
+**He notices, in three rows rather than thirteen.** `grooving` (a hop at a new track, a scratch,
+a chime), `marvel` (a three-second hold, face toward it: wax, fish, lights, bubbles) and
+`pampered` (the jets, only while he is in them); the popper uses the jack's `laugh`, and the
+duck, the plant and the tea use `amused`. They arrive on `fidget_event`, which the brain already
+listens to, through `FIDGET_ROWS`. Two changes to the brain made that honest:
+
+- **A beat over one of his routines goes back to it.** A new track used to end his dance: the
+  react took the one slot and nothing put the routine back. Now `_on_fidget_event` queues the
+  routine's hold behind any fidget beat, so he does a new move and dances on. The kindness act
+  the verb pays does not stand him down either — the idle brain already exempts the toy he is
+  at — so `verbs_check` walks him to a boombox, changes the track and watches him keep dancing.
+- **Only the verb's act is the hand's.** D57's `_worked_by_hand` read "has a `controls` line"
+  as "every payment is a hand at work, so skip the generic face". Giving the tea a line would
+  have stopped him looking pleased to drink it. `ItemVerbs.paying` is set while a verb's act is
+  on the bus (the `Economy.paying_kind_act` idiom), and an item that carries verbs is otherwise
+  judged as it always was: the tea is eaten, the duck caught, the boombox trickles to
+  `cared_for`. Whether an item carries verbs is read from its scene, not kept in a list.
+  `marvel` is at REACTION for the same reason: every one of these items trickles, and its next
+  flush would have swapped the show for `cared_for` half a second in.
+
+**Found on the way: `seed_friendly` never wired `sprite`.** Twenty-eight of the kind items — every
+one it builds — left `BaseDraggable.sprite` empty, so none of them wore D41's glow, popped on
+landing, or sat its ambient steam, bubbles or notes on its own top edge rather than on a guessed
+32px square. Fixed in the seeder and all twenty-eight scenes rebuilt through it (D62's route:
+delete, re-run without `--force`); each diff is the one `sprite` line and fresh ids, plus the
+verbs where there are any.
+
+**The fan.** Another stream owns the fan's augment tree; this touches only its verb — one method
+on `WindSource`, which turns `blow_direction` and the wind area together — and its scene's zones.
+Its `item_check` driver still passes: a fan fresh on the desk blows right, as it always did.
+
+**Budget.** Nothing per frame. `ItemVerbs` has no frame callback and no input of its own; it runs
+on a gesture. A squash or a swing is a tween that stops; an emitter is built the first time its
+effect plays, emits for that effect's seconds and stops, and is timed so a second churn is not
+cut short by the first one's timer. At Focus Off a verb still pays and his face still answers,
+and nothing on the desk moves; a tint is a state, not a motion, so the lights still change.
+
+*Consequence:* a new verb is a row in `tools/verb_table.gd` — zones read off the sprite with
+`art/tools/zone_sheet.py`, which draws it at 8x on an art-pixel grid and the zones you wrote back
+over it — then the scene rebuilt through its seeder and `seed_m310_verbs` run for its line. A
+verb that needs behaviour the vocabulary lacks names a method on its body with `call`. Tests:
+`tests/integration/verbs_check.tscn` drives every verb with synthetic events at its zone's real
+position and asserts the act through the payout probe (never the balance: every one of these
+trickles), his row, one payment per cooldown, the conditions, the grammar, Focus Off, and that
+nothing runs at rest; it also fails if the scenes and the table ever disagree. **Not yet seen by
+a person**, because no window may open on this machine while the owner is using it: every
+effect's look on a real desk (`ui_shots`, `audit_shots`), the scratch sound, and whether the
+wax, the fish and the flurry read at 1x.
+
 ## Recommendations not yet decided
 
 Carried in the spec, owner's call before they matter:
