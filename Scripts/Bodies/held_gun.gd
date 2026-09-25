@@ -5,12 +5,19 @@ extends WeaponBase
 ## at him — but it is a body on a string, not a cursor, so it has weight: it lags when you
 ## swing it, it kicks when it fires, and a long burst climbs off him.
 ##
-## The cursor pistol, shotgun and minigun stay. They are a mode the cursor becomes; this is a
-## thing on the desk that you pick up, that he can see pointed at him, and that you can drop.
-## The owner asked for exactly this after a session spent mostly on the cursor guns: "actual
-## weapons in the game ... auto aim at the character, but be affected by recoil and be shot
-## with right click when held with left click, stabilised automatically but with physics a
-## bit so it has weight".
+## Every gun in the game is one of these (D71). The cursor pistol, shotgun and minigun were
+## retired into held guns under the same ids, because the owner, after an evening with these:
+## "they feel excellent, so much so that cursor powers should not have guns anymore". The
+## cursor is for powers; a gun is a thing on the desk that you pick up, that he can see
+## pointed at him, and that you can drop.
+##
+## Four things a gun can have beyond D56's trigger, each off unless its numbers say otherwise:
+## a **magazine** that runs dry and reloads (the double barrel's two, the tommy gun's drum), a
+## **spin-up** before a rotary gun fires and a spin-down that lets a quick re-press fire at
+## once (the minigun), **heat** that locks the trigger when it overflows (the ray gun), and a
+## **lob**: a gun whose shot falls lays its barrel on the arc that lands on him rather than on
+## the straight line (the grenade launcher, the flare gun, the harpoon, the foam darts). What a
+## shot *is* beyond a ray, a squirt or a bubble belongs to a subclass (`Scripts/Bodies/Guns/`).
 ##
 ## ## How it aims
 ##
@@ -139,10 +146,56 @@ const WATER := Color("7fe3df")
 @export var bubble_speed: float = 90.0
 @export var bubble_texture: Texture2D
 
+@export_group("Magazine")
+## Rounds before it has to reload; zero never reloads. A revolver's six are drawn, not counted:
+## a magazine is here for the guns whose rhythm *is* the reload.
+@export var magazine: int = 0
+## Seconds from the last round to a full magazine, before the rate node, which shortens it too.
+@export var reload_time: float = 1.0
+## The cases come out at the reload rather than with each shot: a break-action throws both.
+@export var eject_on_reload: bool = false
+
+@export_group("Spin")
+## Seconds of held trigger before a rotary gun fires its first round. Zero fires at once.
+@export var spin_up: float = 0.0
+## Seconds to run down from full speed once the trigger is let go. Pressed again before it has
+## stopped and it fires at once — which is how a minigun is fought: in bursts, spun.
+@export var spin_down: float = 0.8
+## The shudder of the barrels at full speed, rad/s² of jitter about the grip.
+@export var spin_shudder: float = 0.0
+## The second frame of the barrels, shown every other beat while they turn.
+@export var spin_sprite: Sprite2D
+
+@export_group("Heat")
+## Share of the gauge each shot adds. Zero is a gun that never heats.
+@export var heat_per_shot: float = 0.0
+## Share of the gauge shed a second.
+@export var heat_cooling: float = 0.5
+## Seconds the trigger is dead after the gauge overflows.
+@export var overheat_lock: float = 1.5
+
+@export_group("Lob")
+## A shot that is a body rather than a ray: its speed, and how much of gravity it feels. When
+## both are set the aim lays the barrel on the low arc through him, not the straight line.
+@export var projectile_speed: float = 0.0
+@export var projectile_gravity: float = 0.0
+
+@export_group("Look")
+## The shot's line. Clear means the juice tier's colour (D41); the ray gun's beam is a tracer.
+@export var tracer_colour: Color = Color(0, 0, 0, 0)
+@export var tracer_width: float = 2.0
+@export var tracer_time: float = 0.08
+
 @export_group("Sound")
 @export var fire_sound: StringName = &"turret_fire"
 @export var fire_pitch: float = 1.0
 @export var fire_volume_db: float = -8.0
+
+## A heat gauge at full, off the roster palette's red.
+const HOT := Color(1.0, 0.55, 0.45)
+
+## Share of full speed a rotary gun still fires at while it runs down.
+const SPIN_HOLDS := 0.35
 
 ## +1 drawn as authored, -1 mirrored about the barrel line.
 var _flip := 1.0
@@ -168,6 +221,23 @@ var _since_flush := 0.0
 
 var _kind_known := false
 var _kind := false
+
+## Rounds left, or -1 for a full magazine not yet counted into.
+var _rounds := -1
+## When the reload in progress ends, or 0 with none.
+var _reload_until_msec := 0
+## 0 stopped, 1 up to speed.
+var _spin := 0.0
+var _spin_phase := 0.0
+## Up to speed since it last reached it, and not yet run down past `SPIN_HOLDS`: a rotary gun
+## fires only from full speed, and keeps firing — or fires at once when pressed again — for as
+## long as the barrels are still turning fast.
+var _spun := false
+## The gauge as last written, and when; read through `heat_level`, which cools it by the clock,
+## so a gun lying on the desk does no work to cool down.
+var _heat := 0.0
+var _heat_msec := 0
+var _overheat_until_msec := 0
 
 ## Shots fired, for the suite and the F3 overlay. Never read by the simulation.
 var shots_fired := 0
@@ -218,7 +288,14 @@ func pull_trigger() -> void:
 		return
 	_trigger_held = true
 	set_process_input(true)
-	fire()
+	if spin_up > 0.0 and _spin <= 0.0:
+		AudioManager.play(&"whirr", 0.04, -8.0, 0.7)
+	if not fire():
+		# A trigger that does nothing must still say why: a dry click while it reloads or
+		# cools. A rotary gun spinning up has said so already.
+		var now := Time.get_ticks_msec()
+		if is_reloading(now) or is_overheated(now):
+			AudioManager.play(&"wheel_tick", 0.05, -12.0, 0.8)
 
 func release_trigger() -> void:
 	_trigger_held = false
@@ -232,6 +309,10 @@ func _end_drag() -> void:
 	super._end_drag()
 	release_trigger()
 	_set_threat(false)
+	_spin = 0.0
+	_spun = false
+	if spin_sprite:
+		spin_sprite.visible = false
 
 func _exit_tree() -> void:
 	_flush()
@@ -250,13 +331,52 @@ func _physics_process(delta: float) -> void:
 	var since := Time.get_ticks_msec() - _last_shot_msec
 	if not _trigger_held or since > int(_interval() * 1500.0):
 		_climb = move_toward(_climb, 0.0, climb_recovery * delta)
+	if spin_up > 0.0:
+		_turn_barrels(delta)
 	_hold_aim()
 	if _trigger_held and auto_fire:
 		fire()
+	if heat_per_shot > 0.0 and sprite:
+		sprite.modulate = Color.WHITE.lerp(HOT, heat_level())
 	if _banked > 0.0:
 		_since_flush += delta
 		if _since_flush >= FLUSH_SECONDS:
 			_flush()
+
+## A rotary gun: up to speed while the trigger is held, down again when it is not, shuddering
+## in the hand while it turns, and the barrels drawn turning.
+func _turn_barrels(delta: float) -> void:
+	if _trigger_held:
+		_spin = minf(1.0, _spin + delta / _spin_up_seconds())
+	else:
+		_spin = maxf(0.0, _spin - delta / maxf(spin_down, 0.05))
+	if _spin >= 1.0:
+		_spun = true
+	elif _spin < SPIN_HOLDS:
+		_spun = false
+	if _spin <= 0.0:
+		if spin_sprite and spin_sprite.visible:
+			spin_sprite.visible = false
+		return
+	if spin_shudder > 0.0:
+		var arm := global_transform * center_of_mass - global_position
+		apply_torque_impulse(randf_range(-1.0, 1.0) * spin_shudder * _spin * delta * _pivot_inertia(arm))
+	_spin_phase += _spin * delta * 24.0
+	if spin_sprite:
+		spin_sprite.visible = int(_spin_phase) % 2 == 1
+
+## Seconds to full speed, which the rate node shortens as it shortens every other wait.
+func _spin_up_seconds() -> float:
+	var up := spin_up
+	if item_id != &"":
+		up *= Progression.get_modifier(item_id, &"cooldown_mult")
+	return maxf(up, 0.05)
+
+func spin() -> float:
+	return _spin
+
+func is_spun() -> bool:
+	return _spun
 
 func _hold_aim() -> void:
 	var com := global_transform * center_of_mass
@@ -288,6 +408,8 @@ func _hold_aim() -> void:
 ## `muzzle.y` from the grip, so the line is offset from the hand by that much and the angle
 ## is corrected by asin(offset / distance) — nothing at range, a few degrees up close.
 func _aim_angle(target: Vector2) -> float:
+	if projectile_speed > 0.0 and projectile_gravity > 0.0:
+		return _lob_angle(target)
 	var to := target - global_position
 	var distance := to.length()
 	var offset := muzzle.y * _flip
@@ -295,6 +417,28 @@ func _aim_angle(target: Vector2) -> float:
 	if distance > absf(offset) + 1.0:
 		correction = asin(clampf(offset / distance, -0.95, 0.95))
 	return to.angle() - correction
+
+## The launch angle of the low arc from the muzzle through `target`, for a shot that falls.
+## A shot lobbed at him from the muzzle along the barrel lands on him without anyone aiming
+## high, which is the D56 promise — the gun aims itself — kept for the guns whose shot drops.
+## Out of reach, it lobs at forty-five degrees and falls short, which is what a player would
+## do and what a grenade that bounces the rest of the way is for. No offset correction: the
+## shot leaves from the muzzle itself along the barrel, so the barrel's angle *is* the launch.
+func _lob_angle(target: Vector2) -> float:
+	var from := muzzle_position()
+	var dx := target.x - from.x
+	# Godot's y points down; `rise` is how far the target is above the muzzle.
+	var rise := from.y - target.y
+	var x := absf(dx)
+	var v := projectile_speed
+	var g := _gravity * projectile_gravity
+	var theta := PI * 0.25
+	if x > 1.0:
+		var reach := v * v * v * v - g * (g * x * x + 2.0 * rise * v * v)
+		if reach >= 0.0:
+			theta = atan((v * v - sqrt(reach)) / (g * x))
+	var side := 1.0 if dx >= 0.0 else -1.0
+	return Vector2(cos(theta) * side, -sin(theta)).angle()
 
 ## Moment of inertia about the grip: the body's own about its centre of mass, which the
 ## physics server computed from the authored shapes and the current mass, plus m r².
@@ -403,7 +547,7 @@ func fire() -> bool:
 	if not dragging:
 		return false
 	var now := Time.get_ticks_msec()
-	if now < _next_shot_msec:
+	if not ready_to_fire(now):
 		return false
 	# A stream keeps its phase: the next shot is due one gap after the last one was *due*, not
 	# after the frame that happened to fire it, or every gap rounds up to whole physics frames
@@ -415,6 +559,32 @@ func fire() -> bool:
 	_last_shot_msec = now
 	var from := muzzle_position()
 	var dir := barrel_direction()
+	_shoot(from, dir)
+	_recoil(dir)
+	shots_fired += 1
+	_spend_round(now)
+	_add_heat(now)
+	AudioManager.play(fire_sound, 0.08, fire_volume_db, fire_pitch)
+	if item_id != &"":
+		EventBus.contract_event.emit(&"use:%s" % item_id, 1)
+	return true
+
+## Whether a pull now would fire: the gap since the last shot, a reload, the barrels' speed,
+## the heat. Subclasses add their own (a harpoon that is still out).
+func ready_to_fire(now: int) -> bool:
+	if now < _next_shot_msec:
+		return false
+	if is_reloading(now):
+		return false
+	if spin_up > 0.0 and not _spun:
+		return false
+	if is_overheated(now):
+		return false
+	return true
+
+## What one pull puts into the world. The three D56 kinds here; a subclass whose shot is a body
+## overrides it.
+func _shoot(from: Vector2, dir: Vector2) -> void:
 	match shot_kind:
 		&"water":
 			_squirt(from, dir)
@@ -422,12 +592,79 @@ func fire() -> bool:
 			_blow(from, dir)
 		_:
 			_bullets(from, dir)
-	_recoil(dir)
-	shots_fired += 1
-	AudioManager.play(fire_sound, 0.08, fire_volume_db, fire_pitch)
+
+# --- the magazine --------------------------------------------------------------------------
+
+func rounds_left() -> int:
+	if magazine <= 0:
+		return -1
+	return magazine if _rounds < 0 else _rounds
+
+## Whether it is reloading at `now`. A reload whose time has come is finished here, by the
+## clock, so a gun put down mid-reload is loaded when it is picked up without having done any
+## work on the desk.
+func is_reloading(now: int) -> bool:
+	if _reload_until_msec <= 0:
+		return false
+	if now < _reload_until_msec:
+		return true
+	_reload_until_msec = 0
+	_rounds = magazine
+	return false
+
+func _spend_round(now: int) -> void:
+	if magazine <= 0:
+		return
+	_rounds = rounds_left() - 1
+	if _rounds > 0:
+		return
+	var seconds := _reload_seconds()
+	_reload_until_msec = now + int(seconds * 1000.0)
+	# A break-action opens as it runs dry and throws its cases then.
+	if eject_on_reload:
+		AudioManager.play(&"reel_stop", 0.05, -6.0, 0.8)
+		for i in magazine:
+			_eject_case()
+	# The sound of it closing, when it is done; the state is the clock's (above).
+	get_tree().create_timer(seconds).timeout.connect(_reloaded)
+
+func _reloaded() -> void:
+	if not is_inside_tree():
+		return
+	AudioManager.play(&"clack", 0.05, -8.0, 0.9)
+
+func _reload_seconds() -> float:
+	var seconds := reload_time
 	if item_id != &"":
-		EventBus.contract_event.emit(&"use:%s" % item_id, 1)
-	return true
+		seconds *= Progression.get_modifier(item_id, &"cooldown_mult")
+	return maxf(seconds, MIN_INTERVAL)
+
+# --- heat ----------------------------------------------------------------------------------
+
+## The gauge now, cooled by the clock since it was last written.
+func heat_level(now: int = -1) -> float:
+	if heat_per_shot <= 0.0:
+		return 0.0
+	if now < 0:
+		now = Time.get_ticks_msec()
+	return maxf(0.0, _heat - heat_cooling * float(now - _heat_msec) / 1000.0)
+
+func is_overheated(now: int) -> bool:
+	return now < _overheat_until_msec
+
+func _add_heat(now: int) -> void:
+	if heat_per_shot <= 0.0:
+		return
+	_heat = heat_level(now) + heat_per_shot
+	_heat_msec = now
+	if _heat < 1.0:
+		return
+	_heat = 1.0
+	_overheat_until_msec = now + int(overheat_lock * 1000.0)
+	AudioManager.play(&"scratch", 0.05, -8.0, 1.4)
+	var fx := WorldFX.of(self)
+	if fx:
+		fx.puff(muzzle_position(), 6, WorldFX.DUST, 55.0, 0.8)
 
 func _bullets(from: Vector2, dir: Vector2) -> void:
 	var space := get_world_2d().direct_space_state
@@ -452,8 +689,8 @@ func _bullets(from: Vector2, dir: Vector2) -> void:
 				(body as Buddy).take_impulse(shot_force, item_id, mult, end)
 		if fx:
 			if i < 3:
-				fx.tracer(from, end, WorldFX.harm_colour(tier) if tier > 0 else WorldFX.TRACER,
-					0.08, 2.0 + 0.6 * float(tier))
+				fx.tracer(from, end, _tracer_colour(tier), tracer_time,
+					tracer_width + 0.6 * float(tier))
 			if not hit.is_empty() and i < 4:
 				fx.shot(end, count > 1, tier)
 	if fx:
@@ -466,6 +703,12 @@ func _bullets(from: Vector2, dir: Vector2) -> void:
 	else:
 		_eject()
 
+## The authored colour when there is one (the ray gun's green), and the juice tier's otherwise.
+func _tracer_colour(tier: int) -> Color:
+	if tracer_colour.a > 0.0:
+		return tracer_colour.lerp(WorldFX.harm_colour(tier), 0.25 * float(tier))
+	return WorldFX.harm_colour(tier) if tier > 0 else WorldFX.TRACER
+
 ## A pump or a bolt working: the clack and the case, a beat after the shot.
 func _pump() -> void:
 	if not is_inside_tree():
@@ -476,6 +719,9 @@ func _pump() -> void:
 func _eject() -> void:
 	if not ejects:
 		return
+	_eject_case()
+
+func _eject_case() -> void:
 	var fx := WorldFX.of(self)
 	if fx:
 		fx.chips(to_global(Vector2(ejector.x, ejector.y * _flip)), WorldFX.GOLD, 1, 150.0)
