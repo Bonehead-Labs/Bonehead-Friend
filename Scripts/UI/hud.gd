@@ -203,6 +203,17 @@ func _home() -> Vector2:
 	var wide := maxf(WIDTH, _box.size.x if _box else 0.0)
 	if tabs.position.x < home.x + wide + MARGIN and tabs.position.y < home.y + 1.0:
 		home.y = tabs.end.y + MARGIN
+		# Never down past the bottom of the window. At a large Menu size on a mid-size window
+		# the card is taller than the room under the tabs — 675px under a 130px strip in 800
+		# at 2x — and stepping all the way down put its foot 5 to 25px off screen, which only a
+		# windowed run could see (window_check). Overlapping the strip's last few pixels is the
+		# lesser fault: the tabs are a layer above and still take their clicks.
+		# The minimum, not the realised size: a container under a plain Control keeps its old,
+		# larger size when its minimum shrinks (CLAUDE.md), and that stale height pinned the card
+		# to the top at 2x on a window it fitted comfortably.
+		var tall := _column.get_combined_minimum_size().y if _column else 0.0
+		var lowest := (_root.size.y if _root else home.y + tall) - tall - MARGIN
+		home.y = maxf(MARGIN, minf(home.y, lowest))
 	return home
 
 ## Onboarding pins the card open so a first-time player can see there is a game here. Goes
@@ -228,6 +239,15 @@ func _build() -> void:
 	column.add_theme_constant_override("separation", 8)
 	_root.add_child(column)
 	_column = column
+	# The step down under the tabs depends on how tall the card is and how tall the window is,
+	# and neither is settled when the tabs report in: the card grows when a toast or the streak
+	# row appears, and this layer's root is resized for a new Menu size after the panel layer's
+	# (whose fit is what tells us). So the home is re-asked on both, not only when the tabs move.
+	var reask := func() -> void:
+		if _drawer and _tabs_rect.size.x > 0.0:
+			_drawer.set_home(_home())
+	column.resized.connect(reask)
+	_root.resized.connect(reask)
 
 	_box = PanelContainer.new()
 	_box.custom_minimum_size = Vector2(WIDTH, 0)

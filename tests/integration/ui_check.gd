@@ -1939,8 +1939,19 @@ func _the_shell_at_every_menu_size() -> void:
 		var hud := get_tree().get_first_node_in_group(HUD.GROUP_HUD)
 		var tabs: Rect2 = panels.call("shell_rect")
 		var status: Rect2 = hud.call("shell_rect") if hud else Rect2()
-		_check("%s: the page tabs never sit on the status card" % at,
-			status.size.x > 0.0 and not tabs.intersects(status), "tabs %s, status %s" % [tabs, status])
+		# Only where the card fits under the strip. A tall card at a large Menu size does not —
+		# 736px under a 92px strip in 760 at 2x — and stepping it all the way down put its foot
+		# off the window, which window_check forbids at every size. There it stays inside the
+		# window and overlaps the strip's edge, the lesser of the two faults.
+		var slack := 24.0
+		var fits_below := status.size.y <= float(_view.size.y) - tabs.end.y - slack
+		_check("%s: the page tabs never sit on the status card when it fits below them" % at,
+			status.size.x > 0.0 and (not fits_below or not tabs.intersects(status)),
+			"tabs %s, status %s, fits below %s" % [tabs, status, fits_below])
+		var taller_than_window := status.size.y > float(_view.size.y) - slack
+		_check("%s: and it never steps down off the bottom of the window" % at,
+			taller_than_window or status.end.y <= float(_view.size.y) + 0.5,
+			"status %s in %s" % [status, _view.size])
 
 	# Rebuilding the theme is paid when the rule width changes and at no other time: the steps
 	# above crossed between whole and fractional factors, and a resize at the same factor
