@@ -581,6 +581,69 @@ func _drive_embed(body: WeaponBase, ability: EmbedAbility) -> Dictionary:
 	return {"throw": ability.last_hit, "ticks": ability.ticks, "out": String(ability.came_out),
 		"hits": _hits.size()}
 
+## Brush Clear: a prop in front of the hand and one behind it; one swipe throws him and the one in
+## front away from the hand, and leaves the one behind alone.
+func _drive_brush_clear(body: WeaponBase, ability: BrushClearAbility) -> Dictionary:
+	await _approach(body, Vector2(-200.0, -20.0))
+	var hand := _mouse
+	var front := _prop(hand + Vector2(105.0, 40.0))
+	var behind := _prop(hand + Vector2(-110.0, 40.0))
+	await _step(20)
+	_press(MOUSE_BUTTON_RIGHT)
+	await _step()
+	_release(MOUSE_BUTTON_RIGHT)
+	await _await_cond(func() -> bool: return ability.last_origin != Vector2.INF or not ability.is_active(), 40)
+	await _step()
+	_check("one swipe cleared the cone (%d thrown)" % ability.last_swept, ability.last_swept >= 2)
+	_check("him away from the hand (%.0f px/s handed, moving %.0f)" % [ability.last_push,
+		_buddy.linear_velocity.x], ability.last_push > 0.0 and _buddy.linear_velocity.x > 50.0)
+	_check("the prop in front with him (%.0f, %.0f)" % [front.linear_velocity.x, front.linear_velocity.y],
+		front.linear_velocity.x > 100.0 and front.linear_velocity.y < 0.0)
+	_check("and not the one behind (%.0f px/s)" % behind.linear_velocity.length(),
+		behind.linear_velocity.length() < 40.0)
+	await _step(3)
+	_check("billed as the impulse it handed him", _hit_with_impulse(_buddy.mass * ability.last_push) != null)
+	await _expect_face(&"swept", &"swept")
+	var him := await _peak_speed(20)
+	front.queue_free()
+	behind.queue_free()
+	return {"push": ability.last_push, "swept": ability.last_swept, "him": him, "hits": _hits.size()}
+
+## Reap: from beside him at chest height, one press: the hand drops and sweeps, the hook takes
+## his feet, and he goes head over heels.
+func _drive_reap(body: WeaponBase, ability: ReapAbility) -> Dictionary:
+	await _approach(body, Vector2(-170.0, -30.0))
+	var top := _buddy.global_position.y
+	_press(MOUSE_BUTTON_RIGHT)
+	await _step()
+	_release(MOUSE_BUTTON_RIGHT)
+	var low := 0.0
+	var contact_hits := 0
+	for i in 40:
+		await _step()
+		low = maxf(low, ability.hand_world().y - _mouse.y)
+		if ability.caught_him:
+			break
+		contact_hits = _hits.size()
+	_check("the hand went down to the desk (%.0f px)" % low, low >= 60.0)
+	_check("and the hook caught his feet without shoving him first (%d contact hits)" % contact_hits,
+		ability.caught_him and contact_hits == 0)
+	var turned := 0.0
+	var rise := 0.0
+	for i in 50:
+		turned += absf(_buddy.angular_velocity) / 60.0
+		rise = maxf(rise, top - _buddy.global_position.y)
+		await _step()
+	_check("head over heels (%.1f rad turned, %.0f px up)" % [turned, rise], turned >= 2.0 and rise >= 15.0)
+	_check("billed as the reap's own impulse at x%.2f" % ability.num("reap_mult", 1.2),
+		_hit_with_impulse(ability.last_reap) != null)
+	_check("and where he lands is the sickle's", _claimed_seen or _buddy.impacts_claimed_by() == _id)
+	await _expect_face(&"upended", &"upended")
+	await _await_cond(func() -> bool: return not ability.is_active(), 120)
+	_check("the exception comes off and the hand is its own again",
+		not body.get_collision_exceptions().has(_buddy) and body.hand_offset == Vector2.ZERO)
+	return {"reap": ability.last_reap, "turned": turned, "rise": rise, "hits": _hits.size()}
+
 ## En Garde: right held, it points itself at him; lunges along the blade are thrusts, x2.
 func _drive_en_garde(body: WeaponBase, ability: EnGardeAbility) -> Dictionary:
 	await _approach(body, Vector2(-200.0, -40.0))

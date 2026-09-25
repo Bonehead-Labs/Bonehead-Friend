@@ -281,6 +281,43 @@ func _stage_embed(id: StringName, ability: WeaponAbility, centre: Vector2, _floo
 			break
 	await _shot("%s-out" % id, 8)
 
+## Brush Clear: three toys on the desk in front of the hand, and one swipe.
+func _stage_brush_clear(id: StringName, ability: WeaponAbility, centre: Vector2, floor_y: float) -> void:
+	for toy in [&"rubber_duck", &"tennis_ball", &"baseball"]:
+		_own(toy)
+	EventBus.spawn_requested.emit(&"rubber_duck", Vector2(centre.x - 110.0, floor_y - 30.0))
+	EventBus.spawn_requested.emit(&"tennis_ball", Vector2(centre.x - 75.0, floor_y - 30.0))
+	EventBus.spawn_requested.emit(&"baseball", Vector2(centre.x + 90.0, floor_y - 30.0))
+	await _carry(centre + Vector2(-210.0, -20.0), 50)
+	var brush := ability as BrushClearAbility
+	ability.press()
+	ability.release()
+	await _shot("%s-wind" % id, 4)
+	for i in 20:
+		await _carry(_hand, 1)
+		if brush.last_origin != Vector2.INF:
+			break
+	await _shot("%s-swipe" % id, 1)
+	await _shot("%s-cleared" % id, 8)
+
+## Reap: the hand drops and sweeps; his feet go; he goes over.
+func _stage_reap(id: StringName, ability: WeaponAbility, centre: Vector2, _floor_y: float) -> void:
+	await _carry(centre + Vector2(-170.0, -30.0), 40)
+	var reap := ability as ReapAbility
+	ability.press()
+	ability.release()
+	for i in 20:
+		await _carry(_hand, 1)
+		if reap._phase == ReapAbility.SWEEP:
+			break
+	await _shot("%s-sweep" % id, 3)
+	for i in 30:
+		await _carry(_hand, 1)
+		if reap.caught_him:
+			break
+	await _shot("%s-caught" % id, 1)
+	await _shot("%s-over" % id, 9)
+
 ## En Garde: on guard at him, and a lunge.
 func _stage_en_garde(id: StringName, ability: WeaponAbility, centre: Vector2, _floor_y: float) -> void:
 	await _carry(centre + Vector2(-200.0, -40.0), 40)

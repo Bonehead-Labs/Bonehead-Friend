@@ -156,6 +156,28 @@ const ABILITIES := {
 		"out_seconds": 0.7, "lodge_seconds": 3.0, "tick_seconds": 0.5, "tick_force": 600.0,
 		"tick_mult": 1.0, "give_up_seconds": 3.0,
 	},
+	# One wide chest-high swipe: everything in the 120 degrees in front is thrown away from you.
+	&"machete": {
+		"id": &"brush_clear", "name": "Brush Clear", "archetype": &"shockwave",
+		"script": "res://Scripts/Bodies/Abilities/brush_clear_ability.gd",
+		"controls": "Hold · Right: Brush Clear — one wide swipe clears everything in front of you",
+		"cooldown": 4.0, "busy": 0.5, "worth": 1.0,
+		"wind_px": 40.0, "wind_seconds": 0.08, "swipe_px": 90.0, "swipe_seconds": 0.12,
+		"recover_seconds": 0.2, "whip": 12.0, "radius": 260.0, "cone_degrees": 120.0, "pop": 950.0,
+		"lift_degrees": 20.0, "wave_mult": 1.2, "claim_seconds": 1.5,
+	},
+	# The hand drops to the desk and sweeps a low arc under him and back: caught by the feet, he goes
+	# head over heels toward you.
+	&"sickle": {
+		"id": &"reap", "name": "Reap", "archetype": &"dash",
+		"script": "res://Scripts/Bodies/Abilities/reap_ability.gd",
+		"controls": "Hold · Right: Reap — a low sweep that takes his feet out from under him",
+		"cooldown": 4.0, "busy": 0.7, "worth": 1.2,
+		"drop_seconds": 0.1, "sweep_seconds": 0.16, "pull_seconds": 0.12, "return_seconds": 0.2,
+		"floor_gap": 14.0, "sweep_px": 240.0, "feet_share": 0.45, "reap_force": 1800.0,
+		"reap_mult": 1.2, "pull": 260.0, "lift": 520.0, "flip": 13.0, "claim_seconds": 1.5,
+		"settle_seconds": 1.0,
+	},
 	# Hold: it points itself at him like a held gun (D56); a thrust along the blade is x2, a swipe
 	# across it x0.5.
 	&"rapier": {

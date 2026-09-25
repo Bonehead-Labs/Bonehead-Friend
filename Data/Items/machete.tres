@@ -14,3 +14,4 @@ scene = ExtResource("2_fl7qc")
 icon = ExtResource("1_qst1l")
 requires = Array[StringName]([&"katar"])
 sort_order = 47
+controls = "Hold · Right: Brush Clear — one wide swipe clears everything in front of you"
