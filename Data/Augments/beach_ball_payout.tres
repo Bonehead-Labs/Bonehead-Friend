@@ -10,4 +10,5 @@ display_name = "Party Rates"
 effect_key = &"payout_mult"
 effect_per_level = 1.12
 cost_base = 43
+currency = 1
 sort_order = 1

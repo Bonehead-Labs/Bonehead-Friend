@@ -1,46 +1,48 @@
 [gd_scene format=3]
 
-[ext_resource type="Script" path="res://Scripts/Bodies/weapon_base.gd" id="1_sy505"]
+[ext_resource type="Script" path="res://Scripts/Bodies/friendly_base.gd" id="1_sy505"]
 [ext_resource type="Texture2D" path="res://Assets/sprites/items/beach_ball.png" id="2_t40p1"]
 [ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_c61es"]
 
-[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_visfd"]
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_t40p1"]
 friction = 0.8
 bounce = 0.7
 
-[sub_resource type="CircleShape2D" id="CircleShape2D_utm2e"]
+[sub_resource type="CircleShape2D" id="CircleShape2D_c61es"]
 radius = 35.0
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_67j2p"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_visfd"]
 size = Vector2(82, 80)
 
-[node name="BeachBall" type="RigidBody2D" unique_id=1551422497 node_paths=PackedStringArray("drag_area", "handle", "collider")]
+[node name="BeachBall" type="RigidBody2D" unique_id=1490660388 node_paths=PackedStringArray("drag_area", "handle", "collider")]
 collision_layer = 4
 collision_mask = 7
 mass = 0.4
-physics_material_override = SubResource("PhysicsMaterial_visfd")
+physics_material_override = SubResource("PhysicsMaterial_t40p1")
 contact_monitor = true
 max_contacts_reported = 4
 script = ExtResource("1_sy505")
-damage_mult = 0.4
+hearts_per_contact = 4.0
+contact_cooldown = 0.5
+min_contact_speed = 200.0
 drag_area = NodePath("DraggableArea")
 handle = NodePath("Handle")
 collider = NodePath("CollisionShape2D")
 
-[node name="Sprite" type="Sprite2D" parent="." unique_id=297670579]
+[node name="Sprite" type="Sprite2D" parent="." unique_id=99390579]
 scale = Vector2(2, 2)
 texture = ExtResource("2_t40p1")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=362978230]
-shape = SubResource("CircleShape2D_utm2e")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1543274900]
+shape = SubResource("CircleShape2D_c61es")
 
-[node name="DraggableArea" type="Area2D" parent="." unique_id=616958330]
+[node name="DraggableArea" type="Area2D" parent="." unique_id=2042804021]
 script = ExtResource("3_c61es")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=1466371350]
-shape = SubResource("RectangleShape2D_67j2p")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=1804849928]
+shape = SubResource("RectangleShape2D_visfd")
 
-[node name="Handle" type="StaticBody2D" parent="." unique_id=647920673]
+[node name="Handle" type="StaticBody2D" parent="." unique_id=604942485]
 visible = false
 collision_layer = 0
 collision_mask = 0

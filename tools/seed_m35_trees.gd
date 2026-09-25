@@ -2,12 +2,13 @@ extends Node
 
 ## Writes the tier-1 augment tree for every item that has none.
 ##
-##   Godot --headless --path <project> res://tools/seed_m35_trees.tscn [-- --only node_id,node_id]
+##   Godot --headless --path <project> res://tools/seed_m35_trees.tscn [-- --only id,id]
 ##
-## `--only` rewrites those nodes and nothing else, existing or not — the way to re-seed a node
-## whose key, name or number changed here (D65 retargeted ten). Node ids, not item ids: a
-## whole tree rewritten would churn the two nodes that did not change, and an id is a save key
-## that must survive the rewrite exactly as it was.
+## `--only` rewrites what it names and nothing else, existing or not. An **item id** rewrites
+## that item's whole tier-1 tree — how a tree is re-derived after its item changes currency or
+## price (D64, the beach ball). A **node id** rewrites that node alone — how a node whose key,
+## name or number changed here is re-seeded without churning its two siblings (D65 retargeted
+## ten). Either way the ids themselves survive exactly: an id is a save key.
 ##
 ## M3 shipped trees for six items out of sixteen, so nine of them were a shop row and
 ## nothing else: bought once, used, and never improved again. A tree is the reason to keep
@@ -89,7 +90,6 @@ const TREES := {
 	&"mine": ["Wider Charge", "Scrap Rights", "Deeper Dish"],
 	&"firework": ["More Powder", "Crowd Pleaser", "Heavier Head"],
 	&"bowling_ball": ["Drilled Grip", "Strike Bonus", "Lead Core"],
-	&"beach_ball": ["Firmer Inflation", "Party Rates", "Sand Filled"],
 	&"trampoline": ["Tighter Springs", "Trick Bonus", "Steel Frame"],
 	&"desk_fan": ["Higher Setting", "Wind Tax", "Cast Base"],
 	# --- cursor powers: the third node is fire rate ---
@@ -144,6 +144,9 @@ const TREES := {
 	&"feather_duster": ["Fuller Plume", "Housekeeping Rates", ""],
 	&"soft_brush": ["Softer Bristles", "Grooming Rates", "Quicker Strokes"],
 	&"warm_towel": ["Fluffier Weave", "Turndown Rates", ""],
+	# The beach ball was a weapon with a weight node ("Sand Filled") until D64 made it a catch; a
+	# catch's third lever is how soon it pays again, the same as the tennis ball's.
+	&"beach_ball": ["Firmer Inflation", "Party Rates", "Quicker Rallies"],
 	&"tennis_ball": ["Fresher Felt", "Fetch Bonus", "Quicker Return"],
 	&"party_popper": ["More Confetti", "Party Rates", "Best Day Ever"],
 	&"kite": ["Longer Tail", "Fair Weather Rates", "Faster Reel"],
@@ -159,12 +162,12 @@ const TREES := {
 ## rule that contradicts them is wrong however tidy it looks.
 const WEIGHTED := {
 	&"dynamite": true, &"katana": true, &"mine": true, &"firework": true,
-	&"bowling_ball": true, &"beach_ball": true, &"trampoline": true, &"desk_fan": true,
+	&"bowling_ball": true, &"trampoline": true, &"desk_fan": true,
 }
 
 var _written := 0
 var _skipped := 0
-## `--only node_id,node_id`: rewrite exactly these, whether or not they exist.
+## `--only id,id`: item ids (a whole tier-1 tree) or node ids (one node). See the header.
 var _only := PackedStringArray()
 
 func _ready() -> void:
@@ -174,7 +177,10 @@ func _ready() -> void:
 		_only = args[only_at + 1].split(",", false)
 	DirAccess.make_dir_recursive_absolute(AUGMENTS_DIR)
 	for item in ItemDB.all_items():
-		if not _only.is_empty() or not _has_tier_one(item.id):
+		if not _only.is_empty():
+			if _selects_item(item.id):
+				_tree_for(item)
+		elif not _has_tier_one(item.id):
 			_tree_for(item)
 	print("seed_m35_trees: %d written, %d already present" % [_written, _skipped])
 	get_tree().quit()
@@ -183,6 +189,15 @@ func _has_tier_one(item_id: StringName) -> bool:
 	for node in ItemDB.augments_for(item_id):
 		if node.tier == 1:
 			_skipped += 1
+			return true
+	return false
+
+## Whether `--only` names this item or any node of its tree.
+func _selects_item(item_id: StringName) -> bool:
+	if _only.has(String(item_id)):
+		return true
+	for suffix in ["_damage", "_payout", "_third"]:
+		if _only.has(String(item_id) + suffix):
 			return true
 	return false
 
@@ -222,7 +237,7 @@ func _node(id: String, item: ItemData, display_name: String, effect_key: StringN
 		currency: int) -> void:
 	var path := "%s/%s.tres" % [AUGMENTS_DIR, id]
 	if not _only.is_empty():
-		if not _only.has(id):
+		if not (_only.has(id) or _only.has(String(item.id))):
 			return
 	elif ResourceLoader.exists(path):
 		return

@@ -6,9 +6,10 @@
 script = ExtResource("1_jeg27")
 id = &"beach_ball_third"
 item_id = &"beach_ball"
-display_name = "Sand Filled"
-effect_key = &"mass_mult"
-effect_per_level = 1.08
+display_name = "Quicker Rallies"
+effect_key = &"cooldown_mult"
+effect_per_level = 0.94
 cost_base = 33
 cost_growth = 1.09
+currency = 1
 sort_order = 2

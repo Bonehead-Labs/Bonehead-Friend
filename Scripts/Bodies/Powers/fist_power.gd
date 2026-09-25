@@ -84,9 +84,15 @@ func fire(at: Vector2) -> void:
 		return
 	# A click adds a real impulse rather than dealing damage directly, so the punch is
 	# measured on the receiver like everything else.
+	#
+	# **The same shove at every level** (D64). This used to be scaled by the damage node as well,
+	# and the receiver scales the damage by the fist body's multiplier — so one level of
+	# "Knuckle Duster" was x1.32 on a punch rather than x1.15, and a harder shove besides. A
+	# bat's damage node does not make the bat swing faster either: the multiplier is read once,
+	# where every weapon's is, on him.
 	var dir := at - body.global_position
 	dir = dir.normalized() if dir.length() > 1.0 else Vector2.DOWN
-	body.apply_central_impulse(dir * punch_impulse * effective_damage_mult())
+	body.apply_central_impulse(dir * punch_impulse)
 	# The punch itself: sparks off the knuckles, a ring from the second tier.
 	var fx := WorldFX.of(self)
 	if fx:

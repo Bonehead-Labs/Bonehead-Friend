@@ -71,6 +71,8 @@ func _ready() -> void:
 	await _the_knockout_beat_runs_and_ends_upright()
 	await _the_sponge_cleans_him_and_pays()
 	await _real_physics_produces_hits()
+	await _a_hit_that_parts_is_billed()
+	_the_mat_gives_back_more()
 	await _he_goes_and_plays_with_his_toys()
 	await _save_survives_a_restart()
 	# Last: it wipes the run, so every suite that needs an owned item has to come first.
@@ -2881,6 +2883,121 @@ func _real_physics_produces_hits() -> void:
 	_check("resting contact does not farm damage (%d hits)" % _observed.size(), _observed.is_empty())
 
 	EventBus.damage_dealt.disconnect(_observe)
+
+## The half of D7 the engine never reports (D64). A contact carries the previous step's impulse,
+## and only if the solver recognised it as the same contact, so a hit that throws the two apart
+## inside one step is in no contact the engine will ever list. That was the fist, every thrown
+## ball and the trampoline's landing. His own momentum bills it — once.
+func _a_hit_that_parts_is_billed() -> void:
+	_suite("the missing half (D64)")
+	var buddy := _buddy()
+	if buddy == null:
+		_check("buddy present", false)
+		return
+	_clear_spawned()
+	var idle_brain := get_tree().get_first_node_in_group(&"idle_brain") as IdleBrain
+	if idle_brain:
+		idle_brain._disturb()
+	while buddy.health.down:
+		await get_tree().physics_frame
+	buddy.health.reset_meter()
+	# Standing on the scene's floor (top 500, feet +62), still.
+	buddy.global_position = Vector2(320, 500.0 - 62.0)
+	buddy.linear_velocity = Vector2.ZERO
+	buddy.angular_velocity = 0.0
+	buddy.global_rotation = 0.0
+	for i in 60:
+		await get_tree().physics_frame
+	Economy.grant(Economy.BONES, float(ItemDB.get_item(&"bowling_ball").cost))
+	_check("the bowling ball can be bought for the throw",
+		Progression.is_unlocked(&"bowling_ball") or Progression.purchase_item(&"bowling_ball"))
+	EventBus.spawn_requested.emit(&"bowling_ball", buddy.global_position + Vector2(-200, -300))
+	await get_tree().physics_frame
+	var ball: BaseDraggable = null
+	for node in get_tree().get_nodes_in_group(&"spawned_item"):
+		if node is BaseDraggable and (node as BaseDraggable).item_id == &"bowling_ball":
+			ball = node
+	_check("the ball is on the desk", ball != null)
+	if ball == null:
+		return
+	# No cooldown for the measurement: the per-source cooldown would hide a second bill for the
+	# same step, and a second bill for the same step is exactly what this is here to catch.
+	var cooldown := ItemDB.balance.damage_cooldown
+	ItemDB.balance.damage_cooldown = 0.0
+	_observed.clear()
+	EventBus.damage_dealt.connect(_observe)
+	# Overlapping his side by two pixels at 1,200 px/s, level with his chest, while he stands
+	# asleep: the collision is solved at full speed in a step Godot does not call him back for,
+	# which is the hardest case the ledger has. From further out, continuous collision detection
+	# slows a fast body to arrive softly, which is a different measurement.
+	_check("he is asleep on his feet before it arrives", buddy.sleeping)
+	var his := buddy.get_interaction_rect()
+	var radius := ball.get_interaction_rect().size.x * 0.5
+	ball.global_position = Vector2(his.position.x - radius + 2.0, his.get_center().y - 10.0)
+	ball.linear_velocity = Vector2(1200.0, 0.0)
+	ball.angular_velocity = 0.0
+	# What the ball lost along the blow in the step it hit him is what it handed him: it touches
+	# nothing else, and the ledger bills a shared step by its normal part.
+	var lost := 0.0
+	var last := ball.linear_velocity
+	var reported := 0.0
+	var per_frame := 0
+	for i in 60:
+		var before := _observed.size()
+		await get_tree().physics_frame
+		if lost == 0.0 and last.x - ball.linear_velocity.x > 100.0:
+			lost = (last.x - ball.linear_velocity.x) * ball.mass
+		last = ball.linear_velocity
+		var state := PhysicsServer2D.body_get_direct_state(buddy.get_rid())
+		for c in state.get_contact_count():
+			if state.get_contact_collider_object(c) == ball:
+				reported += state.get_contact_impulse(c).length()
+		per_frame = maxi(per_frame, _observed.slice(before).filter(
+			func(h: HitInfo) -> bool: return h.source_id == &"bowling_ball").size())
+	ItemDB.balance.damage_cooldown = cooldown
+	EventBus.damage_dealt.disconnect(_observe)
+	_check("the engine never reports the collision (%.0f)" % reported, reported < 1.0)
+	var mine := _observed.filter(func(h: HitInfo) -> bool: return h.source_id == &"bowling_ball")
+	_check("a ball that bounced off him in one step is billed (%d hits)" % mine.size(), not mine.is_empty())
+	if not mine.is_empty():
+		var first: HitInfo = mine[0]
+		_check("at the momentum the ball lost to him (%.0f billed, %.0f lost)" % [first.raw_impulse, lost],
+			lost > 0.0 and absf(first.raw_impulse - lost) <= lost * 0.1)
+	_check("and never twice for the same step (%d in one frame)" % per_frame, per_frame <= 1)
+	_clear_spawned()
+	# Back on his feet where the next suite expects him: the ball tipped him over.
+	while buddy.health.down:
+		await get_tree().physics_frame
+	buddy.global_position = Vector2(320, 500.0 - 62.0)
+	buddy.global_rotation = 0.0
+	buddy.linear_velocity = Vector2.ZERO
+	buddy.angular_velocity = 0.0
+	buddy.health.reset_meter()
+	for i in 30:
+		await get_tree().physics_frame
+
+## The trampoline's launch (D64, F6). It read his speed after the landing had been solved, so
+## every bounce was the 320 minimum; reading it from before, x1.55 a bounce runs away, so the
+## gain stops at `max_launch` — and above it the mat still never returns less than it was given.
+## The landing itself is `item_check`'s to measure; this pins the rule.
+func _the_mat_gives_back_more() -> void:
+	_suite("the trampoline's launch (D64)")
+	var mat := _instance_of(&"trampoline") as Trampoline
+	_check("the trampoline instantiates", mat != null)
+	if mat:
+		_check("a landing leaves faster than it arrived (%.0f from 400)" % mat.launch_speed(400.0),
+			mat.launch_speed(400.0) > 400.0)
+		_check("the gain stops at max_launch (%.0f from 900)" % mat.launch_speed(900.0),
+			is_equal_approx(mat.launch_speed(900.0), mat.max_launch))
+		_check("and above it he leaves exactly as fast (%.0f from 3,000)" % mat.launch_speed(3000.0),
+			is_equal_approx(mat.launch_speed(3000.0), 3000.0))
+		# The idle brain's routine starts a bounce with the smallest hop there is. Twenty bounces
+		# later it has settled at the ceiling instead of leaving the monitor.
+		var v := sqrt(2.0 * 980.0 * 12.0)
+		for i in 20:
+			v = mat.launch_speed(v)
+		_check("a bounce started from a hop settles at the ceiling (%.0f)" % v, is_equal_approx(v, mat.max_launch))
+		mat.free()
 
 func _observe(info: HitInfo) -> void:
 	_observed.append(info)

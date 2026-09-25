@@ -94,8 +94,8 @@ const DRIVERS := {
 }
 
 ## Classes that pay Hearts. Everything else is on the harm side of the pipeline and pays Bones
-## — including the Toy-drawer balls, the trampoline and the fan, which are sold on the kind
-## side of the shop and earn through damage (IdleBrain `ROUTINE_BOP`, Buddy `_min_impulse_for`).
+## — including the bowling ball, the trampoline and the fan, which are sold on the kind side of
+## the shop for Bones and earn through damage at the swing floor (Buddy `_min_impulse_for`, D64).
 ## Read through `_pays_hearts`, which adds every `FidgetToy` and the kind `HeldGun`s.
 const HEARTS_CLASSES: Array[StringName] = [&"FriendlyBase", &"OpenHandPower"]
 
@@ -108,36 +108,6 @@ const UNAIMED: Array[StringName] = [&"Firework"]
 ## reported, not failed — and one that stops reproducing IS a failure, so this table cannot go
 ## stale: fix the item, delete its line.
 const KNOWN := {
-	"fist/hits": "F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
-	"fist/use": "F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
-	"fist/earns": "F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
-	"fist/mastery": "F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
-	# Upgraded, the fist chases 6% faster (D65's "Faster Hands"), and whether its punch is still
-	# pressed on him a step later is contact-geometry luck: in the full run's order it now is.
-	"fist/hits@upgraded": "~F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
-	"fist/use@upgraded": "~F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
-	"fist/earns@upgraded": "~F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
-	"fist/mastery@upgraded": "~F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
-	"fist/aug_damage_mult": "~F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
-	"fist/aug_payout_mult": "~F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
-	"bowling_ball/earns": "F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
-	"bowling_ball/mastery": "F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
-	"bowling_ball/aug_damage_mult": "F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
-	"bowling_ball/aug_payout_mult": "F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
-	"beach_ball/earns": "F9 a 0.4 kg ball on the kind side needs a 1,500 fall-floor impulse",
-	"beach_ball/mastery": "F9 a 0.4 kg ball on the kind side needs a 1,500 fall-floor impulse",
-	"beach_ball/aug_damage_mult": "F9 a 0.4 kg ball on the kind side needs a 1,500 fall-floor impulse",
-	"beach_ball/aug_payout_mult": "F9 a 0.4 kg ball on the kind side needs a 1,500 fall-floor impulse",
-	"trampoline/launch": "F6 the launch reads his speed after the landing was solved",
-	"trampoline/earns": "F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
-	"trampoline/mastery": "F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
-	"trampoline/aug_damage_mult": "F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
-	"trampoline/aug_payout_mult": "F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
-	# D65 bills the fan for the landings its wind bends, and "claims" checks that it would be.
-	# This one landing bounces apart inside one step, so F1 bills it to nobody at all.
-	"desk_fan/earns": "~F1 a landing that parts in one physics step is never billed (D65 claims it for the fan)",
-	"desk_fan/mastery": "~F1 a landing that parts in one physics step is never billed (D65 claims it for the fan)",
-	"desk_fan/aug_payout_mult": "~F1 a landing that parts in one physics step is never billed (D65 claims it for the fan)",
 	"flamethrower/hits": "~F2 D54's 18 px impact inset leaves the shot under the damage floor",
 	"flamethrower/earns": "~F2 D54's 18 px impact inset leaves the shot under the damage floor",
 	"flamethrower/mastery": "~F2 D54's 18 px impact inset leaves the shot under the damage floor",
@@ -1318,7 +1288,16 @@ func _drive_fist(run: Run) -> void:
 	_move(_centre() + Vector2(-70.0, -20.0))
 	await _step(8)
 	var pressed_at := Time.get_ticks_msec()
+	# The shove the click hands the fist, read off the server either side of the press: the punch
+	# is applied inside the click, before any step can add to it.
+	var before: Vector2 = PhysicsServer2D.body_get_state(fist.get_rid(), PhysicsServer2D.BODY_STATE_LINEAR_VELOCITY)
 	_press(MOUSE_BUTTON_LEFT)
+	var after: Vector2 = PhysicsServer2D.body_get_state(fist.get_rid(), PhysicsServer2D.BODY_STATE_LINEAR_VELOCITY)
+	var shove := (after - before).length() * fist.mass
+	# D64: the damage node is read once, on him, as every weapon's is. Scaling the shove by it as
+	# well made one level of it x1.32 on a punch.
+	_expect(run, "punch", absf(shove - power.punch_impulse) <= power.punch_impulse * 0.01,
+		"the punch is the same shove at every level (%.0f, authored %.0f)" % [shove, power.punch_impulse])
 	run.cooldown = float(power._cooldown_until_msec - pressed_at)
 	_release(MOUSE_BUTTON_LEFT)
 	await _step(20)
