@@ -201,6 +201,11 @@ ball) fits the description.
 
 ### F10. The fortune ball's "Looser Dice" does nothing for four levels
 
+**Fixed (D70):** the shake is counted continuously. Each step of a stroke is worth its share of a
+shake as it happens, up to one 32 px stroke, and a straight drag is not a shake. item_check now
+measures the shaking itself, in 4 px motions: 112 px plain, 108 at level 1 (x0.96, the grain),
+where it was four reversals both ways. The KNOWN line is gone.
+
 **Affects:** the fortune ball's third node (`cooldown_mult`, x0.94 a level), sold as fewer shakes
 before it can be read. Measured at level 1: ready after **4 reversals plain and 4 upgraded**.
 
@@ -213,6 +218,35 @@ Across its ten levels the node takes off one shake, once. Any whole-number thres
 **Recommendation.** Design. Count a shake continuously (each reversal worth its vigour, so 6% less
 shaking is felt as 6% less), or give the ball a node it has a continuous measure of — a yes a
 little more often, say. Not fixed here: either is a change to how the toy feels.
+
+---
+
+## D70 — the loose ends (2026-09-26)
+
+What D64, D65 and D66 noted and left, closed with a check each that fails without the fix:
+
+| | before | after |
+|---|---|---|
+| a 0.3 kg prop the black hole charge gathers, thrown in one frame | 56,462 px/s (74,608 upgraded) | at most 7,452 |
+| the same prop in the implosion charge | 36,698 | at most 7,391 |
+| him, off the black hole / demolition / concussion charge | 6,478 / 6,324 / 5,442 | 6,478 / 6,306 / 5,442 |
+| him, off the gorilla's slam | 4,675 px/s | 2,500 (damage unchanged) |
+| the implosion charge's grab region | 88 x 76, drawn round an old sprite | 70 x 76, its seeder's |
+| the slingshot drawn when the game loses focus | fires a pellet at him | slackens |
+| the SMG or the minigun held when the game loses focus | fires until the next click | lets go |
+| a slingshot drawn across a HUD panel | the pouch stops at its edge | follows the cursor |
+| his idle bouncing, with nobody at the desk | ~17.6 damage a second of Bones (D64) | none: Hearts, once, from the brain |
+
+- **No blast hands one body more than 7,500 px/s** (`ExplosionUtil.MAX_BLAST_SPEED`), the push
+  only; the impulse billed to him is untouched. Set above every launch a blast gives him, so every
+  explosive's peak on him is what it was. item_check's black hole driver drops a 0.3 kg probe beside
+  both charges.
+- **A gesture outlives a panel and not the focus.** A live press, action or carry listens in
+  `_input` until it ends, and a RELEASE or ACTION_END sent because the game lost focus carries
+  `cancelled`: every hold-to-act toy stands down instead of acting (the slingshot, car, cradle,
+  slinky, stress ball, yo-yo, spinner), and the held guns and the four held cursor powers let go.
+- **The implosion charge** was re-seeded with `seed_m36_explosives -- --only implosion_charge`;
+  loop_check now rebuilds every body that seeder owns and compares its click target with the scene.
 
 ---
 
