@@ -3,7 +3,7 @@ extends Node
 ## Fifteen blunt melee weapons: ten built to hit things, and five that were on the desk
 ## already.
 ##
-##   Godot --headless --path <project> res://tools/seed_m36_melee_blunt.tscn [-- --force]
+##   Godot --headless --path <project> res://tools/seed_m36_melee_blunt.tscn [-- --force | --only id,id]
 ##
 ## M3.5 closed with four melee weapons — bat, pan, mace, katana — and the owner wants
 ## thirty. These are everything that hurts by **mass** rather than by edge; the blades are
@@ -428,11 +428,18 @@ const BRANCHES := {
 }
 
 var _force := false
+## `--only id,id`: rewrite those ids' scenes and nothing else (D61). The way to re-seed a body
+## after its physics row changes — `--force` would also rewrite every item and augment this tool
+## owns, including the ones later milestones refined; D55 tried that and the suite caught it.
+var _only := PackedStringArray()
 var _written := 0
 var _skipped := 0
 
 func _ready() -> void:
 	_force = OS.get_cmdline_user_args().has("--force")
+	var only_at := OS.get_cmdline_user_args().find("--only")
+	if only_at >= 0 and only_at + 1 < OS.get_cmdline_user_args().size():
+		_only = OS.get_cmdline_user_args()[only_at + 1].split(",", false)
 	for dir in [BODIES_DIR, ITEMS_DIR, AUGMENTS_DIR]:
 		DirAccess.make_dir_recursive_absolute(dir)
 
@@ -601,6 +608,11 @@ func _branch_for(entry: Dictionary) -> void:
 # --- io --------------------------------------------------------------------
 
 func _should_write(path: String) -> bool:
+	if not _only.is_empty():
+		if path.get_extension() == "tscn" and _only.has(path.get_file().get_basename()):
+			return true
+		_skipped += 1
+		return false
 	if _force or not ResourceLoader.exists(path):
 		return true
 	_skipped += 1
