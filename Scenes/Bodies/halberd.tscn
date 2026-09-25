@@ -10,26 +10,29 @@ radius = 5.0
 height = 154.0
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_cykre"]
-size = Vector2(22, 24)
+size = Vector2(14, 40)
 
-[sub_resource type="CircleShape2D" id="CircleShape2D_ahhyg"]
-radius = 11.0
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ahhyg"]
+size = Vector2(26, 36)
 
-[sub_resource type="CircleShape2D" id="CircleShape2D_vmxqw"]
-radius = 11.0
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_vmxqw"]
+size = Vector2(16, 8)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_a1pru"]
-size = Vector2(18, 14)
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_a1pru"]
+radius = 5.0
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_ohljh"]
+size = Vector2(14, 6)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_vjure"]
 size = Vector2(36, 60)
 
-[node name="_Halberd" type="RigidBody2D" unique_id=1113261580 node_paths=PackedStringArray("drag_area", "handle", "sprite", "collider", "Effects_Player")]
+[node name="_Halberd" type="RigidBody2D" unique_id=227474606 node_paths=PackedStringArray("drag_area", "handle", "sprite", "collider", "Effects_Player")]
 collision_layer = 4
 collision_mask = 7
 mass = 16.0
 center_of_mass_mode = 1
-center_of_mass = Vector2(-2, -58)
+center_of_mass = Vector2(2, -54)
 contact_monitor = true
 max_contacts_reported = 4
 script = ExtResource("1_lgcu3")
@@ -42,41 +45,46 @@ collider = NodePath("CollisionShape2D")
 Effects_Player = NodePath("EffectsPlayer")
 grip_offset = Vector2(-2, 52)
 
-[node name="Sprite" type="Sprite2D" parent="." unique_id=139549878]
+[node name="Sprite" type="Sprite2D" parent="." unique_id=9492840]
 scale = Vector2(2, 2)
 texture = ExtResource("2_cykre")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1535045227]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1462415752]
 position = Vector2(-1, -1)
 shape = SubResource("CapsuleShape2D_lgcu3")
 
-[node name="CollisionShape2D2" type="CollisionShape2D" parent="." unique_id=376140563]
-position = Vector2(-2, -59)
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="." unique_id=1120483618]
+position = Vector2(-1, -50)
 shape = SubResource("RectangleShape2D_cykre")
 
-[node name="CollisionShape2D3" type="CollisionShape2D" parent="." unique_id=383867802]
-position = Vector2(-24, -59)
-shape = SubResource("CircleShape2D_ahhyg")
+[node name="CollisionShape2D3" type="CollisionShape2D" parent="." unique_id=182908996]
+position = Vector2(19, -50)
+shape = SubResource("RectangleShape2D_ahhyg")
 
-[node name="CollisionShape2D4" type="CollisionShape2D" parent="." unique_id=469572240]
-position = Vector2(20, -59)
-shape = SubResource("CircleShape2D_vmxqw")
+[node name="CollisionShape2D4" type="CollisionShape2D" parent="." unique_id=171961227]
+position = Vector2(22, -28)
+shape = SubResource("RectangleShape2D_vmxqw")
 
-[node name="CollisionShape2D5" type="CollisionShape2D" parent="." unique_id=758877933]
-position = Vector2(-2, 67)
-shape = SubResource("RectangleShape2D_a1pru")
+[node name="CollisionShape2D5" type="CollisionShape2D" parent="." unique_id=178386036]
+position = Vector2(-19, -48)
+rotation = 1.0245082
+shape = SubResource("CapsuleShape2D_a1pru")
 
-[node name="DraggableArea" type="Area2D" parent="." unique_id=1008479143]
-script = ExtResource("3_ahhyg")
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=573172942]
-position = Vector2(-2, 48)
+[node name="CollisionShape2D6" type="CollisionShape2D" parent="." unique_id=568912133]
+position = Vector2(-1, 73)
 shape = SubResource("RectangleShape2D_ohljh")
 
-[node name="Handle" type="StaticBody2D" parent="." unique_id=1307450405]
+[node name="DraggableArea" type="Area2D" parent="." unique_id=146623086]
+script = ExtResource("3_ahhyg")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=1367931033]
+position = Vector2(-2, 48)
+shape = SubResource("RectangleShape2D_vjure")
+
+[node name="Handle" type="StaticBody2D" parent="." unique_id=1976229104]
 visible = false
 collision_layer = 0
 collision_mask = 0
 
-[node name="EffectsPlayer" type="Node" parent="." unique_id=1319037629]
+[node name="EffectsPlayer" type="Node" parent="." unique_id=192492686]
 script = ExtResource("4_vmxqw")
