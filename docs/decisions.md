@@ -1476,6 +1476,79 @@ against sprites replaced in D45. None of that is a one-line fix and all of it ch
 game plays, so it is left for the owner to direct rather than guessed at in a sweep. The
 layers themselves are fine: 97 bodies on layer 4 / mask 7, the buddy on 2 / 5.
 
+## D58 — Every room of the Arcade is a cabinet, and 1.25x is uneven rather than soft (2026-09-25)
+
+**Decision.** Each of the Arcade's five rooms is built by one class, `Cabinet`, as the same
+four sections in the same order: a **marquee** (the room's name in the display face, lit in a
+colour of its own, with the display the machine talks through set into it), the **stage** (the
+game, at one height in every room), a **paytable** strip, and a **deck** (the stake stepper and
+the one key that matters). One outer frame, and each section below the marquee owns a single
+rule across its top — never a frame inside a frame. The room strip's keys are lit in their
+room's colour, so the row reads as five machines with one switched on. The wardrobe and the
+back room follow the same grammar. Relaxes D37's footer into the deck, and keeps its promise:
+every stage is `Cabinet.STAGE` tall, so no key moves when the room changes.
+
+**Why.** The owner: "less rounded boxes and more clear minigame sections". A room was a tile
+holding a sunk well holding the machine — three nested frames of equal weight — so nothing read
+as *the machine*; the bet and the key floated in a footer that belonged to no section, Three
+Ghosts was three 96px windows in an empty well, and blackjack's Hit and Stand sat on the felt
+while Deal sat outside it. Now the reels are one pane of glass at 192px divided by two rules,
+the cards are 80x124 and fill the table's height, Hit, Stand and Deal are one row on the deck,
+and the wardrobe's ten tall rows that scrolled off the card are two rails of swatches with the
+chosen one on the deck.
+
+**The marquee colours are identity, not meaning** — the one exception to Bonecard's "colour
+only where it carries meaning", and fenced in accordingly. Five fills straight from the locked
+palette (`art/src/bonehead.gpl`): bones gold for the wheel, ectoplasm for Three Ghosts, red dark
+for blackjack, pink light for the wardrobe, grey dark for the back room. Each is paired with the
+ink printed on it and graded by `loop_check`, and none is ever an ink on card stock — the light
+three are as bright as the card. A new machine picks one of `UIStyle.MARQUEES` and touches no
+theme code.
+
+**The stake is a stepper**, x1 / x2 / x5 / x10 of a machine's price (`ArcadeGame.STAKES`), and
+what it may change is decided: every Dollars prize scales with it and nothing else does. Each
+table is written at the lowest stake, so its odds and its return per Dollar hold on every rung
+(the wheel's 0.905, the slots' 0.88, blackjack's near-even), while a garnish and a boost stay
+exactly their size — D32 caps both by acts and by minutes, never by the bet, so staking more can
+only make them relatively worth less. It is refused while a play runs: the stake a hand was
+dealt at is the stake it is paid at. `STAKES = [1]` hides it.
+
+**1.25x, measured.** The owner plays at Menu size 1.25x (D50). The Arcade was captured at 1x,
+1.25x and 2x and read pixel by pixel. Nothing in the shell is *soft* at 1.25x — a fractional
+CanvasLayer scale with nearest filtering and no anti-aliasing lands every edge on a whole pixel —
+with two exceptions, both removed: `StyleBoxFlat` switches anti-aliasing on only for a rounded
+corner, so the wardrobe swatch's radius of 4 was the one blurred edge in the room, and the base
+Button's disabled rule is a third of black, a grey edge on every key a hand spends disabled
+(the deck's `DeckKey` keeps a solid one). The wardrobe went from 132 distinct colours at 1.25x
+to 22 — every pixel now a flat fill. What 1.25x does do is make things **uneven**: a 3px rule
+is 3.75 screen pixels and lands as 4 or 3 by position (894 and 218 of the Three Ghosts room's
+horizontal rule samples), so a box can be heavier on top than underneath, and pixel type's stems
+come out 2 or 3 wide (53 and 30 in the wheel's legend). Four ways to fix that, tried:
+
+- **A 4px rule** lands as exactly 5 screen pixels at 1.25x — 740 of 740 samples — and as a whole
+  number at every quarter step, since 4 x 0.25k = k; 3 is whole only at whole factors. The cheap
+  real fix: rules 3 at whole factors and 4 at the others, with the theme rebuilt when the factor
+  changes. Not done here — it is every page, and it makes 1.25x a little heavier than 1x scaled.
+- **`Viewport.oversampling_override = factor`** rasterises type at its screen size: the legend's
+  stems went from a 53/30 split to 108 of 110 at 3px. But it is per viewport, and the payout numbers
+  draw on an unscaled layer of the same one — rasterised 1.25x too large and drawn at 0.8, their
+  horizontal strokes broke into one-pixel slivers (12 against 1). Viable only if the shell gets
+  a viewport of its own.
+- **Snapping** is already on (`snap_2d_transforms_to_pixel`) and cannot help: the layer's scale
+  is itself the fraction.
+- **Integer-scaling the card and centring it** is D23 again, and takes away the rung the owner
+  chose. Not recommended.
+
+*Consequence:* the recommendation is the scale-aware rule width, for the owner to take or leave.
+`ui_shots` shoots the Arcade at 1.25x as well as 1x and 2x on every run, and `-- --arcade`
+shoots only the Arcade — at those three and in the 640x480 play area, the smallest card every
+cabinet is laid out to fit without clipping: the reels step down 192, 160, 128 with the card
+(`ArcadeGame.fit_stage`), and the paytable clips its last cell rather than widen the page. The
+480x360 rung still clips a room, as the old wheel did. `ui_check` asserts the four sections
+in order, one stage height and one deck line across all five rooms, every word in every room
+legible where it sits, and the stepper's rules; `loop_check` asserts the new variations, every
+marquee's ink, a solid disabled deck rule, and that no box in the theme has a rounded corner.
+
 ## Recommendations not yet decided
 
 Carried in the spec, owner's call before they matter:
