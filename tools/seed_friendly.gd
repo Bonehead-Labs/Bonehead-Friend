@@ -247,7 +247,12 @@ func _build_friendly(node_name: String, item_id: StringName, colour: Color, exte
 	for key in properties:
 		root.set(StringName(key), properties[key])
 
-	root.add_child(_visual_for(item_id, colour, extent))
+	var visual := _visual_for(item_id, colour, extent)
+	root.add_child(visual)
+	# Wired, as every other seeder wires it. Until D67 this file left `sprite` empty, so no kind
+	# item it built wore its upgrade (D41's glow reads the export), popped on landing, or sat its
+	# ambient life on its own top edge rather than on a guessed 32px square.
+	root.set(&"sprite", visual)
 
 	var solid := _collider_extent(item_id, extent)
 	var shape := RectangleShape2D.new()
