@@ -21,6 +21,7 @@ extends CaptureWindow
 
 const SIZE := Vector2i(1180, 700)
 const OUT := "user://ability_shots"
+const ZOOM_BOX := Vector2i(360, 240)
 
 var _main: Node
 var _had := {}
@@ -33,7 +34,7 @@ func _ready() -> void:
 	_use_capture_slot()
 	_had = {"hud": Settings.hud_pinned, "tabs": Settings.tabs_pinned, "scale": Settings.ui_scale,
 		"focus": Settings.focus_intensity}
-	DirAccess.make_dir_recursive_absolute(OUT)
+	DirAccess.make_dir_recursive_absolute(OUT + "/zoom")
 	Settings.focus_intensity = Settings.Intensity.NORMAL
 	Settings.ui_scale = 0
 	Settings.hud_pinned = true
@@ -102,13 +103,23 @@ func _stage(id: StringName) -> void:
 	var idle := get_tree().get_first_node_in_group(IdleBrain.GROUP_IDLE_BRAIN) as IdleBrain
 	if idle:
 		idle._disturb()
-	# Him, standing still a little right of centre, on whatever the floor is.
+	# Him, standing still a little right of centre, on whatever the floor is — once he is back on
+	# his feet from anything the last weapon did: a flail flings him to the top of the window, and
+	# a stage measured from him in mid-air, or in a knockout, stages the next weapon at nothing.
+	for i in 600:
+		if not ExpressionBrain.KNOCKOUT_STATES.has(_buddy.state) and not _buddy.health.down:
+			break
+		await _idle(1)
 	_buddy.health.reset_meter()
 	_buddy.global_rotation = 0.0
 	_buddy.global_position = Vector2(float(SIZE.x) * 0.5 + 160.0, _buddy.global_position.y)
 	_buddy.linear_velocity = Vector2.ZERO
 	_buddy.angular_velocity = 0.0
 	await _idle(40)
+	for i in 240:
+		if _buddy.is_grounded() and _buddy.linear_velocity.length() < 5.0:
+			break
+		await _idle(1)
 	_n = 0
 	var ability_row := AbilityTable.row_for(id)
 	var centre := _buddy.get_interaction_rect().get_center()
@@ -236,6 +247,33 @@ func _stage(id: StringName) -> void:
 			(ability as ThrowAbility)._left_down = false
 			await _shot("%s-returning" % id, 12)
 			_hand = hand
+		&"transform":
+			var change := ability as TransformAbility
+			await _carry(centre + Vector2(-170.0, -30.0), 30)
+			ability.press()
+			ability.release()
+			await _shot("%s-changed" % id, 10)
+			if change.is_phased():
+				# Drawn slowly through him and held in him, the way a lit blade is used.
+				for i in 90:
+					await _carry(_hand.move_toward(centre + Vector2(40.0, 0.0), 4.0), 1)
+					if change.burns > 0:
+						break
+				await _shot("%s-inside" % id, 1)
+				for i in 30:
+					await _carry(_hand.move_toward(centre + Vector2(-60.0, 10.0), 4.0), 1)
+				await _shot("%s-burning" % id)
+			else:
+				for i in 40:
+					await _carry(_hand.move_toward(centre + Vector2(170.0, -30.0), 22.0), 1)
+					if change.blows > 0:
+						break
+				await _shot("%s-blow" % id, 1)
+				await _shot("%s-quake" % id, 5)
+		&"tether":
+			await _stage_tether(id, ability as TetherAbility, centre)
+		&"clamp":
+			await _stage_clamp(id, ability as ClampAbility)
 		_:
 			print("    no staging for the %s archetype yet — add a branch here" % ability.archetype())
 	await _idle(30)
@@ -437,7 +475,18 @@ func _shot(name: String, after: int = 0) -> void:
 		print("    %s (staged; headless draws nothing)" % name)
 		return
 	await RenderingServer.frame_post_draw
-	_grab().save_png("%s/%s.png" % [OUT, name])
+	var frame := _grab()
+	frame.save_png("%s/%s.png" % [OUT, name])
+	# And the part that matters at 3x, nearest-neighbour: a 1x frame of a whole desk is too small
+	# to judge a two-pixel glow or a hole in him by. Centred between the weapon and him.
+	if is_instance_valid(_weapon) and is_instance_valid(_buddy):
+		var mid := (_weapon.global_position + _buddy.get_interaction_rect().get_center()) * 0.5
+		var box := Rect2i(Vector2i(mid - Vector2(ZOOM_BOX) * 0.5), ZOOM_BOX)
+		box = box.intersection(Rect2i(Vector2i.ZERO, frame.get_size()))
+		if box.size.x > 8 and box.size.y > 8:
+			var crop := frame.get_region(box)
+			crop.resize(box.size.x * 3, box.size.y * 3, Image.INTERPOLATE_NEAREST)
+			crop.save_png("%s/zoom/%s.png" % [OUT, name])
 	print("    %s" % name)
 	if OS.get_cmdline_user_args().has("--trace") and is_instance_valid(_weapon):
 		print("      hand %s handle %s grip %s him %s" % [_hand.round(), _weapon.handle.global_position.round(),
@@ -589,3 +638,122 @@ func _stage_office_mug(id: StringName, ability: HotCoffeeAbility, centre: Vector
 			break
 	await _shot("%s-scald" % id, 2)
 	await _shot("%s-steam" % id, 24)
+
+# --- transform, tether and clamp (D74, the new archetypes) -----------------------------------
+
+## The three clamps: the jaws brought to him, the bite, and what it leaves — a hole, his headphones
+## on the desk and his head bare, or him turned in the jaws as the hand goes round.
+func _stage_clamp(id: StringName, clamp: ClampAbility) -> void:
+	var head := bool(clamp.row.get("snip_head", false))
+	# Lifted clear so it hangs freely, the jaws set level with the point clear of him — his head for
+	# the shears — then across to him slowly until he is between them.
+	var rect := _buddy.get_interaction_rect()
+	var aim := _buddy.to_global(Vector2(0.0, -40.0)) if head else rect.get_center() + Vector2(0.0, 10.0)
+	await _carry(Vector2(aim.x - 150.0, rect.position.y - 90.0), 30)
+	await _carry(_hand, 60)
+	var hang := clamp.jaw_world() - clamp.hand_world()
+	await _carry(Vector2(aim.x - 110.0, aim.y) - hang, 30)
+	await _carry(_hand, 60)
+	for i in 400:
+		if clamp.in_jaws():
+			break
+		await _carry(_hand + Vector2(1.5, 0.0), 1)
+	await _shot("%s-jaws" % id, 2)
+	clamp.press()
+	clamp.release()
+	await _shot("%s-bite" % id, 2)
+	for i in 30:
+		if clamp._phase != ClampAbility.BITING or not clamp.is_active():
+			break
+		await _carry(_hand, 1)
+	if head:
+		await _shot("%s-snipped" % id, 16)
+		await _shot("%s-bareheaded" % id, 60)
+		await _shot("%s-back" % id, int(clamp.num("phones_seconds", 4.0) * 60.0) - 20)
+		return
+	if clamp.num("hold_seconds", 0.0) > 0.0:
+		var centre := _buddy.get_interaction_rect().get_center()
+		var radius := maxf(_hand.distance_to(centre), 110.0)
+		var a0 := (_hand - centre).angle()
+		for i in 110:
+			if not clamp.is_clamped():
+				break
+			var a := a0 + TAU * 1.4 * float(i) / 120.0
+			await _carry(_buddy.get_interaction_rect().get_center() + Vector2(cos(a), sin(a)) * radius, 1)
+			if i == 40:
+				await _shot("%s-cranking" % id)
+			if i == 80:
+				await _shot("%s-cranked" % id)
+		if OS.get_cmdline_user_args().has("--trace"):
+			print("      let go: %s after %d cranks, %.2f turns" % [clamp.let_go_reason, clamp.cranks, clamp.turns])
+		return
+	await _shot("%s-hole" % id, 20)
+
+## The three tethers: the chain round him and swung, the hook out and reeling, the lever.
+func _stage_tether(id: StringName, tether: TetherAbility, centre: Vector2) -> void:
+	if tether is HookTether:
+		var hook := tether as HookTether
+		await _carry(centre + Vector2(-230.0, -60.0), 40)
+		await _carry(_hand, 20)
+		hook.press()
+		hook.release()
+		await _shot("%s-hook-out" % id, 5)
+		for i in 30:
+			await _carry(_hand, 1)
+			if hook.catches > 0:
+				break
+		await _shot("%s-hooked" % id, 2)
+		for i in 60:
+			await _carry(_hand, 1)
+			if hook.spiked or not hook.is_active():
+				break
+		await _shot("%s-spike" % id, 1)
+		await _shot("%s-thrown" % id, 10)
+		return
+	if tether is PryTether:
+		var pry := tether as PryTether
+		# It hangs claw-down: carried slowly across to him a bar's length above his lower half, until
+		# the claw is against his side.
+		var bar := pry.grip_world().distance_to(pry.tip_world())
+		var level := _buddy.get_interaction_rect().end.y - 40.0 - bar
+		await _carry(Vector2(centre.x - 150.0, level), 40)
+		await _carry(_hand, 60)
+		for i in 300:
+			if pry.touches_him(pry.tip_world(), pry.num("reach", 30.0) - 8.0):
+				break
+			level = _buddy.get_interaction_rect().end.y - 40.0 - bar
+			var to := Vector2(_buddy.get_interaction_rect().get_center().x, level)
+			await _carry(_hand.move_toward(to, clampf(_hand.distance_to(to) / 30.0, 1.5, 8.0)), 1)
+		pry.press()
+		await _shot("%s-wedged" % id, 3)
+		await _carry(_hand + Vector2(0.0, 28.0), 12)
+		await _shot("%s-levering" % id, 4)
+		await _carry(_hand + Vector2(0.0, 28.0), 12)
+		await _shot("%s-levered" % id, 6)
+		pry.release()
+		await _shot("%s-pop" % id, 3)
+		await _shot("%s-over" % id, 12)
+		return
+	# The Wrap: right held through a swing; he is caught, swung round, and flung.
+	await _carry(centre + Vector2(-190.0, -30.0), 30)
+	tether.press()
+	for i in 60:
+		await _carry(_hand.move_toward(centre + Vector2(190.0, -30.0), 22.0), 1)
+		if tether.catches > 0:
+			break
+	await _shot("%s-wrapped" % id, 2)
+	# Up into the open, then round: he whirls on the end of the chain. His meter is kept clear for
+	# the picture: a flail's hits knock him out in four, which ends the hold, as it should in play.
+	var round := Vector2(float(SIZE.x) * 0.5, float(SIZE.y) * 0.5 - 40.0)
+	for i in 24:
+		_buddy.health.reset_meter()
+		await _carry(_hand.lerp(round + Vector2(110.0, 0.0), float(i + 1) / 24.0), 1)
+	for i in 36:
+		_buddy.health.reset_meter()
+		var a := TAU * float(i) / 36.0
+		await _carry(round + Vector2(cos(a) * 110.0, sin(a) * 70.0), 1)
+		if i == 24:
+			await _shot("%s-swung" % id)
+	tether.release()
+	await _shot("%s-flung" % id, 3)
+	await _shot("%s-landing" % id, 14)

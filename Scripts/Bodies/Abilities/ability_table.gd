@@ -16,7 +16,8 @@ extends RefCounted
 ##
 ##   id         the ability's own name, `snake_case` — the key its sounds and his rows use
 ##   name       what the shop calls it
-##   archetype  `charge`, `dash`, `stun`, `sustain`, `shockwave`, `projectile`, `spin`, `throw`
+##   archetype  `charge`, `dash`, `stun`, `sustain`, `shockwave`, `projectile`, `spin`, `throw`,
+##              `transform`, `tether`, `clamp`
 ##   script     optional: a subclass of the archetype, for a weapon whose ability needs a hook
 ##              its archetype lacks. The row still names the archetype it builds on
 ##   controls   the line `ItemData.controls` carries — written onto the item by
@@ -46,9 +47,111 @@ const ARCHETYPES := {
 	&"projectile": "res://Scripts/Bodies/Abilities/projectile_ability.gd",
 	&"spin": "res://Scripts/Bodies/Abilities/spin_ability.gd",
 	&"throw": "res://Scripts/Bodies/Abilities/throw_ability.gd",
+	&"transform": "res://Scripts/Bodies/Abilities/transform_ability.gd",
+	&"tether": "res://Scripts/Bodies/Abilities/tether_ability.gd",
+	&"clamp": "res://Scripts/Bodies/Abilities/clamp_ability.gd",
 }
 
 const ABILITIES := {
+	# --- the three archetypes the design sheet needed: transform, tether, clamp ---
+	#
+	# Four seconds of a mace twice as heavy, with a heart of lead beating in it: slower to bring
+	# round, every blow x1.2 and the desk jolts under him. The weight is the body's own mass, so most
+	# of the extra is in the swing, not the number: a blow measured 2.4 ordinary mace hits, five of
+	# them a use. Hence the long cooldown.
+	&"mace": {
+		"id": &"lead_heart", "name": "Lead Heart", "archetype": &"transform",
+		"controls": "Hold · Right: Lead Heart — for 4 s it weighs double and hits harder",
+		"cooldown": 10.0, "busy": 4.0, "worth": 6.0,
+		"seconds": 4.0, "mass_mult": 2.0, "hit_mult": 1.2, "quake": 7.0,
+		"tint": "ff5a2e", "shade": "ff9c86", "glow": 0.7, "pulse": 0.7, "embers": "ff9a3c", "ember_at": 0.9,
+		"ember_gravity": -70.0, "sound_on": &"heartbeat", "hum": &"heartbeat", "hum_seconds": 0.7,
+		"tell": &"crushed",
+	},
+	# Four seconds lit: the blade goes through him without touching him, and every fifth of a second
+	# of it inside him burns — a light hit that hops him, so the blade chases him round the desk.
+	# Drawn through him for the four seconds, twelve burns: 3.5 ordinary sabre hits.
+	&"energy_sabre": {
+		"id": &"ignite", "name": "Ignite", "archetype": &"transform",
+		"controls": "Hold · Right: Ignite — lit for 4 s, it passes through him and burns",
+		"cooldown": 6.0, "busy": 4.0, "worth": 3.5,
+		"seconds": 4.0, "phase": true, "burn_seconds": 0.2, "burn_force": 700.0, "burn_mult": 0.8,
+		"shove": 0.3, "tint": "8ff8ff", "glow": 0.75, "embers": "d8fdff", "ember_at": 0.65,
+		"ember_gravity": -40.0, "sound_on": &"ignite", "sound_off": &"hum", "hum": &"hum",
+		"hum_seconds": 0.3, "tell": &"scorched",
+	},
+	# Hit him with right held and the chain wraps round him; while right stays down he is the ball
+	# on 70 px of chain — he hangs from it, and whirls at 2,400 px/s when the hand goes round — and
+	# letting go flings him the way he was going. The payoff is what he is swung into and where he
+	# lands, which are the flail's: 1.8 to 2.4 ordinary flail hits a use.
+	&"flail": {
+		"id": &"wrap", "name": "Wrap", "archetype": &"tether",
+		"controls": "Hold · Right: Wrap — hit him with it held, swing him, let go to fling",
+		"cooldown": 6.0, "busy": 2.5, "worth": 2.4,
+		"armed_seconds": 1.5, "catch_mult": 1.0, "hold_seconds": 2.5, "rope": 70.0, "stiffness": 14.0,
+		"max_accel": 40000.0, "leash": 420.0, "reaction": 0.5, "fling_mult": 1.8, "fling_min": 800.0,
+		"fling_max": 1800.0, "slam_mult": 1.0, "claim_seconds": 2.0,
+		"tell": &"wrapped",
+	},
+	# A tap and the hook flies from the spike at him, up to 220 px; it catches and reels him in at
+	# 900 px/s, and the spike meets him at x1.5 and throws him back off it. Reach, not swing. The
+	# spike and the landing it throws him into measured 1.6 to 3.7 ordinary halberd hits.
+	&"halberd": {
+		"id": &"hook_and_spike", "name": "Hook and Spike", "archetype": &"tether",
+		"script": "res://Scripts/Bodies/Abilities/hook_tether.gd",
+		"controls": "Hold · Right: Hook and Spike — hook him from afar, onto the spike",
+		"cooldown": 5.0, "busy": 0.8, "worth": 2.5,
+		"reach": 220.0, "hook_speed": 1400.0, "reel_speed": 900.0, "reel_seconds": 0.8,
+		"max_accel": 12000.0, "reaction": 0.4, "leash": 400.0, "spike_force": 2400.0,
+		"spike_mult": 1.5, "shove": 0.8, "claim_seconds": 1.5,
+	},
+	# The claw against him, right held, and the hand pulled *down* levers him *up*: 1.2 px a pixel,
+	# to 90 px, tipping him away from the bar. Let go and he pops up and over, spinning. The pry at
+	# x1.3 and where he lands: 1.6 to 2.3 ordinary crowbar hits.
+	&"crowbar": {
+		"id": &"pry", "name": "Pry", "archetype": &"tether",
+		"script": "res://Scripts/Bodies/Abilities/pry_tether.gd",
+		"controls": "Hold · Right: Pry — claw against him, pull the hand down to lever",
+		"cooldown": 5.0, "busy": 1.2, "worth": 2.3,
+		"reach": 40.0, "lever_ratio": 1.2, "max_lift": 90.0, "lift_speed": 260.0, "tilt_degrees": 30.0,
+		"hold_seconds": 2.5, "stiffness": 16.0, "max_accel": 9000.0, "reaction": 0.3,
+		"pop": 950.0, "spin": 9.0, "pry_force": 2000.0, "pry_mult": 1.3, "claim_seconds": 2.0,
+	},
+	# Get him between the jaws and tap: one bite, x2, a burst of paper and a hole in him for three
+	# seconds. A precise little verb: the jaws have to be on him, and then it always lands. One bite
+	# measured 2.1 ordinary hole-punch hits.
+	&"hole_punch": {
+		"id": &"punch", "name": "Punch", "archetype": &"clamp",
+		"controls": "Hold · Right: Punch — with him in the jaws: one hole, x2",
+		"cooldown": 5.0, "busy": 0.2, "worth": 2.1,
+		"jaw": Vector2(0, 4), "reach": 36.0, "touch": true, "bites": 1, "bite_gap": 0.1, "bite_force": 1200.0,
+		"bite_mult": 2.0, "shove": 0.3, "snap": Vector2(1.0, 0.72), "bite_sound": &"chunk",
+		"confetti": true, "hole_seconds": 3.0, "tell": &"punched",
+	},
+	# Two snips a seventh of a second apart on whatever is between the blades. At his head, the
+	# first one takes his headphones off: they fall to the desk and he is bare-headed and cross for
+	# four seconds, until they fly back on. Both snips on him: 2.0 ordinary shears hits.
+	&"shears": {
+		"id": &"snip", "name": "Snip", "archetype": &"clamp",
+		"controls": "Hold · Right: Snip — two snips; at his head, off come the headphones",
+		"cooldown": 4.0, "busy": 0.3, "worth": 2.0,
+		"jaw": Vector2(0, -24), "reach": 18.0, "touch": true, "bites": 2, "bite_gap": 0.14, "bite_force": 800.0,
+		"bite_mult": 1.0, "shove": 0.05, "snap": Vector2(0.55, 1.0), "bite_sound": &"snip",
+		"snip_head": true, "head_band": 0.45, "head_reach": 60.0, "phones_seconds": 4.0,
+	},
+	# A tap with the jaws on him and they clamp on for two seconds: he is hoisted clear of the desk
+	# on the wrench, and the hand going round him turns him like a nut, every half turn a creak. A turn and a third in the two
+	# seconds, two cranks: 1.4 ordinary wrench hits.
+	&"pipe_wrench": {
+		"id": &"crank", "name": "Crank", "archetype": &"clamp",
+		"controls": "Hold · Right: Crank — clamp it on him, then circle to turn him",
+		"cooldown": 5.0, "busy": 2.2, "worth": 1.4,
+		"jaw": Vector2(-14, -40), "reach": 22.0, "touch": true, "bites": 1, "bite_force": 900.0,
+		"bite_mult": 1.0,
+		"shove": 0.0, "snap": Vector2(0.85, 1.0), "bite_sound": &"clack", "hold_seconds": 2.0,
+		"crank_lift": 96.0, "crank_rate": 14.0, "crank_force": 2400.0, "crank_mult": 1.0,
+		"crank_hits": 4,
+	},
 	# The starter. A full wind-up is 0.9 s; the hit it arms is x2.5 and adds 850 px/s at 38 degrees
 	# — he leaves at about 1,400 with the swing, a home run and not a launch into orbit. Where he
 	# lands is the bat's for two seconds. One use measured at 1.4 ordinary bat hits' worth.

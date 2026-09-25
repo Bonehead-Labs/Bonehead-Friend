@@ -239,6 +239,38 @@ const ROWS := {
 	# --- K: held weapons' abilities (D74) ---
 	# Each arrives a frame after the hit it belongs to (`WeaponAbility.tell` is deferred), so it
 	# takes the slot from the hit's own row rather than being overwritten by it.
+	# The transforms, tethers and clamps. A blow from a mace twice its weight: squashed flat into
+	# the desk, and dizzy coming back up.
+	&"crushed": {"face": &"shocked", "tag": &"hurt", "tail_face": &"dizzy", "motion": &"land",
+		"seconds": 0.4, "tail": 0.5, "priority": HEAVY, "gate": GATE_REACTIVE, "sound": &"oof"},
+	# A lit blade in him: a hot-foot hop every burn, so a sabre held in him keeps him jumping.
+	&"scorched": {"face": &"shocked", "tag": &"flinch", "fallback": &"hurt", "motion": &"hop",
+		"seconds": 0.3, "priority": HEAVY, "gate": GATE_REACTIVE},
+	# The flail's chain round him: on the end of it, wide-eyed and trembling, for as long as it
+	# keeps telling him. A fling ends it as a launch.
+	&"wrapped": {"face": &"shocked", "tag": &"flinch", "fallback": &"hurt", "motion": &"shiver",
+		"seconds": 0.6, "priority": HEAVY, "gate": GATE_REACTIVE, "hold": true, "refresh": 0.6},
+	# The halberd's hook in him and the spike coming: hauled in, leaning away from the point.
+	&"hooked": {"face": &"shocked", "tag": &"flinch", "fallback": &"hurt", "motion": &"lean_away",
+		"seconds": 0.6, "priority": HEAVY, "gate": GATE_REACTIVE, "hold": true, "refresh": 0.6,
+		"sound": &"gasp"},
+	# A crowbar under him and his feet leaving the desk: cross, and squirming.
+	&"pried": {"face": &"angry", "tag": &"flinch", "fallback": &"", "motion": &"wiggle",
+		"seconds": 0.6, "priority": HEAVY, "gate": GATE_REACTIVE, "hold": true, "refresh": 0.6},
+	# A hole punched in him: the jolt, and then a long look at it.
+	&"punched": {"face": &"shocked", "tag": &"hurt", "tail_face": &"sad", "motion": &"impact",
+		"seconds": 0.35, "tail": 0.8, "priority": HEAVY, "gate": GATE_REACTIVE},
+	# His headphones snipped off: a gasp and a duck, and then he is cross.
+	&"snipped": {"face": &"shocked", "tag": &"flinch", "fallback": &"", "tail_face": &"angry",
+		"motion": &"duck", "seconds": 0.4, "tail": 1.0, "priority": HEAVY, "gate": GATE_REACTIVE,
+		"sound": &"gasp"},
+	# Without them, for as long as they are on the desk: glum. Below a hit, so the shears' second
+	# snip still reads, and told again by the headphones every 0.8 s so it comes back after it.
+	&"bareheaded": {"face": &"sad", "tag": &"idle_sad", "fallback": &"", "motion": &"",
+		"seconds": 1.0, "priority": REACTION, "gate": GATE_REACTIVE, "hold": true, "refresh": 1.0},
+	# Clamped in a pipe wrench and turned: dizzy, for as long as the crank goes round.
+	&"cranked": {"face": &"dizzy", "tag": &"hurt", "motion": &"shiver", "seconds": 0.6,
+		"priority": HEAVY, "gate": GATE_REACTIVE, "hold": true, "refresh": 0.6},
 	# The Home Run landed: thrown, and dizzy on the way down.
 	&"launched": {"face": &"shocked", "tag": &"hurt", "tail_face": &"dizzy",
 		"motion": &"impact_wobble", "seconds": 0.5, "tail": 0.9, "priority": HEAVY,
@@ -321,6 +353,18 @@ const FIDGET_ROWS := {
 ## grind, the golf ball and the thrown axe borrow the ones that already say it: cooked, startled,
 ## ducking a blast. Only near him, like a threat.
 const ABILITY_ROWS := {
+	&"crushed": &"crushed",
+	&"scorched": &"scorched",
+	&"wrapped": &"wrapped",
+	&"flung": &"launched",
+	&"hooked": &"hooked",
+	&"spiked": &"launched",
+	&"pried": &"pried",
+	&"punched": &"punched",
+	&"snipped": &"snipped",
+	&"bareheaded": &"bareheaded",
+	&"phones_back": &"catch",
+	&"cranked": &"cranked",
 	&"home_run": &"launched",
 	&"dazed": &"dazed",
 	&"sliced": &"sliced",

@@ -64,6 +64,23 @@ uniform float grime_cell = 0.0;
 // per-frame offset it already uses to keep his face on his skull.
 uniform vec2 grime_offset = vec2(0.0);
 
+// The shears' snip (D74): his headphones are off until they are put back. What goes is the teal
+// and the rim that is only the headphones' — a dark texel with teal within two art pixels of it and
+// no bone within one — so the rim he shares with his skull stays and his head keeps its outline.
+// Only sampled while it is set, which is four seconds a snip.
+uniform float phones_off = 0.0;
+
+float phone_at(vec4 c) {
+	float sat = max(c.r, max(c.g, c.b)) - min(c.r, min(c.g, c.b));
+	return step(0.5, c.a) * step(0.25, sat) * step(c.r, min(c.g, c.b) * 0.8);
+}
+
+float bone_at(vec4 c) {
+	float luma = dot(c.rgb, vec3(0.299, 0.587, 0.114));
+	float sat = max(c.r, max(c.g, c.b)) - min(c.r, min(c.g, c.b));
+	return step(0.5, c.a) * step(0.5, luma) * step(sat, 0.15);
+}
+
 // One dirt patch: an ellipse in frame-local UV, falling off linearly to its rim.
 float grime_patch(vec2 uv, vec2 centre, vec2 radius, float weight) {
 	vec2 d = (uv - centre) / radius;
@@ -109,7 +126,28 @@ void fragment() {
 		: UV;
 	float dirt = grime_shape(cell_uv) * grime * bone_mask;
 	vec3 grimed = mix(dressed, grime_color.rgb, dirt);
-	COLOR = vec4(mix(grimed, vec3(1.0), flash * step(0.02, tex.a)), tex.a * COLOR.a);
+	float alpha = tex.a * COLOR.a;
+	if (phones_off > 0.5) {
+		// Inline, not a function: a canvas shader cannot hand TEXTURE to one.
+		float hidden = phone_at(tex);
+		if (hidden < 0.5 && tex.a > 0.5 && dot(tex.rgb, vec3(0.299, 0.587, 0.114)) < 0.3) {
+			float bone = 0.0;
+			for (int y = -1; y <= 1; y++) {
+				for (int x = -1; x <= 1; x++) {
+					bone = max(bone, bone_at(texture(TEXTURE, UV + vec2(float(x), float(y)) * 2.0 * TEXTURE_PIXEL_SIZE)));
+				}
+			}
+			if (bone < 0.5) {
+				for (int y = -2; y <= 2; y++) {
+					for (int x = -2; x <= 2; x++) {
+						hidden = max(hidden, phone_at(texture(TEXTURE, UV + vec2(float(x), float(y)) * 2.0 * TEXTURE_PIXEL_SIZE)));
+					}
+				}
+			}
+		}
+		alpha *= 1.0 - hidden;
+	}
+	COLOR = vec4(mix(grimed, vec3(1.0), flash * step(0.02, tex.a)), alpha);
 }
 """
 static var _flash_shader: Shader

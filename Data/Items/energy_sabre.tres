@@ -14,3 +14,4 @@ scene = ExtResource("2_vsqpd")
 icon = ExtResource("1_r3ibj")
 requires = Array[StringName]([&"fire_axe"])
 sort_order = 67
+controls = "Hold · Right: Ignite — lit for 4 s, it passes through him and burns"

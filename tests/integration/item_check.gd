@@ -990,6 +990,7 @@ const ABILITY_STANDOFF := {
 	&"charge": Vector2(-120, -30), &"dash": Vector2(-200, -20), &"stun": Vector2(-150, -30),
 	&"sustain": Vector2(-70, 0), &"shockwave": Vector2(-100, -150), &"projectile": Vector2(-320, -40),
 	&"spin": Vector2(-95, -40), &"throw": Vector2(-250, -80),
+	&"transform": Vector2(-150, -30), &"tether": Vector2(-150, -30), &"clamp": Vector2(-150, -30),
 	# Hooked rows that want the hand somewhere their archetype's stand-off is not, by ability id.
 	&"flurry": Vector2(-115, -10), &"reap": Vector2(-170, -30), &"special_delivery": Vector2(-260, -60),
 	&"snap": Vector2(-300, -40),
@@ -1104,24 +1105,32 @@ func _use_ability(run: Run, body: WeaponBase) -> void:
 			hold = ability.num("charge_seconds", 0.8) + 0.1
 		&"sustain":
 			hold = 1.0
-	_press(MOUSE_BUTTON_RIGHT)
-	if stroke:
-		# Right held a moment first — a guard comes round onto him — then the stroke, twice.
-		await _step(30)
-		for i in 2:
-			if not ability.is_active():
-				break
-			await _mouse_to(_centre() + stroke_to, stroke_speed)
-			await _step(4)
-			await _mouse_to(_centre() + off, 900.0)
+	# A tether is pressed its own way: the Wrap keeps right down through the swing that catches him,
+	# the hook is a tap from range, and the crowbar's claw has to be against him first. A clamp's
+	# jaws have to be on him. A blade with a stroke is guarded and then swung; the rest are held.
+	if ability is TetherAbility:
+		await _use_tether(ability as TetherAbility)
+	elif ability is ClampAbility:
+		await _use_clamp(ability as ClampAbility)
 	else:
-		for i in maxi(1, int(hold * 60.0)):
-			if kind == &"sustain" and not hand.is_empty():
-				_move(_mouse.move_toward(_centre() + hand[1], float(hand[2]) / 60.0))
-			elif kind == &"sustain":
-				_move(_centre() + off + Vector2(20.0 * sin(float(i) * 0.2), 0.0))
-			await _step()
-	_release(MOUSE_BUTTON_RIGHT)
+		_press(MOUSE_BUTTON_RIGHT)
+		if stroke:
+			# Right held a moment first — a guard comes round onto him — then the stroke, twice.
+			await _step(30)
+			for i in 2:
+				if not ability.is_active():
+					break
+				await _mouse_to(_centre() + stroke_to, stroke_speed)
+				await _step(4)
+				await _mouse_to(_centre() + off, 900.0)
+		else:
+			for i in maxi(1, int(hold * 60.0)):
+				if kind == &"sustain" and not hand.is_empty():
+					_move(_mouse.move_toward(_centre() + hand[1], float(hand[2]) / 60.0))
+				elif kind == &"sustain":
+					_move(_centre() + off + Vector2(20.0 * sin(float(i) * 0.2), 0.0))
+				await _step()
+		_release(MOUSE_BUTTON_RIGHT)
 	# The armed ones need the swing that follows; the rest are on their way already.
 	if kind == &"charge" or kind == &"stun":
 		for i in 3:
@@ -1133,6 +1142,19 @@ func _use_ability(run: Run, body: WeaponBase) -> void:
 				continue
 			await _mouse_to(_centre() + Vector2(160.0, -30.0), 1300.0)
 			await _mouse_to(_centre() + Vector2(-160.0, -30.0), 1000.0)
+	# A weapon changed for a while is then used: swung through him, or — one that passes through
+	# him — drawn slowly back and forth inside him.
+	if ability is TransformAbility:
+		var change := ability as TransformAbility
+		for i in 6:
+			if ability.payoffs > 0 or not change.is_changed():
+				break
+			if change.is_phased():
+				await _mouse_to(_centre() + Vector2(70.0, 10.0), 260.0)
+				await _mouse_to(_centre() + Vector2(-70.0, 10.0), 260.0)
+			else:
+				await _mouse_to(_centre() + Vector2(160.0, -30.0), 1300.0)
+				await _mouse_to(_centre() + Vector2(-160.0, -30.0), 1000.0)
 	# A whirl knocks him on with every blow; the hand follows him, as a player's would.
 	for i in 300:
 		if not ability.is_active():
@@ -3111,3 +3133,110 @@ func _write_report(seconds: float) -> void:
 	if file:
 		file.store_string("\n".join(lines) + "\n")
 		file.close()
+
+# --- transform, tether and clamp (D74, the new archetypes) -----------------------------------
+
+## A clamp: its jaws brought onto him — slowly, by where the jaws are, since a weapon hanging from
+## the hand swings — a tap, and for one that clamps on, the hand going round him.
+func _use_clamp(clamp: ClampAbility) -> void:
+	for i in 240:
+		if _buddy.is_grounded() and _buddy.linear_velocity.length() < 5.0:
+			break
+		await _step()
+	# Lifted clear so it hangs freely, the hand put where that hang sets the jaws level with his
+	# middle and clear of him, then across to him slowly. A weapon resting on the desk does not
+	# follow a hand going down, and one pushed at him pushes him along ahead of it. Placed twice,
+	# because the lift can nudge him.
+	for attempt in 2:
+		var side := -1.0 if _centre().x > float(VIEW_SIZE.x) * 0.5 else 1.0
+		var rect := _buddy.get_interaction_rect()
+		await _mouse_to(Vector2(rect.get_center().x + side * 150.0, rect.position.y - 90.0), 600.0)
+		await _hang_still(clamp.body)
+		var hang := clamp.jaw_world() - clamp.hand_world()
+		var point := _centre() + Vector2(side * 110.0, 10.0)
+		await _mouse_to((point - hang).clamp(Vector2(10, 10), Vector2(VIEW_SIZE) - Vector2(10, 10)), 400.0)
+		await _hang_still(clamp.body)
+		if signf(clamp.jaw_world().x - _centre().x) != side:
+			continue
+		for i in 400:
+			if clamp.in_jaws():
+				break
+			_move(_mouse + Vector2(-side * 1.5, 0.0))
+			await _step()
+		if clamp.in_jaws():
+			break
+	_press(MOUSE_BUTTON_RIGHT)
+	await _step()
+	_release(MOUSE_BUTTON_RIGHT)
+	await _step(20)
+	var centre := _centre()
+	var radius := maxf(_mouse.distance_to(centre), 110.0)
+	var a0 := (_mouse - centre).angle()
+	for i in 130:
+		if not clamp.is_clamped():
+			break
+		var a := a0 + TAU * 1.4 * float(i) / 120.0
+		_move(_centre() + Vector2(cos(a), sin(a)) * radius)
+		await _step()
+
+## Until it hangs still from the hand: slow in both speed and spin for a sixth of a second. A
+## pendulum is slow at the end of every swing, so a speed alone catches it mid-swing.
+func _hang_still(body: RigidBody2D) -> void:
+	var calm := 0
+	for i in 240:
+		_move(_mouse)
+		await _step()
+		calm = calm + 1 if body.linear_velocity.length() < 12.0 and absf(body.angular_velocity) < 0.4 else 0
+		if calm >= 10:
+			return
+
+## A tether, used the way its line says, from the stand-off `_use_ability` carried it to.
+func _use_tether(tether: TetherAbility) -> void:
+	if tether is HookTether:
+		# A tap; the hook does the rest.
+		_press(MOUSE_BUTTON_RIGHT)
+		await _step()
+		_release(MOUSE_BUTTON_RIGHT)
+		return
+	if tether is PryTether:
+		# The claw against him first — anywhere else the press is refused — brought up to him slowly
+		# at his lower half from whichever side has room, the way a player does it.
+		# It hangs claw-down, so the hand goes a bar's length above his lower half — once he has come
+		# down from whatever the swings did to him.
+		for i in 120:
+			if _buddy.is_grounded() and _buddy.linear_velocity.length() < 5.0:
+				break
+			await _step()
+		var side := -1.0 if _centre().x > float(VIEW_SIZE.x) * 0.5 else 1.0
+		var bar := tether.grip_world().distance_to(tether.tip_world())
+		var level := _buddy.get_interaction_rect().end.y - 40.0 - bar
+		await _mouse_to(Vector2(_centre().x + side * 150.0, level), 600.0)
+		await _steady(tether.body, 60)
+		for i in 300:
+			if tether.touches_him(tether.tip_world(), tether.num("reach", 30.0) - 8.0):
+				break
+			level = _buddy.get_interaction_rect().end.y - 40.0 - bar
+			var to := Vector2(_centre().x, level)
+			_move(_mouse.move_toward(to, clampf(_mouse.distance_to(to) / 30.0, 1.5, 8.0)))
+			await _step()
+		_press(MOUSE_BUTTON_RIGHT)
+		await _step()
+		await _mouse_to(_mouse + Vector2(0.0, 70.0), 220.0)
+		_release(MOUSE_BUTTON_RIGHT)
+		return
+	# The Wrap: right down, and a swing through him with it still down catches him.
+	_press(MOUSE_BUTTON_RIGHT)
+	for i in 3:
+		if not tether.is_armed():
+			break
+		await _mouse_to(_centre() + Vector2(160.0, -30.0), 1300.0)
+		await _mouse_to(_centre() + Vector2(-160.0, -30.0), 1000.0)
+	var round := Vector2(640.0, 380.0)
+	await _mouse_to(round + Vector2(120.0, 0.0), 1200.0)
+	for i in 36:
+		if not tether.is_holding():
+			break
+		var a := TAU * float(i) / 36.0
+		_move(round + Vector2(cos(a) * 120.0, sin(a) * 70.0))
+		await _step()
+	_release(MOUSE_BUTTON_RIGHT)

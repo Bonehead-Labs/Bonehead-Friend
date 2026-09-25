@@ -3061,6 +3061,99 @@ built. Each lands with its first weapon. The capture tool lets the axe fall befo
 because the catch re-grabs at the OS pointer, which the tool cannot move. Nothing here has been
 used by a person yet. The frames were looked at, and the feel is the owner's to judge.
 
+### Amended 2026-09-26: transform, tether and clamp, and the eight weapons that needed them
+
+The three archetypes the sheet below marked **new** are built, each in its own script with its
+numbers in the table and its parameters listed in its class comment, and the eight weapons that
+needed them have their abilities. Where a verb moved from its line on the sheet, the table here is
+the one that shipped.
+
+- **`transform`** (`TransformAbility`): tap, and for `seconds` the weapon is something else —
+  heavier (`mass_mult` on the body's own mass, restored through `apply_augments`), harder
+  (`hit_mult`, and the desk jolts), or immaterial (`phase`: it passes through him and burns him
+  every `burn_seconds` it spends inside him, added up across passes). It glows with an additive
+  copy of its own sprite over a multiplicative `shade`, and stays changed out of the hand.
+- **`tether`** (`TetherAbility`, with `HookTether` and `PryTether`): he is caught and held on the
+  end of the weapon — on `rope` px of chain, reeled in on a line, or levered — by impulses through
+  his centre of mass from the tick, half handed back to the weapon. What he is thrown into is the
+  weapon's hit (`claim_impacts`, D65).
+- **`clamp`** (`ClampAbility`): the jaws close `bites` times on whatever is within `reach` of them
+  (or, with `touch`, pressed against the weapon) — a hole and confetti, his headphones off, or, with
+  `hold_seconds`, a clamp that hoists him and turns him as the hand goes round him.
+
+| Weapon | Ability | Archetype | What you do | Measured |
+|---|---|---|---|---|
+| Mace | Lead Heart | transform | tap: 4 s at double weight with a heart of lead beating in it, dull red; every blow x1.2 and the desk jolts | a blow is 2.4 ordinary mace hits, 5 or 6 a use: 4.3 to 7.1 |
+| Energy sabre | Ignite | transform | tap: 4 s lit; it passes through him, and every 0.2 s of it inside him burns, a hot-foot hop and a glowing cut | 12 burns drawn through him for the 4 s, no contact at all: 3.5 |
+| Flail | Wrap | tether | hit him with right held: the chain winds round his waist; he hangs from 70 px of it and whirls when the hand goes round; let go and he is flung | whirled at 2,150 to 2,460 px/s, flung at 1,600 to 1,940: 1.0 to 2.8 |
+| Halberd | Hook and Spike | tether (`HookTether`) | tap: a hook on a chain flies from the spike at him, 220 px to his body, reels him in at 900 px/s onto the spike, x1.5 | the spike 1,790 to 2,240 and the landing it throws him into: 1.6 to 3.7 |
+| Crowbar | Pry | tether (`PryTether`) | refused unless the claw is against him; then pull the hand down and he goes up, 1.2 px a pixel, tipping; let go and he pops up and over, spinning | lifted 85 px, popped at 900 px/s, the pry at x1.3: 1.6 to 2.3 |
+| Hole punch | Punch | clamp | with the punch against him, a tap: one bite x2, paper in five colours, and a hole in him for 3 s | 2.1 |
+| Shears | Snip | clamp | two snips a seventh of a second apart; at his head the first takes his headphones off, he is bare-headed and glum, and 4 s later he catches them | both snips on him: 2.0 |
+| Pipe wrench | Crank | clamp | a tap with the jaws on him clamps on for 2 s; he is hoisted clear of the desk and turned like a nut as the hand goes round him, every half turn a crank | 1.3 turns, 2 cranks: 1.4 |
+
+He answers with nine rows of his own (`crushed`, `scorched`, `wrapped`, `hooked`, `pried`,
+`punched`, `snipped`, `bareheaded`, `cranked`) and two that already say it: a fling, a pop and the
+spike's throw are `launched`, and the headphones coming back are his `catch`. Eight voices are
+synthesised for them: heartbeat, ignite, hum, sizzle, chain, creak, chunk and snip.
+
+**What cost time, measured.**
+
+- **A heavier weapon is not a multiplier.** Double the mace's mass and the momentum it hands him
+  goes up by two thirds before `hit_mult` is read: the first Lead Heart measured 5.6 ordinary hits a
+  use at x1.3, and 7.1 at x1.2, because the suite had only counted the multiplier. It now counts a
+  blow's extra over an ordinary one, and the cooldown is 10 s rather than a weaker verb.
+- **Red added to blue-grey is purple.** The first Lead Heart glowed lilac. The head is shaded dull
+  red first (`shade`) and the light added over that.
+- **A chain is a constraint, not a spring.** Glued to the head by a spring, the flail's catch moved
+  him with the hand and landed him at 400 px/s, 0.4 ordinary hits. On a rope that is slack inside
+  70 px and taut outside it, he hangs, swings and whirls, and the landing pays. A whip billed at the
+  release was tried in between and taken out: once the whirl was fast it was an arbitrary number.
+- **A soft joint cannot hold a clamp on.** The drag joint is soft on purpose (D54), and a 16 kg
+  wrench on it trailed a hand going round him by 100 px, so he appeared to spin by himself. Clamped,
+  it is steered by impulses at its grip and its jaws. Its handle points straight out from his middle,
+  a wrench on a nut; aimed at the cursor, it went through him whenever the hand passed his far side,
+  and with the bite under him it drove into the desk, which is why he is hoisted 96 px. The
+  crowbar's claw hung under the hand and he rose off it, floating; it is kept on his corner the
+  same way, and the bar levers him.
+- **His headphones are part of his body sprite.** The snip hides them in his own shader
+  (`phones_off`): the teal, and a dark texel with teal within two art pixels of it and no bone within
+  one — the rim that is only the headphones'. His skull keeps its outline. A canvas shader cannot
+  hand `TEXTURE` to a function, so the sampling is inline, and it runs only while they are off. The
+  drawn pair that falls to the desk owns the return, so no route — binned shears, a cleared desk, a
+  knockout — leaves him without them.
+- **A weapon pushed at him pushes him along the desk.** Every suite first brought a clamp's jaws to
+  him by chasing them, and chased him into the wall. They now lift the weapon clear so it hangs,
+  wait for it to hang *still* (a pendulum is slow at both ends of every swing, so `_steady` measured
+  it mid-swing), set its jaws level with the point, and cross to him slowly. After a few swings he is
+  as likely lying on his side, so the head is found from his transform, not his rect.
+- **A tether's landings are its payoff**, so `ability_check` counts what a tether's claim bills as
+  what one use paid. A Home Run's claim is still not counted: its hit was billed x2.5 already.
+
+**Pacing.** The eight uplifts run from 1.13 (the wrench) to 1.31 (the shears), inside the first
+eight's 1.12 to 1.33, and they barely move the sim: 4/4, the first Reincarnation 9:11:08 -> 9:11:06,
+first automation 16:57 of play, worst dead stretch 1:23, worst ramp 1.3x.
+
+**Unchanged at rest.** `swing_rig` swings the eight, and the bat, the mace and the katana, with the
+ability attached and idle and again with it not attached at all: lever, inertia, the momentum
+handed to him, peak spin and peak speed are identical to the digit (the references are D61's 3,005
+and 4,181). Only the billed hit grouping moves, as it does between two runs of one build (D61).
+Nothing runs while one lies on the desk: the three archetypes keep the framework's budget, and
+`ability_check` asserts it for each.
+
+**Seen.** `tools/ability_shots.tscn` stages each of the three with a branch of its own and now also
+writes every frame as a 3x crop around the weapon and him (`user://ability_shots/zoom/`), because at
+1x a two-pixel glow or a punched hole cannot be judged, and it waits for him to be back on his feet
+between weapons (a flail's fling left the next stage measuring him in mid-air). Seven things changed
+because of the frames: the lilac mace, the ember drips that read as blood (they are sparks rising
+now), the chain loop drawn across his face, the tumbling headphones that read as a boomerang, the
+hole drawn on his outline, the wrench that left him mid-crank, and the crowbar's claw that fell
+away from under him.
+
+*Tested:* `ability_check` 314 -> 650 over sixteen abilities; `loop_check` 747 -> 759; `item_check`
+drives all eight. *Not done:* nothing here has been used by a person, and the feel is the owner's to
+judge — the Wrap's fling in particular is only as good as the release a hand times.
+
 ### The design sheet: one ability for each of the 26 still to do
 
 No two do the same thing with the player's hand. **New** marks an archetype that does not exist

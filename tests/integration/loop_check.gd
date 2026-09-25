@@ -493,10 +493,7 @@ func _state_box(theme: Theme, state: String, type_name: String) -> StyleBox:
 ## still listed here fails, exactly as a finding in item_check's `KNOWN` fails once it stops
 ## reproducing — so the list cannot go stale, and when it is empty every weapon in the drawer
 ## does something no other one does.
-const ABILITY_STILL_TO_DO: Array[StringName] = [
-	&"crowbar", &"energy_sabre", &"flail", &"halberd", &"hole_punch", &"mace", &"pipe_wrench",
-	&"shears",
-]
+const ABILITY_STILL_TO_DO: Array[StringName] = []
 
 ## Every melee weapon has an ability (D74): a row in `AbilityTable`, or a right-while-holding
 ## action of its own already (the yo-yo's throw, D66). Enumerated from the drawer, never listed.

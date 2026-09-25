@@ -298,6 +298,20 @@ func _build_streams() -> void:
 	_streams[&"zoom"] = _wav(_zoom_samples())
 	_streams[&"twang"] = _wav(_twang_samples())
 	_streams[&"zip"] = _wav(_sweep_samples(0.11, 700.0, 1500.0))
+	# --- held weapons that change, hook him and bite (D74: transform, tether, clamp) ---
+	#
+	# A heart of lead beating in a mace, a blade catching light and the hum it keeps while lit,
+	# the sizzle of it in him; a chain wrapping, a bar levering, a punch going through and a pair
+	# of shears closing. Short, because each repeats: the hum every third of a second, the
+	# sizzle five times a second, the creak a notch at a time.
+	_streams[&"heartbeat"] = _wav(_heartbeat_samples())
+	_streams[&"ignite"] = _wav(_ignite_samples())
+	_streams[&"hum"] = _wav(_hum_samples())
+	_streams[&"sear"] = _wav(_sear_samples())
+	_streams[&"chain"] = _wav(_chain_samples())
+	_streams[&"creak"] = _wav(_creak_samples())
+	_streams[&"chunk"] = _wav(_chunk_samples())
+	_streams[&"snip"] = _wav(_snip_samples())
 	# --- held weapons' abilities (D74) ---
 	#
 	# One voice each for the moments a CC0 recording does not cover: the air a swing moves, a bat
@@ -575,6 +589,162 @@ func _twang_samples() -> PackedFloat32Array:
 		var tone := (sin(phase) * 0.45 + sin(phase * 2.0) * 0.15) * exp(-t * 18.0)
 		var slap := rng.randf_range(-1.0, 1.0) * 0.45 * exp(-t * 600.0)
 		out[i] = clampf(tone + slap, -1.0, 1.0)
+	return out
+
+## Lub-dub: two low thumps, the second softer, a sixth of a second apart. Lead does not ring.
+func _heartbeat_samples() -> PackedFloat32Array:
+	var duration := 0.42
+	var count := int(MIX_RATE * duration)
+	var out := PackedFloat32Array()
+	out.resize(count)
+	for i in count:
+		var t := float(i) / float(MIX_RATE)
+		var value := 0.0
+		for beat in [[0.0, 1.0], [0.16, 0.6]]:
+			var u := t - float(beat[0])
+			if u < 0.0:
+				continue
+			var strength := float(beat[1])
+			value += sin(TAU * 52.0 * u) * 0.62 * strength * exp(-u * 15.0) * minf(u * 400.0, 1.0)
+			value += sin(TAU * 96.0 * u) * 0.22 * strength * exp(-u * 32.0)
+		out[i] = clampf(value, -1.0, 1.0)
+	return out
+
+## A blade catching light: a buzz that climbs from nothing into the hum, under a bright zing that
+## sweeps up and fades, with a crackle of static on the front.
+func _ignite_samples() -> PackedFloat32Array:
+	var duration := 0.5
+	var count := int(MIX_RATE * duration)
+	var out := PackedFloat32Array()
+	out.resize(count)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 20260930
+	var phase := 0.0
+	var zing := 0.0
+	for i in count:
+		var t := float(i) / float(MIX_RATE)
+		var progress := t / duration
+		phase += lerpf(60.0, 110.0, minf(progress * 2.0, 1.0)) / float(MIX_RATE)
+		zing += TAU * lerpf(700.0, 1900.0, sqrt(progress)) / float(MIX_RATE)
+		var saw := (phase - floorf(phase)) * 2.0 - 1.0
+		var swell := minf(progress * 5.0, 1.0) * minf((duration - t) * 20.0, 1.0)
+		var crackle := rng.randf_range(-1.0, 1.0) * 0.3 * exp(-t * 30.0)
+		out[i] = clampf(saw * 0.3 * swell + sin(zing) * 0.2 * exp(-t * 6.0) + crackle, -1.0, 1.0)
+	return out
+
+## What a lit blade sounds like while it waits: two buzzes a hair apart, so it beats, faded in and
+## out at the ends so a string of them runs together.
+func _hum_samples() -> PackedFloat32Array:
+	var duration := 0.32
+	var count := int(MIX_RATE * duration)
+	var out := PackedFloat32Array()
+	out.resize(count)
+	var a := 0.0
+	var b := 0.0
+	for i in count:
+		var t := float(i) / float(MIX_RATE)
+		a += 105.0 / float(MIX_RATE)
+		b += 107.5 / float(MIX_RATE)
+		var buzz := ((a - floorf(a)) * 2.0 - 1.0) * 0.16 + ((b - floorf(b)) * 2.0 - 1.0) * 0.12 			+ sin(TAU * 210.0 * t) * 0.1
+		var envelope := minf(t * 40.0, 1.0) * minf((duration - t) * 40.0, 1.0)
+		out[i] = clampf(buzz * envelope, -1.0, 1.0)
+	return out
+
+## Something hot in something that is not: hissing noise with pops in it.
+func _sear_samples() -> PackedFloat32Array:
+	var duration := 0.2
+	var count := int(MIX_RATE * duration)
+	var out := PackedFloat32Array()
+	out.resize(count)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 20260931
+	var last := 0.0
+	for i in count:
+		var t := float(i) / float(MIX_RATE)
+		var noise := rng.randf_range(-1.0, 1.0)
+		var hiss := (noise - last) * 0.28
+		last = noise
+		var pop := rng.randf_range(-1.0, 1.0) * 0.7 if rng.randf() < 0.004 else 0.0
+		out[i] = clampf((hiss + pop) * exp(-t * 9.0) * minf(t * 300.0, 1.0), -1.0, 1.0)
+	return out
+
+## A chain wrapping round something: four links clinking, not quite together.
+func _chain_samples() -> PackedFloat32Array:
+	var duration := 0.32
+	var count := int(MIX_RATE * duration)
+	var out := PackedFloat32Array()
+	out.resize(count)
+	var links := [[0.0, 2150.0, 1.0], [0.05, 2600.0, 0.8], [0.11, 1900.0, 0.9], [0.19, 2400.0, 0.6]]
+	for i in count:
+		var t := float(i) / float(MIX_RATE)
+		var value := 0.0
+		for link in links:
+			var u := t - float(link[0])
+			if u < 0.0:
+				continue
+			var f := float(link[1])
+			value += (sin(TAU * f * u) * 0.3 + sin(TAU * f * 1.53 * u) * 0.15) 				* float(link[2]) * exp(-u * 70.0)
+		out[i] = clampf(value, -1.0, 1.0)
+	return out
+
+## A bar under load: stick-slip, a ragged train of clicks each ringing a low resonance.
+func _creak_samples() -> PackedFloat32Array:
+	var duration := 0.3
+	var count := int(MIX_RATE * duration)
+	var out := PackedFloat32Array()
+	out.resize(count)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 20260932
+	var next_slip := 0.0
+	var since := 1.0
+	for i in count:
+		var t := float(i) / float(MIX_RATE)
+		if t >= next_slip:
+			next_slip = t + rng.randf_range(0.018, 0.034)
+			since = 0.0
+		since += 1.0 / float(MIX_RATE)
+		var ring := sin(TAU * 310.0 * since) * exp(-since * 90.0) + sin(TAU * 145.0 * since) * 0.6 * exp(-since * 50.0)
+		var envelope := minf(t * 30.0, 1.0) * minf((duration - t) * 12.0, 1.0)
+		out[i] = clampf(ring * 0.45 * envelope, -1.0, 1.0)
+	return out
+
+## A hole punch going through: a click, a thump of the lever bottoming out, and a tick of paper.
+func _chunk_samples() -> PackedFloat32Array:
+	var duration := 0.2
+	var count := int(MIX_RATE * duration)
+	var out := PackedFloat32Array()
+	out.resize(count)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 20260933
+	for i in count:
+		var t := float(i) / float(MIX_RATE)
+		var click := rng.randf_range(-1.0, 1.0) * 0.8 * exp(-t * 900.0)
+		var thump := sin(TAU * 125.0 * t) * 0.6 * exp(-t * 26.0)
+		var u := t - 0.03
+		var paper := rng.randf_range(-1.0, 1.0) * 0.35 * exp(-u * 120.0) if u >= 0.0 else 0.0
+		out[i] = clampf(click + thump + paper, -1.0, 1.0)
+	return out
+
+## Shears closing: a bright scrape of blade on blade that climbs, ending in a click at the pivot.
+func _snip_samples() -> PackedFloat32Array:
+	var duration := 0.1
+	var count := int(MIX_RATE * duration)
+	var out := PackedFloat32Array()
+	out.resize(count)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 20260934
+	var phase := 0.0
+	var last := 0.0
+	for i in count:
+		var t := float(i) / float(MIX_RATE)
+		var progress := t / duration
+		phase += TAU * lerpf(3200.0, 5600.0, progress) / float(MIX_RATE)
+		var noise := rng.randf_range(-1.0, 1.0)
+		var scrape := ((noise - last) * 0.25 + sin(phase) * 0.18) * progress
+		last = noise
+		var u := t - duration * 0.82
+		var click := rng.randf_range(-1.0, 1.0) * 0.7 * exp(-u * 700.0) if u >= 0.0 else 0.0
+		out[i] = clampf(scrape + click, -1.0, 1.0)
 	return out
 
 ## A woodblock tick: one decaying sine with a noise transient on the front. The transient
