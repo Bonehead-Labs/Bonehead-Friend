@@ -145,6 +145,9 @@ const WALK_GAIN := 12.0
 ## The push is clamped at this many g's worth of force. 2.5 bounds the reversal kick at
 ## 7,350 N (it was 21,000) and still starts him inside a tenth of a second.
 const WALK_PUSH_G := 2.5
+## The same clamp in the air, where there is no floor to pay: under his own weight, so wall
+## friction (1.0) can never hold him up the side of the thing he hopped at.
+const AIR_PUSH_G := 0.5
 
 ## A climb is the exception, not the gait. Clearance above a toy's top edge that one aims for
 ## — 12 px, not 28: the 28 was compensating for a rect that put his feet 32 px above where
@@ -203,6 +206,10 @@ const WANDER_MARGIN := 120.0
 ## kindness ladder must never collapse into "put a trampoline down and leave".
 const PLAY_VALUE_PER_SECOND := 0.4
 
+## What a weapon-side ball is worth as a destination: above nothing, and below every toy at
+## the same distance that pays (see `_appeal`).
+const WEAPON_BALL_APPEAL := 0.01
+
 # --- routines --------------------------------------------------------------
 
 ## Plain ints rather than an enum, following `ItemData`: an enum used as a parameter type is
@@ -258,10 +265,21 @@ var _last_disturbance_msec := 0
 ## How long he must be left alone before starting. `IDLE_SECONDS` normally; `INVITED_SECONDS`
 ## when the player has just put a toy down for him (which is an offer, not an arrival).
 var _wait_seconds := IDLE_SECONDS
+## The toy just offered, and until when its own arrival is part of the offer. The shop drops a
+## toy from the middle of the window, which is where he stands: the ball lands on his head and
+## pays a catch, or a bowling ball lands a hit — and both read as the player arriving, so the
+## offer that had just shortened the wait to six seconds put it straight back to twenty-five.
+## "Spawn a ball and watch him play with it", again (D60).
+var _offer_id: StringName = &""
+var _offer_until_msec := 0
 var _cooldowns: Dictionary = {}   ## toy instance id -> earliest msec he will go back
 
 var _banked := 0.0
 var _bank_position := Vector2.ZERO
+## Everything the brain itself has paid, in kindness value, for the life of this node. The
+## brain and the toy attribute to the same id, so without this nothing outside can tell whose
+## payment a Heart was — and "never both" is the one rule about money this file keeps.
+var paid_value := 0.0
 
 var _gravity := 980.0
 var _climb_timer := 0.0
@@ -458,8 +476,16 @@ func _walk(direction: float) -> void:
 		_buddy.art.travel(direction, effort)
 	var weight := _buddy.mass * _gravity
 	var gap := direction * _walk_speed() - _buddy.linear_velocity.x
-	var limit := WALK_PUSH_G * weight
-	var push := clampf(direction * weight + gap * _buddy.mass * WALK_GAIN, -limit, limit)
+	# The feed-forward pays the floor's friction, and in the air there is no floor. Worse, the
+	# full push pressed into the side of whatever he had just hopped at is a normal force of
+	# over twice his weight, and friction against it held him up the side of a 40 px box for
+	# the whole stall — every climb at anything with a vertical face failed that way (D60).
+	# Airborne, the push is a nudge under his own weight: he slides off a wall rather than
+	# hanging on it, and still has the air control a climb needs to get over the top.
+	var grounded := _buddy.is_grounded()
+	var limit := (WALK_PUSH_G if grounded else AIR_PUSH_G) * weight
+	var feed := direction * weight if grounded else 0.0
+	var push := clampf(feed + gap * _buddy.mass * WALK_GAIN, -limit, limit)
 	_buddy.apply_central_force(Vector2(push, 0.0))
 
 ## The last twenty pixels. With his real rect, "reached" fires a little before contact, and
@@ -471,7 +497,10 @@ func _lean(direction: float) -> void:
 		return
 	if _buddy.art:
 		_buddy.art.travel(direction, 0.35)
-	_buddy.apply_central_force(Vector2(direction * _buddy.mass * _gravity * LEAN_G, 0.0))
+	# Grounded only, for the reason `_walk` gives: a lean over his own weight against a toy's
+	# side while he is off the floor is friction enough to hang him on it.
+	var lean := LEAN_G if _buddy.is_grounded() else AIR_PUSH_G
+	_buddy.apply_central_force(Vector2(direction * _buddy.mass * _gravity * lean, 0.0))
 
 ## Top walking speed, derived rather than picked: a body arriving at `min_damage_impulse`
 ## divided by its own mass is, by definition, the fastest one whose contact cannot register
@@ -659,7 +688,14 @@ func _appeal(body: BaseDraggable, routine: int) -> float:
 		return float(body.call(&"idle_appeal"))
 	var friendly := body as FriendlyBase
 	if friendly == null:
-		return 0.0
+		# A weapon-side ball — the beach ball, the bowling ball. It was quoted as zero, and
+		# `_choose_toy` skips anything worth zero, so the two balls `_routine_for` exists to
+		# bring into play were never once walked to (D60). Measured, a bop does not pay for them
+		# either: it lifts the ball a hand's height beside him rather than dropping it on him,
+		# and a toy has to land at the 1,500 fall floor to count. So he plays with one for its
+		# own sake — the least appealing thing on the desk, which anything within `TIE_BAND` of
+		# it that pays him beats.
+		return WEAPON_BALL_APPEAL if routine == ROUTINE_BOP else 0.0
 	if routine == ROUTINE_SOAK:
 		return friendly.hearts_per_second_touching
 	if routine == ROUTINE_SCRUB:
@@ -691,6 +727,7 @@ func _disturb() -> void:
 	# Back to the full wait. An arrival cancels an outstanding offer: if the player drops a
 	# ball and then starts hitting him, they are playing with him, not leaving him to it.
 	_wait_seconds = IDLE_SECONDS
+	_offer_id = &""
 	if _phase != PHASE_WATCHING:
 		_stand_down()
 
@@ -705,7 +742,7 @@ func _on_damage_dealt(info: HitInfo) -> void:
 	# desk meant the idle timer was reset every couple of seconds for the rest of the
 	# session** and he never reached the twenty-five seconds a routine needs to start. The
 	# player who bought automation to watch him potter about got the opposite.
-	if info.source_id == &"world" or _is_current_toy(info.source_id):
+	if info.source_id == &"world" or _is_current_toy(info.source_id) or _is_offer(info.source_id):
 		return
 	if _is_autonomous(info.source_id):
 		return
@@ -719,9 +756,9 @@ func _is_autonomous(source_id: StringName) -> bool:
 	return item != null and item.is_autonomous
 
 func _on_kindness_given(source_id: StringName, _value: float, _world_pos: Vector2) -> void:
-	# The toy he is playing with paying him is not somebody arriving. Anything else is — a pet
-	# is the clearest "I am here" in the game.
-	if _is_current_toy(source_id):
+	# The toy he is playing with paying him is not somebody arriving, and nor is the toy just
+	# offered landing on him. Anything else is — a pet is the clearest "I am here" in the game.
+	if _is_current_toy(source_id) or _is_offer(source_id):
 		return
 	_disturb()
 
@@ -762,6 +799,9 @@ func _on_item_spawned(item: Node2D) -> void:
 	# moment a new player is most likely to be trying it.
 	_last_disturbance_msec = Time.get_ticks_msec()
 	_wait_seconds = INVITED_SECONDS
+	# For as long as he is being given to wait, what the toy does on arrival is the offer.
+	_offer_id = body.item_id
+	_offer_until_msec = _last_disturbance_msec + int(INVITED_SECONDS * 1000.0)
 
 func _on_item_despawned(item: Node2D) -> void:
 	if item == _target:
@@ -850,6 +890,7 @@ func _flush() -> void:
 		return
 	# Attributed to the toy, so its mastery, its augments and its tree all apply — and so the
 	# floating number appears over the thing he is playing with.
+	paid_value += _banked
 	EventBus.kindness_sustained.emit(_target_id, _banked, _bank_position)
 	_banked = 0.0
 
@@ -869,6 +910,10 @@ func _resolve_buddy() -> bool:
 ## be silently exempt from interrupting him for as long as he had no target.
 func _is_current_toy(source_id: StringName) -> bool:
 	return _target_id != &"" and source_id == _target_id
+
+## Whether an id is the toy just put down for him, still arriving.
+func _is_offer(source_id: StringName) -> bool:
+	return _offer_id != &"" and source_id == _offer_id and Time.get_ticks_msec() < _offer_until_msec
 
 func _is_busy_state() -> bool:
 	return _buddy.state == &"dragged" or _is_knockout_state(_buddy.state)
