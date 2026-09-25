@@ -518,6 +518,22 @@ func _the_ball_tells_fortunes() -> void:
 		else:
 			_check("a %s pays nothing" % tone, is_equal_approx(Economy.balance_of(Economy.HEARTS), before))
 
+	# F10 (D70): a shake counts by how far each stroke went, up to one `STROKE`, so every level of
+	# Looser Dice is felt. A straight drag is only carrying it; once the hand turns back, that
+	# first stroke counts as a shake, and half a stroke is half of one.
+	ball._energy = 0.0
+	ball._last_step = Vector2.ZERO
+	ball._stroke = 0.0
+	ball._first = 0.0
+	ball._turned = false
+	ball._shake_step(Vector2(300.0, 0.0))
+	_check("a long straight drag is not a shake (%.2f)" % ball.energy(), ball.energy() == 0.0)
+	ball._shake_step(Vector2(-MagicEightBall.STROKE * 0.5, 0.0))
+	_check("turned back, the drag was one shake and half a stroke is half another (%.2f)" % ball.energy(),
+		is_equal_approx(ball.energy(), 1.5))
+	ball._shake_step(Vector2(-MagicEightBall.STROKE * 4.0, 0.0))
+	_check("and no stroke is worth more than one (%.2f)" % ball.energy(), is_equal_approx(ball.energy(), 2.0))
+
 	ball.bubble_seconds = 0.1
 	ball._energy = ball._needed()
 	ball.read(true, 0)
@@ -566,6 +582,16 @@ func _the_ball_squeezes_and_is_caught() -> void:
 		Economy.balance_of(Economy.HEARTS) - hearts, unit * value * ItemDB.balance.hearts_per_kindness)
 	_check("in Hearts only", is_equal_approx(Economy.balance_of(Economy.BONES), bones))
 	_check("and it springs back round", ball.sprite.visible and not ball.squeeze_sprite.visible)
+	# The game losing focus mid-squeeze is not a let-go (D70): it springs back and pays nothing.
+	_press(at, MOUSE_BUTTON_RIGHT)
+	await get_tree().create_timer(0.4).timeout
+	var before_focus := Economy.balance_of(Economy.HEARTS)
+	ball.propagate_notification(NOTIFICATION_APPLICATION_FOCUS_OUT)
+	_check("a squeeze the focus leaves pays nothing and springs back", not ball.is_squeezing()
+		and is_equal_approx(Economy.balance_of(Economy.HEARTS), before_focus)
+		and ball.sprite.visible and not ball.squeeze_sprite.visible)
+	_release(at, MOUSE_BUTTON_RIGHT)
+	_check("nor does the right coming up after it", is_equal_approx(Economy.balance_of(Economy.HEARTS), before_focus))
 	_release(at)
 	await _settle()
 
@@ -714,8 +740,10 @@ func _nothing_runs_at_rest() -> void:
 	for toy in toys:
 		var zones := toy.gestures
 		_check("%s at rest runs no frame of its own" % toy.item_id, not toy.is_processing())
+		# `_input` only while a gesture is live (D70), so a drag can cross a panel; never at rest.
 		_check("and its zones are idle", zones != null and not zones.is_processing()
 			and not zones.is_physics_processing() and not zones.is_pressed()
+			and not zones.is_processing_input()
 			and (zones.get_node("HoldTimer") as Timer).is_stopped())
 	var wrap: BubbleWrap = null
 	for toy in toys:

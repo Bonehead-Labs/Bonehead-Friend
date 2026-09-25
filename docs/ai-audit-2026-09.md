@@ -102,6 +102,25 @@ The bowling ball now leaves at 960 px/s and lands for 21 damage.
 **11. The reunion never reached its happy face.** The row names `tail_face: happy` and no `tail`,
 and a tail face is entered at `seconds - tail`. *Fix:* a 0.4 s tail (`06be9a6`).
 
+### Fixed in D70 — the loose ends (2026-09-26)
+
+Every open item below except C and the smaller notes in G and H is fixed, each with a check that
+fails without it; the numbers are in each entry and in docs/decisions.md D70. Two more came from
+the D64 and D66 notes rather than from this audit:
+
+**12. He never went back to the Newton's cradle or the pull-back car** (brain_check's two
+failures at 208a8d1). Both quoted zero appeal while running — the cradle while it swung, the car
+while it drove — and zero is the brain's "nothing to do here", so a toy he set going on his last
+tick at it was never chosen again. *Fix:* a steady appeal; `idle_use` declines while busy, as every
+D57 toy does (`2e19807`).
+
+**13. His own bouncing billed Bones to an empty desk.** Since D64 billed the mat's landings, about
+17.6 damage a second, on top of the Hearts the brain pays for the same bounce; the bowling ball
+he bops onto his head billed too. *Fix:* while the brain has him at a toy, the toy and the world
+are his own play and are not hits (`Buddy.begin_own_play`); his own bounces no longer count on
+the "bounce him" board. The trampoline billed 2 hits in brain_check's 1.6 s window and 1 coming to
+rest; 0 now (`1aba5e9`).
+
 ### Open — recommendations for the owner
 
 **A. At Focus Off, 26 of the 33 routine toys earn nothing (medium).** Off skips the walk and marks
@@ -110,33 +129,51 @@ earn; every soak, scrub, nibble and bop toy pays only for real contact, which do
 yet the dwell runs and the toy is then cooled for 60 s. The idle brain's header promises Off keeps
 the income (D21). Either the brain pays the toy's presence rate on its behalf while Off, or at Off
 he only chooses brain-paid toys. A design call, not a bug fix.
+*Fixed (D70):* the first of the two. At Off the brain asks the toy to pay for his presence, as
+itself and down its own roads (`FriendlyBase.pay_presence`), and a jack he wound laughs out of
+earshot. Every routine toy, him 600 px off: 19 of the 40 that pay Hearts earned within a dwell
+at Off; 40 of 40 now (`23537cb`).
 
 **B. He leans against furniture rather than getting in (medium).** 0 of 9 soak toys ended with him
 on or in them — beanbag, hot tub, recliner, hammock all included. "Reached" is rect overlap plus
 20 px, the playing branch then leans, and the toy pays on side contact. That is what
 plan-movement-hitboxes §10 designed, and the comments in `idle_brain.gd` still speak of climbing
 into the tub. If he should sit *in* things, SOAK needs "reached" to mean on top.
+*Fixed (D70):* he is let in. The toy hops him over its edge, the two pass through each other,
+and he is pinned in a seat sunk into it (0.45 of its height, never over 0.4 of his), the toy
+drawn over his legs; he hops out over the side when the dwell ends. 9 of 9 now, sat in for 39-61
+of the 96 frames after arriving; `tools/soak_shots.tscn` shows each one (`50cc3ee`).
 
 **C. Neither weapon ball can pay (low).** The bop lifts a ball 34 px beside him; toys are kind-side
 and need the 1,500 fall floor. A 0.4 kg beach ball could not clear even the 350 swing floor. They
 are now destinations of last resort, played with for their own sake. If the bowling ball should
 pay, note that bopped onto his head it is ~8,000 of impulse — half a knockout a bop.
+*Settled by D70, not changed:* his own play mints no Bones, so the bowling ball is played with
+for its own sake at any Focus, as brain_check notes. The beach ball is a Hearts catch since D64.
 
 **D. The gorilla's slam throws him at ~4,640 px/s (medium).** 26,000 × falloff ≈ 14,000 impulse on a
 3 kg body — past the 4,500 px/s the drag joint is allowed (D54) and twice the fastest throw D54
 measured. Damage is capped at 200 by `max_hit_fraction`; the push is not. The mortar's splash is
 ~1,850 px/s. Recommend capping the push, not the damage.
+*Fixed (D70):* the slam's push is capped at 2,500 px/s (`slam_max_speed`, the blunderbuss's 2,536),
+the damage is not: 140.1 from 14,015 as before, peak 4,636 -> 2,477 px/s. brain_check fails any
+animal that throws him past the drag's backstop (`3b4e7d7`).
 
 **E. Animals also hurt him by bumping into him (low).** Contact impulses from NPC bodies pay like a
 weapon's: hornets ramming at speed, a goose arriving. They bypass the wind-up tell and the attack
 period. D7-consistent physics; if every blow should be telegraphed, treat `NpcBase` contacts as
 kind-side in `Buddy._min_impulse_for`.
+*Fixed (D70), as recommended:* an `NpcBase` body faces the fall floor. The goose's bump before its
+tell is gone, and a grapple is its 8 shakes rather than 16 hits; every blow is untouched
+(`57728e3`).
 
 **F. A toy outside the window is still a destination (low).** He walks into the wall, stalls eight
 seconds, gives up, and retries every cooldown. `WorldBounds` keeps toys in the window, so it takes
 a teleport or a tunnel. A filter on the visible rect is one line, but loop_check's whole desk sits
 outside its 64x64 headless root viewport, so it was left for a change that moves that suite into a
 SubViewport as this one does.
+*Fixed (D70):* the brain asks its walls, not the window (`WorldBounds.arena()`, by group in its own
+viewport); with no walls there is nothing to filter, so loop_check's desk is untouched (`259ffc7`).
 
 **G. Smaller presentation notes (low).** The Nervous personality's early flinch preempts the
 `fuse_lit` hold, so it loses the gasp-and-lean for the whole fuse. The rubber duck is a *nibble*
@@ -145,12 +182,41 @@ to throw, the raccoon's melee blow lands from its full 260 px reach. Hornet swar
 freed wherever they are when the lead hornet reaches its edge. `yawn` has no deadline of its own
 and is noticed on the next ambient tick, up to nine seconds late. A purchase that completes a
 milestone shows `claimed` a moment later, which is right.
+*Fixed (D70):* the Nervous one's threat holds wait behind the flinch and take over after it
+(`11c1d10`); he eats only food, and the duck is bopped (`3343002`). The rest stand.
 
 **H. Two engine facts worth knowing (info).** `BaseDraggable.get_interaction_rect()` ignores a
 collider's offset, and `IdleBrain` uses it for toys: the trampoline's rect sits 24 px below its
 mat. `Buddy.is_grounded()` is stale while he sleeps. Autonomous damage (turrets, critters, the
 trampoline) banks `dollars_per_hit` at full rate while automation banks at idle efficiency —
 worth a look against D31's "Dollars count acts".
+*Checked (D70), recorded, not changed:* by D31's letter it is right — every damaging hit pays the
+flat Dollar amount. By its point it is not: "Dollars are earned by being present", and automation
+and offline pay at `dollars_idle_efficiency` (0.15). A pellet turret firing every 1.1 s banks about
+3,270 Dollars an hour at an empty desk, six times what an automation tick banks (1.0 x 0.15 a
+second, 540 an hour); the trampoline no longer adds to it (D70's own play). The kind side has the
+same leak by a different road: the toys he nibbles and bops pay as acts (`kindness_given`), so
+their unattended pay counts on the combo, the contract board and the Dollars. A balance call for
+the owner: bank an autonomous source's hits at `dollars_idle_efficiency`, and route a toy's pay
+during his own routine through `kindness_sustained`.
+
+**I. Melee animals cannot reach him in the furniture (low, new in D70).** Sat in a beanbag his
+middle is about 116 px from a goose standing at its side, past the goose's 78 px reach, so it
+waits there until the dwell ends and he hops out; turrets and thrown things still reach him.
+brain_check's "a goose hitting him does not stand him down" now finds him at a boombox. Measuring
+an animal's reach to his nearest edge rather than his middle would change every critter's pacing.
+
+**J. Timing flakes seen while running the suites (info).** Three, all the suites' own, all fixed.
+The critters' tell read 0.50 s once and 0.30 once for a 0.35 s wind-up: it paired a swing with the
+nearest wind-up, which could be an earlier one the animal had abandoned, and measured on the wall
+clock while the wind-up runs on the engine's; it takes the latest wind-up where the animal swung
+from now, on the engine's clock. The personalities' "moves his
+mood by the same amount" read real-time mood decay across the hit and failed once at a 0.23
+spread against a 0.1 tolerance; decay is held still across the reading now, and all twelve read
+-18.0000 exactly. And item_check's trickle "at exactly its rate" failed about one run
+in five (a beanbag +0.031 on 0.782) because contact time was counted only on the ticks a driver
+awaited, and a long frame runs two physics ticks inside the one process frame `_expect_trickle`
+waits; it is counted on every tick now, and held through three runs alone and two under load.
 
 ---
 
@@ -184,6 +250,7 @@ The full per-row and per-toy numbers are in `user://brain_check_report.md` after
 ## Deferred visual checks
 
 brain_check is headless. These want eyes on a real window (`tools/sandbox.tscn`, not headless):
-a boombox on the desk while he idles (mood face and blinks visible, not a fixed happy face); a hot
-tub and a beanbag (the soak look, and finding B); a 40 px box in his way; a gorilla crossing the
-desk and leaving; a pellet turret and a mortar firing at him.
+a boombox on the desk while he idles (mood face and blinks visible, not a fixed happy face); a 40
+px box in his way; a gorilla crossing the desk and leaving; a pellet turret and a mortar firing at
+him. The soak look (finding B) is `tools/soak_shots.tscn`, which was run and looked at for D70:
+him in each of the nine, and hopping out.

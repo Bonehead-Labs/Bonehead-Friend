@@ -80,6 +80,7 @@ func _initialize() -> void:
 	_test_blast_radius_follows_scale()
 	_test_blast_strength_falls_off()
 	_test_blast_reaches_its_visible_edge()
+	_test_a_blast_hands_no_body_more_than_its_cap()
 
 	_suite("augment stacking")
 	_test_augment_levels_compound()
@@ -474,6 +475,24 @@ func _test_blast_reaches_its_visible_edge() -> void:
 	# And the bug's signature: computed against the raw radius, that same body gets zero.
 	_check("against the raw radius it would have been inert",
 		Blast.blast_strength(400.0, 166.0, 10000.0) == 0.0)
+
+## D70: the push a blast hands one body is capped as a change of speed, so a 0.3 kg prop at the
+## heart of a charge is not thrown across the window in a frame. Him at 3 kg is never capped by
+## anything a blast in the game does to him (6,478 px/s at the most, measured).
+func _test_a_blast_hands_no_body_more_than_its_cap() -> void:
+	var him := RigidBody2D.new()
+	him.mass = 3.0
+	var prop := RigidBody2D.new()
+	prop.mass = 0.3
+	_check("him, at the black hole's heaviest push, takes all of it",
+		is_equal_approx(Blast.capped(him, 19434.0), 19434.0))
+	_check("a 0.3 kg prop at the heart of a 34,000 blast leaves at the cap, not at 113,333 px/s",
+		is_equal_approx(Blast.capped(prop, 34000.0) / prop.mass, Blast.MAX_BLAST_SPEED))
+	_check("a smaller cap is honoured (the gorilla's slam)",
+		is_equal_approx(Blast.capped(him, 14000.0, 2500.0), 7500.0))
+	_check("the cap stays above anything a blast does to him", Blast.MAX_BLAST_SPEED > 6478.0)
+	him.free()
+	prop.free()
 
 # --- augment stacking ------------------------------------------------------
 

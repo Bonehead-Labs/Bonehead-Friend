@@ -155,11 +155,15 @@ func pop() -> void:
 
 ## His turn: a laugh if he is in the mood, and the laugh is what pays. Out of earshot, or
 ## miserable, the pop only frightens him.
+##
+## A tune he wound himself he is always in earshot of (D70): at Focus Off the brain has him
+## "simply there" without the walk, often further off than the ear reaches, and the jack was the
+## one routine toy that still earned nothing at Off — every pop out of range, every laugh lost.
 func _laugh_or_not(by_player: bool) -> void:
 	var him := buddy()
 	if him == null or not _out:
 		return
-	if him.global_position.distance_to(global_position) > ExpressionBrain.THREAT_RANGE:
+	if by_player and him.global_position.distance_to(global_position) > ExpressionBrain.THREAT_RANGE:
 		return
 	if Economy.mood < laugh_mood:
 		return

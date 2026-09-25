@@ -120,6 +120,8 @@ func _ready() -> void:
 	if _want("zones"):
 		await _zones_follow_a_turned_body()
 		await _hover_shows_what_is_a_button()
+	if _want("focus"):
+		await _a_gesture_outlives_a_panel_but_not_the_focus()
 	if _want("bin"):
 		await _shift_right_always_bins()
 	if _want("rest"):
@@ -412,8 +414,14 @@ func _the_cradle_clacks() -> void:
 	_release(_mouse, MOUSE_BUTTON_RIGHT)
 	_check("a nudge sets nothing going", not cradle.is_swinging())
 	# He pulls a ball himself when it is still.
+	var still_appeal := cradle.idle_appeal()
 	cradle.idle_use(_buddy)
 	_check("left alone with a still one, he sets it going", cradle.is_swinging())
+	# Swinging is not "nothing to do here" (D70): the brain reads a zero as exactly that, and a
+	# cradle he set going on his last tick at it was never a destination again.
+	_check("and swinging it is still somewhere to go (%.3f, still %.3f)"
+		% [cradle.idle_appeal(), still_appeal], cradle.idle_appeal() > 0.0
+		and is_equal_approx(cradle.idle_appeal(), still_appeal))
 	cradle._stop()
 	Settings.focus_intensity = Settings.Intensity.OFF
 	_trickles.clear()
@@ -512,6 +520,9 @@ func _the_car_winds_and_gives_rides() -> void:
 	var away := signf(car.global_position.x - _buddy.global_position.x)
 	_check("left alone with it, he lets it go away from him", car.is_driving()
 		and is_equal_approx(car.facing, away))
+	# The chase is the game, so a driving car is still his toy (D70).
+	_check("and a car on the move is still somewhere to go (%.3f)" % car.idle_appeal(),
+		car.idle_appeal() > 0.0)
 	await _frames(40)
 	_check("and that is his trickle, not an act", _acts.is_empty()
 		and _trickles.any(func(t: Array) -> bool: return t[0] == &"pull_back_car"))
@@ -744,6 +755,129 @@ func _the_slingshot_draws_and_fires() -> void:
 	_check("binned, its pellets go with it (%d were flying)" % pellets.size(), pellets.all(
 		func(p) -> bool: return not is_instance_valid(p) or (p as Node).is_queued_for_deletion()))
 	_spawner_clear()
+
+# --- panels and focus (D70) ------------------------------------------------------------
+
+## A live gesture hears the mouse over a panel — the HUD's rows stop the mouse, and the world's
+## `_unhandled_input` never sees a motion a control took — and a gesture the game loses focus in
+## the middle of is called off, not let go of: alt-tab with a slingshot drawn fired it at him.
+func _a_gesture_outlives_a_panel_but_not_the_focus() -> void:
+	_suite("panels and focus")
+	Settings.focus_intensity = Settings.Intensity.NORMAL
+	await _stand_him_up(Vector2(700, 560))
+	var sling := await _fresh(&"slingshot", _beside_him(-240.0)) as Slingshot
+	if sling == null:
+		_check("a slingshot is on the desk", false)
+		return
+	await _frames(20)
+	var at := sling.global_position
+	await _hover(at)
+	_press(at)
+	await _mouse_to(Vector2(at.x, (_buddy.global_transform * _buddy.center_of_mass).y + 14.0))
+	await _frames(30)
+	_press(_mouse, MOUSE_BUTTON_RIGHT)
+	var fork := sling.fork_position()
+	_move(fork + Vector2(-10, 0))
+	# A panel across the draw, stopping the mouse the way the HUD's rows do.
+	var panel := _panel_in_the_way(Rect2(fork + Vector2(-140, -60), Vector2(120, 120)))
+	_move(fork + Vector2(-80, 4))
+	_check("drawn across a panel, the pouch still follows the cursor (%.0f px off)"
+		% sling.pouch_position().distance_to(fork + Vector2(-80, 4)),
+		sling.pouch_position().distance_to(fork + Vector2(-80, 4)) < 1.0)
+	var shots := sling.shots_fired
+	_release(_mouse, MOUSE_BUTTON_RIGHT)
+	_check("and letting go over the panel still looses it", sling.shots_fired == shots + 1
+		and not sling.is_drawn())
+	panel.get_parent().queue_free()
+	await get_tree().create_timer(sling._reload() + 0.1).timeout
+	_press(_mouse, MOUSE_BUTTON_RIGHT)
+	# Straight back from him, from wherever the frame hangs now.
+	var again := sling.fork_position()
+	var him := _buddy.global_transform * _buddy.center_of_mass
+	_move(again + (again - him).normalized() * 90.0)
+	_check("drawn again, at him", sling.is_drawn() and sling.is_threatening())
+	shots = sling.shots_fired
+	_main.propagate_notification(NOTIFICATION_APPLICATION_FOCUS_OUT)
+	_check("the game losing focus mid-draw fires nothing (%d shots)" % (sling.shots_fired - shots),
+		sling.shots_fired == shots)
+	_check("it slackens instead: not drawn, not planted, not aimed at him", not sling.is_drawn()
+		and not sling.freeze and not sling.is_threatening() and not sling.pouch.visible)
+	_release(_mouse, MOUSE_BUTTON_RIGHT)
+	_release(_mouse)
+	await _frames(4)
+	_check("and neither the right nor the left coming up later fires it", sling.shots_fired == shots)
+	_check("with nothing live, its zones listen to nothing", not sling.gestures.is_processing_input())
+	_spawner_clear()
+
+	# The car: wound to full, then the focus goes. It unwinds where it stands.
+	var car := await _fresh(&"pull_back_car", Vector2(_buddy.global_position.x - 230.0, 600.0)) as PullBackCar
+	if car:
+		await _frames(30)
+		_press(car.global_position, MOUSE_BUTTON_RIGHT)
+		for i in 18:
+			_move(_mouse + Vector2(-10, 0))
+		var wound := car.notches()
+		var launches := car.launches
+		_main.propagate_notification(NOTIFICATION_APPLICATION_FOCUS_OUT)
+		_check("a car wound to %d notches when the focus goes does not drive off" % wound,
+			wound == PullBackCar.NOTCHES and car.launches == launches and not car.is_driving())
+		_check("it stops winding and is a car again", not car.is_winding() and not car.freeze)
+		_release(_mouse, MOUSE_BUTTON_RIGHT)
+		_check("and the right coming up later launches nothing", car.launches == launches)
+	_spawner_clear()
+
+	# The cradle: a ball held out when the focus goes goes back into the row.
+	var cradle := await _fresh(&"newtons_cradle", _beside_him(-190.0)) as NewtonsCradle
+	if cradle:
+		await _frames(30)
+		var ball := cradle.gestures.zone_world(&"ball_l")
+		_press(ball, MOUSE_BUTTON_RIGHT)
+		_move(ball + Vector2(-26, -10))
+		_move(ball + Vector2(-34, -16))
+		var held_out := cradle.ball_angle(0)
+		_main.propagate_notification(NOTIFICATION_APPLICATION_FOCUS_OUT)
+		_check("a cradle ball held out (%.0f deg) when the focus goes swings nothing"
+			% rad_to_deg(held_out), held_out > deg_to_rad(20.0) and not cradle.is_swinging()
+			and is_zero_approx(cradle.ball_angle(0)))
+		_release(_mouse, MOUSE_BUTTON_RIGHT)
+	_spawner_clear()
+
+	# The slinky: stretched in the hand when the focus goes, it goes home without a boing.
+	var slinky := await _fresh(&"slinky", _beside_him(-240.0)) as Slinky
+	if slinky:
+		await _frames(20)
+		await _hover(slinky.global_position)
+		_press(slinky.global_position)
+		await _frames(4)
+		_press(_mouse, MOUSE_BUTTON_RIGHT)
+		_move(_mouse + Vector2(40, -150))
+		await _frames(3)
+		var stretched := slinky.stretch()
+		await _clear_combo()
+		_acts.clear()
+		var boings := slinky.boings
+		_main.propagate_notification(NOTIFICATION_APPLICATION_FOCUS_OUT)
+		_check("a slinky stretched %.0f px when the focus goes pays no boing (%s)" % [stretched, str(_acts)],
+			stretched > 120.0 and slinky.boings == boings and _acts.is_empty())
+		_check("and is let go of all the same", not slinky.stretching() and not slinky.freeze)
+		_release_all()
+	Settings.focus_intensity = Settings.Intensity.OFF
+	_spawner_clear()
+
+## A control that stops the mouse, over `rect`, on a layer above the HUD. Freed by freeing its
+## parent layer.
+func _panel_in_the_way(rect: Rect2) -> Control:
+	var layer := CanvasLayer.new()
+	layer.name = "PanelInTheWay"
+	layer.layer = 120
+	var panel := Control.new()
+	panel.name = "Panel"
+	panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	panel.position = rect.position
+	panel.size = rect.size
+	layer.add_child(panel)
+	_view.add_child(layer)
+	return panel
 
 # --- zones in a turned body ------------------------------------------------------------
 

@@ -6,6 +6,7 @@ extends Node
 ##   Godot --headless --path <project> res://tests/integration/brain_check.tscn
 ##   ... -- --only idle,turrets     run some sections
 ##   ... -- --quick                 one toy per routine instead of every toy
+##   ... -- --only idle.toys --toys hot_tub,beanbag   the every-toy walk for those toys only
 ##
 ## `loop_check` proves the wiring: it calls the brain's handlers directly, because emitting
 ## most of them on the real bus would pay money in the middle of an economy suite. This suite
@@ -49,6 +50,8 @@ var _failed := 0
 var _t0 := 0
 var _only: Array[String] = []
 var _quick := false
+## `-- --toys id,id`: the every-toy walk for those toys only, for working on one routine.
+var _toys: Array[String] = []
 
 ## One entry per mechanic: {name, passed, failed, failures, measures}.
 var _sections: Array[Dictionary] = []
@@ -69,7 +72,7 @@ var _restore := {}
 var _hits: Array[HitInfo] = []
 var _given: Array[Array] = []       ## [source_id, value, pos, usec]
 var _sustained: Array[Array] = []
-var _threats: Array[Array] = []     ## [kind, pos, level, usec]
+var _threats: Array[Array] = []     ## [kind, pos, level, usec, physics frame, engine seconds]
 var _landings: Array[Array] = []    ## [pos, speed]
 var _states: Array[Array] = []      ## [state, usec]
 var _knockouts: Array[float] = []
@@ -98,6 +101,9 @@ func _ready() -> void:
 				_only.append(part.strip_edges())
 		elif args[i] == "--quick":
 			_quick = true
+		elif args[i] == "--toys" and i + 1 < args.size():
+			for part in args[i + 1].split(","):
+				_toys.append(part.strip_edges())
 	# Silence without Focus Off: the dummy audio driver reports its stream playbacks as leaks
 	# at exit, which would bury a real one — and Off is a mode this suite has to test, not a
 	# default it can hide behind.
@@ -185,6 +191,13 @@ func _ready() -> void:
 	print("report: %s" % ProjectSettings.globalize_path(REPORT_PATH))
 	_clear_slot()
 	get_tree().quit(1 if _failed > 0 else 0)
+
+## The engine's own process clock, the one a `SceneTreeTimer` counts: an animal's wind-up is
+## timed on it, so its tell is measured on it (D70).
+var _engine_seconds := 0.0
+
+func _process(delta: float) -> void:
+	_engine_seconds += delta
 
 ## `--only idle` runs every idle section, `--only idle.geometry` just the one.
 func _want(section: String, sub: String = "") -> bool:
@@ -1028,6 +1041,12 @@ func _idle_every_toy() -> void:
 				seen[entry[1]] = true
 				few.append(entry)
 		toys = few
+	if not _toys.is_empty():
+		var picked: Array[Array] = []
+		for entry in toys:
+			if _toys.has(String(entry[0])):
+				picked.append(entry)
+		toys = picked
 	_measure("%d toys with a routine: %s" % [toys.size(), ", ".join(toys.map(
 		func(e: Array) -> String: return "%s (%s)" % [e[0], ROUTINE_NAMES.get(e[1], "?")]))])
 	var beside: Array[String] = []
@@ -1042,7 +1061,7 @@ func _idle_every_toy() -> void:
 	_end()
 
 const ROUTINE_NAMES := {
-	1: "bounce", 2: "play", 3: "soak", 4: "scrub", 5: "nibble", 6: "bop",
+	1: "bounce", 2: "play", 3: "soak", 4: "scrub", 5: "nibble", 6: "bop", 7: "fidget",
 }
 
 ## [item id, routine] for every item whose scene gives him something to do with it.
@@ -1134,7 +1153,8 @@ func _play_routine(id: StringName, routine: int) -> bool:
 			start_gap - closest, start_gap])
 	if start_gap - closest < 40.0 and not arrived:
 		problems.append("did not travel toward it")
-	if walk_hits > 0 and routine != IdleBrain.ROUTINE_BOUNCE:
+	# Nothing on the way, not even on the way to a trampoline: his own play is not a hit (D70).
+	if walk_hits > 0:
 		problems.append("the walk cost him %d hits" % walk_hits)
 	if hops > IdleBrain.MAX_CLIMBS_PER_TRIP:
 		problems.append("%d hops on the way" % hops)
@@ -1154,6 +1174,7 @@ func _play_routine(id: StringName, routine: int) -> bool:
 	# What he looks like while he does it: the routine's own row (plan §2G) is the whole reason
 	# the idle brain is visible at all.
 	var look: StringName = ExpressionBrain.ROUTINE_HOLDS.get(routine, &"")
+	var seated := 0
 	var look_frames := 0
 	var lost_frames := 0
 	var instead := {}
@@ -1176,12 +1197,21 @@ func _play_routine(id: StringName, routine: int) -> bool:
 			# going empty, or the generic `cared_for` sitting over the routine's own look.
 			if f >= 30 and (beat == &"" or beat == &"cared_for"):
 				lost_frames += 1
-			if toy in _buddy.get_colliding_bodies():
+			# Sitting in it is touching it: the two pass through each other while he is in (D70).
+			var friendly_toy := toy as FriendlyBase
+			if toy in _buddy.get_colliding_bodies() or (friendly_toy and friendly_toy.touches(_buddy)):
 				contact += 1
 			var mine := _buddy.get_interaction_rect()
 			var its := toy.get_interaction_rect()
-			if mine.end.y <= its.position.y + 16.0 and mine.position.x < its.end.x and mine.end.x > its.position.x:
+			var on := mine.end.y <= its.position.y + 16.0 and mine.position.x < its.end.x \
+				and mine.end.x > its.position.x
+			# In it: his middle over its middle and his feet off the floor it stands on.
+			var in_it := mine.get_center().x > its.position.x and mine.get_center().x < its.end.x \
+				and mine.end.y <= its.end.y - 12.0
+			if on or in_it:
 				on_top += 1
+			if friendly_toy and friendly_toy.is_seated(_buddy):
+				seated += 1
 			if _idle.phase_name() != IdleBrain.PHASE_PLAYING:
 				break
 	var play_seconds := float(Time.get_ticks_usec() - play_start) / 1.0e6
@@ -1192,6 +1222,14 @@ func _play_routine(id: StringName, routine: int) -> bool:
 	var cleaned := grime_before - _buddy.grime.value
 	var toy_paid := toy_sustained > 0.0 or toy_given > 0.0 or toy_hits > 0
 	if arrived:
+		# His own play is never a hit (D70): not the toy, not the floor. Bouncing billed the mat
+		# about 17.6 damage a second with nobody at the desk, on top of the brain's Hearts, and a
+		# bowling ball bopped onto his own head billed Bones too.
+		var own_hits := _hits.filter(func(h: HitInfo) -> bool:
+			return h.source_id == id or h.source_id == &"world")
+		if not own_hits.is_empty():
+			problems.append("his own play billed %d hits (%s)" % [own_hits.size(), _list(own_hits.map(
+				func(h: HitInfo) -> String: return "%s %.1f" % [h.source_id, h.amount]))])
 		var brain_should := _idle._brain_pays(routine)
 		if brain_should and brain_paid <= 0.0:
 			problems.append("the brain should pay for this and paid nothing")
@@ -1207,6 +1245,10 @@ func _play_routine(id: StringName, routine: int) -> bool:
 			IdleBrain.ROUTINE_SOAK:
 				if toy_sustained <= 0.0:
 					problems.append("sitting in it paid nothing (in contact %d of %d frames)" % [contact, play_frames])
+				# In it, not against it (D70; AI audit B found 0 of 9 soak toys with him on or in them).
+				if seated == 0 or on_top < play_frames / 3:
+					problems.append("he never got in it (sat in it %d of %d frames, over or in it %d)"
+						% [seated, play_frames, on_top])
 			IdleBrain.ROUTINE_SCRUB:
 				if cleaned <= 0.0 or toy_sustained <= 0.0:
 					problems.append("the scrub cleaned %.3f and paid %.2f" % [cleaned, toy_sustained])
@@ -1226,9 +1268,9 @@ func _play_routine(id: StringName, routine: int) -> bool:
 			problems.append("wore '%s' on %d of %d frames, lost it on %d (instead: %s)" % [look, look_frames,
 				play_frames, lost_frames, _list(instead.keys().map(func(k: Variant) -> String:
 					return "%s x%d" % [k if String(k) != "" else "nothing", instead[k]]))])
-	var line := "%s: %.0f px in %.1f s (%d hops, tilt %.1f deg); playing %.1f s, touching %d/%d frames, on it %d; toy paid %.2f sustained + %.2f acts + %d hits, brain %.2f%s" % [
+	var line := "%s: %.0f px in %.1f s (%d hops, tilt %.1f deg); playing %.1f s, touching %d/%d frames, on or in it %d (sat in it %d); toy paid %.2f sustained + %.2f acts + %d hits, brain %.2f%s" % [
 		name_, start_gap - closest, walk_seconds, hops, rad_to_deg(tilt), play_seconds, contact,
-		play_frames, on_top, toy_sustained, toy_given, toy_hits, brain_paid,
+		play_frames, on_top, seated, toy_sustained, toy_given, toy_hits, brain_paid,
 		(", cleaned %.2f" % cleaned) if routine == IdleBrain.ROUTINE_SCRUB else ""]
 	if routine == IdleBrain.ROUTINE_PLAY and walk_seconds > 0.6:
 		line += "; its own rate while he walked %.2f/s, while he danced %.2f/s" % [
@@ -1259,7 +1301,13 @@ func _play_routine(id: StringName, routine: int) -> bool:
 				var mooched := _idle.phase_name() == IdleBrain.PHASE_WATCHING
 				# On his feet before he is asked to start again: he never sets off lying down,
 				# and a trampoline can still be throwing him about when the dwell ends.
+				var before_rest := _hits.size()
 				var settled := await _until(_standing_still, 300)
+				# Bouncing on after the dwell is still his own play until he stops.
+				var after := _hits.slice(before_rest).filter(func(h: HitInfo) -> bool:
+					return h.source_id == id or h.source_id == &"world")
+				if not after.is_empty():
+					problems.append("coming to rest after it billed %d hits" % after.size())
 				if not settled:
 					problems.append("never came to rest after leaving (v %.0f px/s, tilt %.0f deg)"
 						% [_buddy.linear_velocity.length(), rad_to_deg(wrapf(_buddy.rotation, -PI, PI))])
@@ -1380,7 +1428,11 @@ func _idle_interruptions() -> void:
 		_clear_desk()
 		await _frames(3)
 		Progression._unlock(id)
-		bag = await _spawn_toy(&"beanbag", 360.0)
+		# The goose is melee, and a skeleton sitting in a beanbag is out of its 78 px reach (D70:
+		# he gets in it now). So it finds him dancing at a boombox, where a peck can land.
+		var toy_id := &"boombox" if id == &"goose" else &"beanbag"
+		Progression._unlock(toy_id)
+		bag = await _spawn_toy(toy_id, 360.0)
 		_place(Vector2(520.0, HOME.y))
 		# Within the turret's reach of the beanbag he will be sitting in.
 		EventBus.spawn_requested.emit(id, Vector2(860.0, FLOOR_Y - 60.0))
@@ -1557,14 +1609,21 @@ func _idle_geometry() -> void:
 	await _frames(2)
 	_idle.pretend_idle()
 	_idle.think_now()
-	# Measured, not asserted: `WorldBounds` keeps toys inside the window in the game, so this
-	# takes a teleport to reach, and filtering on the window breaks `loop_check`, whose whole
-	# desk sits outside a headless 64x64 root viewport (docs/ai-audit-2026-09.md).
+	# Asserted since D70 (AI audit F): the brain asks its walls where the desk is, not the
+	# window, so loop_check's hand-built desk out past a 64x64 root is still a desk.
 	var chases := _idle.target_id() == &"beanbag"
 	_measure("a toy off the edge of the window: he %s it (phase '%s')" % [
 		"sets off for" if chases else "ignores", _idle.phase_name()])
-	if chases:
-		_note("he sets off for a toy outside the window, walks into the wall, and gives up after the stall")
+	_check("a toy outside the walls is not somewhere to go (phase '%s')" % _idle.phase_name(),
+		not chases)
+	# And the same toy back on the desk is: the filter is the walls, not the toy.
+	if is_instance_valid(lost):
+		lost.global_position = Vector2(420.0, HOME.y)
+		lost.freeze = false
+	await _frames(20)
+	_idle.pretend_idle()
+	_idle.think_now()
+	_check("and back inside them it is again", _idle.target_id() == &"beanbag")
 	_idle._disturb()
 	_clear_desk()
 	_end()
@@ -1588,20 +1647,47 @@ func _block(centre: Vector2, size: Vector2) -> StaticBody2D:
 func _idle_focus_off() -> void:
 	_begin("idle brain — Focus Off")
 	await _stage("idle focus off", true)
-	for id in [&"trampoline", &"boombox", &"beanbag"]:
+	# Every toy he has a routine for, not three (D70): Off is the promise that a player in a
+	# meeting can stop the desk moving without giving up the income (D21), and the audit found 26
+	# of 33 routine toys earning nothing at Off — every one that pays only for touch.
+	var toys := _routine_toys()
+	if not _toys.is_empty():
+		var picked: Array[Array] = []
+		for entry in toys:
+			if _toys.has(String(entry[0])):
+				picked.append(entry)
+		toys = picked
+	var earning := 0
+	var counted := 0
+	var silent: Array[String] = []
+	for entry in toys:
+		var id: StringName = entry[0]
 		_idle._disturb()
 		_clear_desk()
 		await _frames(3)
 		_focus(Settings.Intensity.NORMAL)
-		await _spawn_toy(id, 300.0)
-		_place(Vector2(700.0, HOME.y))
+		_buddy.grime.set_value(0.8 if int(entry[1]) == IdleBrain.ROUTINE_SCRUB else 0.0)
+		Economy.grime = _buddy.grime.value
+		var toy := await _spawn_toy(id, 300.0)
+		# Six hundred px off: at Off he does not walk, and nothing about "there" may depend on
+		# being near it — a jack he wound himself laughed only within earshot.
+		_place(Vector2(900.0, HOME.y))
 		await _frames(20)
+		if not is_instance_valid(toy):
+			_check("'%s' survives being put down" % id, false)
+			continue
 		_focus(Settings.Intensity.OFF)
+		# Asked now: food is eaten, and a toy that is gone cannot be asked anything.
+		var pays_hearts := toy is FriendlyBase or toy.has_method(&"idle_use") \
+			or _idle._brain_pays(int(entry[1]))
 		var at := _buddy.global_position
+		# A fortune ball's yes is a coin toss: seeded, so the verdict is not one.
+		seed(hash(String(id)))
 		var paid_before := _idle.paid_value
 		_reset_log()
 		_idle.pretend_idle()
 		_idle.think_now()
+		var chose := _idle.target_id() == id
 		var skipped := _idle.phase_name() == IdleBrain.PHASE_PLAYING
 		for f in 90:
 			await get_tree().physics_frame
@@ -1610,17 +1696,43 @@ func _idle_focus_off() -> void:
 		var moved := _buddy.global_position.distance_to(at)
 		var brain_paid := _idle.paid_value - paid_before
 		var toy_paid := maxf(_value_from(_sustained, id) - brain_paid, 0.0) + _value_from(_given, id)
-		var routine := _idle._routine
-		_measure("%s at Off: skipped the walk %s, moved %.1f px, brain paid %.2f, toy paid %.2f over three thinks"
-			% [id, skipped, moved, brain_paid, toy_paid])
-		_check("at Off he does not walk to the %s (moved %.1f px)" % [id, moved], skipped and moved < 3.0)
-		if _idle._brain_pays(routine):
-			_check("and the %s still earns: the brain pays for it (%.2f)" % [id, brain_paid], brain_paid > 0.0)
-		elif toy_paid <= 0.0 and brain_paid <= 0.0:
-			# A design question rather than a failure: see docs/ai-audit-2026-09.md.
-			_note("at Off a %s routine earns nothing — he is not touching it, and only the toy pays for touch"
-				% ROUTINE_NAMES.get(routine, "?"))
+		# A toy that pays in lumps — a wound jack's laugh, the ball's yes — gets the rest of the dwell.
+		var thinks := 3
+		while pays_hearts and brain_paid <= 0.0 and toy_paid <= 0.0 and thinks < 12 \
+				and _idle.phase_name() == IdleBrain.PHASE_PLAYING:
+			# A second between thinks, not half of one: the jack laughs 0.55 s after it pops, and a
+			# think sooner than that shuts the lid on the laugh.
+			for f in 60:
+				await get_tree().physics_frame
+			_idle.think_now()
+			thinks += 1
+			brain_paid = _idle.paid_value - paid_before
+			toy_paid = maxf(_value_from(_sustained, id) - brain_paid, 0.0) + _value_from(_given, id)
+		# The jack laughs a beat after it pops, and a trickle is flushed half a second after that.
+		if pays_hearts and brain_paid <= 0.0 and toy_paid <= 0.0:
+			await _frames(75)
+			toy_paid = maxf(_value_from(_sustained, id) - brain_paid, 0.0) + _value_from(_given, id)
+		moved = maxf(moved, _buddy.global_position.distance_to(at))
+		var routine := int(entry[1])
+		_measure("%s at Off: skipped the walk %s, moved %.1f px, brain paid %.2f, toy paid %.2f over %d thinks"
+			% [id, skipped, moved, brain_paid, toy_paid, thinks])
+		_check("at Off he does not walk to the %s (moved %.1f px)" % [id, moved], chose and skipped and moved < 3.0)
+		# A weapon-side ball is played with for its own sake at any Focus: his own play mints no
+		# Bones (D70) and it has no Hearts to pay.
+		if not pays_hearts:
+			_note("at Off, as at any Focus, a %s is played with for its own sake" % id)
+			continue
+		counted += 1
+		if brain_paid > 0.0 or toy_paid > 0.0:
+			earning += 1
+		else:
+			silent.append("%s (%s)" % [id, ROUTINE_NAMES.get(routine, "?")])
+	_measure("at Off, %d of %d routine toys that pay Hearts earned within a dwell%s" % [earning,
+		counted, "" if silent.is_empty() else "; silent: " + _list(silent)])
+	_check("at Off every routine toy that pays Hearts still earns (%d of %d%s)" % [earning, counted,
+		"" if silent.is_empty() else "; silent: " + _list(silent)], silent.is_empty() and counted > 0)
 	_idle._disturb()
+	_clear_desk()
 	_focus(Settings.Intensity.NORMAL)
 	_end()
 
@@ -2085,6 +2197,18 @@ func _personalities() -> void:
 			problems.append("a wind-up %s" % ("made him flinch" if flinched else "did not make him flinch"))
 		EventBus.threat_changed.emit(&"windup", _buddy.global_position + Vector2(120, 0), 0.0)
 		await _settle_hit()
+		# A fuse lit beside him is watched to the end, flinch or no flinch (D70). The Nervous
+		# one's early flinch took the slot and the fuse's lean, asked for under it, was never worn.
+		EventBus.threat_changed.emit(&"fuse", _buddy.global_position + Vector2(120, 0), 1.0)
+		await _advance_brain(1000)
+		if _brain.beat_id() != &"fuse_lit":
+			problems.append("a fuse lit beside him, a second on, he wore '%s' and not its lean"
+				% _brain.beat_id())
+		EventBus.threat_changed.emit(&"fuse", _buddy.global_position + Vector2(120, 0), 0.0)
+		await _advance_brain(1000)
+		if _brain.beat_id() == &"fuse_lit":
+			problems.append("and the lean outlived the fuse")
+		_brain.clear()
 		# The numbers: the same hit, the same mood, and nothing but the curve may differ.
 		_buddy.mood.set_value(40.0)
 		_buddy.grime.set_value(0.0)
@@ -2093,12 +2217,17 @@ func _personalities() -> void:
 		# mace's mastery, which climbs as this loop hits him — read before, and divided out.
 		var pipeline := Economy.payout_for(1.0, MACE)
 		var bones := Economy.balance_of(Economy.BONES)
+		# His mood decays in real time, and the hit takes a frame or four to land: a long frame
+		# on a busy machine was a 0.23 spread against a 0.1 tolerance. Held still for the reading,
+		# so the delta is the hit's alone (D70).
+		_buddy.mood.set_process(false)
 		var mood_before := _buddy.mood.value
 		var n := _hits.size()
 		await _hit(6000.0, MACE)
 		amounts[p.id] = _hits[n].amount if _hits.size() > n else -1.0
 		bone_rates[p.id] = (Economy.balance_of(Economy.BONES) - bones) / maxf(pipeline, 1e-9)
 		mood_deltas[p.id] = _buddy.mood.value - mood_before
+		_buddy.mood.set_process(true)
 		grime_deltas[p.id] = _buddy.grime.value
 		await _settle_hit()
 		_buddy.mood.set_value(40.0)
@@ -2114,8 +2243,8 @@ func _personalities() -> void:
 	# Every tell multiplies motion only; the number columns must be identical across all of them.
 	_check("the same hit deals the same damage under every personality (%s)" % _spread(amounts), _flat(amounts))
 	_check("and pays the same Bones once the curve is divided out (%s)" % _spread(bone_rates), _flat(bone_rates))
-	# Mood decays in real time between the reading and the hit, a frame or two's worth.
-	_check("and moves his mood by the same amount (%s)" % _spread(mood_deltas), _flat(mood_deltas, 0.1))
+	# His decay is held still across the hit, so this is the hit's own effect on him.
+	_check("and moves his mood by the same amount (%s)" % _spread(mood_deltas), _flat(mood_deltas, 0.01))
 	_check("and dirties him by the same amount (%s)" % _spread(grime_deltas), _flat(grime_deltas))
 	_check("and a pet pays the same Hearts once the curve is divided out (%s)" % _spread(heart_rates), _flat(heart_rates))
 	Economy.personality = "stoic"
@@ -2215,16 +2344,27 @@ func _critter(id: StringName) -> void:
 	var peak_speed := 0.0
 	var thrown := false
 	if not swing.is_empty():
-		# The tell is the wind-up and the swing of the same animal: the nearest wind-up before it.
-		var tell_start := int(windup[3])
+		# The tell is the wind-up and the swing of the same animal: the latest wind-up before it
+		# where it swung from, and the nearest one only for a swarm whose bodies all moved. The
+		# nearest alone paired a swing with an earlier wind-up the animal had abandoned, a few
+		# pixels closer, and read 0.50 s (D70).
+		var tell_from: Array = windup
 		var best := INF
+		var latest_here: Array = []
 		for t in _threats:
 			if t[0] == &"windup" and float(t[2]) > 0.0 and int(t[3]) <= int(swing[3]):
 				var d := (t[1] as Vector2).distance_to(swing[1])
-				if d < best or (is_equal_approx(d, best) and int(t[3]) > tell_start):
+				if d <= 24.0:
+					latest_here = t
+				if d < best:
 					best = d
-					tell_start = int(t[3])
-		var tell := float(int(swing[3]) - tell_start) / 1.0e6
+					tell_from = t
+		if not latest_here.is_empty():
+			tell_from = latest_here
+		# On the engine's clock, which is what the animal's wind-up timer runs on: the wall clock
+		# and the smoothed frame delta part company by a few frames after a long one, and a
+		# 0.35 s tell read 0.30 on it once (D70).
+		var tell := float(swing[5]) - float(tell_from[5])
 		if tell < npc.windup_seconds - 0.03 or tell > npc.windup_seconds + 0.08:
 			problems.append("the tell was %.2f s, not %.2f" % [tell, npc.windup_seconds])
 		await _frames(3)
@@ -2263,6 +2403,10 @@ func _critter(id: StringName) -> void:
 			% [id, approach, npc.move_speed, tell, npc.windup_seconds,
 			("threw the bowling ball" if thrown else ("%.1f damage from %.0f impulse" % [blow.amount, blow.raw_impulse] if blow else "missed")),
 			peak_speed, spin_after, bumps])
+	# Every blow is telegraphed (D70, AI audit E): its body brushing him on the way in is a bump,
+	# not a hit. The goose's arrival was billed with no tell at all.
+	if bumps > 0:
+		problems.append("its body hurt him %d times before any tell" % bumps)
 	if not npc.flying and approach < npc.move_speed * 0.5:
 		problems.append("walked at %.0f px/s, under half its %.0f" % [approach, npc.move_speed])
 	if not _seen_now(&"threatened") and not _seen_now(&"hit_light"):
@@ -2271,6 +2415,7 @@ func _critter(id: StringName) -> void:
 	# Four more seconds of it: grapples, repeats, what it costs.
 	var bones := Economy.balance_of(Economy.BONES)
 	var n0 := _hits_from(id).size()
+	var t_window := _threats.size()
 	var fastest := 0.0
 	for f in 240:
 		await get_tree().physics_frame
@@ -2278,13 +2423,15 @@ func _critter(id: StringName) -> void:
 		if _buddy.health.down:
 			await _until(func() -> bool: return not _buddy.health.down, 240)
 	var more := _hits_from(id).size() - n0
-	_measure("%s: %d more hits in 4 s, +%.0f Bones, fastest he was thrown %.0f px/s" % [id, more,
-		Economy.balance_of(Economy.BONES) - bones, fastest])
-	# How hard a blow may throw him is tuning, not a defect: reported against the drag's own
-	# 4,500 px/s backstop (D54) rather than failed on.
+	var swings := _threats.slice(t_window).filter(func(t: Array) -> bool:
+		return t[0] == &"windup" and float(t[2]) > 0.0).size()
+	_measure("%s: %d more hits in 4 s from %d wind-ups, +%.0f Bones, fastest he was thrown %.0f px/s"
+		% [id, more, swings, Economy.balance_of(Economy.BONES) - bones, fastest])
+	# No animal throws him harder than the drag joint itself may (D54's 4,500 px/s backstop). It
+	# was a note here until D70: the gorilla's slam threw him at 4,640, and its push is capped now.
 	if maxf(fastest, peak_speed) > npc.max_drag_speed:
-		_note("%s throws him at %.0f px/s, past the %.0f px/s the drag joint is allowed (D54)"
-			% [id, maxf(fastest, peak_speed), npc.max_drag_speed])
+		problems.append("threw him at %.0f px/s, past the %.0f px/s the drag joint is allowed (D54)"
+			% [maxf(fastest, peak_speed), npc.max_drag_speed])
 	# Grabbed mid-swing, the swing is abandoned.
 	if not npc.flying and is_instance_valid(npc):
 		var winding := await _until(func() -> bool: return ref.get_ref() != null and (ref.get_ref() as NpcBase).state == NpcBase.STATE_ATTACK, 300)
@@ -2340,6 +2487,8 @@ func _critter(id: StringName) -> void:
 	if left and took >= NpcBase.LEAVE_TIMEOUT - 0.5:
 		problems.append("never reached an edge; the %.0f s timeout removed it" % NpcBase.LEAVE_TIMEOUT)
 	_measure("%s: left in %.1f s; %d contact hits on the way out" % [id, took, _hits_from(id).size()])
+	if not _hits_from(id).is_empty():
+		problems.append("its body hurt him %d times on its way out, where it swings at nothing" % _hits_from(id).size())
 	_check("%s%s" % [id, "" if problems.is_empty() else ": " + "; ".join(problems)], problems.is_empty())
 
 # =====================================================================================
@@ -2743,7 +2892,7 @@ func _log_sustained(source_id: StringName, value: float, at: Vector2) -> void:
 	_sustained.append([source_id, value, at, Time.get_ticks_usec()])
 
 func _log_threat(kind: StringName, at: Vector2, level: float) -> void:
-	_threats.append([kind, at, level, Time.get_ticks_usec(), Engine.get_physics_frames()])
+	_threats.append([kind, at, level, Time.get_ticks_usec(), Engine.get_physics_frames(), _engine_seconds])
 
 func _log_landing(at: Vector2, speed: float) -> void:
 	_landings.append([at, speed])

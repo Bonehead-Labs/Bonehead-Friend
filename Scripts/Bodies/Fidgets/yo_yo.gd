@@ -111,7 +111,7 @@ func _on_gesture(g: GestureZones.Gesture) -> void:
 		GestureZones.ACTION:
 			throw()
 		GestureZones.ACTION_END:
-			wind_in()
+			wind_in(not g.cancelled)
 
 ## Out it goes: off the finger and down the string.
 func throw() -> void:
@@ -134,12 +134,13 @@ func throw() -> void:
 	AudioManager.play(&"zip", 0.08, -10.0, 1.0)
 
 ## Right comes up: it climbs back into the hand. A long enough sleep before it makes the next
-## bonk a trick shot.
-func wind_in() -> void:
+## bonk a trick shot — unless the sleep was called off rather than ended: the game lost focus
+## with right still down, and a trick nobody finished is not one (D70). It still comes home.
+func wind_in(trick: bool = true) -> void:
 	if not _out or _returning:
 		return
 	_returning = true
-	if _sleep_seconds >= _trick_needed():
+	if trick and _sleep_seconds >= _trick_needed():
 		_trick()
 	_sleeping = false
 	AudioManager.play(&"zip", 0.08, -12.0, 1.35)

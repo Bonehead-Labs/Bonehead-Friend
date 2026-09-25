@@ -111,10 +111,10 @@ func _on_gesture(g: GestureZones.Gesture) -> void:
 			if _mode == Mode.STRETCH:
 				_pull_to(g.world)
 		GestureZones.ACTION_END:
-			_let_go()
+			_let_go(not g.cancelled)
 		GestureZones.RELEASE:
 			if g.button == MOUSE_BUTTON_RIGHT:
-				_let_go()
+				_let_go(not g.cancelled)
 
 ## The end it is held by stays where it is, and the cursor has the other one.
 func _plant(at: Vector2) -> void:
@@ -135,7 +135,10 @@ func _pull_to(at: Vector2) -> void:
 
 ## Right comes up: a boing, if it was a stretch. In the hand the planted end is let go and the
 ## joint springs it home; on the desk the far end springs back onto it.
-func _let_go() -> void:
+##
+## `boing` false is the stretch called off — the game lost focus with right still down (D70).
+## Nobody let go, so it goes home the same way without the boing: no sound, no act, no use.
+func _let_go(boing: bool = true) -> void:
 	if _mode != Mode.STRETCH:
 		return
 	var length := global_position.distance_to(_far)
@@ -143,7 +146,8 @@ func _let_go() -> void:
 	if length < MIN_STRETCH:
 		_compact()
 		return
-	_boing(length, true)
+	if boing:
+		_boing(length, true)
 	if dragging and handle:
 		_mode = Mode.HOME_TO_HAND
 	else:

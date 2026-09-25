@@ -108,7 +108,12 @@ func _on_gesture(g: GestureZones.Gesture) -> void:
 			if _drawing:
 				_pull_to(g.world)
 		GestureZones.ACTION_END:
-			loose()
+			# Focus lost mid-draw (alt-tab) is not letting go: the bands go slack and nothing
+			# flies (D70). It used to fire a pellet at him from a hand that was not there.
+			if g.cancelled:
+				slacken()
+			else:
+				loose()
 
 ## Plants the frame upright where it is and puts the pouch in the hand.
 func draw_back(at: Vector2) -> void:
@@ -139,10 +144,25 @@ func _pull_to(at: Vector2) -> void:
 func loose() -> void:
 	if not _drawing:
 		return
-	_drawing = false
 	var from := fork_position()
 	var pull := from - _pouch_at
 	var share := clampf(pull.length() / maxf(max_draw, 1.0), 0.0, 1.0)
+	_undraw()
+	if share < MIN_SHARE or not is_loaded() or pull.length_squared() <= 0.0:
+		AudioManager.play(&"twang", 0.05, -18.0, 1.6)
+		return
+	fire(pull.normalized() * lerpf(min_speed, max_speed, share), share)
+
+## The draw called off: back to rest with the pellet still in the pouch.
+func slacken() -> void:
+	if not _drawing:
+		return
+	_undraw()
+	AudioManager.play(&"twang", 0.05, -22.0, 1.8)
+
+## The frame is a thing in the hand again: bands at rest, no pouch, no line, no threat.
+func _undraw() -> void:
+	_drawing = false
 	freeze = false
 	for band in _bands:
 		band.visible = false
@@ -154,10 +174,6 @@ func loose() -> void:
 	if rest_bands:
 		rest_bands.visible = true
 	_set_threat(false)
-	if share < MIN_SHARE or not is_loaded() or pull.length_squared() <= 0.0:
-		AudioManager.play(&"twang", 0.05, -18.0, 1.6)
-		return
-	fire(pull.normalized() * lerpf(min_speed, max_speed, share), share)
 
 ## A pellet from the fork at `velocity`, worth `share` of a full shot.
 func fire(velocity: Vector2, share: float) -> Pellet:

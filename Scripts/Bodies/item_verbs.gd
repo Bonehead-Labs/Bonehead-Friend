@@ -263,9 +263,17 @@ func _conditions_hold(r: Dictionary) -> bool:
 		return false
 	if r.has("near") and him.global_position.distance_to(body.global_position) > float(r["near"]):
 		return false
-	if bool(r.get("touching", false)) and not body.get_colliding_bodies().has(him):
+	if bool(r.get("touching", false)) and not _touches(him):
 		return false
 	return true
+
+## Sitting in it counts (D70): the two pass through each other while he is in a hot tub, so
+## asking the physics server alone would switch the jets off the moment he got in.
+func _touches(him: Buddy) -> bool:
+	var friendly := body as FriendlyBase
+	if friendly:
+		return friendly.touches(him)
+	return body.get_colliding_bodies().has(him)
 
 func _pay(r: Dictionary, id: StringName, at: Vector2) -> bool:
 	var value := float(r.get("value", 0.0))

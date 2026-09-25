@@ -28,6 +28,18 @@ func _ready() -> void:
 	# stranded-collider bug M0 removed from the prototype, reintroduced by a no-op guard.
 	_on_deactivated()
 
+## **A held button ends when the game loses focus** (D70). Four powers are held — the minigun's
+## stream, the magnifying glass, the open hand's stroke, the vortex — and each watches for the
+## release in `_input`. Alt-tab with the button down and the release goes to the other window,
+## so the minigun kept firing, and paying Bones, at a desk nobody was at until the next click.
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_APPLICATION_FOCUS_OUT:
+		release_hold()
+
+## Override: stop whatever holding the button was doing. Nothing to stop by default.
+func release_hold() -> void:
+	pass
+
 func _on_cursor_power_changed(id: StringName) -> void:
 	if id == item_id and item_id != &"":
 		set_active(true)

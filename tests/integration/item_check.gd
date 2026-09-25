@@ -127,7 +127,6 @@ const KNOWN := {
 	"pump_shotgun/thrown": "~F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
 	"hunting_rifle/thrown": "~F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
 	"blunderbuss/thrown": "~F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
-	"magic_eight_ball/aug_cooldown_mult": "F10 a shake is a whole reversal: 4 x 0.94^n still rounds up to 4 until level 5",
 }
 
 var _passed := 0
@@ -334,6 +333,8 @@ func _ready() -> void:
 	SaveManager.slot_name = TEST_SLOT
 	_clear_slot()
 	SaveManager.load_game()
+	# Contact time is counted on every physics tick, not only the ones the driver awaits (D70).
+	get_tree().physics_frame.connect(_count_touch)
 
 	_catch = Catch.new()
 	OS.add_logger(_catch)
@@ -758,7 +759,18 @@ func _sample() -> void:
 	if _run.grime_seen >= 0.0 and grime < _run.grime_seen:
 		_run.grime_removed += _run.grime_seen - grime
 	_run.grime_seen = grime
-	# Contact time, counted the way the item counts it: the same call on the same frame.
+	# Contact time is `_count_touch`'s, on every tick.
+
+## Contact time, counted the way the item counts it: the same call on the same tick. On every
+## physics tick, from the tree's own signal, and not from `_step`: a driver waiting on anything
+## else — the one process frame `_expect_trickle` waits for the item to bank the tick it is in —
+## could see the main loop run two physics ticks when a frame ran long, and the item banked a
+## tick of touch the suite never counted. "At exactly its rate" failed that way about one run in
+## five on a busy machine (D70). Fired before any node's `_physics_process` in the tick, from the
+## contacts of the step before, which is exactly what the item is about to read.
+func _count_touch() -> void:
+	if _run == null:
+		return
 	var friendly: FriendlyBase = _run.body if not _gone(_run.body) and _run.body is FriendlyBase else null
 	if friendly and friendly._touching_buddy() != null:
 		_run.touch_seconds += 1.0 / float(Engine.physics_ticks_per_second)
@@ -1151,6 +1163,20 @@ func _drive_black_hole(run: Run) -> void:
 	if not await _prime_and_drop(run, body, _centre() + Vector2(-190.0, -10.0)):
 		return
 	run.notes.append("pull %.1fs" % body.pull_seconds)
+	# A 0.3 kg prop beside it, touching nothing: the well gathers it into the heart of the heap,
+	# where the blast hands it `max_force / 0.3` — tens of thousands of px/s until D70 capped what
+	# any blast may hand one body. Sampled every frame: [last speed vector, largest one-frame
+	# change, peak speed]. An Array, because a lambda captures locals by value.
+	var probe := _probe(body.global_position + Vector2(60.0, -30.0), 4)
+	var seen := [Vector2.ZERO, 0.0, 0.0]
+	var sample := func() -> void:
+		if not is_instance_valid(probe):
+			return
+		var v := probe.linear_velocity
+		seen[1] = maxf(float(seen[1]), (v - (seen[0] as Vector2)).length())
+		seen[2] = maxf(float(seen[2]), v.length())
+		seen[0] = v
+	get_tree().physics_frame.connect(sample)
 	var well: WeakRef = weakref(body)
 	await _await(func() -> bool: return well.get_ref() == null or well.get_ref()._pull_left > 0.0, 90)
 	var start := _centre().distance_to(body.global_position) if not _gone(body) else 0.0
@@ -1164,6 +1190,15 @@ func _drive_black_hole(run: Run) -> void:
 	_expect(run, "gathers", nearest < start - 25.0,
 		"the well drags him in before it goes (%.0f px to %.0f)" % [start, nearest])
 	await _expect_blast(run, body, 60)
+	get_tree().physics_frame.disconnect(sample)
+	# The largest change in one frame is the blast's push (the pull adds at most a few hundred
+	# px/s a frame to a body this light, and nothing else touches it).
+	_expect(run, "prop", float(seen[1]) > 0.0 and float(seen[1]) <= ExplosionUtil.MAX_BLAST_SPEED + 300.0,
+		"a 0.3 kg prop it gathered is thrown no harder than any blast may throw anything: %.0f px/s in one frame, peak %.0f (the cap is %.0f)"
+		% [float(seen[1]), float(seen[2]), ExplosionUtil.MAX_BLAST_SPEED])
+	run.notes.append("a gathered 0.3 kg prop: +%.0f px/s in a frame, peak %.0f" % [float(seen[1]), float(seen[2])])
+	if is_instance_valid(probe):
+		probe.queue_free()
 
 ## The one explosive nobody aims: lit in the hand and let go.
 func _drive_firework(run: Run) -> void:
@@ -2220,15 +2255,23 @@ func _hold_right(frames: int, before_release: Callable = Callable()) -> float:
 	return held
 
 ## Carried side to side in the hand, a leg a physics frame, until `ready` says so or `legs`
-## run out. The first leg sets a direction and every later one reverses it. Returns the legs.
-func _shake(legs: int, amplitude: float, ready: Callable) -> int:
+## run out. The first leg sets a direction and every later one reverses it. Each leg is `grain`
+## px motions (over the fortune ball's 3 px jitter floor), and `ready` is asked after every one — so what comes
+## back is how far the hand moved before the toy was ready, in px, not a count of legs (D70: the
+## fortune ball fills as it is shaken, and a count of legs cannot see a 6% change).
+func _shake(legs: int, amplitude: float, ready: Callable, grain: float = 4.0) -> float:
 	var home := _mouse
+	var moved := 0.0
 	for i in legs:
-		if ready.call():
-			return i
-		_move(home + Vector2(amplitude if i % 2 == 0 else -amplitude, 0.0))
+		var to := home + Vector2(amplitude if i % 2 == 0 else -amplitude, 0.0)
+		while _mouse.distance_to(to) > 0.001:
+			if ready.call():
+				return moved
+			var from := _mouse
+			_move(_mouse.move_toward(to, grain))
+			moved += from.distance_to(_mouse)
 		await _step()
-	return legs
+	return moved
 
 ## Bubble wrap: a left tap on a bubble pops it and does not lift the sheet; a right-stroke from
 ## there across the row pops the run it passes over and never bins the sheet; a popped bubble
@@ -2392,12 +2435,15 @@ func _drive_fortune_ball(run: Run) -> void:
 	await _mouse_to(_mouse + Vector2(0.0, -90.0), 500.0)
 	var ball: WeakRef = weakref(body)
 	var tones: Array[StringName] = []
-	var legs := -1
+	var shaken := -1.0
+	# Strokes exactly one shake long, so every pixel the hand moves is one the ball counts and the
+	# distance is the shaking itself.
+	var half := MagicEightBall.STROKE * 0.5
 	for attempt in 8:
-		var took := await _shake(16, 36.0, func() -> bool:
+		var took := await _shake(24, half, func() -> bool:
 			return ball.get_ref() == null or ball.get_ref().is_ready_to_read())
-		if legs < 0:
-			legs = took
+		if shaken < 0.0:
+			shaken = took
 		if _gone(body) or not body.is_ready_to_read():
 			break
 		_press(MOUSE_BUTTON_RIGHT)
@@ -2406,11 +2452,12 @@ func _drive_fortune_ball(run: Run) -> void:
 		if body.last_tone == &"yes":
 			break
 		await _step(2)
-	# The reversals it took to be ready, which its third node is sold as taking off.
-	if legs > 0:
-		run.cooldown = float(legs - 1)
-	_expect(run, "shaken", legs > 1 and not tones.is_empty(), "shaken in the hand, it is ready after %d reversals"
-		% (legs - 1))
+	# How much shaking it took to be ready, which its third node is sold as taking off.
+	if shaken > 0.0:
+		run.cooldown = shaken
+	_expect(run, "shaken", shaken > MagicEightBall.STROKE and not tones.is_empty(),
+		"shaken in the hand, it is ready after %.0f px of shaking (%.2f shakes)"
+		% [shaken, shaken / MagicEightBall.STROKE])
 	_expect(run, "reads", run.uses() == tones.size() and not tones.is_empty(),
 		"right-click reads it, a use:%s each (%d reads: %s)" % [run.item.id, tones.size(), tones])
 	_expect(run, "answer", not _gone(body) and body.answer_showing() and body.answer_text() == body.last_answer,

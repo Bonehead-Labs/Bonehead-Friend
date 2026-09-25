@@ -137,7 +137,8 @@ func _on_gesture(g: GestureZones.Gesture) -> void:
 		GestureZones.DRAG:
 			_wind_to(g.world)
 		GestureZones.RELEASE:
-			_end_wind()
+			# Focus lost mid-wind is not a let-go (D70): it unwinds where it stands.
+			_end_wind(not g.cancelled)
 
 func _start_wind(at: Vector2) -> void:
 	# In the hand it is being carried, not wound; a ride under way is not interrupted.
@@ -181,13 +182,13 @@ func _wind_to(at: Vector2) -> void:
 	charge = float(_notches) / float(NOTCHES)
 	queue_redraw()
 
-func _end_wind() -> void:
+func _end_wind(let_go: bool = true) -> void:
 	if not _winding:
 		return
 	_winding = false
 	freeze = false
 	queue_redraw()
-	if charge >= MIN_CHARGE:
+	if let_go and charge >= MIN_CHARGE:
 		launch(charge, true)
 	charge = 0.0
 	_notches = 0
@@ -401,8 +402,13 @@ func _half_extent() -> Vector2:
 
 # --- him --------------------------------------------------------------------------
 
+## **A car that is driving is still his toy** (D70): the chase is half the game, and `idle_use`
+## is what declines to wind a car already moving. Zero is the brain's "nothing to do here" (D57);
+## quoting it while the car drove meant a car he had just let go was not a toy at all the moment
+## he looked round, and brain_check's return found he never came back to it. Only a ride — the
+## player's, with him already on the roof — is nothing for him to walk to.
 func idle_appeal() -> float:
-	if _driving or _riding or _hopping:
+	if _riding or _hopping:
 		return 0.0
 	# A launch every other think tick, and a chase between them.
 	return ride_value * HIS_CHARGE * HIS_SHARE / (IdleBrain.THINK_SECONDS * 2.0)

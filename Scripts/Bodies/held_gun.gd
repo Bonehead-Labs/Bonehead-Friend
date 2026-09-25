@@ -220,6 +220,13 @@ func pull_trigger() -> void:
 	set_process_input(true)
 	fire()
 
+## The trigger comes up when the game loses focus (D70): alt-tab with it held and the release
+## goes to the other window, so a full-auto gun kept firing at him, and paying Bones, until the
+## player came back and clicked.
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_APPLICATION_FOCUS_OUT and _trigger_held:
+		release_trigger()
+
 func release_trigger() -> void:
 	_trigger_held = false
 	set_process_input(false)

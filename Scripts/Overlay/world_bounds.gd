@@ -17,10 +17,14 @@ const HEADROOM := 400.0
 ## Keep-inside margin used when the play area shrinks under something.
 const CONTAIN_MARGIN := 64.0
 
+## Found by the idle brain, which asks where the desk is (D70).
+const GROUP := &"world_bounds"
+
 var _walls: Array[StaticBody2D] = []
 var _last_size := Vector2.ZERO
 
 func _ready() -> void:
+	add_to_group(GROUP)
 	# Drop the hand-placed prototype borders; this node owns the walls now.
 	for child in get_children():
 		child.queue_free()
@@ -65,6 +69,13 @@ func rebuild() -> void:
 	# Anything already outside the new walls would otherwise be stranded — including the
 	# buddy, whose authored spawn point sits outside a small play area entirely.
 	_contain_escapees(size)
+
+## The space inside the walls, the headroom above the window included: everywhere a thing on
+## the desk can be. A toy outside it got there by a teleport or a tunnel, and is not somewhere
+## he can walk to (D70).
+func arena() -> Rect2:
+	var size := _last_size if _last_size != Vector2.ZERO else get_viewport().get_visible_rect().size
+	return Rect2(Vector2(0.0, -HEADROOM), Vector2(size.x, size.y + HEADROOM))
 
 ## Pulls interactive bodies back into view after the window changes size or monitor.
 ## Without this, shrinking the play area silently loses the buddy off-screen and the

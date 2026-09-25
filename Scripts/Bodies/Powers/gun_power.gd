@@ -36,6 +36,9 @@ func _on_deactivated() -> void:
 	set_process(false)
 	_holding = false
 
+func release_hold() -> void:
+	_holding = false
+
 ## Every release and every motion, not only the unhandled ones: a release consumed by a
 ## panel still has to stop the stream, or the minigun keeps firing at a cursor that is now
 ## on the shop page.

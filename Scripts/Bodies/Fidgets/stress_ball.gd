@@ -59,7 +59,7 @@ func _on_gesture(g: GestureZones.Gesture) -> void:
 			AudioManager.play(&"squeak", 0.1, -12.0, 0.8)
 			set_process(true)
 		GestureZones.ACTION_END:
-			_let_go(g.seconds)
+			_let_go(g.seconds, not g.cancelled)
 
 func _process(_delta: float) -> void:
 	if not _squeezing or gestures == null:
@@ -82,11 +82,17 @@ func _show_squash(amount: float) -> void:
 	var k := minf(amount, SWAP_AT) / SWAP_AT
 	sprite.scale = _base_scale * Vector2(1.0 + 0.12 * k, 1.0 - 0.18 * k)
 
-func _let_go(seconds: float) -> void:
+## `finished` false is a squeeze called off — focus lost with right still down (D70): it springs
+## back, and a squeeze nobody finished pays nothing.
+func _let_go(seconds: float, finished: bool = true) -> void:
 	if not _squeezing:
 		return
 	_squeezing = false
 	set_process(false)
+	if not finished:
+		charge = 0.0
+		_spring_back()
+		return
 	charge = clampf(seconds / _full_seconds(), 0.0, 1.0)
 	var paid := squeeze_value * (0.25 + 0.75 * charge)
 	pay_act(paid, global_position)

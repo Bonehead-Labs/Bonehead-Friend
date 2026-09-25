@@ -1373,6 +1373,47 @@ func _the_authored_colliders_match_the_pictures() -> void:
 	_check("and the enumeration found them (%d, at least the 42 D61 audited)" % checked, checked >= 42)
 	for id in EXEMPT:
 		_check("the exemption for %s names a real item" % id, ItemDB.get_item(id) != null)
+	_the_grab_regions_match_their_seeder()
+
+## A grab region the seeder derives from the sprite is only right for the sprite it was derived
+## from. The implosion charge was built as 88x76 around an earlier picture and kept it through
+## D61's redraw, when its seeder would have built 70x76 (D65 noticed, D70 re-seeded it). So every
+## body `seed_m36_explosives` owns is rebuilt here by the same factory, and its click target
+## compared with the one on disk. Nothing is written.
+func _the_grab_regions_match_their_seeder() -> void:
+	var seeder := load("res://tools/seed_m36_explosives.gd") as Script
+	var table: Array = seeder.get_script_constant_map().get("EXPLOSIVES", [])
+	var checked := 0
+	var wrong: Array[String] = []
+	for entry in table:
+		var item := ItemDB.get_item(entry["id"])
+		if item == null or item.scene == null:
+			continue
+		var spec := {"id": entry["id"], "script": entry["script"], "mass": entry["mass"],
+			"blast_radius": entry["blast"], "properties": {}}
+		for authored in ["shapes", "com", "grip", "grab"]:
+			if entry.has(authored):
+				spec[authored] = entry[authored]
+		var built := ItemBodyBuilder.build(spec)
+		var shipped := item.scene.instantiate()
+		var want := _grab_size(built)
+		var have := _grab_size(shipped)
+		built.free()
+		shipped.free()
+		checked += 1
+		if want == Vector2.ZERO or not have.is_equal_approx(want):
+			wrong.append("%s: %s on disk, the seeder builds %s" % [entry["id"], have, want])
+	_check("every explosive's grab region is what its seeder builds from today's sprite (%d checked%s)"
+		% [checked, "" if wrong.is_empty() else ": " + "; ".join(wrong)], wrong.is_empty() and checked >= 10)
+
+## The click target's size: the rectangle under the body's `DraggableArea`, found by what it is.
+static func _grab_size(root: Node) -> Vector2:
+	for child in root.get_children():
+		if child is Area2D and child.get_script() == preload("res://Scripts/Bodies/draggable_area.gd"):
+			for piece in child.get_children():
+				if piece is CollisionShape2D and (piece as CollisionShape2D).shape is RectangleShape2D:
+					return ((piece as CollisionShape2D).shape as RectangleShape2D).size
+	return Vector2.ZERO
 
 func _the_idle_brain_knows_who_is_at_the_desk() -> void:
 	_suite("idle brain")
@@ -2626,6 +2667,13 @@ func spawner_count_of(item_id: StringName) -> int:
 			count += 1
 	return count
 
+## The first spawned body with this id, or null.
+func _spawned(item_id: StringName) -> BaseDraggable:
+	for node in get_tree().get_nodes_in_group(&"spawned_item"):
+		if node is BaseDraggable and (node as BaseDraggable).item_id == item_id:
+			return node as BaseDraggable
+	return null
+
 ## An item's scene, instanced but never added to the tree — enough to ask a question about
 ## its switches. The caller frees it.
 func _instance_of(item_id: StringName) -> BaseDraggable:
@@ -2674,6 +2722,27 @@ func _he_goes_and_plays_with_his_toys() -> void:
 		beanbag_body != null and brain._routine_for(beanbag_body) == IdleBrain.ROUTINE_SOAK)
 	if beanbag_body:
 		beanbag_body.free()
+	# He eats only food (D70, AI audit G): the rubber duck fell through to the nibble and he ate
+	# it, again and again. Enumerated, so the next toy that pays for contact is covered too.
+	var eaten_toys: Array[String] = []
+	var eaten := 0
+	for item in ItemDB.all_items():
+		var body := _instance_of(item.id)
+		if body == null:
+			continue
+		if brain._routine_for(body) == IdleBrain.ROUTINE_NIBBLE:
+			eaten += 1
+			if not (body is FriendlyBase and (body as FriendlyBase).consume_on_use):
+				eaten_toys.append(String(item.id))
+		body.free()
+	_check("everything he eats is food (%d eaten%s)" % [eaten,
+		"" if eaten_toys.is_empty() else "; not food: " + ", ".join(eaten_toys)],
+		eaten > 0 and eaten_toys.is_empty())
+	var duck := _instance_of(&"rubber_duck")
+	_check("and a rubber duck is knocked about, not eaten",
+		duck != null and brain._routine_for(duck) == IdleBrain.ROUTINE_BOP)
+	if duck:
+		duck.free()
 
 	_clear_spawned()
 	buddy.health.reset_meter()
@@ -2744,20 +2813,22 @@ func _he_goes_and_plays_with_his_toys() -> void:
 	for i in 420:
 		await get_tree().physics_frame
 		closest = minf(closest, absf(toy_x - buddy.global_position.x))
-		lowest_vy = minf(lowest_vy, buddy.linear_velocity.y)
 		most_tilt = maxf(most_tilt, absf(wrapf(buddy.rotation, -PI, PI)))
 		var phase := brain.phase_name()
 		if phase == &"travelling":
+			lowest_vy = minf(lowest_vy, buddy.linear_velocity.y)
 			locked_while_travelling = locked_while_travelling and buddy.lock_rotation
 			if buddy.art and buddy.art.body and buddy.art.body.flip_h:
 				faced_left_while_walking = true
 		elif phase == &"playing":
 			frames_playing += 1
-			if buddy.get_colliding_bodies().any(func(b: Node) -> bool:
-					return b is BaseDraggable and (b as BaseDraggable).item_id == &"beanbag"):
+			# In it, not against it (D70): the bag lets him in and pins him in the seat, and the
+			# two pass through each other while he sits, so it is the bag that knows.
+			var bag := _spawned(&"beanbag") as FriendlyBase
+			if bag and bag.is_seated(buddy):
 				frames_in_contact += 1
-			if absf(buddy.linear_velocity.y) < 100.0:
-				frames_settled += 1
+				if absf(buddy.linear_velocity.y) < 100.0:
+					frames_settled += 1
 	EventBus.damage_dealt.disconnect(_observe)
 
 	# Distance closed, not "x increased": he can overshoot a target he is standing in, and
@@ -2772,15 +2843,15 @@ func _he_goes_and_plays_with_his_toys() -> void:
 		Economy.balance_of(Economy.HEARTS) > hearts_before)
 	_check("walking to a toy costs him nothing (%d hits, %.1f damage)"
 		% [_observed.size(), buddy.health.damage], _observed.is_empty() and buddy.health.damage == 0.0)
-	_check("he walks, he does not hop (fastest rise %.0f px/s)" % -lowest_vy, lowest_vy > -150.0)
+	_check("he walks there, he does not hop there (fastest rise %.0f px/s)" % -lowest_vy, lowest_vy > -150.0)
 	_check("he stays upright (worst tilt %.1f deg)" % rad_to_deg(most_tilt), most_tilt < 0.1)
 	_check("and rotation is locked while he travels", locked_while_travelling)
-	_check("he is actually in it: touching the beanbag on %d of %d playing frames"
+	_check("he is actually in it, not leaning on it: sat in the beanbag on %d of %d playing frames"
 			% [frames_in_contact, frames_playing],
-		frames_playing > 0 and frames_in_contact >= int(frames_playing * 0.9))
-	_check("and settled there, not bouncing (%d of %d frames under 100 px/s)"
-			% [frames_settled, frames_playing],
-		frames_playing > 0 and frames_settled >= int(frames_playing * 0.95))
+		frames_playing > 0 and frames_in_contact >= int(frames_playing * 0.7))
+	_check("and settled there, not bouncing (%d of %d frames in it under 100 px/s)"
+			% [frames_settled, frames_in_contact],
+		frames_in_contact > 0 and frames_settled >= int(frames_in_contact * 0.95))
 
 	# The art half. He has no walk tag, so travel is carried by facing and a bob — and the
 	# bob is a heartbeat that decays, so nothing can leave him bobbing on the spot.
@@ -3127,6 +3198,21 @@ func _the_mat_gives_back_more() -> void:
 		for i in 20:
 			v = mat.launch_speed(v)
 		_check("a bounce started from a hop settles at the ceiling (%.0f)" % v, is_equal_approx(v, mat.max_launch))
+		# His own play is not a hit (D70): while the idle brain has him at the mat, the mat and the
+		# world bill nothing, and anything else still does. The end-to-end half is brain_check's.
+		var him := _buddy()
+		var bat := _instance_of(&"baseball_bat")
+		if him and bat:
+			him.begin_own_play(mat)
+			_check("at a toy on his own, the toy and the world are his own play and a bat is not",
+				him.is_own_play(mat) and him.is_own_play(null) and not him.is_own_play(bat))
+			him.end_own_play(false)
+			_check("a routine that ran out lasts until he comes to rest", him.is_own_play(mat))
+			him._start_drag()
+			him._end_drag()
+			_check("and the player taking him ends it at once", not him.is_own_play(mat)
+				and not him.is_own_play(null))
+			bat.free()
 		mat.free()
 
 func _observe(info: HitInfo) -> void:

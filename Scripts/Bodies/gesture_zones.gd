@@ -74,6 +74,17 @@ extends Node
 ## `at` and `delta` are art pixels in the toy's own frame — unrotated and unmirrored — so the
 ## zone table and the gesture agree whichever way up the body is lying.
 ##
+## **A RELEASE or ACTION_END with `cancelled` set is not a let-go** (D70). The game lost focus
+## mid-gesture — alt-tab with a slingshot drawn — and the player never let go of anything, so
+## a toy that acts on the release must stand down instead: the slingshot slackens without
+## firing, the car unwinds without driving off, the cradle's ball goes back without a swing.
+##
+## **A live gesture hears the mouse everywhere** (D70). A press, an action or a carry listens
+## in `_input` until it ends, so a drag that crosses a HUD panel — which takes the motion for
+## itself, and the world's `_unhandled_input` never sees it — still steers the pouch, and a
+## release over the panel still lets go. Only while something is live: at rest nothing here
+## listens to anything.
+##
 ## ## Cost
 ##
 ## Nothing per frame, ever. Everything here runs on an input event, and only on a zone toy;
@@ -126,6 +137,8 @@ class Gesture extends RefCounted:
 	var angle := 0.0
 	var total := 0.0
 	var seconds := 0.0
+	## On a RELEASE or ACTION_END: the gesture was called off (focus lost), not let go of.
+	var cancelled := false
 
 ## One zone, parsed from its table row. Rect or circle, in art px, centred on `centre`.
 class Zone extends RefCounted:
@@ -216,6 +229,7 @@ func _ready() -> void:
 	_hold_timer.one_shot = true
 	_hold_timer.timeout.connect(_on_hold_timeout)
 	add_child(_hold_timer)
+	set_process_input(false)
 
 ## Adds one zone from a table row. Public so a toy can lay out zones it computes — though a
 ## table in the seed tool is preferred, because it sits beside the art it describes.
@@ -315,11 +329,43 @@ func take(event: InputEvent) -> bool:
 	if click:
 		if click.button_index != MOUSE_BUTTON_LEFT and click.button_index != MOUSE_BUTTON_RIGHT:
 			return false
-		return _press_event(click) if click.pressed else _release_event(click)
+		var claimed := _press_event(click) if click.pressed else _release_event(click)
+		_listen()
+		# Again once the body has had the event: a left release ends its drag after this returns.
+		_listen.call_deferred()
+		return claimed
+	var motion := event as InputEventMouseMotion
+	# While a gesture is live `_input` has already had this motion, before any panel could take
+	# it; hearing it twice would only repeat a step of zero.
+	if motion and not is_processing_input():
+		_motion_event(motion)
+	return false
+
+## A live gesture's motion and its release, heard before the GUI can take them (D70). Only while
+## a press, an action or a carry is live (`_listen`): a panel the drag crosses is a panel, not
+## the end of the drag. A release that ends a gesture of ours is claimed, as `take` claims it.
+func _input(event: InputEvent) -> void:
+	if body == null:
+		return
 	var motion := event as InputEventMouseMotion
 	if motion:
 		_motion_event(motion)
-	return false
+		return
+	var click := event as InputEventMouseButton
+	if click == null or click.pressed:
+		return
+	if click.button_index != MOUSE_BUTTON_LEFT and click.button_index != MOUSE_BUTTON_RIGHT:
+		return
+	if _release_event(click):
+		get_viewport().set_input_as_handled()
+	_listen()
+	_listen.call_deferred()
+
+## Listens in `_input` for exactly as long as something of ours is live.
+func _listen() -> void:
+	var live := not _press.is_empty() or _action_since > 0 or (body != null and body.dragging)
+	if live != is_processing_input():
+		set_process_input(live)
 
 func _press_event(click: InputEventMouseButton) -> bool:
 	var right := click.button_index == MOUSE_BUTTON_RIGHT
@@ -386,10 +432,12 @@ func _motion_event(motion: InputEventMouseMotion) -> void:
 	var world := _world_of(motion.position)
 	var art := world_to_art(world)
 	_update_hover(art)
-	# The body picks itself up and puts itself down; the cursor hears about it here.
+	# The body picks itself up and puts itself down; the cursor hears about it here, and so does
+	# the listening: a carry is live for as long as the body is in the hand.
 	if body.dragging != _was_dragging:
 		_was_dragging = body.dragging
 		_update_cursor()
+		_listen()
 	if body.dragging:
 		if _carry_from != Vector2.INF:
 			var carried := world - _carry_from
@@ -409,6 +457,7 @@ func _motion_event(motion: InputEventMouseMotion) -> void:
 	var mask := MOUSE_BUTTON_MASK_LEFT if button == MOUSE_BUTTON_LEFT else MOUSE_BUTTON_MASK_RIGHT
 	if motion.button_mask != 0 and (motion.button_mask & mask) == 0:
 		_finish_press(world, false)
+		_listen()
 		return
 	var step: Vector2 = world - _press["last_world"]
 	if step.length_squared() <= 0.0:
@@ -425,6 +474,7 @@ func _motion_event(motion: InputEventMouseMotion) -> void:
 			if button == MOUSE_BUTTON_LEFT:
 				body._start_drag()
 			_update_cursor()
+			_listen()
 			return
 	var zone: Zone = _by_id.get(_press["zone"])
 	var now := Time.get_ticks_msec()
@@ -483,14 +533,16 @@ func _finish_press(world: Vector2, released_here: bool) -> void:
 	_emit_release(was, world)
 	_update_cursor()
 
-func _emit_release(was: Dictionary, world: Vector2) -> void:
+func _emit_release(was: Dictionary, world: Vector2, cancelled: bool = false) -> void:
 	var release := _make(RELEASE, was["zone"], was["button"], world, world_to_art(world))
 	release.seconds = float(Time.get_ticks_usec() - int(was["started_usec"])) / 1_000_000.0
+	release.cancelled = cancelled
 	gesture.emit(release)
 
-func _end_action(world: Vector2) -> void:
+func _end_action(world: Vector2, cancelled: bool = false) -> void:
 	var g := _make(ACTION_END, &"", MOUSE_BUTTON_RIGHT, world, world_to_art(world))
 	g.seconds = action_seconds()
+	g.cancelled = cancelled
 	_action_since = 0
 	gesture.emit(g)
 	_update_cursor()
@@ -504,20 +556,22 @@ func _on_hold_timeout() -> void:
 	g.seconds = hold_seconds
 	gesture.emit(g)
 
-## Everything a press or an action was doing, dropped — the app lost focus, the cursor left
-## the window, the body was knocked out of the player's hand.
+## Everything a press or an action was doing, called off — the app lost focus, the cursor left
+## the window, the body was knocked out of the player's hand. The RELEASE and ACTION_END this
+## sends carry `cancelled`: nobody let go, so nothing that happens on a let-go should (D70).
 func cancel() -> void:
 	if not _press.is_empty():
 		var was: Dictionary = _press
 		_press = {}
 		_hold_timer.stop()
-		_emit_release(was, was["last_world"])
+		_emit_release(was, was["last_world"], true)
 	if _action_since > 0:
-		_end_action(_carry_from if _carry_from != Vector2.INF else body.global_position)
+		_end_action(_carry_from if _carry_from != Vector2.INF else body.global_position, true)
 	hover_zone = &""
 	hover_body = false
 	_carry_from = Vector2.INF
 	_update_cursor()
+	_listen()
 
 func _notification(what: int) -> void:
 	match what:

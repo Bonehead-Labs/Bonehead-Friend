@@ -31,6 +31,14 @@ const MAX_CAUGHT := 16
 ## far side of the desk take a shove rather than a launch.
 @export var slam_radius: float = 200.0
 
+## The hardest the slam may throw anything, as a change of speed in px/s (D70). Its impulse is
+## sized for the damage — 26,000, falling off to about 14,000 where he stands — and handed to a
+## 3 kg skeleton that is 4,640 px/s: past the 4,500 the drag joint itself is allowed (D54), and
+## faster than any gun a player can hold throws him (the blunderbuss, 2,536, item_check). So the
+## push is capped at the blunderbuss and the damage is not: the slam still bills him its whole
+## impulse, and the per-hit cap already bounds what that is worth. Props share the cap.
+@export var slam_max_speed: float = 2500.0
+
 func _land_blow(buddy: Buddy) -> bool:
 	if not _can_target(buddy):
 		return false
@@ -48,7 +56,7 @@ func _land_blow(buddy: Buddy) -> bool:
 	# know who set it off.
 	var mine := linear_velocity
 	var landed := false
-	for hit in ExplosionUtil.point_blast(space, at, slam_radius, attack_impulse, MAX_CAUGHT):
+	for hit in ExplosionUtil.point_blast(space, at, slam_radius, attack_impulse, MAX_CAUGHT, slam_max_speed):
 		var body: Node = hit["body"]
 		if body is Buddy:
 			(body as Buddy).take_impulse(float(hit["impulse"]), item_id,

@@ -91,6 +91,8 @@ func _physics_process(delta: float) -> void:
 	if lifetime_seconds > 0.0 and _age > lifetime_seconds:
 		_despawn()
 		return
+	if _guest != null:
+		_guest_step()
 
 	var value := value_multiplier()
 	if hearts_per_second_placed > 0.0:
@@ -143,6 +145,37 @@ func _physics_process(delta: float) -> void:
 	if _since_flush >= FLUSH_SECONDS:
 		_flush()
 
+## He is at this toy without touching it, for `seconds`: Focus Off, where he does not walk to
+## anything (D21, D36) and the idle brain has him "simply there". Everything this class pays for
+## him is paid for touch, so at Off the soaks, scrubs, snacks and balls — 21 of the 40 routine
+## toys that pay Hearts — earned nothing, and D21 promises that Off still earns (D70).
+##
+## So the brain asks the toy to pay what that much contact would have paid, and the toy pays it
+## as itself, down the same roads: a touching rate as a trickle, the grime the sponge takes off
+## him, a helping at the contact cooldown as an act — eaten, if it is food. Still the toy paying
+## and the brain paying nothing; and never on top of real contact, which pays for itself.
+func pay_presence(him: Buddy, seconds: float) -> void:
+	if him == null or seconds <= 0.0 or _touching_buddy() == him:
+		return
+	var value := value_multiplier()
+	if hearts_per_second_touching > 0.0:
+		_bank(hearts_per_second_touching * value * seconds, him.global_position)
+	if cleans_grime and him.grime:
+		var removed := him.grime.clean(ItemDB.balance.sponge_clean_rate * seconds)
+		if removed > 0.0:
+			_bank(removed * ItemDB.balance.hearts_per_grime_cleaned * value, him.global_position)
+	_flush()
+	if hearts_per_contact > 0.0:
+		var now := Time.get_ticks_msec()
+		if now >= _next_contact_msec:
+			var gap := contact_cooldown * Progression.get_modifier(item_id, &"cooldown_mult")
+			_next_contact_msec = now + int(gap * 1000.0)
+			_pay_event(hearts_per_contact * value, him.global_position)
+			if consume_on_use:
+				_eaten += 1
+				if _eaten >= servings:
+					_despawn()
+
 ## The kindness-value multiplier, which on this side of the economy is what `damage_mult`
 ## means (docs/economy.md).
 ##
@@ -181,10 +214,18 @@ func _flush() -> void:
 	_banked = 0.0
 
 func _touching_buddy() -> Buddy:
+	# In it, he touches nothing: the two pass through each other while he sits (D70).
+	if _guest != null and _seated and is_instance_valid(_guest):
+		return _guest
 	for body in get_colliding_bodies():
 		if body is Buddy:
 			return body as Buddy
 	return null
+
+## Whether `him` is touching it — against it, on it, or sitting in it. For anything that pays
+## only while he is in it (the hot tub's jets, `ItemVerbs`' `touching`).
+func touches(him: Buddy) -> bool:
+	return him != null and _touching_buddy() == him
 
 func _despawn() -> void:
 	EventBus.item_despawned.emit(self)
@@ -195,6 +236,177 @@ func _despawn() -> void:
 ## and the trash bin and the spawner both free items without going through _despawn().
 func _exit_tree() -> void:
 	_flush()
+	if _guest != null:
+		_release_guest(false)
+		_finish_leaving()
+
+## Picked up with him in it: he is let out first, and it is a thing in the hand again.
+func _start_drag() -> void:
+	if _guest != null:
+		_release_guest(false)
+	super._start_drag()
+
+# --- getting in (D70) ------------------------------------------------------------------
+#
+# The idle brain used to walk him to a hot tub and lean on its side: "reached" was his rect
+# touching its rect, and the tub paid for side contact (AI audit B: 0 of 9 soak toys ended with
+# him on or in them). A convex collider cannot be sat in, so he is let in instead, the way the
+# pull-back car lets him onto its roof: he hops, the two pass through each other, and when his
+# feet come down through the seat line over its middle he is pinned there — sunk into it, the
+# toy drawn over his legs — until the brain lets him out. Frozen while he sits, so the landing
+# is on a thing that stays put. Nothing here runs unless he is in it or on his way.
+
+## Where his feet go, as a share of its collider's height below the top: in the water, in the
+## cushion, in the box. Never deeper than `SEAT_MAX_SINK` of his own height, so in a hot tub or a
+## recliner taller than his legs he sits with his head and shoulders over the side, and is not
+## swallowed by it.
+@export var seat_depth: float = 0.45
+const SEAT_MAX_SINK := 0.4
+## How far over the top his feet clear on the way in.
+const SEAT_CLEARANCE := 16.0
+## Grace on the hop, and how near the seat line his feet must be to count as sat down.
+const SEAT_GRACE := 0.5
+const SEAT_SLACK := 14.0
+## Longest the two may stay passing through each other once he is out, however he left.
+const LEAVE_SECONDS := 1.5
+
+var _guest: Buddy = null
+var _seated := false
+var _leaving := false
+var _guest_deadline := 0
+var _seat_welds: Array[PinJoint2D] = []
+var _froze_for_guest := false
+
+## He is in it, or on his way in or out.
+func is_hosting() -> bool:
+	return _guest != null
+
+## He is sitting in it.
+func is_seated(him: Buddy) -> bool:
+	return _guest == him and _seated
+
+## Lets him in: a hop that clears the top and comes down through the seat line over its middle.
+## False if it cannot take him now.
+func take_in(him: Buddy) -> bool:
+	if _guest != null or him == null or dragging or not is_inside_tree() or collider == null:
+		return false
+	if him.dragging or him.state == &"knockout" or him.state == &"pile" or him.state == &"reassemble":
+		return false
+	_guest = him
+	_seated = false
+	_leaving = false
+	add_collision_exception_with(him)
+	var gravity := float(ProjectSettings.get_setting("physics/2d/default_gravity", 980.0)) \
+		* him.gravity_scale
+	var feet := him.get_interaction_rect().end.y
+	var top := seat_rect().position.y
+	var rise := maxf(feet - top, 0.0) + SEAT_CLEARANCE
+	var up := sqrt(2.0 * gravity * rise)
+	var fall := maxf(seat_point().y - (top - SEAT_CLEARANCE), 1.0)
+	var flight := up / gravity + sqrt(2.0 * fall / gravity)
+	var across := (seat_point().x - him.global_position.x) / flight
+	him.apply_central_impulse((Vector2(across, -up) - him.linear_velocity) * him.mass)
+	_guest_deadline = Time.get_ticks_msec() + int((flight + SEAT_GRACE) * 1000.0)
+	return true
+
+## Lets him out. `hop_off`: a hop up and out over the nearer side, as a routine ends; without
+## it he is simply free (picked up, knocked down, the toy gone).
+func let_out(hop_off: bool) -> void:
+	if _guest == null or _leaving:
+		return
+	var him := _guest
+	_release_guest(hop_off)
+	if hop_off and is_instance_valid(him) and not him.dragging:
+		var gravity := float(ProjectSettings.get_setting("physics/2d/default_gravity", 980.0)) \
+			* him.gravity_scale
+		var rect := seat_rect()
+		var side := -1.0 if him.global_position.x < rect.get_center().x else 1.0
+		var rise := maxf(him.get_interaction_rect().end.y - rect.position.y, 0.0) + SEAT_CLEARANCE
+		var up := sqrt(2.0 * gravity * rise)
+		var out := (rect.size.x * 0.5 + him.get_interaction_rect().size.x * 0.5 + 8.0) \
+			/ maxf(2.0 * up / gravity, 0.1)
+		him.apply_central_impulse((Vector2(side * out, -up) - him.linear_velocity) * him.mass)
+
+## The toy's solid box in the world, offset included (unlike `get_interaction_rect`).
+func seat_rect() -> Rect2:
+	if collider and collider.shape:
+		var r: Rect2 = collider.shape.get_rect()
+		var xf := collider.global_transform
+		var extent := (r.size * 0.5 * xf.get_scale()).abs()
+		return Rect2(xf.origin - extent, extent * 2.0)
+	return get_interaction_rect()
+
+## Where his feet go.
+func seat_point() -> Vector2:
+	var rect := seat_rect()
+	var sink := rect.size.y * clampf(seat_depth, 0.0, 0.9)
+	if is_instance_valid(_guest):
+		sink = minf(sink, _guest.get_interaction_rect().size.y * SEAT_MAX_SINK)
+	return Vector2(rect.get_center().x, rect.position.y + sink)
+
+func _guest_step() -> void:
+	var him := _guest
+	if not is_instance_valid(him):
+		_finish_leaving()
+		return
+	if _leaving:
+		# Out once he no longer overlaps it; the two collide again from there.
+		if not seat_rect().intersects(him.get_interaction_rect().grow(-2.0)) \
+				or Time.get_ticks_msec() > _guest_deadline:
+			_finish_leaving()
+		return
+	if him.dragging or dragging or him.state == &"knockout" or him.state == &"pile" \
+			or him.state == &"reassemble":
+		_release_guest(false)
+		return
+	if _seated:
+		return
+	var feet := him.get_interaction_rect().end.y
+	var seat := seat_point()
+	var over := absf(him.global_position.x - seat.x) <= seat_rect().size.x * 0.5
+	if over and him.linear_velocity.y >= 0.0 and feet >= seat.y - 2.0 and feet <= seat.y + SEAT_SLACK:
+		him.global_position.y -= feet - seat.y
+		_sit(him)
+		return
+	if Time.get_ticks_msec() > _guest_deadline:
+		_release_guest(false)
+
+## Two pins a head apart, as the car's roof has: one would let him spin in it.
+func _sit(him: Buddy) -> void:
+	_seated = true
+	if not freeze:
+		freeze = true
+		_froze_for_guest = true
+	var com := him.global_transform * him.center_of_mass
+	for lift in [0.0, -30.0]:
+		var joint := PinJoint2D.new()
+		joint.name = "Seat"
+		joint.softness = 0.0
+		add_child(joint)
+		joint.global_position = com + Vector2(0.0, lift)
+		joint.node_a = get_path()
+		joint.node_b = him.get_path()
+		_seat_welds.append(joint)
+
+## Unpins him and starts him leaving: still passing through it until he is clear.
+func _release_guest(_hopping_off: bool) -> void:
+	for joint in _seat_welds:
+		if is_instance_valid(joint):
+			joint.queue_free()
+	_seat_welds.clear()
+	_seated = false
+	_leaving = true
+	_guest_deadline = Time.get_ticks_msec() + int(LEAVE_SECONDS * 1000.0)
+	if _froze_for_guest:
+		freeze = false
+		_froze_for_guest = false
+
+func _finish_leaving() -> void:
+	if is_instance_valid(_guest):
+		remove_collision_exception_with(_guest)
+	_guest = null
+	_seated = false
+	_leaving = false
 
 ## A kind item leaves a rose trail, not a gold one, and its aura is hearts.
 func trail_colour() -> Color:
