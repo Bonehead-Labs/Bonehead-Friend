@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_w867o"]
+
+[resource]
+script = ExtResource("1_w867o")
+id = &"jack_in_the_box_damage"
+item_id = &"jack_in_the_box"
+display_name = "Bigger Spring"
+effect_key = &"damage_mult"
+effect_per_level = 1.15
+cost_base = 320
+cost_growth = 1.12
+currency = 1

@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/magic_eight_ball.png" id="1_e4bn7"]
+[ext_resource type="PackedScene" path="res://Scenes/Fidgets/magic_eight_ball.tscn" id="2_73wkl"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_r5lbu"]
+
+[resource]
+script = ExtResource("3_r5lbu")
+id = &"magic_eight_ball"
+display_name = "Fortune Ball"
+description = "Ask it anything. He believes every single word it says."
+category = 4
+cost = 2400
+currency = 1
+scene = ExtResource("2_73wkl")
+icon = ExtResource("1_e4bn7")
+sort_order = 76
+controls = "Pick it up and shake it · Right-click to read it"

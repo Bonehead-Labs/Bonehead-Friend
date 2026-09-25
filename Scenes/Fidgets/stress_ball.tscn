@@ -1,0 +1,65 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Bodies/Fidgets/stress_ball.gd" id="1_6djev"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/stress_ball.png" id="2_ho740"]
+[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_v73qj"]
+[ext_resource type="Script" path="res://Scripts/Components/effects_player.gd" id="4_outyc"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/stress_ball_squeeze.png" id="5_73b5b"]
+[ext_resource type="Script" path="res://Scripts/Bodies/gesture_zones.gd" id="6_jp088"]
+
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_6djev"]
+friction = 0.8
+bounce = 0.45
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ho740"]
+size = Vector2(32, 32)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_v73qj"]
+size = Vector2(48, 48)
+
+[node name="_StressBall" type="RigidBody2D" unique_id=2063748572 node_paths=PackedStringArray("squeeze_sprite", "gestures", "drag_area", "handle", "sprite", "collider", "Effects_Player")]
+collision_layer = 4
+collision_mask = 7
+mass = 0.25
+physics_material_override = SubResource("PhysicsMaterial_6djev")
+contact_monitor = true
+max_contacts_reported = 4
+script = ExtResource("1_6djev")
+squeeze_sprite = NodePath("Squeeze")
+gestures = NodePath("GestureZones")
+item_id = &"stress_ball"
+drag_area = NodePath("DraggableArea")
+handle = NodePath("Handle")
+sprite = NodePath("Sprite")
+collider = NodePath("CollisionShape2D")
+Effects_Player = NodePath("EffectsPlayer")
+
+[node name="Sprite" type="Sprite2D" parent="." unique_id=1993679054]
+scale = Vector2(2, 2)
+texture = ExtResource("2_ho740")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1144461790]
+shape = SubResource("RectangleShape2D_ho740")
+
+[node name="DraggableArea" type="Area2D" parent="." unique_id=1555696759]
+script = ExtResource("3_v73qj")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=1479100335]
+shape = SubResource("RectangleShape2D_v73qj")
+
+[node name="Handle" type="StaticBody2D" parent="." unique_id=1801346378]
+visible = false
+collision_layer = 0
+collision_mask = 0
+
+[node name="EffectsPlayer" type="Node" parent="." unique_id=1724446332]
+script = ExtResource("4_outyc")
+
+[node name="Squeeze" type="Sprite2D" parent="." unique_id=1749413956]
+visible = false
+scale = Vector2(2, 2)
+texture = ExtResource("5_73b5b")
+
+[node name="GestureZones" type="Node" parent="." unique_id=14963339]
+script = ExtResource("6_jp088")
+action_enabled = true

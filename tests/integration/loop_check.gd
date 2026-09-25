@@ -372,7 +372,7 @@ func _the_shell_has_its_look() -> void:
 	# Every variation the panels actually ask for. A typo here is invisible: the control
 	# renders as its plain base type and looks merely wrong rather than broken.
 	for variation in ["Card", "Tile", "TileHot", "TileDead", "Sunk", "Chip", "Badge",
-			"Gate", "Capstone"]:
+			"Gate", "Capstone", "HowTo", "Bubble"]:
 		_check("panel variation %s is defined" % variation,
 			theme.has_stylebox("panel", variation))
 	for variation in ["TabButton", "IconTab", "BuyButton", "GhostButton", "DangerButton",
@@ -1878,6 +1878,7 @@ func _the_expression_brain_arbitrates() -> void:
 			[EventBus.threat_changed, brain._on_threat_changed],
 			[EventBus.item_spawned, brain._on_item_spawned],
 			[EventBus.automation_toggled, brain._on_automation_toggled],
+			[EventBus.fidget_event, brain._on_fidget_event],
 			[EventBus.mood_changed, brain._on_mood_changed],
 			[EventBus.focus_mode_changed, brain._on_focus_mode_changed]]:
 		var sig: Signal = pair[0]

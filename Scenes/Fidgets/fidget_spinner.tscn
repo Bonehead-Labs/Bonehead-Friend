@@ -1,0 +1,71 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Bodies/Fidgets/fidget_spinner.gd" id="1_qj8o4"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/fidget_spinner.png" id="2_pmfqt"]
+[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_lmno8"]
+[ext_resource type="Script" path="res://Scripts/Components/effects_player.gd" id="4_kj78f"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/fidget_spinner_cap.png" id="5_i5fbv"]
+[ext_resource type="Script" path="res://Scripts/Bodies/gesture_zones.gd" id="6_g6aou"]
+
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_qj8o4"]
+friction = 0.8
+bounce = 0.2
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_pmfqt"]
+size = Vector2(54, 48)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_lmno8"]
+size = Vector2(70, 64)
+
+[node name="_FidgetSpinner" type="RigidBody2D" unique_id=701244073 node_paths=PackedStringArray("rotor", "gestures", "drag_area", "handle", "sprite", "collider", "Effects_Player")]
+collision_layer = 4
+collision_mask = 7
+mass = 0.4
+physics_material_override = SubResource("PhysicsMaterial_qj8o4")
+contact_monitor = true
+max_contacts_reported = 4
+script = ExtResource("1_qj8o4")
+rotor = NodePath("Sprite")
+gestures = NodePath("GestureZones")
+item_id = &"fidget_spinner"
+drag_area = NodePath("DraggableArea")
+handle = NodePath("Handle")
+sprite = NodePath("Sprite")
+collider = NodePath("CollisionShape2D")
+Effects_Player = NodePath("EffectsPlayer")
+
+[node name="Sprite" type="Sprite2D" parent="." unique_id=246741565]
+position = Vector2(-1, 5)
+scale = Vector2(2, 2)
+texture = ExtResource("2_pmfqt")
+offset = Vector2(0.5, -2.5)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=526918614]
+shape = SubResource("RectangleShape2D_pmfqt")
+
+[node name="DraggableArea" type="Area2D" parent="." unique_id=1768761879]
+script = ExtResource("3_lmno8")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=708682185]
+shape = SubResource("RectangleShape2D_lmno8")
+
+[node name="Handle" type="StaticBody2D" parent="." unique_id=1217718751]
+visible = false
+collision_layer = 0
+collision_mask = 0
+
+[node name="EffectsPlayer" type="Node" parent="." unique_id=82344493]
+script = ExtResource("4_kj78f")
+
+[node name="Cap" type="Sprite2D" parent="." unique_id=476642974]
+scale = Vector2(2, 2)
+texture = ExtResource("5_i5fbv")
+
+[node name="GestureZones" type="Node" parent="." unique_id=1092909111]
+script = ExtResource("6_g6aou")
+zones = [{
+"at": Vector2(-0.5, 2.5),
+"circle": 14.0,
+"id": &"arms",
+"right": "claim"
+}]

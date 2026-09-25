@@ -186,11 +186,45 @@ const ROWS := {
 		"motion": &"shiver", "seconds": 0.8, "priority": ATTENTION, "gate": GATE_NORMAL},
 	&"toy_gone": {"face": &"shocked", "tag": &"",
 		"motion": &"", "seconds": 0.5, "priority": ATTENTION, "gate": GATE_NORMAL},
+	# --- I: fidget toys (D57) ---
+	&"fiddling": {"face": &"happy", "tag": &"fiddle", "fallback": &"",
+		"motion": &"wiggle", "seconds": 1.0, "priority": ATTENTION, "gate": GATE_NORMAL,
+		"hold": true, "refresh": 0.0},
+	&"entranced": {"face": &"happy", "tag": &"",
+		"motion": &"face_toward", "seconds": 1.0, "priority": ATTENTION, "gate": GATE_SUBTLE,
+		"hold": true, "refresh": 1.2},
+	&"amused": {"face": &"happy", "tag": &"",
+		"motion": &"nod", "seconds": 0.4, "priority": REACTION, "gate": GATE_REACTIVE},
+	&"startled": {"face": &"shocked", "tag": &"flinch", "fallback": &"hurt",
+		"motion": &"lean_away", "seconds": 0.5, "priority": REACTION, "gate": GATE_REACTIVE,
+		"sound": &"gasp"},
+	&"laugh": {"face": &"blissful", "tag": &"happy",
+		"motion": &"hop2", "seconds": 0.9, "priority": REACTION, "gate": GATE_REACTIVE,
+		"sound": &"giggle"},
+	&"answer_yes": {"face": &"happy", "tag": &"happy",
+		"motion": &"hop", "seconds": 0.8, "priority": REACTION, "gate": GATE_REACTIVE},
+	&"answer_no": {"face": &"sad", "tag": &"idle_sad", "fallback": &"",
+		"motion": &"duck", "seconds": 1.2, "priority": REACTION, "gate": GATE_REACTIVE},
+	&"answer_maybe": {"face": &"neutral", "tag": &"",
+		"motion": &"wobble", "seconds": 0.9, "priority": REACTION, "gate": GATE_REACTIVE},
 	# --- H: ambient ---
 	&"blink": {"face": &"asleep", "tag": &"",
 		"motion": &"", "seconds": 0.12, "priority": AMBIENT, "gate": GATE_SUBTLE},
 	&"fidget": {"face": &"", "tag": &"",
 		"motion": &"fidget", "seconds": 0.6, "priority": AMBIENT, "gate": GATE_SUBTLE},
+}
+
+## What each fidget toy's event means on his face (D57). The toy says what happened
+## (`EventBus.fidget_event`); this says how he takes it. Only near him, like a threat.
+const FIDGET_ROWS := {
+	&"amused": &"amused",
+	&"caught": &"catch",
+	&"spinning": &"entranced",
+	&"jack_popped": &"startled",
+	&"jack_laugh": &"laugh",
+	&"answer_yes": &"answer_yes",
+	&"answer_no": &"answer_no",
+	&"answer_maybe": &"answer_maybe",
 }
 
 ## The face he pulls when hit, by what hit him — keyed on category, not id, so ten entries
@@ -303,6 +337,8 @@ func _ready() -> void:
 	EventBus.threat_changed.connect(_on_threat_changed)
 	EventBus.item_spawned.connect(_on_item_spawned)
 	EventBus.automation_toggled.connect(_on_automation_toggled)
+	# I — fidget toys (D57)
+	EventBus.fidget_event.connect(_on_fidget_event)
 	# G — the idle brain, installed by main.gd after the buddy, so found a frame later.
 	_connect_idle_brain.call_deferred()
 	# H — posture
@@ -366,6 +402,23 @@ func _on_automation_toggled(_node_id: StringName, enabled: bool) -> void:
 	if enabled:
 		react(&"device_appeared")
 
+# --- I: fidget toys (D57) -------------------------------------------------------------
+
+## A fidget toy did something. One-shot rows play; the spinner's `entranced` is a hold that
+## the toy keeps alive for as long as it spins in front of him.
+func _on_fidget_event(_item_id: StringName, event: StringName, world_pos: Vector2) -> void:
+	var row_id: StringName = FIDGET_ROWS.get(event, &"")
+	if row_id == &"" or buddy == null:
+		return
+	if buddy.global_position.distance_to(world_pos) > THREAT_RANGE:
+		return
+	if bool((ROWS[row_id] as Dictionary).get("hold", false)):
+		if _attention != ATTEND_CURSOR:
+			attend(ATTEND_TOY, world_pos)
+		hold(row_id, world_pos)
+	else:
+		react(row_id, 1.0, world_pos)
+
 # --- G: the idle brain at work -------------------------------------------------------
 
 var _idle_brain: IdleBrain
@@ -385,6 +438,7 @@ const ROUTINE_HOLDS := {
 	IdleBrain.ROUTINE_SOAK: &"soaking",
 	IdleBrain.ROUTINE_SCRUB: &"scrubbing",
 	IdleBrain.ROUTINE_NIBBLE: &"nibbling",
+	IdleBrain.ROUTINE_FIDGET: &"fiddling",
 }
 
 func _connect_idle_brain() -> void:
@@ -564,6 +618,10 @@ func _sweep_hits(now: int) -> void:
 # --- B: kindness ----------------------------------------------------------------
 
 func _on_kindness_given(source_id: StringName, _value: float, world_pos: Vector2) -> void:
+	# A toy worked by hand answers for itself, through its own fidget event sent after it
+	# pays (D57): a bubble popping across the desk is not him catching a ball.
+	if _worked_by_hand(source_id):
+		return
 	var item := ItemDB.get_item(source_id)
 	if item and item.category == ItemData.CATEGORY_FOOD:
 		react(&"eat", 1.0, world_pos)
@@ -579,8 +637,19 @@ func _on_kindness_given(source_id: StringName, _value: float, world_pos: Vector2
 		react(&"pet", 0.5, world_pos)
 
 ## The sponge, the boombox, the hot tub and all twenty leisure items, for the first time.
-func _on_kindness_sustained(_source_id: StringName, _value: float, world_pos: Vector2) -> void:
+func _on_kindness_sustained(source_id: StringName, _value: float, world_pos: Vector2) -> void:
+	# Same as an act: a hand-worked toy's trickle — a spinner he is watching, a squeeze of his
+	# own — already has its face (`entranced`, `fiddling`), and `cared_for` would take it over
+	# on every flush.
+	if _worked_by_hand(source_id):
+		return
 	hold(&"cared_for", world_pos)
+
+## A kind toy with gestures of its own (D57). Its `controls` line is what says so: an item
+## worked the default way — grabbed, thrown, sat in — has none.
+func _worked_by_hand(source_id: StringName) -> bool:
+	var item := ItemDB.get_item(source_id)
+	return item != null and item.is_kind() and not item.controls.is_empty()
 
 func _on_grime_changed(value: float) -> void:
 	if is_zero_approx(value) and _last_grime > 0.0:

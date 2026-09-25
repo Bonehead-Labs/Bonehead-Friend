@@ -102,6 +102,7 @@ func _ready() -> void:
 	EventBus.mood_changed.connect(_on_mood_changed)
 	EventBus.grime_changed.connect(_on_grime_changed)
 	EventBus.cursor_power_changed.connect(_on_cursor_power_changed)
+	EventBus.item_spawned.connect(_offer_the_controls_hint)
 	EventBus.payout.connect(_on_payout)
 	EventBus.payout.connect(_on_streak_payout)
 	EventBus.currency_changed.connect(func(_c: StringName, _b: float) -> void: _mark_next_dirty())
@@ -611,8 +612,35 @@ func _offer_the_removal_hint() -> void:
 	if Settings.hint_seen(HINT_REMOVAL):
 		return
 	Settings.mark_hint_seen(HINT_REMOVAL)
-	show_toast("Right-click an item to bin it — hold Shift for anything with a fuse. "
-		+ "Clear desk removes the lot.", 10.0)
+	show_toast("Right-click an item to bin it — hold Shift for anything that uses "
+		+ "right-click itself. Clear desk removes the lot.", 10.0)
+
+## Key prefix for the one-off tip that says how to work a toy (D57), one per item id.
+const HINT_CONTROLS_PREFIX := "controls:"
+
+## Said once per toy, the first time it lands on the desk, and never again: a toy with its own
+## gestures teaches them at the one moment the player is looking at it. Items whose
+## `controls` line is empty are worked the default way and say nothing.
+##
+## Fires before the spawner's count does (the spawner emits `item_spawned` first), so on the
+## very first spawn of a session it would lose the toast to the removal tip a moment later.
+## It carries that tip with it instead, and marks it seen, so neither is thrown away.
+func _offer_the_controls_hint(node: Node2D) -> void:
+	var body := node as BaseDraggable
+	if body == null:
+		return
+	var item := ItemDB.get_item(body.item_id)
+	if item == null or item.controls.is_empty():
+		return
+	var key := StringName(HINT_CONTROLS_PREFIX + String(item.id))
+	if Settings.hint_seen(key):
+		return
+	Settings.mark_hint_seen(key)
+	var text := "%s: %s" % [item.display_name, item.controls]
+	if not Settings.hint_seen(HINT_REMOVAL):
+		Settings.mark_hint_seen(HINT_REMOVAL)
+		text += "\nShift+right-click bins anything. Clear desk removes the lot."
+	show_toast(text, 10.0)
 
 func _on_clear_pressed() -> void:
 	if _spawner == null or _spawner.item_count() <= 0:

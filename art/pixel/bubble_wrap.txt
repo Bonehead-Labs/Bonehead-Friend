@@ -1,0 +1,79 @@
+# Bubble wrap (D57). Three layers on one 39x21 grid, so they line up in the cell with no
+# offsets: `main` is the whole sheet as sold (the shop and the icon), `sheet` is the film with
+# every bubble popped flat, and `bubble` is one intact bubble in the top-left slot. The game
+# lays the sheet and then one bubble sprite per slot, shifted 9 art px per column and row,
+# and pops one by hiding its sprite.
+#
+# Slots are 8x8 at (2 + 9c, 2 + 9r) on the grid, four columns by two rows. The seed tool's
+# zone table (`tools/seed_m39_fidgets.gd`) is written against exactly these numbers.
+id: bubble_wrap
+cell: 64
+
+--- main
+.WWGWWWWGWWWWGWWWWGWWWWGWWWWGWWWWGWWWW.
+WGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGg
+GGGGKKKKGGGGGKKKKGGGGGKKKKGGGGGKKKKGGGg
+WGGKWWWGKGGGKWWWGKGGGKWWWGKGGGKWWWGKGGg
+WGKWWWGGAKGKWWWGGAKGKWWWGGAKGKWWWGGAKGg
+WGKWWGGGAKGKWWGGGAKGKWWGGGAKGKWWGGGAKGg
+GGKWGGGAAKGKWGGGAAKGKWGGGAAKGKWGGGAAKGg
+WGKGGGAAaKGKGGGAAaKGKGGGAAaKGKGGGAAaKGg
+WGGKAAAaKGGGKAAAaKGGGKAAAaKGGGKAAAaKGGg
+WGGGKKKKGGGGGKKKKGGGGGKKKKGGGGGKKKKGGGg
+GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGg
+WGGGKKKKGGGGGKKKKGGGGGKKKKGGGGGKKKKGGGg
+WGGKWWWGKGGGKWWWGKGGGKWWWGKGGGKWWWGKGGg
+WGKWWWGGAKGKWWWGGAKGKWWWGGAKGKWWWGGAKGg
+GGKWWGGGAKGKWWGGGAKGKWWGGGAKGKWWGGGAKGg
+WGKWGGGAAKGKWGGGAAKGKWGGGAAKGKWGGGAAKGg
+WGKGGGAAaKGKGGGAAaKGKGGGAAaKGKGGGAAaKGg
+WGGKAAAaKGGGKAAAaKGGGKAAAaKGGGKAAAaKGGg
+GGGGKKKKGGGGGKKKKGGGGGKKKKGGGGGKKKKGGGg
+WGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGg
+.ggggggggggggggggggggggggggggggggggggg.
+
+--- sheet
+.WWGWWWWGWWWWGWWWWGWWWWGWWWWGWWWWGWWWW.
+WGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGg
+GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGg
+WGGGggggGGGGGggggGGGGGggggGGGGGggggGGGg
+WGGgGhGGgGGGgGhGGgGGGgGhGGgGGGgGhGGgGGg
+WGGgGGhGgGGGgGGhGgGGGgGGhGgGGGgGGhGgGGg
+GGGghGGGgGGGghGGGgGGGghGGGgGGGghGGGgGGg
+WGGgGGhggGGGgGGhggGGGgGGhggGGGgGGhggGGg
+WGGGggggGGGGGggggGGGGGggggGGGGGggggGGGg
+WGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGg
+GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGg
+WGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGg
+WGGGggggGGGGGggggGGGGGggggGGGGGggggGGGg
+WGGgGhGGgGGGgGhGGgGGGgGhGGgGGGgGhGGgGGg
+GGGgGGhGgGGGgGGhGgGGGgGGhGgGGGgGGhGgGGg
+WGGghGGGgGGGghGGGgGGGghGGGgGGGghGGGgGGg
+WGGgGGhggGGGgGGhggGGGgGGhggGGGgGGhggGGg
+WGGGggggGGGGGggggGGGGGggggGGGGGggggGGGg
+GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGg
+WGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGg
+.ggggggggggggggggggggggggggggggggggggg.
+
+--- bubble
+.......................................
+.......................................
+....KKKK...............................
+...KWWWGK..............................
+..KWWWGGAK.............................
+..KWWGGGAK.............................
+..KWGGGAAK.............................
+..KGGGAAaK.............................
+...KAAAaK..............................
+....KKKK...............................
+.......................................
+.......................................
+.......................................
+.......................................
+.......................................
+.......................................
+.......................................
+.......................................
+.......................................
+.......................................
+.......................................

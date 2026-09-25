@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_u8tlc"]
+
+[resource]
+script = ExtResource("1_u8tlc")
+id = &"jack_in_the_box_third"
+item_id = &"jack_in_the_box"
+display_name = "Shorter Tune"
+effect_key = &"cooldown_mult"
+effect_per_level = 0.94
+cost_base = 195
+cost_growth = 1.09
+currency = 1
+sort_order = 2

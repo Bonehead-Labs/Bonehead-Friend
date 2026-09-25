@@ -68,6 +68,9 @@ var _detail_sprite: TextureRect
 var _detail_name: Label
 var _detail_kind: Label
 var _detail_body: Label
+## How to work it (D57): `ItemData.controls`, one line, only for an item that has any.
+var _detail_how: PanelContainer
+var _detail_how_label: Label
 var _detail_action: Button
 var _detail_note: Label
 var _mastery_box: PanelContainer
@@ -377,6 +380,30 @@ func _detail_pane() -> Control:
 	_detail_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	pane.add_child(_detail_body)
 
+	# How to work it (D57). A toy with gestures of its own says so here, before a Heart is
+	# spent on it — a zone nobody knows about is a zone nobody uses — and an item with none
+	# says nothing, rather than printing "grab it" under every bat.
+	_detail_how = PanelContainer.new()
+	_detail_how.name = "HowTo"
+	_detail_how.theme_type_variation = &"HowTo"
+	_detail_how.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_detail_how.visible = false
+	pane.add_child(_detail_how)
+	var how_row := HBoxContainer.new()
+	how_row.add_theme_constant_override("separation", 8)
+	how_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_detail_how.add_child(how_row)
+	var hand := UIStyle.icon(&"hand", UIStyle.GLYPH, UIStyle.TEXT)
+	hand.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	how_row.add_child(hand)
+	# Full ink, not the dim of the description above it: this is an instruction, and it is
+	# the line on the card the player will actually need.
+	_detail_how_label = UIStyle.body("", UIStyle.BODY, UIStyle.TEXT)
+	_detail_how_label.name = "Controls"
+	_detail_how_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_detail_how_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	how_row.add_child(_detail_how_label)
+
 	# What you have done with it, for something you already own. The shop and the tree are
 	# the same object seen twice — an item's mastery is the reason to keep using it — and
 	# a detail pane that says nothing about a toy you have had for an hour is a hole.
@@ -508,6 +535,7 @@ func _refresh_detail(active_power: StringName) -> void:
 		_detail_name.text = ""
 		_detail_kind.text = ""
 		_detail_body.text = ""
+		_detail_how.visible = false
 		_detail_note.text = ""
 		_detail_sprite.texture = null
 		_detail_action.visible = false
@@ -520,6 +548,8 @@ func _refresh_detail(active_power: StringName) -> void:
 	_detail_name.text = item.display_name
 	_detail_kind.text = CATEGORY_NAMES.get(item.category, "Other")
 	_detail_body.text = item.description
+	_detail_how.visible = not item.controls.is_empty()
+	_detail_how_label.text = item.controls
 	_detail_note.text = ""
 	_refresh_mastery(item)
 
