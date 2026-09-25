@@ -1,6 +1,6 @@
 extends Node
 
-## The wardrobe's first rail: six bone finishes and three sets of headphones, as tints.
+## The wardrobe's first rail: six bone finishes and three sets of headphones, plus the two he came in.
 ##
 ##   Godot --headless --path <project> res://tools/seed_m38_finishes.tscn
 ##
@@ -31,12 +31,14 @@ const FINISHES := [
 		&"bone", 2000, Color(0.72, 1.0, 0.60), 50],
 	[&"golden", "Golden Bonehead", "Solid gold, apparently. The most expensive skeleton on any desk.",
 		&"bone", 3500, Color(1.0, 0.84, 0.42), 60],
+	[&"teal_cans", "Teal Cans", "As he came. Free, and always his to go back to.",
+		&"phones", 0, Color(1.0, 1.0, 1.0), 100],
 	[&"studio_cans", "Studio Whites", "Crisp white headphones. He hears things you do not.",
-		&"phones", 800, Color(1.35, 1.35, 1.35), 110],
+		&"phones", 800, Color(0.93, 0.93, 0.92), 110],
 	[&"pink_cans", "Pink Cans", "Bubblegum pink headphones. Entirely his choice.",
-		&"phones", 1000, Color(1.4, 0.75, 1.1), 120],
+		&"phones", 1000, Color(0.96, 0.45, 0.64), 120],
 	[&"gold_cans", "Gold Cans", "Gold-plated headphones, for a skeleton who has made it.",
-		&"phones", 2500, Color(1.45, 1.15, 0.55), 130],
+		&"phones", 2500, Color(0.95, 0.82, 0.42), 130],
 ]
 
 func _ready() -> void:

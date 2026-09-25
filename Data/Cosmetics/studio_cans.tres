@@ -9,5 +9,5 @@ display_name = "Studio Whites"
 description = "Crisp white headphones. He hears things you do not."
 slot = &"phones"
 price_dollars = 800
-tint = Color(1.35, 1.35, 1.35, 1)
+tint = Color(0.93, 0.93, 0.92, 1)
 sort_order = 110

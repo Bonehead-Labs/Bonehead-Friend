@@ -9,5 +9,5 @@ display_name = "Pink Cans"
 description = "Bubblegum pink headphones. Entirely his choice."
 slot = &"phones"
 price_dollars = 1000
-tint = Color(1.4, 0.75, 1.1, 1)
+tint = Color(0.96, 0.45, 0.64, 1)
 sort_order = 120

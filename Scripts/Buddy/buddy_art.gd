@@ -609,22 +609,28 @@ func has_animation(animation: StringName) -> bool:
 		and body.sprite_frames.has_animation(animation)
 
 ## Dresses him in what `Economy` says he is wearing: a bone tint on both sprites, a headphone
-## tint on the body. White for a slot with nothing in it, which draws him as drawn.
+## dye on the body. White and no dye for a slot with nothing in it, which draws him as drawn.
+## A headphone cosmetic's `tint` is the colour the teal becomes, not a multiplier — see the
+## note on `phone_dye` in `EffectsPlayer.FLASH_SHADER`.
 func apply_wardrobe() -> void:
 	var bone := Color.WHITE
 	var phones := Color.WHITE
+	var dye := 0.0
 	var worn_bone := ItemDB.get_cosmetic(Economy.worn_cosmetic(CosmeticData.SLOT_BONE))
 	if worn_bone:
 		bone = worn_bone.tint
 	var worn_phones := ItemDB.get_cosmetic(Economy.worn_cosmetic(CosmeticData.SLOT_PHONES))
 	if worn_phones:
 		phones = worn_phones.tint
+		# The free set is the teal he was drawn in: undyed, so it is exactly as drawn.
+		dye = 0.0 if worn_phones.is_free() else 1.0
 	for target in [body, face]:
 		if target == null:
 			continue
 		var material := EffectsPlayer.material_for(target)
 		material.set_shader_parameter(&"bone_tint", bone)
 		material.set_shader_parameter(&"phone_tint", phones)
+		material.set_shader_parameter(&"phone_dye", dye)
 
 ## Face -> face, from the personality's tell (`PersonalityData.face_swaps`). Applied to every
 ## expression he pulls, mood faces included: the Goth's `sad` is his contented face. Set by

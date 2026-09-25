@@ -42,10 +42,19 @@ uniform float flash : hint_range(0.0, 1.0) = 0.0;
 uniform float grime : hint_range(0.0, 1.0) = 0.0;
 uniform vec4 grime_color : source_color = vec4(0.55, 0.50, 0.42, 1.0);
 // The wardrobe (CosmeticData): a finish is a tint on the bone pixels, a set of headphones a
-// tint on the teal. White is "as drawn". Same masks as grime, so a hat pass later can add a
+// dye on the teal. White is "as drawn". Same masks as grime, so a hat pass later can add a
 // layer without touching this.
+//
+// Bone is multiplied, because it is near-white and white times a colour is that colour.
+// Headphones are *dyed*: `phone_tint` is the colour they become, each pixel carrying its own
+// brightness relative to the base teal so the shading survives. They used to be multiplied
+// too, and teal has almost no red in it — so Pink Cans came out blue, Gold Cans green and
+// Studio Whites a brighter teal, for Dollars. `phone_dye` is 0 when nothing is worn.
 uniform vec4 bone_tint : source_color = vec4(1.0);
 uniform vec4 phone_tint : source_color = vec4(1.0);
+uniform float phone_dye = 0.0;
+// Luma of the palette's base teal (46, 184, 179): the brightness a dyed pixel is measured from.
+const float TEAL_LUMA = 0.5575;
 // The frame's size in texels when the texture is an atlas of frames; 0 means the texture is
 // the frame. See the note above `FLASH_SHADER` — without this the dirt crawls.
 uniform float grime_cell = 0.0;
@@ -90,7 +99,8 @@ void fragment() {
 	// The headphones: saturated, and red well under both green and blue — the teal family.
 	float phone_mask = step(0.25, sat) * step(lit.r, min(lit.g, lit.b) * 0.8);
 	vec3 dressed = mix(lit, clamp(lit * bone_tint.rgb, 0.0, 1.0), bone_mask);
-	dressed = mix(dressed, clamp(dressed * phone_tint.rgb, 0.0, 1.0), phone_mask);
+	vec3 dyed = clamp(phone_tint.rgb * (luma / TEAL_LUMA), 0.0, 1.0);
+	dressed = mix(dressed, dyed, phone_mask * phone_dye);
 	// Grime is three patches of dirt that darken as he gets filthier (D46), in frame-local
 	// UV so they stay on the same bones from frame to frame.
 	vec2 texel = floor(UV / TEXTURE_PIXEL_SIZE);

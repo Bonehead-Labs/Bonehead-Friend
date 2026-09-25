@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="CosmeticData" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/cosmetic_data.gd" id="1_anmtg"]
+
+[resource]
+script = ExtResource("1_anmtg")
+id = &"teal_cans"
+display_name = "Teal Cans"
+description = "As he came. Free, and always his to go back to."
+slot = &"phones"
+sort_order = 100

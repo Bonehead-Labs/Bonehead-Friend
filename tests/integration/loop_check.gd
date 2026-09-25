@@ -809,6 +809,31 @@ func _the_wardrobe_dresses_him() -> void:
 		and (saved["equipped"] as Array).has(String(cheapest.id)))
 	_check("wearing the free one takes it off", Economy.wear_cosmetic(free.id)
 		and not Economy.is_wearing(cheapest.id) and Economy.is_wearing(free.id))
+	# Headphones are dyed, not multiplied: teal has almost no red, so a multiplied Pink Cans
+	# came out blue and Gold Cans green. A headphone tint is therefore the colour they become —
+	# a colour, every channel inside 0..1 — and wearing one switches the dye on.
+	var phones: Array = ItemDB.all_cosmetics().filter(
+		func(c: CosmeticData) -> bool: return c.slot == CosmeticData.SLOT_PHONES)
+	_check("every set of headphones is a colour, not a multiplier", not phones.is_empty()
+		and phones.all(func(c: CosmeticData) -> bool:
+			return c.tint.r <= 1.0 and c.tint.g <= 1.0 and c.tint.b <= 1.0))
+	var free_phones: Array = phones.filter(func(c: CosmeticData) -> bool: return c.is_free())
+	var paid_phones: Array = phones.filter(func(c: CosmeticData) -> bool: return not c.is_free())
+	# There was no free set, so a player who bought Pink Cans could never have his teal back.
+	_check("the teal he came in is a free set to go back to", free_phones.size() == 1)
+	if not paid_phones.is_empty() and free_phones.size() == 1 and buddy and buddy.art \
+			and buddy.art.body:
+		var cans: CosmeticData = paid_phones[0]
+		Economy.grant(Economy.DOLLARS, float(cans.price_dollars))
+		Economy.buy_cosmetic(cans.id)
+		Economy.wear_cosmetic(cans.id)
+		var dyed := buddy.art.body.material as ShaderMaterial
+		_check("wearing headphones dyes them their colour", dyed != null
+			and is_equal_approx(float(dyed.get_shader_parameter(&"phone_dye")), 1.0)
+			and (dyed.get_shader_parameter(&"phone_tint") as Color).is_equal_approx(cans.tint))
+		Economy.wear_cosmetic((free_phones[0] as CosmeticData).id)
+		_check("and the free set draws them as drawn", dyed != null
+			and is_equal_approx(float(dyed.get_shader_parameter(&"phone_dye")), 0.0))
 	Economy.grant(Economy.DOLLARS, dollars_before)
 
 ## The damage streak is presentation: it is counted, drawn and heard, and pays nothing.

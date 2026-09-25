@@ -9,5 +9,5 @@ display_name = "Gold Cans"
 description = "Gold-plated headphones, for a skeleton who has made it."
 slot = &"phones"
 price_dollars = 2500
-tint = Color(1.45, 1.15, 0.55, 1)
+tint = Color(0.95, 0.82, 0.42, 1)
 sort_order = 130
