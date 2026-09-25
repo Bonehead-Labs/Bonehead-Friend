@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/blessing.png" id="1_30x53"]
+[ext_resource type="PackedScene" path="res://Scenes/Powers/blessing_power.tscn" id="2_ikhut"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_vjcc7"]
+
+[resource]
+script = ExtResource("3_vjcc7")
+id = &"blessing"
+display_name = "Blessing"
+description = "A halo that rains hearts on him. He has never felt so forgiven."
+category = 3
+cost = 500000
+currency = 1
+scene = ExtResource("2_ikhut")
+icon = ExtResource("1_30x53")
+requires = Array[StringName]([&"soft_brush"])
+sort_order = 60
+equips_as_cursor_power = true
+controls = "Click him to crown him with a halo · It rains hearts on him while it lasts"

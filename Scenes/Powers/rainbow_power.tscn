@@ -1,0 +1,10 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Bodies/Powers/rainbow_power.gd" id="1_w6bjy"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/cursors/rainbow.png" id="2_8akto"]
+
+[node name="RainbowPower" type="Node2D" unique_id=217003571]
+script = ExtResource("1_w6bjy")
+item_id = &"rainbow"
+cursor_texture = ExtResource("2_8akto")
+cursor_hotspot = Vector2(32, 32)

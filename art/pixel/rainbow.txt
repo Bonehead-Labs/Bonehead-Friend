@@ -1,0 +1,21 @@
+# Rainbow (D72): five bands and a cloud at each foot. In the world the rainbow is drawn by the
+# power along his own ride, so this is only the icon.
+id: rainbow
+
+--- main
+............RRRRRRR..........
+.........RRRRRRRRRRRRR.......
+........RRRROOOOOOORRRR......
+......RRRROOOOOOOOOOORRRR....
+.....RRROOOOYYYYYYYOOOORRR...
+.....RROOOYYYYYYYYYYYOOORR...
+....RROOOYYYYEEEEEYYYYOOORR..
+...RRROOYYYEEEEEEEEEYYYOORRR.
+...RROOYYYEEEAAAAAEEEYYYOORR.
+...RROOYYEEEAAAAAAAEEEYYOORR.
+..RROOYYYEEAAAA.AAAAEEYYYOORR
+..RROOYYEEAAA.....AAAEEYYOORR
+..RWWWYWEEAAA.....AAAEEWYWWWR
+..WWWWWWWEAA.......AAEWWWWWWW
+..WWWWWWWW...........WWWWWWWW
+..WWWWWWW.............WWWWWWW

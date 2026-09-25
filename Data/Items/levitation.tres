@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/levitation.png" id="1_7tses"]
+[ext_resource type="PackedScene" path="res://Scenes/Powers/levitation_power.tscn" id="2_pqtwc"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_fpy73"]
+
+[resource]
+script = ExtResource("3_fpy73")
+id = &"levitation"
+display_name = "Levitation"
+description = "He floats up, gets comfortable, and falls asleep on nothing at all."
+category = 3
+cost = 750000
+currency = 1
+scene = ExtResource("2_pqtwc")
+icon = ExtResource("1_7tses")
+requires = Array[StringName]([&"blessing"])
+sort_order = 65
+equips_as_cursor_power = true
+controls = "Hold the button on him and he floats up and dozes off · Let go and he drifts down"

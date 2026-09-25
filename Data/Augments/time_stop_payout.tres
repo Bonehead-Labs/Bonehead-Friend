@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_4mmxf"]
+
+[resource]
+script = ExtResource("1_4mmxf")
+id = &"time_stop_payout"
+item_id = &"time_stop"
+display_name = "Borrowed Time"
+effect_key = &"payout_mult"
+effect_per_level = 1.12
+cost_base = 460
+sort_order = 1

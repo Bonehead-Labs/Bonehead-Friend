@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/smite.png" id="1_ey0e0"]
+[ext_resource type="PackedScene" path="res://Scenes/Powers/smite_power.tscn" id="2_p83u0"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_grjf2"]
+
+[resource]
+script = ExtResource("3_grjf2")
+id = &"smite"
+display_name = "Smite"
+description = "A pillar of holy light, straight down, on everything standing in its column."
+category = 2
+cost = 60000
+scene = ExtResource("2_p83u0")
+icon = ExtResource("1_ey0e0")
+requires = Array[StringName]([&"lightning"])
+sort_order = 45
+controls = "Click anywhere: light gathers, then a pillar comes down that whole column"

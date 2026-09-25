@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_dcx44"]
+
+[resource]
+script = ExtResource("1_dcx44")
+id = &"time_stop_clock"
+item_id = &"time_stop"
+display_name = "Stopped Clock"
+description = "A clock that stops him twice a day, and a good deal more often than that."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 5600
+currency = 1
+is_automation = true
+automation_rate = 25.0
+device_mount = &"arm"
+requires_mastery = 25

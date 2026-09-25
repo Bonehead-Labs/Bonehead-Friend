@@ -61,7 +61,8 @@ signal threat_changed(kind: StringName, world_pos: Vector2, level: float)
 ## A fidget toy did something he can react to (D57): `jack_popped`, `jack_laugh`,
 ## `answer_yes` / `answer_no` / `answer_maybe`, `spinning`. Presentation only — the expression
 ## brain maps each to a row, and nothing in the simulation may listen. The toy pays through
-## `kindness_given` / `kindness_sustained` like everything else.
+## `kindness_given` / `kindness_sustained` like everything else. The supernatural powers say what
+## they did to him the same way — `seized`, `time_stopped`, `blessed` (D72).
 signal fidget_event(item_id: StringName, event: StringName, world_pos: Vector2)
 ## A held weapon's ability did something he can react to (D74): `home_run`, `dazed`,
 ## `sliced`, `grinding`, `quaked`, `fore`, `incoming`. Presentation only, like `fidget_event`:

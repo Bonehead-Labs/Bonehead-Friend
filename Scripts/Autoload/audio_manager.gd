@@ -524,6 +524,57 @@ func _rev_samples() -> PackedFloat32Array:
 		out[i] = clampf(growl * envelope, -1.0, 1.0)
 	return out
 
+	# --- the supernatural powers (D72) ---
+	#
+	# Each spell has one voice for the moment it happens, and none of them repeats fast: a crunch
+	# is his bones clattering short; time stopping is a tape running down, and starting again the
+	# same tape run up; the charge before a smite is a rising shimmer and the strike a chord over
+	# the big blast; the kind three are chimes, and the rainbow is a scale.
+	_streams[&"psychic"] = _wav(_warble_samples(0.38, 180.0, 420.0, 9.0, 0.06))
+	_streams[&"crunch"] = _wav(_clatter_samples(0.16, -1.0))
+	_streams[&"gust"] = _wav(_gust_samples(0.28))
+	_streams[&"time_stop"] = _wav(_sweep_samples(0.45, 1100.0, 110.0))
+	_streams[&"time_resume"] = _wav(_sweep_samples(0.30, 110.0, 1200.0))
+	_streams[&"meteor"] = _wav(_sweep_samples(0.50, 1500.0, 480.0))
+	_streams[&"charge"] = _wav(_warble_samples(0.60, 300.0, 900.0, 14.0, 0.04))
+	_streams[&"smite"] = _wav(_chime_samples([523.0, 659.0, 784.0, 1046.0], 1.0))
+	_streams[&"bless"] = _wav(_chime_samples([784.0, 988.0, 1175.0, 1568.0], 0.8))
+	_streams[&"float"] = _wav(_warble_samples(0.70, 330.0, 495.0, 5.0, 0.02))
+	_streams[&"rainbow"] = _wav(_chime_samples([523.0, 587.0, 659.0, 784.0, 880.0, 1046.0], 0.9))
+
+## A tone that bends as it goes: a sine swept from one pitch to another with a vibrato riding on
+## it, in one soft envelope. `depth` is the vibrato as a fraction of the pitch — a mind straining
+## at 9 Hz, air rising at 5.
+func _warble_samples(duration: float, from_hz: float, to_hz: float, vibrato_hz: float,
+		depth: float) -> PackedFloat32Array:
+	var count := int(MIX_RATE * duration)
+	var out := PackedFloat32Array()
+	out.resize(count)
+	var phase := 0.0
+	for i in count:
+		var t := float(i) / float(MIX_RATE)
+		var progress := t / duration
+		var hz := lerpf(from_hz, to_hz, progress) * (1.0 + depth * sin(TAU * vibrato_hz * t))
+		phase += TAU * hz / float(MIX_RATE)
+		var envelope := minf(progress * 6.0, 1.0) * (1.0 - progress)
+		out[i] = clampf((sin(phase) * 0.3 + sin(phase * 2.0) * 0.08) * envelope, -1.0, 1.0)
+	return out
+
+## Air moving: noise smoothed harder at the ends than in the middle, so it swells and passes.
+func _gust_samples(duration: float) -> PackedFloat32Array:
+	var count := int(MIX_RATE * duration)
+	var out := PackedFloat32Array()
+	out.resize(count)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 20260926
+	var low := 0.0
+	for i in count:
+		var progress := float(i) / float(count)
+		var envelope := sin(PI * progress)
+		low = lerpf(low, rng.randf_range(-1.0, 1.0), 0.08 + 0.3 * envelope)
+		out[i] = clampf(low * 0.9 * envelope, -1.0, 1.0)
+	return out
+
 ## A spring let go: a tone that falls from high to low with a fast wobble riding on it, which is
 ## the whole difference between a boing and a slide whistle.
 func _boing_samples() -> PackedFloat32Array:

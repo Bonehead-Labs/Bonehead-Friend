@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_q5062"]
+
+[resource]
+script = ExtResource("1_q5062")
+id = &"blessing_saint"
+item_id = &"blessing"
+display_name = "Patron Saint"
+description = "Someone is watching over him. They leave a heart now and then."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 250800
+currency = 1
+is_automation = true
+automation_rate = 333.83
+device_mount = &"arm"
+requires_mastery = 25
