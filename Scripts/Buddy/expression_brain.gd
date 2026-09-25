@@ -207,6 +207,20 @@ const ROWS := {
 		"motion": &"duck", "seconds": 1.2, "priority": REACTION, "gate": GATE_REACTIVE},
 	&"answer_maybe": {"face": &"neutral", "tag": &"",
 		"motion": &"wobble", "seconds": 0.9, "priority": REACTION, "gate": GATE_REACTIVE},
+	# --- J: everyday things worked by hand (D67) ---
+	# The music changed under him: a new move, and then he dances on (see `_on_fidget_event`).
+	&"grooving": {"face": &"blissful", "tag": &"happy", "fallback": &"idle_happy",
+		"motion": &"hop2", "seconds": 0.8, "priority": REACTION, "gate": GATE_REACTIVE},
+	# Something to look at: the wax going up, the fish coming up, the lights changing. A hold
+	# one event starts and that lapses by itself, because a show has no "stopped" to send. At
+	# REACTION, not ATTENTION: every one of these things trickles while it sits there, and its
+	# next flush would otherwise swap the show for `cared_for` half a second in.
+	&"marvel": {"face": &"happy", "tag": &"",
+		"motion": &"face_toward", "seconds": 1.0, "priority": REACTION, "gate": GATE_SUBTLE,
+		"hold": true, "refresh": 3.0},
+	# The jets, while he is in them.
+	&"pampered": {"face": &"blissful", "tag": &"relax", "fallback": &"idle_happy",
+		"motion": &"wiggle", "seconds": 1.2, "priority": REACTION, "gate": GATE_REACTIVE},
 	# --- H: ambient ---
 	&"blink": {"face": &"asleep", "tag": &"",
 		"motion": &"", "seconds": 0.12, "priority": AMBIENT, "gate": GATE_SUBTLE},
@@ -225,6 +239,11 @@ const FIDGET_ROWS := {
 	&"answer_yes": &"answer_yes",
 	&"answer_no": &"answer_no",
 	&"answer_maybe": &"answer_maybe",
+	# D67: the verbs on everyday things, one row per family rather than one per item.
+	&"music": &"grooving",
+	&"show": &"marvel",
+	&"jets": &"pampered",
+	&"confetti": &"laugh",
 }
 
 ## The face he pulls when hit, by what hit him — keyed on category, not id, so ten entries
@@ -412,12 +431,17 @@ func _on_fidget_event(_item_id: StringName, event: StringName, world_pos: Vector
 		return
 	if buddy.global_position.distance_to(world_pos) > THREAT_RANGE:
 		return
+	var started := false
 	if bool((ROWS[row_id] as Dictionary).get("hold", false)):
 		if _attention != ATTEND_CURSOR:
 			attend(ATTEND_TOY, world_pos)
-		hold(row_id, world_pos)
+		started = hold(row_id, world_pos)
 	else:
-		react(row_id, 1.0, world_pos)
+		started = react(row_id, 1.0, world_pos)
+	# A beat over one of his routines goes back to it when it ends (D67): a new track is a new
+	# move and then he dances on, rather than standing still for the rest of the song.
+	if started and _routine_hold != &"" and _routine_hold != row_id and _pending_hold == &"":
+		_pending_hold = _routine_hold
 
 # --- G: the idle brain at work -------------------------------------------------------
 
@@ -647,7 +671,16 @@ func _on_kindness_sustained(source_id: StringName, _value: float, world_pos: Vec
 
 ## A kind toy with gestures of its own (D57). Its `controls` line is what says so: an item
 ## worked the default way — grabbed, thrown, sat in — has none.
+##
+## An everyday thing with a verb on it (D67) has a `controls` line too, and is still mostly
+## used the default way: the tea is still drunk, the duck still caught, the boombox still
+## trickles. For those only the verb's own act is the hand's, and the verb says so while it
+## pays.
 func _worked_by_hand(source_id: StringName) -> bool:
+	if ItemVerbs.paying:
+		return true
+	if ItemVerbs.carried_by(source_id):
+		return false
 	var item := ItemDB.get_item(source_id)
 	return item != null and item.is_kind() and not item.controls.is_empty()
 

@@ -281,6 +281,12 @@ func _build_streams() -> void:
 	_streams[&"slosh"] = _wav(_splash_samples())
 	_streams[&"giggle"] = _wav(_giggle_samples())
 
+	# --- everyday things worked by hand (D67) ---
+	#
+	# A record scratched: a pitch that glides up through noise, which the caller plays higher
+	# for a push forwards and lower for a pull back.
+	_streams[&"scratch"] = _wav(_scratch_samples())
+
 ## A woodblock tick: one decaying sine with a noise transient on the front. The transient
 ## is what makes it read as a physical contact rather than as a beep.
 func _tick_samples(duration: float, pitch: float, noise: float) -> PackedFloat32Array:
@@ -525,6 +531,28 @@ func _giggle_samples() -> PackedFloat32Array:
 		var silence := PackedFloat32Array()
 		silence.resize(gap)
 		out.append_array(silence)
+	return out
+
+## Vinyl under a finger: a rising glide with a rasp of noise on it, short and quick in, the
+## way a scratch is all attack.
+func _scratch_samples() -> PackedFloat32Array:
+	var duration := 0.11
+	var count := int(MIX_RATE * duration)
+	var out := PackedFloat32Array()
+	out.resize(count)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 20260925
+	var phase := 0.0
+	var band := 0.0
+	for i in count:
+		var t := float(i) / float(MIX_RATE)
+		var progress := t / duration
+		phase += TAU * lerpf(240.0, 760.0, progress * progress) / float(MIX_RATE)
+		band = lerpf(band, rng.randf_range(-1.0, 1.0), 0.6)
+		var envelope := minf(progress * 14.0, 1.0) * (1.0 - progress)
+		# A sawtooth rather than a sine: the edge is what makes it read as a stylus.
+		var saw := fposmod(phase / TAU, 1.0) * 2.0 - 1.0
+		out[i] = clampf((saw * 0.28 + band * 0.35) * envelope, -1.0, 1.0)
 	return out
 
 ## Water. Filtered noise that opens and closes, with no pitch in it at all.

@@ -39,6 +39,30 @@ func _physics_process(delta: float) -> void:
 		var falloff := clampf(1.0 - along / maxf(reach, 1.0), 0.0, 1.0)
 		rigid.apply_central_force(direction * force * falloff * delta * 60.0)
 
+## How far off level the fan can be aimed, up or down, on either side (D67). Past this it is a
+## fan blowing at the ceiling or into the desk, and neither moves anything worth moving.
+const MAX_TILT := deg_to_rad(50.0)
+
+## Points the wind at `world` — the fan's verb (D67), a right-drag from its head. The wind area
+## turns with the blow direction, so the push and the region it fills cannot disagree, and
+## the stand does not move: the body's own rotation still adds to the aim, as it always did.
+## A faint line shows where it points for as long as the drag lasts, because the wind itself
+## is not drawn.
+func aim_at(world: Vector2) -> void:
+	var local := to_local(world)
+	if local.length_squared() < 64.0:
+		return
+	var tilt := clampf(atan2(local.y, absf(local.x)), -MAX_TILT, MAX_TILT)
+	var angle := tilt if local.x >= 0.0 else PI - tilt
+	blow_direction = Vector2.from_angle(angle)
+	if wind_area:
+		wind_area.rotation = angle
+	var fx := WorldFX.of(self)
+	if fx:
+		var direction := blow_direction.rotated(global_rotation)
+		fx.tracer(global_position + direction * 30.0, global_position + direction * 150.0,
+			WorldFX.DUST, 0.25, 2.0)
+
 ## How far the wind carries, taken from the area's own shape so the number and the picture
 ## cannot disagree. Looked up by shape rather than by node name — a scene rebuilt from
 ## script renames its children, and a name is not a contract (see `ExplosionUtil`).
