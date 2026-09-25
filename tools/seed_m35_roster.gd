@@ -25,7 +25,6 @@ const DraggableAreaScript := preload("res://Scripts/Bodies/draggable_area.gd")
 const WindSourceScript := preload("res://Scripts/Bodies/wind_source.gd")
 const TrampolineScript := preload("res://Scripts/Bodies/trampoline.gd")
 const BeamPowerScript := preload("res://Scripts/Bodies/Powers/beam_power.gd")
-const GunPowerScript := preload("res://Scripts/Bodies/Powers/gun_power.gd")
 const VortexPowerScript := preload("res://Scripts/Bodies/Powers/vortex_power.gd")
 const LightningPowerScript := preload("res://Scripts/Bodies/Powers/lightning_power.gd")
 ## The verbs on everyday things (D67): the hot tub's jets and the fan's aim live in the same
@@ -93,20 +92,13 @@ func _seed_scenes() -> void:
 	_save_scene(_build_trampoline(), "%s/trampoline.tscn" % PROPS_DIR)
 	_save_scene(_build_fan(), "%s/desk_fan.tscn" % PROPS_DIR)
 
-	# The four cursor powers. Three need a class of their own — a beam that dwells, a pull
-	# that has no shot at all, and a strike that chains — and the minigun is the pistol's
-	# class with its trigger held down.
+	# The cursor powers, each a class of its own — a beam that dwells, a pull that has no shot
+	# at all, and a strike that chains. The minigun was the fourth, the cursor pistol's class
+	# with its trigger held down, until D71 made every gun one you hold; `seed_m39_guns` owns it.
 	_save_scene(_build_power("MagnifyingGlassPower", &"magnifying_glass", BeamPowerScript, {
 			"impulse_per_second": 2600.0,
 			"tick_seconds": 0.25,
 		}), "%s/magnifying_glass_power.tscn" % POWERS_DIR)
-	_save_scene(_build_power("MinigunPower", &"minigun", GunPowerScript, {
-			"blast_radius": 34.0,
-			"blast_force": 1500.0,
-			"pellets": 1,
-			"cooldown_seconds": 0.08,
-			"auto_fire": true,
-		}), "%s/minigun_power.tscn" % POWERS_DIR)
 	_save_scene(_build_power("GravityVortexPower", &"gravity_vortex", VortexPowerScript, {
 			"pull_accel": 4000.0,
 			"radius": 260.0,
@@ -310,7 +302,7 @@ func _add_handle(root: Node) -> StaticBody2D:
 ## The catalog's own prices, and the catalog's own order.
 ##
 ## `requires` is the other half of this milestone's answer to "a 28-item shop on hour one is
-## noise": every ladder gates its next rung behind the one below, so the Cursor page opens
+## noise": every ladder gates its next rung behind the one below, so the Cursor page opened
 ## showing a fist, a pistol and a locked shotgun rather than eight things a new player
 ## cannot afford and cannot tell apart. The field has existed since M2 and was empty on
 ## all sixteen items.
@@ -335,12 +327,12 @@ func _seed_items() -> void:
 
 	_item(&"magnifying_glass", "Magnifying Glass",
 		"Hold the beam on him and he cooks. Hurts without ever shoving him.",
-		C, 4000, "%s/magnifying_glass_power.tscn" % POWERS_DIR, 25, [&"shotgun"])
-	_item(&"minigun", "Minigun", "Hold the trigger. Keep holding it.",
-		C, 9000, "%s/minigun_power.tscn" % POWERS_DIR, 30, [&"magnifying_glass"])
+		C, 4000, "%s/magnifying_glass_power.tscn" % POWERS_DIR, 25, [&"missile"])
+	# The Cursor ladder ran through the shotgun and the minigun until D71 moved both to Guns;
+	# it now climbs power to power, the missile strike to the glass to the vortex.
 	_item(&"gravity_vortex", "Gravity Vortex",
 		"Drags him and every loose thing on the desk into one spinning knot.",
-		C, 15000, "%s/gravity_vortex_power.tscn" % POWERS_DIR, 35, [&"minigun"])
+		C, 15000, "%s/gravity_vortex_power.tscn" % POWERS_DIR, 35, [&"magnifying_glass"])
 	_item(&"lightning", "Lightning",
 		"Strikes where you point and jumps to whatever is standing nearby.",
 		C, 40000, "%s/lightning_power.tscn" % POWERS_DIR, 40, [&"gravity_vortex"])

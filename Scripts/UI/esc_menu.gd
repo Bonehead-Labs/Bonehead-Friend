@@ -71,7 +71,7 @@ func _fit() -> void:
 		UIScale.apply(self, _blocker)
 
 ## Escape backs out of the innermost thing first (D47). With a cursor power equipped that is
-## the power, not the game: the player armed the pistol, and the gesture for "never mind" is
+## the power, not the game: the player armed the missile, and the gesture for "never mind" is
 ## the one they already know. A second press opens the menu as it always did.
 ##
 ## The precedence lives here rather than in a second `_unhandled_input` on the spawner

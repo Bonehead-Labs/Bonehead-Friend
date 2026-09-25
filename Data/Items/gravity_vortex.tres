@@ -13,5 +13,5 @@ category = 2
 cost = 15000
 scene = ExtResource("2_fykla")
 icon = ExtResource("1_0qtcm")
-requires = Array[StringName]([&"minigun"])
+requires = Array[StringName]([&"magnifying_glass"])
 sort_order = 35

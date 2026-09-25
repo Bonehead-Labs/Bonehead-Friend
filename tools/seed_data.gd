@@ -78,8 +78,8 @@ func _seed_items() -> void:
 
 	_item(&"fist", "Fist", "Your hand, made of physics. Chases the cursor; click to punch.",
 		ItemDataScript.CATEGORY_CURSOR_POWER, 0, "res://Scenes/Powers/fist_power.tscn", "res://Assets/FIST.png", 0)
-	_item(&"pistol", "Pistol", "One shot at the crosshair. Shoves anything nearby.",
-		ItemDataScript.CATEGORY_CURSOR_POWER, 600, "res://Scenes/Powers/gun_power.tscn", "res://Assets/Crosshair Basic.png", 10)
+	# The pistol was a cursor power here until D71 made every gun one you hold; its id is now a
+	# row in `tools/seed_m39_guns.gd`, which owns it.
 	_item(&"missile", "Missile Strike", "Mark a spot and a missile flies in and detonates on it.",
 		ItemDataScript.CATEGORY_CURSOR_POWER, 2500, "res://Scenes/Powers/missile_power.tscn", "res://Assets/sprites/icons/missile.png", 20)
 
