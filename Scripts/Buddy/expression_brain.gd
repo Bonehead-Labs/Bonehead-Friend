@@ -410,7 +410,7 @@ func _on_threat_changed(kind: StringName, world_pos: Vector2, level: float) -> v
 		&"fuse":
 			if level > 0.0:
 				attend(ATTEND_THREAT, world_pos)
-				hold(&"fuse_lit", world_pos)
+				_hold_after(&"fuse_lit", world_pos)
 			else:
 				release(&"fuse_lit")
 				if _attention == ATTEND_THREAT:
@@ -418,7 +418,7 @@ func _on_threat_changed(kind: StringName, world_pos: Vector2, level: float) -> v
 				react(&"blast", 1.0, world_pos)
 		&"windup":
 			if level > 0.0:
-				hold(&"threatened", world_pos)
+				_hold_after(&"threatened", world_pos)
 			else:
 				release(&"threatened")
 		&"turret":
@@ -427,11 +427,19 @@ func _on_threat_changed(kind: StringName, world_pos: Vector2, level: float) -> v
 		&"aim":
 			if level > 0.0:
 				attend(ATTEND_THREAT, world_pos)
-				hold(&"aimed_at", world_pos)
+				_hold_after(&"aimed_at", world_pos)
 			else:
 				release(&"aimed_at")
 				if _attention == ATTEND_THREAT:
 					attend(ATTEND_NONE)
+
+## A threat's hold, or its turn after whatever outranks it now (D70, AI audit G). The Nervous
+## one's early flinch is a pain row, and a threat hold asked for under it was refused and
+## forgotten: he gasped at the fuse and then stood through the whole of it as if nothing were
+## lit. Queued behind the flinch, it takes over when the flinch ends.
+func _hold_after(row_id: StringName, at: Vector2) -> void:
+	if not hold(row_id, at):
+		_pending_hold = row_id
 
 func _on_item_spawned(item: Node2D) -> void:
 	if item and buddy and item.global_position.distance_to(buddy.global_position) <= THREAT_RANGE:
@@ -864,8 +872,11 @@ func hold(row_id: StringName, at: Vector2 = Vector2.INF) -> bool:
 		return true
 	return _request(row_id, row, 1.0, at, &"")
 
-## End a hold early — the cursor left, the fuse went off, he got out of the tub.
+## End a hold early — the cursor left, the fuse went off, he got out of the tub. A hold still
+## waiting its turn is let go too: a fuse that went off during the flinch is not lit any more.
 func release(row_id: StringName) -> void:
+	if _pending_hold == row_id:
+		_pending_hold = &""
 	if _beat.get("id", &"") == row_id:
 		_end_beat()
 

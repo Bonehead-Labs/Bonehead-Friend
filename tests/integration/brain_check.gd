@@ -2179,6 +2179,18 @@ func _personalities() -> void:
 			problems.append("a wind-up %s" % ("made him flinch" if flinched else "did not make him flinch"))
 		EventBus.threat_changed.emit(&"windup", _buddy.global_position + Vector2(120, 0), 0.0)
 		await _settle_hit()
+		# A fuse lit beside him is watched to the end, flinch or no flinch (D70). The Nervous
+		# one's early flinch took the slot and the fuse's lean, asked for under it, was never worn.
+		EventBus.threat_changed.emit(&"fuse", _buddy.global_position + Vector2(120, 0), 1.0)
+		await _advance_brain(1000)
+		if _brain.beat_id() != &"fuse_lit":
+			problems.append("a fuse lit beside him, a second on, he wore '%s' and not its lean"
+				% _brain.beat_id())
+		EventBus.threat_changed.emit(&"fuse", _buddy.global_position + Vector2(120, 0), 0.0)
+		await _advance_brain(1000)
+		if _brain.beat_id() == &"fuse_lit":
+			problems.append("and the lean outlived the fuse")
+		_brain.clear()
 		# The numbers: the same hit, the same mood, and nothing but the curve may differ.
 		_buddy.mood.set_value(40.0)
 		_buddy.grime.set_value(0.0)
