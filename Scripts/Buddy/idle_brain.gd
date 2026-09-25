@@ -625,11 +625,16 @@ func _choose_toy() -> Node2D:
 	var best: Node2D = null
 	var best_band := 1 << 30
 	var best_appeal := 0.0
+	var desk := _arena()
 	for node in get_tree().get_nodes_in_group(BaseDraggable.GROUP_INTERACTIVE):
 		var body := node as BaseDraggable
 		# He is in the `interactive` group himself, and a toy in the player's hand is not on
 		# offer.
 		if body == null or body == _buddy or body.dragging:
+			continue
+		# Nor is one outside the walls: he walked into the wall at it, stalled eight seconds,
+		# gave up, and tried again every cooldown (AI audit F).
+		if desk.has_area() and not desk.has_point(body.global_position):
 			continue
 		if now < int(_cooldowns.get(body.get_instance_id(), 0)):
 			continue
@@ -648,6 +653,18 @@ func _choose_toy() -> Node2D:
 		best_band = band
 		best_appeal = appeal
 	return best
+
+## The desk his walls enclose (`WorldBounds.arena`), or no rect at all where there are no walls
+## (D70). Asked of the walls rather than the viewport: a headless suite builds its own floor out
+## past a 64x64 root, which is why the first version of this filter, on the visible rect, took
+## loop_check's whole desk off the menu and was reverted. The walls in his own viewport, found by
+## group, never by path.
+func _arena() -> Rect2:
+	for node in get_tree().get_nodes_in_group(WorldBounds.GROUP):
+		var walls := node as WorldBounds
+		if walls and walls.get_viewport() == get_viewport():
+			return walls.arena()
+	return Rect2()
 
 ## What he would do with it, read off the switches the item already declares rather than off
 ## its id — so a new friendly item is still a `.tres` and a scene (docs/decisions.md D8).

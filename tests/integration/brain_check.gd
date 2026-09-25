@@ -1421,7 +1421,11 @@ func _idle_interruptions() -> void:
 		_clear_desk()
 		await _frames(3)
 		Progression._unlock(id)
-		bag = await _spawn_toy(&"beanbag", 360.0)
+		# The goose is melee, and a skeleton sitting in a beanbag is out of its 78 px reach (D70:
+		# he gets in it now). So it finds him dancing at a boombox, where a peck can land.
+		var toy_id := &"boombox" if id == &"goose" else &"beanbag"
+		Progression._unlock(toy_id)
+		bag = await _spawn_toy(toy_id, 360.0)
 		_place(Vector2(520.0, HOME.y))
 		# Within the turret's reach of the beanbag he will be sitting in.
 		EventBus.spawn_requested.emit(id, Vector2(860.0, FLOOR_Y - 60.0))
@@ -1598,14 +1602,21 @@ func _idle_geometry() -> void:
 	await _frames(2)
 	_idle.pretend_idle()
 	_idle.think_now()
-	# Measured, not asserted: `WorldBounds` keeps toys inside the window in the game, so this
-	# takes a teleport to reach, and filtering on the window breaks `loop_check`, whose whole
-	# desk sits outside a headless 64x64 root viewport (docs/ai-audit-2026-09.md).
+	# Asserted since D70 (AI audit F): the brain asks its walls where the desk is, not the
+	# window, so loop_check's hand-built desk out past a 64x64 root is still a desk.
 	var chases := _idle.target_id() == &"beanbag"
 	_measure("a toy off the edge of the window: he %s it (phase '%s')" % [
 		"sets off for" if chases else "ignores", _idle.phase_name()])
-	if chases:
-		_note("he sets off for a toy outside the window, walks into the wall, and gives up after the stall")
+	_check("a toy outside the walls is not somewhere to go (phase '%s')" % _idle.phase_name(),
+		not chases)
+	# And the same toy back on the desk is: the filter is the walls, not the toy.
+	if is_instance_valid(lost):
+		lost.global_position = Vector2(420.0, HOME.y)
+		lost.freeze = false
+	await _frames(20)
+	_idle.pretend_idle()
+	_idle.think_now()
+	_check("and back inside them it is again", _idle.target_id() == &"beanbag")
 	_idle._disturb()
 	_clear_desk()
 	_end()
