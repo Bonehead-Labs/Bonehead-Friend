@@ -3112,6 +3112,89 @@ owner:
 - The water pistol and the bubble blaster already use right for their shot (D56). They keep it.
 
 
+## D75 — The uplift pass: a spin you can follow, the palette he was drawn in, numbers off his face (2026-09-26)
+
+**Decision.** A pass over what the capture tools show rather than what the suites measure, taken
+while the owner slept on "if you get stuck, uplift something existing". Six changes, each seen in
+a capture before and after:
+
+| | before | after |
+|---|---|---|
+| Fidget spinner at the 30 fps idle cap | 73 degrees a frame against three arms: turns backwards | the picture turns at most 45 a frame, forward, over a dithered disc of its own sweep |
+| Pull-back car's wheels | 221 degrees a frame at Low Power's 20 fps | the same cap and disc |
+| Glow and flash shaders | every colour squared: headphones (8, 133, 126), an upgraded bat's wood (112, 50, 16) | the palette: (46, 184, 179), (169, 113, 63) |
+| A soak's Hearts | a pale number on his face twice a second | rises from over his head |
+| A celebrated toast | chips burst across the words it had just printed | chips burst out of the card's edges |
+| Tennis ball | a gold coin with two stripes | a pale lime ball with the pinched `) (` waist |
+
+**A spin too fast to watch** (`RotorBlur`, `Scripts/Components/`). D73 saw the spinner run
+backwards and left the frame cap alone, rightly: lifting it while a toy animates costs what the
+active cap costs. The fix is the one film and games use, and neither half touches the `spin` that
+pays. The picture turns at most 3/8 of its symmetry per *drawn* frame (a call from the physics
+tick gets its share of the frame), so whatever the eye joins up is forward. Past 9 rad/s a disc
+dissolves in behind the rotor: its own texture swept round the hub, ring by ring, each ring the
+commonest colour in it that is not outline, as solid as the share of the ring the picture covers.
+Three things were tried first and dropped:
+
+- **Ghost copies** of the rotor trailing across the frame's arc read as a dirty smudge: the black
+  outline dominates every copy.
+- **An averaged colour** per ring is a brown the spinner never was. Orange, red and steel average
+  to mud; snapped to the sprite's nearest colour it is dark red. The commonest colour is orange
+  where the arms pass and steel where the weights do, which is what a real one looks like.
+- **Alpha** for the cover. Over the chroma green a streamer keys out, a half-transparent disc is
+  a green ghost — D68's rule for the numbers. Cover and fade-in are a 4x4 ordered dither instead:
+  every pixel is ink or nothing.
+
+The car's wheels go through the same component. The Newton's cradle peaks at 8 degrees a frame and
+the yo-yo, on the 60 Hz tick, at 86 against a one-fold 180 at 20 fps; neither strobes. The desk
+fan's blades are not animated at all. The nunchaku's Whirlwind turns the body itself, at 38
+degrees a frame at 30 fps, and already draws an arc behind the tip; left alone, and not this
+stream's.
+
+**The palette he was drawn in.** In a Godot 4 canvas shader `COLOR` arrives as the texture times
+the modulate. `ItemGlow` and the buddy's flash and grime shader both multiplied it by the texture
+again, so he and every item with a juice tier drew with each channel squared. Read off `ui_shots`
+at 1x, the match is exact. An item looked darker the more the player had put into it, the
+opposite of D41, and the dye and grime masks measured the squared colour. A dyed pair of
+headphones came out about a third darker than `TEAL_LUMA` meant. Both shaders start from `COLOR`
+now. **He is brighter**: this is the art as drawn, not a new look, and it is one line each to put
+back if the owner preferred the darker one.
+
+**Numbers off his face.** A soak and his own play bank at his centre, so `FXLayer` aims any
+Hearts trickle that lands on him at the top of his head instead. Acts and hits keep their spot.
+A toast that is a score (`celebrate_toast`) now bursts its chips from behind the card
+(`UIMotion.sparkle(..., behind)`). Before, they came from its centre and over everything, which
+for a toast is the middle of the line: every mastery rank arrived as "Baseball Bat
+rea[chips]mastery 1".
+
+**The tennis ball** is redrawn over D62's grid, same 13x13, so its collider and scene do not move.
+The palette has no yellow-green, so the felt is a checker of gold and ectoplasm.
+`art/prompts/items.md` has what was tried.
+
+**Two leaks, one cause.** `loop_check` ended on 77 leaked instances, a body RID and 47 resources
+in use. D70's "he eats only food" enumerates the catalog through `_instance_of`, which cast
+`instantiate()` straight to `BaseDraggable`. A cursor power's root is a Node2D, so the cast was
+null and the instance lived on outside the tree: all ten powers, and the fist's rigid body. No game
+object leaked. The suites were bisected one at a time and only that one left anything behind.
+`soak_shots` had the same loop. **An `instantiate() as T` that can come back null must free what
+it instanced.**
+
+**Captures.** `fidget_shots` writes `motion-*` sheets: consecutive frames, a row per toy, to be run
+at `--fixed-fps 30` (or 20 for Low Power). A strobe exists only frame to frame and only at the
+rate it strobes at. `ui_motion_shots` records a `toast` sequence. Before and after, from this
+pass: `fidget_shots 08-motion-spinner` and `10-motion-cradle-car` at 30 fps, `soak_shots *-in`,
+`ui_shots 14-backdrop-night` (his colours) and `12-devices`, `ability_shots baseball_bat-lands`
+and `ui_motion toast/` (the toast).
+
+*Consequence:* anything that turns fast enough to strobe goes through `RotorBlur.attach(sprite,
+symmetry, from, full)` and `turn(omega, delta)`, which costs nothing at rest. A canvas shader in
+this project starts from `COLOR`, never `texture(TEXTURE, UV) * COLOR`. *Judged, not changed:*
+hit numbers still land on him where the hit did; during the one-frame white flash a pale core
+reads by its outline alone. A toy's own trickle (the cradle's clack, the spinner's watch) still
+floats over the toy. The chips of a toast behind its card are a quieter burst than before. And
+nothing here has been watched on a real desk.
+
+
 ## Recommendations not yet decided
 
 Carried in the spec, owner's call before they matter:
