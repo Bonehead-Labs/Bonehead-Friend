@@ -24,6 +24,10 @@ func _ready() -> void:
 	# the load, because the load is what reads the slot.
 	var perf := _perf_stage_mode()
 	if perf != "":
+		# Read the player's settings (the window, the menu size and the frame caps are what is
+		# being measured) but write nowhere they live: a hint shown on the staged desk marks
+		# itself seen and saves, and the first staging of a toy used to write the player's file.
+		Settings.config_path = PERF_SETTINGS
 		SaveManager.slot_name = "perf"
 		for path in [SaveManager.save_path(), SaveManager.backup_path(), SaveManager.tmp_path()]:
 			if FileAccess.file_exists(path):
@@ -258,8 +262,16 @@ func _install_tuning_log() -> void:
 # `empty` is him alone. `idle` adds a hot tub steaming and a rank-25 bat glowing on the desk,
 # which is what a player who has been playing for a day leaves running. `load` adds a pellet
 # turret firing at him, so every hit, chip, number and payout is live. It runs on a save slot
-# of its own, wiped before the load, and never writes settings. tools/perf_measure.ps1 drives
-# it and reads the process counters.
+# of its own, wiped before the load, and writes settings only to a file of its own.
+# tools/perf_measure.ps1 drives it and reads the process counters.
+
+const PERF_SETTINGS := "user://settings_perf.cfg"
+
+var _perf_frames_from := 0
+var _perf_msec_from := 0
+var _perf_seconds := 0
+var _perf_at_idle_cap := 0
+var _perf_awake_peak := 0
 
 func _perf_stage_mode() -> String:
 	for arg in OS.get_cmdline_user_args():
@@ -268,29 +280,38 @@ func _perf_stage_mode() -> String:
 	return ""
 
 func _perf_stage(mode: String) -> void:
-	# Effects on, in memory only: the point is to measure them, and `Settings` is not saved
-	# here so the player's own Focus Mode is untouched.
+	# Effects on, in memory only: the point is to measure them, and the player's own Focus
+	# Mode is untouched because `Settings` writes to the stage's own file.
 	Settings.focus_intensity = Settings.Intensity.NORMAL
+	# Proof the stage is what it says, written from inside the build: the measurement tool
+	# cannot see the window, and a turret that never found him would measure as idle.
+	get_tree().create_timer(15.0).timeout.connect(_perf_report.bind(mode))
 	if mode == "empty":
 		return
 	Economy.grant(Economy.BONES, 1.0e7)
 	Economy.grant(Economy.HEARTS, 1.0e7)
+	# Placed around him, not around the window: a turret has a reach, and the first cut put
+	# it seven hundred pixels from him on an ultrawide, where it measured as furniture.
+	var size := get_viewport().get_visible_rect().size
+	var near := buddy.global_position if buddy else Vector2(size.x * 0.5, size.y - 80.0)
 	for id in [&"hot_tub", &"baseball_bat", &"pellet_turret"]:
 		_perf_unlock(id)
 	var b := ItemDB.balance
 	Progression.add_mastery_xp(&"baseball_bat",
 		EconomyMath.mastery_xp_for_rank(b.mastery_base, 25, b.mastery_exponent))
-	# Placed around him, not around the window: a turret has a reach, and the first cut put
-	# it seven hundred pixels from him on an ultrawide, where it measured as furniture.
-	var size := get_viewport().get_visible_rect().size
-	var near := buddy.global_position if buddy else Vector2(size.x * 0.5, size.y - 80.0)
+	_perf_quiet_hints([&"hot_tub", &"baseball_bat", &"pellet_turret"])
 	EventBus.spawn_requested.emit(&"hot_tub", near + Vector2(-260.0, -40.0))
 	EventBus.spawn_requested.emit(&"baseball_bat", near + Vector2(120.0, -140.0))
 	if mode == "load":
 		EventBus.spawn_requested.emit(&"pellet_turret", near + Vector2(200.0, -30.0))
-	# Proof the stage is what it says, written from inside the build: the measurement tool
-	# cannot see the window, and a turret that never found him would measure as idle.
-	get_tree().create_timer(15.0).timeout.connect(_perf_report.bind(mode))
+
+## The one-off tips a staged toy would show are marked seen first, so every run of a stage
+## draws the same desk: whether a ten-second toast unrolls should not depend on which toys the
+## player at this machine has already been taught.
+func _perf_quiet_hints(ids: Array) -> void:
+	Settings.mark_hint_seen(&"removal_gestures")
+	for id in ids:
+		Settings.mark_hint_seen(StringName(HUD.HINT_CONTROLS_PREFIX + String(id)))
 
 ## Buys an item and, first, everything it requires — the public path the shop takes, walked
 ## up the chain, so the stage cannot produce a save the real game could not.
@@ -304,7 +325,21 @@ func _perf_unlock(id: StringName) -> void:
 		_perf_unlock(req)
 	Progression.purchase_item(id)
 
+## Written at fifteen seconds and rewritten every five after, so whenever the measurement tool
+## reads it, it says what the frame loop did over the window being measured: the frame rate,
+## how long it sat at the idle cap, and the most bodies awake at once. A process counter says
+## how much; this says why — a desk that never goes to sleep holds the active cap and costs
+## twice as much, and from outside that looks exactly like a regression.
 func _perf_report(mode: String) -> void:
+	if _perf_seconds == 0:
+		_perf_frames_from = Engine.get_frames_drawn()
+		_perf_msec_from = Time.get_ticks_msec()
+		var sampler := Timer.new()
+		sampler.name = "PerfSampler"
+		sampler.wait_time = 1.0
+		sampler.timeout.connect(_perf_sample.bind(mode))
+		add_child(sampler)
+		sampler.start()
 	var file := FileAccess.open("user://perf_%s.txt" % mode, FileAccess.WRITE)
 	if file == null:
 		return
@@ -315,3 +350,19 @@ func _perf_report(mode: String) -> void:
 	file.store_line("hearts %.1f" % float(Economy.session.get("hearts", 0.0)))
 	file.store_line("bat_tier %d" % Progression.juice_tier(&"baseball_bat"))
 	file.store_line("window %s" % str(get_viewport().get_visible_rect().size))
+	if _perf_seconds > 0:
+		var seconds := maxf(0.001, (Time.get_ticks_msec() - _perf_msec_from) / 1000.0)
+		file.store_line("fps %.1f over the last %d s" % [
+			(Engine.get_frames_drawn() - _perf_frames_from) / seconds, _perf_seconds])
+		file.store_line("idle_cap %d of %d s at %d fps" % [
+			_perf_at_idle_cap, _perf_seconds, Settings.fps_idle])
+		file.store_line("awake_peak %d" % _perf_awake_peak)
+
+func _perf_sample(mode: String) -> void:
+	_perf_seconds += 1
+	if Engine.max_fps == Settings.fps_idle:
+		_perf_at_idle_cap += 1
+	_perf_awake_peak = maxi(_perf_awake_peak,
+		int(Performance.get_monitor(Performance.PHYSICS_2D_ACTIVE_OBJECTS)))
+	if _perf_seconds % 5 == 0:
+		_perf_report(mode)
