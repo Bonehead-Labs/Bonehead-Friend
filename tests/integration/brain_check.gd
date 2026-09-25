@@ -72,7 +72,7 @@ var _restore := {}
 var _hits: Array[HitInfo] = []
 var _given: Array[Array] = []       ## [source_id, value, pos, usec]
 var _sustained: Array[Array] = []
-var _threats: Array[Array] = []     ## [kind, pos, level, usec]
+var _threats: Array[Array] = []     ## [kind, pos, level, usec, physics frame, engine seconds]
 var _landings: Array[Array] = []    ## [pos, speed]
 var _states: Array[Array] = []      ## [state, usec]
 var _knockouts: Array[float] = []
@@ -191,6 +191,13 @@ func _ready() -> void:
 	print("report: %s" % ProjectSettings.globalize_path(REPORT_PATH))
 	_clear_slot()
 	get_tree().quit(1 if _failed > 0 else 0)
+
+## The engine's own process clock, the one a `SceneTreeTimer` counts: an animal's wind-up is
+## timed on it, so its tell is measured on it (D70).
+var _engine_seconds := 0.0
+
+func _process(delta: float) -> void:
+	_engine_seconds += delta
 
 ## `--only idle` runs every idle section, `--only idle.geometry` just the one.
 func _want(section: String, sub: String = "") -> bool:
@@ -2337,16 +2344,27 @@ func _critter(id: StringName) -> void:
 	var peak_speed := 0.0
 	var thrown := false
 	if not swing.is_empty():
-		# The tell is the wind-up and the swing of the same animal: the nearest wind-up before it.
-		var tell_start := int(windup[3])
+		# The tell is the wind-up and the swing of the same animal: the latest wind-up before it
+		# where it swung from, and the nearest one only for a swarm whose bodies all moved. The
+		# nearest alone paired a swing with an earlier wind-up the animal had abandoned, a few
+		# pixels closer, and read 0.50 s (D70).
+		var tell_from: Array = windup
 		var best := INF
+		var latest_here: Array = []
 		for t in _threats:
 			if t[0] == &"windup" and float(t[2]) > 0.0 and int(t[3]) <= int(swing[3]):
 				var d := (t[1] as Vector2).distance_to(swing[1])
-				if d < best or (is_equal_approx(d, best) and int(t[3]) > tell_start):
+				if d <= 24.0:
+					latest_here = t
+				if d < best:
 					best = d
-					tell_start = int(t[3])
-		var tell := float(int(swing[3]) - tell_start) / 1.0e6
+					tell_from = t
+		if not latest_here.is_empty():
+			tell_from = latest_here
+		# On the engine's clock, which is what the animal's wind-up timer runs on: the wall clock
+		# and the smoothed frame delta part company by a few frames after a long one, and a
+		# 0.35 s tell read 0.30 on it once (D70).
+		var tell := float(swing[5]) - float(tell_from[5])
 		if tell < npc.windup_seconds - 0.03 or tell > npc.windup_seconds + 0.08:
 			problems.append("the tell was %.2f s, not %.2f" % [tell, npc.windup_seconds])
 		await _frames(3)
@@ -2874,7 +2892,7 @@ func _log_sustained(source_id: StringName, value: float, at: Vector2) -> void:
 	_sustained.append([source_id, value, at, Time.get_ticks_usec()])
 
 func _log_threat(kind: StringName, at: Vector2, level: float) -> void:
-	_threats.append([kind, at, level, Time.get_ticks_usec(), Engine.get_physics_frames()])
+	_threats.append([kind, at, level, Time.get_ticks_usec(), Engine.get_physics_frames(), _engine_seconds])
 
 func _log_landing(at: Vector2, speed: float) -> void:
 	_landings.append([at, speed])
