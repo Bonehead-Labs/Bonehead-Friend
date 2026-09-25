@@ -117,3 +117,15 @@ then run `_build_body.lua` with the full spec, `walk` last so frames 1-74 keep t
 `idle:10,idle_sad:7,idle_happy:13,hurt:16,happy:14,collapse:18,reassemble:18,pile:3,dragged:4,walk:12`.
 Checked after the rebuild: the first 74 frames and their durations are pixel-identical to the
 file before it.
+
+## The headphones fall with him (2026-09-25, D62)
+
+The generated `collapse` left his headphones where his head had been: from its fourth frame
+they hung in mid-air, and `pile` held them there for as long as he was down (assessment §3,
+finding 8). `art/tools/drop_headphones.py` finds them on each frame as the detached piece with
+the most teal, and lowers them whole — outline included, so nothing reopens — by `1.2 n^2`
+pixels on the n-th frame after they come loose, until they meet the heap as measured on that
+frame, then one two-pixel bounce and rest. `pile` gets them already resting; `reassemble` is
+rebuilt as `collapse` reversed, as it always was, so they fly back onto his head. No pixel is
+redrawn or recoloured. Patched in place with `_patch_frames.lua` (26 frames: collapse 5-16,
+reassemble 1-12, both pile frames); tags, durations and face offsets are untouched.
