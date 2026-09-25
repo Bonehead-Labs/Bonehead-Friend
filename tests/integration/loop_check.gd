@@ -442,6 +442,15 @@ func _content_loaded() -> void:
 	_check("every .tres in res://Data/Items loaded (%d files, %d loaded)"
 		% [item_files, ItemDB.all_items().size()],
 		ItemDB.all_items().size() == item_files)
+	# Every effect key the data sells has words in the tree. The held guns shipped `recoil_mult`
+	# with none, and the shop printed the raw key on every gun's Steady node.
+	var unworded: Array[String] = []
+	for item in ItemDB.all_items():
+		for node in ItemDB.augments_for(item.id):
+			if not AugmentPanel.EFFECT_WORDS.has(node.effect_key):
+				unworded.append("%s:%s" % [node.id, node.effect_key])
+	_check("every augment effect key has words in the tree (%s)" % ", ".join(unworded),
+		unworded.is_empty())
 
 	# The art size contract, stated over the real catalog. An item icon is a 32px canvas
 	# (art/tools/item_postprocess.py); the shell now boxes anything else down to fit, so a
@@ -1047,9 +1056,10 @@ func _every_toy_is_worth_walking_to() -> void:
 			continue
 		body.item_id = id
 		add_child(body)
-		# The one honest exception. A `WindSource` earns nothing and is not a thing he uses:
-		# it changes every *other* item's arc, so its whole job happens while he plays with
-		# something else. There is nothing to walk over and do to a fan.
+		# The one honest exception. A `WindSource` is not a thing he uses: it changes every
+		# *other* item's arc, and earns only for the landings its wind bends (D65), so its
+		# whole job happens while he plays with something else. There is nothing to walk over
+		# and do to a fan.
 		if body is not WindSource and brain._routine_for(body) == IdleBrain.ROUTINE_NONE:
 			inert.append(String(id))
 		body.queue_free()

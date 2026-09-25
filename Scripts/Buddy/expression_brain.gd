@@ -655,6 +655,11 @@ func _on_kindness_given(source_id: StringName, _value: float, world_pos: Vector2
 	# pays (D57): a bubble popping across the desk is not him catching a ball.
 	if _worked_by_hand(source_id):
 		return
+	# The toy he is already using paying him *is* the routine, exactly as for a trickle below
+	# (D60). The donut box became six helpings half a second apart (D65), and each one fired
+	# `eat` over his `nibbling` — he wore the routine's look on 0 of 96 frames of his own meal.
+	if _routine_hold != &"" and source_id == _routine_toy:
+		return
 	var item := ItemDB.get_item(source_id)
 	if item and item.category == ItemData.CATEGORY_FOOD:
 		react(&"eat", 1.0, world_pos)

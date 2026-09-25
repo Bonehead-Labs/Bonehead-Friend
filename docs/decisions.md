@@ -2095,6 +2095,100 @@ apart): they draw beneath the lines and are thrown no higher than the headline. 
 points through its rise.
 
 
+## D65 — A node moves a number something reads, and a pull pulls him (2026-09-25)
+
+**Decision.** Four of D59's findings and the donut box, closed together because they are one
+sentence — *this node, or this description, promises something the item does not do*:
+
+- **The three pulls are accelerations** (F4). The black hole charge, the implosion charge and the
+  gravity vortex pull every body by its own mass times `pull_accel`, the way gravity does, instead
+  of with one force for a 0.3 kg prop and a 3 kg skeleton. The vortex also falls off linearly and
+  has drag inside its well; see below for why it needed both.
+- **A field is billed for the world impacts it causes** (F5). While the vortex's pull or the fan's
+  wind is on him, and for a moment after (2 s and 0.5 s), an impact with the floor or a wall is
+  billed to that item instead of to `world` — `Buddy.claim_impacts`. The vortex and the fan now
+  earn, rank and reach their mastery-25 capstones like everything else.
+- **Ten nodes retargeted, ids unchanged** (F5, F7, F8). The fan's "Higher Setting" is wind
+  strength (`wind_mult`); the vortex's "Faster Collapse" is its pull (`pull_mult`); the fist's
+  "Faster Hands" is how fast it chases the cursor (`speed_mult`); and the third node of the seven
+  consumables is how much a helping lifts his mood (`mood_mult`), renamed Comfort Food, Calming
+  Blend, Sugar Rush, Extra Sprinkles, Family Recipe, Surprise Party and Best Day Ever.
+- **A box of donuts is six donuts.** `FriendlyBase.servings`: one helping per contact,
+  `contact_cooldown` apart, gone after the last. Six of 5 rather than one of 30, so a fresh combo
+  totals 41 — still under the 400-Heart pizza's 45, the ordering `seed_friendly` was tuned to keep.
+
+**Why.** Every one was measured by `item_check`, before and after:
+
+| | before | after |
+|---|---|---|
+| black hole charge, him put down 126 px away | 126 → 126 px | 126 → 71, stopped against the charge |
+| implosion charge, 129 px away | 129 → 129 | 132 → 68 |
+| gravity vortex, the eye 197 px away | 197 → 197 | 197 → 11 |
+| a 0.3 kg prop in the vortex | 155 → 106 px, peak 1,137 px/s | 155 → 42 px, peak 561 px/s |
+| gravity vortex, Bones under its own name | 0, and no mastery | 10.5 plain, 46.6 upgraded, ranked |
+| the fist's "Faster Hands" | placebo: a gap of 0 | ×1.06, 1,997 → 2,116 px/s |
+| the vortex's "Faster Collapse" | placebo: a gap of 0 | ×1.10, 1,839 → 2,023 px/s² on a probe |
+| the fan's "Higher Setting" | placebo: it never hits him | ×1.10, 2,250 → 2,475 px/s² on a probe |
+| seven consumables' third node | placebo: gone before the gap | ×1.10 on his mood, exact to 1e-4 |
+| a box of donuts | one contact, 30 | six contacts of 5, half a second apart |
+
+**The design choice in F5, and the one it was chosen over.** The audit offered two: bill the
+vortex for what it causes, or give both a capstone not gated on mastery. The second would have made
+them the only items whose automation can be bought without ever being used, and left their payout
+nodes placebos. The first is the audit's own model of the vortex ("its damage is the collisions it
+causes") made true, and it has a clean boundary: **only who is billed changes, never whether.** A
+prop the vortex throws into him is still billed to the prop — it is the collider, and D7 says the
+collider is who hit him. Only a world impact, which had no author and was billed to `world`, is
+reassigned. The floor it must clear is still the world's fall floor (1,500), not the swing floor,
+so held still against the desk by a pull he is not billed, and nothing pays that did not pay before.
+Picking him up clears the claim: from then on his energy is the player's.
+
+**How, and what cost time.**
+
+- **Why an acceleration and not a bigger force.** A force big enough to drag 3 kg against 2,940 of
+  floor friction is more than 9,800 px/s² on a 0.3 kg prop. As an acceleration the pull is the
+  same on him and on a pencil, and the numbers compare with gravity: the vortex is four g at the
+  eye, the implosion charge ten, the black hole eleven.
+- **The charges' ceiling is his squeeze.** Pressed against a frozen charge he takes
+  `3 kg × pull × (1 − d/R)² / 60` of contact impulse every tick, and past the damage floor (350)
+  being held still would bill him ten times a second. At the distance his body stops against
+  theirs that is 330 (black hole) and 248 (implosion). Being dragged *into* the charge is billed,
+  to the charge, and should be. The blast then meets him at close range: **6,478 px/s**, the fastest
+  body in the game, still under item_check's 15,000 ceiling.
+- **The vortex was a sling, not a knot.** Its swirl adds energy every frame and nothing took it
+  out, so an orbit only widened until the body left the rim at speed. Drag inside the well bounds
+  the spin at `pull × swirl / drag` (367 px/s). The first version dragged against the desk, and a
+  moving eye lost him: carried up the desk in it, he fell out of the well from half the height the
+  eye reached, too low for the landing to clear the fall floor. Measured against the *eye's*
+  velocity instead, the knot travels with the cursor; the eye's speed is capped at 1,500 px/s so a
+  cursor that jumps windows does not fling it. Linear falloff, not the blasts' square: a blast is
+  an instant, a well is held, and under the square its outer half pulled at under a quarter of
+  its strength.
+- **The fan's end-to-end payout waits on F1.** The suite's drop lands him at 726 px/s and he parts
+  from the floor inside the same step, so F1 bills that landing to nobody. The claim is checked
+  directly instead — `Buddy.impacts_claimed_by()` at the landing — and three `~F1` lines carry the
+  fan's earnings. The vortex is measured end to end because a slam keeps him pressed to the desk.
+- **A new key is three edits, and the suite enforces the third.** The seeder's `EFFECT` table, the
+  augment panel's `EFFECT_WORDS`, and an `item_check` verdict — a key it cannot measure fails as
+  "unknown key". The field keys are read off a weightless, undamped probe's first step in the
+  field (no friction, gravity or drag in the number); the fist's off its top speed chasing a cursor
+  that jumped; the mood key off every act, read back after his `MoodComponent` by a handler
+  connected per stage, from despair so a cake's 120 is not lost against the top rail.
+- **Every new check fails without its fix.** Run against the old scripts with the new data and
+  tests, the six items fail 19 checks between them, each naming its placebo ("Faster Collapse ...:
+  it stayed at 2,198 px/s² on a free body", "Comfort Food ...: his mood went -99.43 to -70.66
+  where the data says -67.78").
+- **Faster Hands moved an F1 result.** Upgraded, the fist chases 6% faster, and in the full
+  suite's order its punch is now still pressed on him a step later and billed. F1 is
+  contact-geometry luck, so the upgraded fist's F1 lines are `~F1`; the plain run stays strict.
+
+*Consequence:* `tools/seed_m35_trees.gd` takes `--only node_id,node_id`, the D61 pattern for
+augments; it rewrote the ten nodes with their ids and every other field intact. The black hole
+charge's scene carries `pull_accel` as a one-line change, not a re-seed: re-seeding either charge
+also rewrites every unique id and the implosion charge's grab region, which has drifted from its
+sprite since D61 and is not this decision's to settle. The pacing simulator moves only through the
+fan, whose damage node is now wind: 4/4, first Reincarnation 9:41:19 → 9:40:45.
+
 ## D67 — Everyday things have verbs: the right button on what used to be only put down (2026-09-25)
 
 **Decision.** Thirteen items that were "put it down and wait" get one thing to do with them in
@@ -2230,6 +2324,7 @@ nothing runs at rest; it also fails if the scenes and the table ever disagree. *
 a person**, because no window may open on this machine while the owner is using it: every
 effect's look on a real desk (`ui_shots`, `audit_shots`), the scratch sound, and whether the
 wax, the fish and the flurry read at 1x.
+
 
 ## Recommendations not yet decided
 

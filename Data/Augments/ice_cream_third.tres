@@ -6,9 +6,9 @@
 script = ExtResource("1_5clmp")
 id = &"ice_cream_third"
 item_id = &"ice_cream"
-display_name = "Faster Churn"
-effect_key = &"cooldown_mult"
-effect_per_level = 0.94
+display_name = "Extra Sprinkles"
+effect_key = &"mood_mult"
+effect_per_level = 1.1
 cost_base = 58
 cost_growth = 1.09
 currency = 1

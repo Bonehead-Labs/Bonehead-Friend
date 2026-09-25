@@ -75,8 +75,30 @@ const SHAKE_SPEED := 900.0
 var _grounded := false
 const GROUND_NORMAL_Y := -0.7
 
+## Who is moving him without touching him (D65). The gravity vortex and the desk fan act on
+## him through a field, so every impact they cause is with the world or with a prop, and a
+## world impact was billed to `world` — which left both items earning nothing under their own
+## name and their automation capstones unbuyable. While a field acts on him, and for a moment
+## after, an impact with the world is billed to that field instead.
+##
+## Only *who* is billed changes, never *whether*: the floor is still the world's fall floor,
+## and a prop that hits him is still billed to the prop, so nothing is billed twice and no
+## impact pays that did not pay before. Picking him up hands him back to the player.
+var _claim_id: StringName = &""
+var _claim_mult := 1.0
+var _claim_until_msec := 0
+
 func is_grounded() -> bool:
 	return _grounded
+
+## Called every physics frame a field acts on him; the claim runs `seconds` past the last.
+func claim_impacts(source_id: StringName, damage_mult: float, seconds: float) -> void:
+	_claim_id = source_id
+	_claim_mult = damage_mult
+	_claim_until_msec = Time.get_ticks_msec() + int(seconds * 1000.0)
+
+func impacts_claimed_by() -> StringName:
+	return _claim_id if Time.get_ticks_msec() < _claim_until_msec and not dragging else &""
 
 func _ready() -> void:
 	super._ready()
@@ -195,6 +217,7 @@ func _notification(what: int) -> void:
 ## pose indefinitely, with his mood-driven idle unable to resume.
 func _start_drag() -> void:
 	super._start_drag()
+	_claim_until_msec = 0
 	if not _in_knockout:
 		_reaction_until_msec = 0
 		_set_state(&"dragged")
@@ -376,6 +399,9 @@ func _attribute(src: Object) -> Array:
 		return [(src as BaseDraggable).item_id, float(src.call(&"effective_damage_mult"))]
 	if src is BaseDraggable:
 		return [(src as BaseDraggable).item_id, 1.0]
+	# The world, unless a field is throwing him into it (D65).
+	if impacts_claimed_by() != &"":
+		return [_claim_id, _claim_mult]
 	return [&"world", 1.0]
 
 ## Above this many tracked sources, expired entries are swept. Items are spawned and binned

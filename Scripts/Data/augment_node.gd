@@ -23,7 +23,10 @@ const GLOBAL := &"global"
 @export var tier: int = 1
 
 ## What this node multiplies. Progression.get_modifier() is keyed on this.
-## Known keys: &"damage_mult", &"payout_mult", &"mass_mult", &"cooldown_mult".
+## Known keys: &"damage_mult", &"payout_mult", &"mass_mult", &"cooldown_mult", and D65's
+## &"pull_mult" (the vortex), &"wind_mult" (the fan), &"speed_mult" (the fist's chase) and
+## &"mood_mult" (a treat's mood lift). A key nothing reads is a placebo the player paid for;
+## item_check measures every one.
 @export var effect_key: StringName
 
 ## **A multiplier per level, not an addend.** 1.15 means +15% compounding; 0.95 means a
