@@ -145,6 +145,9 @@ const WALK_GAIN := 12.0
 ## The push is clamped at this many g's worth of force. 2.5 bounds the reversal kick at
 ## 7,350 N (it was 21,000) and still starts him inside a tenth of a second.
 const WALK_PUSH_G := 2.5
+## The same clamp in the air, where there is no floor to pay: under his own weight, so wall
+## friction (1.0) can never hold him up the side of the thing he hopped at.
+const AIR_PUSH_G := 0.5
 
 ## A climb is the exception, not the gait. Clearance above a toy's top edge that one aims for
 ## — 12 px, not 28: the 28 was compensating for a rect that put his feet 32 px above where
@@ -462,8 +465,16 @@ func _walk(direction: float) -> void:
 		_buddy.art.travel(direction, effort)
 	var weight := _buddy.mass * _gravity
 	var gap := direction * _walk_speed() - _buddy.linear_velocity.x
-	var limit := WALK_PUSH_G * weight
-	var push := clampf(direction * weight + gap * _buddy.mass * WALK_GAIN, -limit, limit)
+	# The feed-forward pays the floor's friction, and in the air there is no floor. Worse, the
+	# full push pressed into the side of whatever he had just hopped at is a normal force of
+	# over twice his weight, and friction against it held him up the side of a 40 px box for
+	# the whole stall — every climb at anything with a vertical face failed that way (D60).
+	# Airborne, the push is a nudge under his own weight: he slides off a wall rather than
+	# hanging on it, and still has the air control a climb needs to get over the top.
+	var grounded := _buddy.is_grounded()
+	var limit := (WALK_PUSH_G if grounded else AIR_PUSH_G) * weight
+	var feed := direction * weight if grounded else 0.0
+	var push := clampf(feed + gap * _buddy.mass * WALK_GAIN, -limit, limit)
 	_buddy.apply_central_force(Vector2(push, 0.0))
 
 ## The last twenty pixels. With his real rect, "reached" fires a little before contact, and
@@ -475,7 +486,10 @@ func _lean(direction: float) -> void:
 		return
 	if _buddy.art:
 		_buddy.art.travel(direction, 0.35)
-	_buddy.apply_central_force(Vector2(direction * _buddy.mass * _gravity * LEAN_G, 0.0))
+	# Grounded only, for the reason `_walk` gives: a lean over his own weight against a toy's
+	# side while he is off the floor is friction enough to hang him on it.
+	var lean := LEAN_G if _buddy.is_grounded() else AIR_PUSH_G
+	_buddy.apply_central_force(Vector2(direction * _buddy.mass * _gravity * lean, 0.0))
 
 ## Top walking speed, derived rather than picked: a body arriving at `min_damage_impulse`
 ## divided by its own mass is, by definition, the fastest one whose contact cannot register
