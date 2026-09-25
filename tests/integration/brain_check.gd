@@ -222,7 +222,7 @@ func _expression_rows() -> void:
 		var extent: float = await _row_presents(id)
 		if extent > 0.0:
 			moved_by.append("%s %.1f" % [id, extent])
-	_measure("%d rows; peak displacement at Normal (px): %s" % [ExpressionBrain.ROWS.size(),
+	_measure("%d rows; peak motion at Normal (px moved + 10 x squash): %s" % [ExpressionBrain.ROWS.size(),
 		", ".join(moved_by)])
 	_recording = true
 	_end()
