@@ -1,0 +1,66 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Bodies/Fidgets/yo_yo.gd" id="1_64hta"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/yo_yo_disc.png" id="1_a6n8h"]
+[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="2_64hta"]
+[ext_resource type="Script" path="res://Scripts/Components/effects_player.gd" id="3_tw15r"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/yo_yo_tail.png" id="4_xmxc0"]
+[ext_resource type="Script" path="res://Scripts/Bodies/gesture_zones.gd" id="5_r63ui"]
+
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_tw15r"]
+friction = 0.6
+bounce = 0.4
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_xmxc0"]
+radius = 14.0
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_r63ui"]
+size = Vector2(44, 44)
+
+[node name="_YoYo" type="RigidBody2D" unique_id=1450777594 node_paths=PackedStringArray("gestures", "tail", "drag_area", "handle", "sprite", "collider", "Effects_Player")]
+collision_layer = 4
+collision_mask = 7
+mass = 0.8
+physics_material_override = SubResource("PhysicsMaterial_tw15r")
+center_of_mass_mode = 1
+contact_monitor = true
+max_contacts_reported = 4
+script = ExtResource("1_64hta")
+gestures = NodePath("GestureZones")
+tail = NodePath("Tail")
+damage_mult = 1.3
+item_id = &"yo_yo"
+drag_area = NodePath("DraggableArea")
+handle = NodePath("Handle")
+sprite = NodePath("Sprite")
+collider = NodePath("CollisionShape2D")
+Effects_Player = NodePath("EffectsPlayer")
+
+[node name="Sprite" type="Sprite2D" parent="." unique_id=664387681]
+scale = Vector2(2, 2)
+texture = ExtResource("1_a6n8h")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=131233778]
+shape = SubResource("CircleShape2D_xmxc0")
+
+[node name="DraggableArea" type="Area2D" parent="." unique_id=1888689832]
+script = ExtResource("2_64hta")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=1718860677]
+shape = SubResource("RectangleShape2D_r63ui")
+
+[node name="Handle" type="StaticBody2D" parent="." unique_id=270487840]
+visible = false
+collision_layer = 0
+collision_mask = 0
+
+[node name="EffectsPlayer" type="Node" parent="." unique_id=1867975627]
+script = ExtResource("3_tw15r")
+
+[node name="Tail" type="Sprite2D" parent="." unique_id=1875971323]
+scale = Vector2(2, 2)
+texture = ExtResource("4_xmxc0")
+
+[node name="GestureZones" type="Node" parent="." unique_id=1440726938]
+script = ExtResource("5_r63ui")
+action_enabled = true

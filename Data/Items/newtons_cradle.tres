@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/newtons_cradle.png" id="1_laso6"]
+[ext_resource type="PackedScene" path="res://Scenes/Fidgets/newtons_cradle.tscn" id="2_j6uhx"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_npq7c"]
+
+[resource]
+script = ExtResource("3_npq7c")
+id = &"newtons_cradle"
+display_name = "Newton's Cradle"
+description = "Five steel balls and a law of physics. He finds it very soothing."
+category = 9
+cost = 5000
+currency = 1
+scene = ExtResource("2_j6uhx")
+icon = ExtResource("1_laso6")
+sort_order = 35
+controls = "Right-drag an end ball out and let go"

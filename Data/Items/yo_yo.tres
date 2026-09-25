@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/yo_yo.png" id="1_4q0nf"]
+[ext_resource type="PackedScene" path="res://Scenes/Fidgets/yo_yo.tscn" id="2_mscok"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_dna64"]
+
+[resource]
+script = ExtResource("3_dna64")
+id = &"yo_yo"
+display_name = "Yo-Yo"
+description = "Down, up, down, and then into his skull. Sleep it for a trick shot."
+cost = 1500
+scene = ExtResource("2_mscok")
+icon = ExtResource("1_4q0nf")
+requires = Array[StringName]([&"frying_pan"])
+sort_order = 43
+controls = "Hold · Right-click to throw it · Keep right held and it sleeps"

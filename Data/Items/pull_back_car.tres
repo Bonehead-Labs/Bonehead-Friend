@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/pull_back_car.png" id="1_jufcl"]
+[ext_resource type="PackedScene" path="res://Scenes/Fidgets/pull_back_car.tscn" id="2_gfx63"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_7c6n3"]
+
+[resource]
+script = ExtResource("3_7c6n3")
+id = &"pull_back_car"
+display_name = "Pull-Back Car"
+description = "Pull it back and let it go. If it reaches him, he gets a ride."
+category = 4
+cost = 3000
+currency = 1
+scene = ExtResource("2_gfx63")
+icon = ExtResource("1_jufcl")
+sort_order = 77
+controls = "Right-drag it backwards to wind it, then let go · Send it at him for a ride"

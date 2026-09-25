@@ -1,0 +1,81 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Bodies/Fidgets/pull_back_car.gd" id="1_is4h2"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/pull_back_car.png" id="2_ysd4y"]
+[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_oustb"]
+[ext_resource type="Script" path="res://Scripts/Components/effects_player.gd" id="4_7ijen"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/pull_back_car_wheel.png" id="5_nc2jp"]
+[ext_resource type="Script" path="res://Scripts/Bodies/gesture_zones.gd" id="6_mlo5m"]
+
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_is4h2"]
+friction = 0.35
+bounce = 0.1
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ysd4y"]
+size = Vector2(64, 32)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_oustb"]
+size = Vector2(80, 48)
+
+[node name="_PullBackCar" type="RigidBody2D" unique_id=1519172354 node_paths=PackedStringArray("rear_wheel", "front_wheel", "gestures", "drag_area", "handle", "sprite", "collider", "Effects_Player")]
+collision_layer = 4
+collision_mask = 7
+mass = 0.8
+physics_material_override = SubResource("PhysicsMaterial_is4h2")
+lock_rotation = true
+freeze_mode = 1
+contact_monitor = true
+max_contacts_reported = 4
+script = ExtResource("1_is4h2")
+rear_wheel = NodePath("RearWheel")
+front_wheel = NodePath("FrontWheel")
+gestures = NodePath("GestureZones")
+item_id = &"pull_back_car"
+drag_area = NodePath("DraggableArea")
+handle = NodePath("Handle")
+sprite = NodePath("Sprite")
+collider = NodePath("CollisionShape2D")
+Effects_Player = NodePath("EffectsPlayer")
+
+[node name="Sprite" type="Sprite2D" parent="." unique_id=1551554826]
+scale = Vector2(2, 2)
+texture = ExtResource("2_ysd4y")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=934084815]
+shape = SubResource("RectangleShape2D_ysd4y")
+
+[node name="DraggableArea" type="Area2D" parent="." unique_id=1198269411]
+script = ExtResource("3_oustb")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=241603844]
+shape = SubResource("RectangleShape2D_oustb")
+
+[node name="Handle" type="StaticBody2D" parent="." unique_id=54041300]
+visible = false
+collision_layer = 0
+collision_mask = 0
+
+[node name="EffectsPlayer" type="Node" parent="." unique_id=1681629420]
+script = ExtResource("4_7ijen")
+
+[node name="RearWheel" type="Sprite2D" parent="." unique_id=486956006]
+position = Vector2(-16, 8)
+scale = Vector2(2, 2)
+texture = ExtResource("5_nc2jp")
+offset = Vector2(8, -4)
+
+[node name="FrontWheel" type="Sprite2D" parent="." unique_id=243959980]
+position = Vector2(16, 8)
+scale = Vector2(2, 2)
+texture = ExtResource("5_nc2jp")
+offset = Vector2(8, -4)
+
+[node name="GestureZones" type="Node" parent="." unique_id=287445841]
+script = ExtResource("6_mlo5m")
+zones = [{
+"at": Vector2(0, 0),
+"backing": true,
+"id": &"car",
+"rect": Vector2(30, 15),
+"right": "claim"
+}]

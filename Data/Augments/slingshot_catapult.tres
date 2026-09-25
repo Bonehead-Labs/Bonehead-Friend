@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_51ral"]
+
+[resource]
+script = ExtResource("1_51ral")
+id = &"slingshot_catapult"
+item_id = &"slingshot"
+display_name = "Catapult Stand"
+description = "Bolted down, self-loading, pointed at him. It is not sporting."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 1280
+currency = 1
+is_automation = true
+automation_rate = 3.4
+device_mount = &"tripod"
+requires_mastery = 25

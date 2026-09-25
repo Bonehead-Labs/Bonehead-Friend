@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="AugmentNode" format=3]
+
+[ext_resource type="Script" path="res://Scripts/Data/augment_node.gd" id="1_pjx8x"]
+
+[resource]
+script = ExtResource("1_pjx8x")
+id = &"newtons_cradle_magnet"
+item_id = &"newtons_cradle"
+display_name = "Hidden Magnet"
+description = "A magnet under the plinth that keeps the end balls going. Nobody tell him."
+tier = 3
+effect_key = &"payout_mult"
+max_levels = 30
+cost_base = 3300
+currency = 1
+is_automation = true
+automation_rate = 3.83
+device_mount = &"tripod"
+requires_mastery = 25

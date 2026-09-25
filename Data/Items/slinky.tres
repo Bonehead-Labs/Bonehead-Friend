@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Texture2D" path="res://Assets/sprites/icons/slinky.png" id="1_g632h"]
+[ext_resource type="PackedScene" path="res://Scenes/Fidgets/slinky.tscn" id="2_aik6g"]
+[ext_resource type="Script" path="res://Scripts/Data/item_data.gd" id="3_et6lb"]
+
+[resource]
+script = ExtResource("3_et6lb")
+id = &"slinky"
+display_name = "Slinky"
+description = "It walks down stairs. You do not have stairs. It walks anyway."
+category = 4
+cost = 350
+currency = 1
+scene = ExtResource("2_aik6g")
+icon = ExtResource("1_g632h")
+sort_order = 71
+controls = "Hold it, then hold right-click and pull · Right-drag it where it lies · Throw it and it walks"

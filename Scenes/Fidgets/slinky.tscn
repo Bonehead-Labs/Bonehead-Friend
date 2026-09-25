@@ -1,0 +1,123 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/Bodies/Fidgets/slinky.gd" id="1_202jd"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/slinky.png" id="2_r14j0"]
+[ext_resource type="Script" path="res://Scripts/Bodies/draggable_area.gd" id="3_yvo41"]
+[ext_resource type="Script" path="res://Scripts/Components/effects_player.gd" id="4_417v2"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/slinky_ring0.png" id="5_mpg5x"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/slinky_ring1.png" id="6_31pk6"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/slinky_ring2.png" id="7_kxnun"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/slinky_ring3.png" id="8_pfc2u"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/slinky_ring4.png" id="9_bgahw"]
+[ext_resource type="Texture2D" path="res://Assets/sprites/items/slinky_ring5.png" id="10_22irm"]
+[ext_resource type="Script" path="res://Scripts/Bodies/gesture_zones.gd" id="11_wjyj2"]
+
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_202jd"]
+friction = 0.8
+bounce = 0.3
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_r14j0"]
+size = Vector2(32, 32)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_yvo41"]
+size = Vector2(48, 48)
+
+[node name="_Slinky" type="RigidBody2D" unique_id=1720479658 node_paths=PackedStringArray("coil", "gestures", "drag_area", "handle", "sprite", "collider", "Effects_Player")]
+collision_layer = 4
+collision_mask = 7
+mass = 0.35
+physics_material_override = SubResource("PhysicsMaterial_202jd")
+contact_monitor = true
+max_contacts_reported = 4
+script = ExtResource("1_202jd")
+coil = NodePath("Coil")
+gestures = NodePath("GestureZones")
+item_id = &"slinky"
+drag_area = NodePath("DraggableArea")
+handle = NodePath("Handle")
+sprite = NodePath("Sprite")
+collider = NodePath("CollisionShape2D")
+Effects_Player = NodePath("EffectsPlayer")
+
+[node name="Sprite" type="Sprite2D" parent="." unique_id=1669733297]
+scale = Vector2(2, 2)
+texture = ExtResource("2_r14j0")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=588510072]
+shape = SubResource("RectangleShape2D_r14j0")
+
+[node name="DraggableArea" type="Area2D" parent="." unique_id=514835985]
+script = ExtResource("3_yvo41")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DraggableArea" unique_id=147634120]
+shape = SubResource("RectangleShape2D_yvo41")
+
+[node name="Handle" type="StaticBody2D" parent="." unique_id=318804107]
+visible = false
+collision_layer = 0
+collision_mask = 0
+
+[node name="EffectsPlayer" type="Node" parent="." unique_id=1921898081]
+script = ExtResource("4_417v2")
+
+[node name="Coil" type="Node2D" parent="." unique_id=1228924687]
+visible = false
+
+[node name="Ring0" type="Sprite2D" parent="Coil" unique_id=1376323254]
+scale = Vector2(2, 2)
+texture = ExtResource("5_mpg5x")
+
+[node name="Ring1" type="Sprite2D" parent="Coil" unique_id=1522916167]
+scale = Vector2(2, 2)
+texture = ExtResource("6_31pk6")
+
+[node name="Ring2" type="Sprite2D" parent="Coil" unique_id=1660432404]
+scale = Vector2(2, 2)
+texture = ExtResource("7_kxnun")
+
+[node name="Ring3" type="Sprite2D" parent="Coil" unique_id=1118348047]
+scale = Vector2(2, 2)
+texture = ExtResource("8_pfc2u")
+
+[node name="Ring4" type="Sprite2D" parent="Coil" unique_id=726680049]
+scale = Vector2(2, 2)
+texture = ExtResource("9_bgahw")
+
+[node name="Ring5" type="Sprite2D" parent="Coil" unique_id=139987181]
+scale = Vector2(2, 2)
+texture = ExtResource("10_22irm")
+
+[node name="Ring6" type="Sprite2D" parent="Coil" unique_id=251226196]
+scale = Vector2(2, 2)
+texture = ExtResource("5_mpg5x")
+
+[node name="Ring7" type="Sprite2D" parent="Coil" unique_id=1743676624]
+scale = Vector2(2, 2)
+texture = ExtResource("6_31pk6")
+
+[node name="Ring8" type="Sprite2D" parent="Coil" unique_id=1086213939]
+scale = Vector2(2, 2)
+texture = ExtResource("7_kxnun")
+
+[node name="Ring9" type="Sprite2D" parent="Coil" unique_id=1752427163]
+scale = Vector2(2, 2)
+texture = ExtResource("8_pfc2u")
+
+[node name="Ring10" type="Sprite2D" parent="Coil" unique_id=1494265466]
+scale = Vector2(2, 2)
+texture = ExtResource("9_bgahw")
+
+[node name="Ring11" type="Sprite2D" parent="Coil" unique_id=532197276]
+scale = Vector2(2, 2)
+texture = ExtResource("10_22irm")
+
+[node name="GestureZones" type="Node" parent="." unique_id=2090629260]
+script = ExtResource("11_wjyj2")
+zones = [{
+"at": Vector2(0, 0),
+"backing": true,
+"id": &"coil",
+"rect": Vector2(16, 16),
+"right": "claim"
+}]
+action_enabled = true
