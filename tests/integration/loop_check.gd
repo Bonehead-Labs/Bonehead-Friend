@@ -1043,6 +1043,88 @@ func _nobody_at_the_desk_is_not_an_act() -> void:
 		EventBus.kindness_sustained.disconnect(_d76_trickle)
 		remove_child(ball)
 		ball.free()
+	# A fan nobody is holding is nobody's hand (D76 amended). Its wind claims the wall it blows him
+	# into under its own name (D65), and that claim is judged the way the world is. Measured
+	# before the fix, a gorilla beside a fan banked 2,325 Dollars an hour at an empty desk and put
+	# two knockouts and 370 damage on the board a minute; the gorilla alone, 81 and nothing.
+	var fan := _instance_of(&"desk_fan") as WindSource
+	_check("a desk fan to stand beside him", buddy != null and fan != null)
+	if buddy and fan:
+		fan.position = buddy.global_position + Vector2(-600, -400)
+		add_child(fan)
+		fan.freeze = true
+		_check("left on the desk, it blows by itself", fan.blowing_by_itself())
+		fan.dragging = true
+		_check("in the hand, it is the player's", not fan.blowing_by_itself())
+		fan.dragging = false
+		fan._end_drag()
+		_check("and just put down, still theirs", not fan.blowing_by_itself())
+		fan._handled_msec -= Economy.WORLD_FOLLOWS_MSEC + 1000
+		fan.aim_at(fan.global_position + Vector2(200, -40))
+		_check("and just aimed, theirs again", not fan.blowing_by_itself())
+		fan._handled_msec -= Economy.WORLD_FOLLOWS_MSEC + 1000
+
+		# What he is billed for, through his own attribution: the world, claimed by the fan.
+		buddy.claim_impacts(&"desk_fan", 1.0, 0.5, fan.blowing_by_itself())
+		var claimed: Array = buddy._attribute(null)
+		_check("the wall it blows him into is billed to the fan, as by itself (%s)" % [claimed],
+			claimed[0] == &"desk_fan" and claimed.size() > 2 and bool(claimed[2]))
+		Economy.flush_dollars()
+		Economy._unattended_hit = false
+		Economy._held = false
+		Economy._moved_msec -= Economy.WORLD_FOLLOWS_MSEC + 1000
+		dollars = Economy.balance_of(Economy.DOLLARS)
+		bones = Economy.balance_of(Economy.BONES)
+		_d76_keys.clear()
+		var blown := HitInfo.new(20.0, claimed[0], at, 3000.0)
+		blown.by_itself = bool(claimed[2])
+		EventBus.damage_dealt.emit(blown)
+		Economy.flush_dollars()
+		_check("with nobody at the desk it still pays its Bones", Economy.balance_of(Economy.BONES) > bones)
+		_check("but it is no act: no Dollar and nothing on the board (%s)" % _d76_keys,
+			is_equal_approx(Economy.balance_of(Economy.DOLLARS), dollars)
+			and _d76_board("deal_damage") == 0 and _d76_board("damage:desk_fan") == 0)
+		_check("it earns the idle trickle instead, like a turret", Economy._unattended_hit)
+		_check("and the bounce after it is nobody's either", Economy.is_unattended(&"world"))
+		Economy._unattended_hit = false
+
+		# Thrown through its wind by the player, the landing is the player's, as the floor is.
+		Economy._on_buddy_state_changed(&"dragged")
+		Economy._on_buddy_state_changed(&"idle")
+		Economy._moved_msec -= 2000
+		EventBus.damage_dealt.emit(blown)
+		Economy.flush_dollars()
+		_check("thrown through its wind, the landing is the hand's (%s)" % _d76_keys,
+			_d76_board("damage:desk_fan") == 20
+			and is_equal_approx(Economy.balance_of(Economy.DOLLARS) - dollars, b.dollars_per_hit))
+		# But the fan puts in its own energy: its landings are inside the hand's three seconds,
+		# never an extension of them, or a fan juggling him would be the hand's forever.
+		Economy._moved_msec -= 1500
+		dollars = Economy.balance_of(Economy.DOLLARS)
+		_d76_keys.clear()
+		EventBus.damage_dealt.emit(blown)
+		Economy.flush_dollars()
+		_check("and its next landing, past the hand's three seconds, is not",
+			_d76_board("deal_damage") == 0 and is_equal_approx(Economy.balance_of(Economy.DOLLARS), dollars))
+		Economy._unattended_hit = false
+
+		# The fan in the player's hand blowing him into the wall is the player's act.
+		fan.dragging = true
+		buddy.claim_impacts(&"desk_fan", 1.0, 0.5, fan.blowing_by_itself())
+		claimed = buddy._attribute(null)
+		fan.dragging = false
+		var aimed := HitInfo.new(20.0, claimed[0], at, 3000.0)
+		aimed.by_itself = bool(claimed[2])
+		Economy._moved_msec -= Economy.WORLD_FOLLOWS_MSEC + 1000
+		EventBus.damage_dealt.emit(aimed)
+		Economy.flush_dollars()
+		_check("and a fan in the hand is the hand's, with nobody holding him",
+			_d76_board("damage:desk_fan") == 20
+			and is_equal_approx(Economy.balance_of(Economy.DOLLARS) - dollars, b.dollars_per_hit))
+		buddy.claim_impacts(&"", 1.0, 0.0)
+		remove_child(fan)
+		fan.free()
+
 	Economy._combo_deadline_msec = 0
 	Economy._round_hands_on = false
 	EventBus.contract_event.disconnect(_d76_contract)

@@ -1390,6 +1390,12 @@ func _idle_interruptions() -> void:
 	EventBus.damage_dealt.emit(HitInfo.new(1.0, &"beanbag", _buddy.global_position, 1600.0))
 	EventBus.kindness_sustained.emit(&"beanbag", 1.0, _buddy.global_position)
 	_check("nor does the floor, or his own toy hurting or paying him", _idle.phase_name() == IdleBrain.PHASE_PLAYING)
+	# The floor a fan nobody is holding blows him into is billed to the fan (D65), and is still
+	# the floor (D76 amended): it stood him down on every landing.
+	var blown := HitInfo.new(1.0, &"desk_fan", _buddy.global_position, 1600.0)
+	blown.by_itself = true
+	EventBus.damage_dealt.emit(blown)
+	_check("nor does the floor a fan nobody holds blew him into", _idle.phase_name() == IdleBrain.PHASE_PLAYING)
 	# The hand-driven half, one of each kind of hand, through the real bus.
 	var hand_ids: Array[StringName] = []
 	for category in [ItemData.CATEGORY_WEAPON, ItemData.CATEGORY_THROWABLE, ItemData.CATEGORY_CURSOR_POWER]:
