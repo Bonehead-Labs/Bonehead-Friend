@@ -20,9 +20,10 @@ extends Node
 ##
 ## A row in `AbilityTable.ABILITIES`, keyed by item id, naming an **archetype** (`charge`,
 ## `dash`, `stun`, `sustain`, `shockwave`, `projectile`, `spin`, `throw`) and its numbers.
-## `WeaponBase._ready` asks the table and adds the archetype's script as a child. Each archetype
-## is a subclass of this that overrides the hooks below and nothing else; a weapon that needs
-## behaviour its archetype lacks names a subclass of that archetype in the row's `script`.
+## `BaseDraggable._ready` asks the table and adds the archetype's script as a child (D78: any held
+## thing with a row, not only a weapon). Each archetype is a subclass of this that overrides the
+## hooks below and nothing else; a weapon that needs behaviour its archetype lacks names a subclass
+## of that archetype in the row's `script`. A kind row (`kind`) pays with `give`, never `strike`.
 ##
 ## ## Damage is still his to measure (D7, D64)
 ##
@@ -59,7 +60,10 @@ const THREAT_REFRESH_MSEC := 500
 
 ## The row, as `AbilityTable` holds it. See the table's comment for the fields.
 var row: Dictionary = {}
-var body: WeaponBase
+## The thing in the hand. A `WeaponBase` for every D74 row; since D78 any `BaseDraggable` the table
+## has a row for — a ball, a sponge, a sticky bomb — which is why nothing here reads a weapon's own
+## fields except through `base_mult`. The class keeps its name: every archetype extends it.
+var body: BaseDraggable
 
 ## Activations started, presses refused, and times the effect landed on him — for the suites.
 ## Never read by the simulation.
@@ -153,7 +157,7 @@ func multipliers() -> Array[float]:
 			out.append(m)
 	return out
 
-# --- input, from WeaponBase ----------------------------------------------------------
+# --- input, from BaseDraggable ----------------------------------------------------------
 
 ## Every event on the weapon, before its own grab and bin logic. True claims it.
 func take(event: InputEvent) -> bool:
@@ -164,7 +168,15 @@ func take(event: InputEvent) -> bool:
 		# Shift+right is the bin and never ours.
 		if click.shift_pressed or body == null:
 			return false
+		# A second action while the effect runs, in the hand or on the thing where it lies — a
+		# sticky bomb on the clicker, set off by clicking it (D78). Nothing in D74 takes one.
+		if _active and (body.dragging or (body.drag_area and body.drag_area.is_hovered)) \
+				and _press_again():
+			return true
 		if body.dragging:
+			# Not ours yet: a charge's first right press lights its fuse, as it always did (D78).
+			if not _wants_press():
+				return false
 			press()
 			return true
 		# Out of the hand but still mid-effect — an axe in the air — a right-click on it is a second
@@ -242,6 +254,28 @@ func on_picked_up() -> void:
 ## Whether it may start at all right now — a golf club with nobody to drive at, say.
 func _can_start() -> bool:
 	return true
+
+## Whether a right press in the hand is this ability's at all. False hands the press on untouched,
+## where `_can_start` would claim and refuse it: a charge's first right press is its fuse (D78).
+func _wants_press() -> bool:
+	return true
+
+## A right press on the thing while its effect is still running — held, or hovered where it lies.
+## True takes it as a second action; false leaves the D74 rule, a refusal.
+func _press_again() -> bool:
+	return false
+
+## The window lost the focus with right still held: the release will never arrive (D70 — an
+## alt-tab mid-draw used to fire the slingshot). True if the ability let go of what it was doing,
+## as a cancel and never as the release it did not get; false, the default, changes nothing.
+func _on_focus_lost() -> bool:
+	return false
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_APPLICATION_FOCUS_OUT and _right_held and _active and _on_focus_lost():
+		_right_held = false
+		set_process_input(false)
+		_update_pip()
 
 func _on_press() -> void:
 	pass
@@ -609,6 +643,75 @@ func strike(impulse: float, direction: Vector2, at: Vector2, mult: float = 1.0,
 		billed.pop_front()
 	payoffs += 1
 
-## The weapon's own multiplier with its damage augment, without anything this adds.
+## The weapon's own multiplier with its damage augment, without anything this adds. Read off the
+## body by name, because since D78 it may be a charge (which has one) or a ball (which does not,
+## and is x1 before its augment).
 func base_mult() -> float:
-	return Progression.damage_mult_for(body.item_id, body.damage_mult)
+	var own = body.get(&"damage_mult")
+	return Progression.damage_mult_for(body.item_id, float(own) if own != null else 1.0)
+
+# --- the kind side (D78) ----------------------------------------------------------------------
+#
+# A ball, a sponge, a duster, a towel, a box of donuts: their abilities are acts of kindness, and
+# they pay the way their item already pays — a value on the bus, which Economy alone turns into
+# Hearts with the combo, his mood, the augments and prestige (docs/economy.md, one pipeline). Never
+# Hearts directly, and never a hit: a kind ability that billed him would be the one hole in D2.
+
+## Kindness value an ability paid, before the item's value multiplier — "pets" — and the part of it
+## the item would not have paid without the ability, which is what the row's `worth` states and
+## `pacing_sim` prices. For the suites; nothing in the simulation reads them.
+var given := 0.0
+var given_extra := 0.0
+
+## What `AbilityCues` last heard from this ability, for the suites (D78's three readability hooks).
+var cue_count := 0
+var last_cue: StringName = &""
+var last_cue_at := Vector2.INF
+var last_word := ""
+
+func is_kind() -> bool:
+	return bool(row.get("kind", false))
+
+## The item's kindness-value multiplier: `FriendlyBase.value_multiplier`, which on this side of the
+## economy is what `damage_mult` means.
+func kind_value() -> float:
+	if body == null or body.item_id == &"":
+		return 1.0
+	return Progression.get_modifier(body.item_id, &"damage_mult")
+
+## One act of kindness: the combo, the contract board and the per-act Dollars see it, as they see a
+## pet. `own` is the part of `value` the item would have paid anyway and the ability only delivered —
+## a donut from the box is still the box's helping — and is not the ability's `worth`.
+func give(value: float, at: Vector2, own: float = 0.0) -> void:
+	if value <= 0.0 or body == null:
+		return
+	paying = true
+	EventBus.kindness_given.emit(body.item_id, value * kind_value(), at)
+	paying = false
+	given += value
+	given_extra += maxf(value - own, 0.0)
+	payoffs += 1
+
+## Kindness paid as a rate, banked by the caller: no combo, no contract count, the way a soak pays.
+func give_sustained(value: float, at: Vector2, own: float = 0.0) -> void:
+	if value <= 0.0 or body == null:
+		return
+	paying = true
+	EventBus.kindness_sustained.emit(body.item_id, value * kind_value(), at)
+	paying = false
+	given += value
+	given_extra += maxf(value - own, 0.0)
+
+## True while an ability's own kindness is on the bus — `ItemVerbs.paying`'s twin (D67): his face
+## for it is the ability's row, told a frame later, so the brain skips the generic one. Everything
+## else the item pays is judged as it always was, controls line or not.
+static var paying := false
+
+## Moving him or holding him without a hit or a pet is the player at the desk, the way a spell is
+## (D72): whatever routine he was in ends and his own steering lets go of him.
+func notice_player() -> void:
+	if not is_inside_tree():
+		return
+	var idle := get_tree().get_first_node_in_group(IdleBrain.GROUP_IDLE_BRAIN) as IdleBrain
+	if idle:
+		idle.notice_player()

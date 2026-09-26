@@ -54,7 +54,14 @@ func _stick_to(target: PhysicsBody2D) -> void:
 	throwable_delay = contact_delay
 	prime_explosion()
 
+## Pinned to him right now.
+func is_stuck() -> bool:
+	return _joint != null and is_instance_valid(_joint) and not _joint.is_queued_for_deletion()
+
 func explode() -> void:
+	# On the clicker (D78): it stays stuck and waits, rather than letting go of him for nothing.
+	if fuse_held():
+		return
 	# Let go before the blast. An invisible casing still pinned to a skeleton it has just
 	# thrown across the desk drags him back, and the half second the base class waits before
 	# freeing itself is long enough to watch it happen.

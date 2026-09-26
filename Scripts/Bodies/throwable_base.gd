@@ -55,7 +55,15 @@ func prime_explosion() -> void:
 	# simply dropped when the node dies.
 	get_tree().create_timer(throwable_delay).timeout.connect(explode)
 
+## Its fuse is on hold (D78): a second right press gave it to its ability — a sticky bomb on the
+## clicker, a cluster bomb set to burst over him — and the timer lit on the first press is ignored
+## until the ability says. Asked at the top of every `explode`, before anything is let go of.
+func fuse_held() -> bool:
+	return ability != null and ability.has_method(&"holds_fuse") and bool(ability.call(&"holds_fuse"))
+
 func explode() -> void:
+	if fuse_held():
+		return
 	# An explosive's "use" is the detonation, not the hit: one that went off in an empty
 	# corner of the desk was still spent, and the mine and the firework — which cannot be
 	# aimed at all — would otherwise count only their lucky days. Emitted here rather than

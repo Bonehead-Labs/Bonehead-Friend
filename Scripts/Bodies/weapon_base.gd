@@ -13,36 +13,10 @@ extends BaseDraggable
 # it lived here, and the fifteen explosives, the trampoline and the fan all sold a mass node
 # that nothing read (D59).
 
-## What right does while it is in your hand (D74), if `AbilityTable` has a row for it: a child
-## built on `_ready`, or null. It sees every event first and claims a right press only while the
-## weapon is held (or its ability is still at work out of the hand) and never with Shift, so the
-## bin and every subclass's own right-click are exactly as they were.
-var ability: WeaponAbility
-
-func _ready() -> void:
-	super._ready()
-	ability = AbilityTable.attach(self)
-
-## Right while holding it is the ability — and while the ability is still at work out of the hand,
-## an axe in the air — and right on it lying on the desk still bins it.
-func right_click_is_mine() -> bool:
-	return ability != null and (dragging or ability.is_active())
-
-func _unhandled_input(event: InputEvent) -> void:
-	if ability and ability.take(event):
-		get_viewport().set_input_as_handled()
-		return
-	super._unhandled_input(event)
-
-func _start_drag() -> void:
-	super._start_drag()
-	if ability:
-		ability.on_picked_up()
-
-func _end_drag() -> void:
-	super._end_drag()
-	if ability:
-		ability.on_dropped()
+## What right does while it is in your hand (D74) is `BaseDraggable.ability`: it lived here until
+## D78 gave the same button to the balls, the care items and two explosives, and every line of it —
+## the child built on `_ready`, the right press claimed first, the pick-up and the drop — moved up
+## unchanged, so a weapon's ability behaves exactly as it did.
 
 ## One swing that landed, reported to the contract board.
 ##

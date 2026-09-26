@@ -3730,6 +3730,222 @@ floats over the toy. The chips of a toast behind its card are a quieter burst th
 nothing here has been watched on a real desk.
 
 
+## D78 — The right button beyond the melee drawer: eleven more things that do something in the hand (2026-09-26)
+
+**Decision.** Right while holding is an ability on anything it is plausible for, not only a melee
+weapon. The bowling ball bowls him over like a pin; the baseball is pitched as a curveball he
+catches and throws back; the tennis ball is tossed up and served for an ace; the beach ball is
+headed up four times; the sponge is wrung out over him; the feather duster tickles him; the warm
+towel is thrown round his shoulders; a donut is flipped out of its box into his mouth; the
+birthday cake's candles are blown out on a wish; a lit sticky bomb goes on the clicker, and a lit
+cluster bomb is set to burst over him. Each is a row in D74's `AbilityTable` on an archetype that
+already existed, or on one new one (`fuse`), and the table now attaches to any `BaseDraggable`,
+not only a `WeaponBase`. Every other non-melee item is on the design sheet at the end: built, next
+batch, already covered, or not plausible, with one line why.
+
+**Why.** The owner, verbatim: "I want that right click ability extended out to other categories
+where plausible depending on the item because those mechanics are amazing." And the brief D74 was
+written against: "give each weapon and item an ability to activate that is totally unique … to
+introduce variation and excitement when actively using items." D74 built the melee drawer and left
+the balls and the kind handhelds as ideas. His hour-long log (D67) says what he picks up: the
+sponge, the open hand, the beanbag. So the first of these are the things already in a hand.
+
+**The grammar is D57's, unchanged.** Left carries; right while holding is the ability; right on the
+thing lying on the desk bins it; Shift+right bins it anywhere. Three refinements, all in
+`WeaponAbility`, and none changes a D74 weapon:
+
+- **A charge's first right press is still its fuse.** Every explosive already used right while
+  held to light itself, so its ability is the *second* press. The archetype declines the first
+  (`_wants_press`) and it reaches `ThrowableBase` exactly as before; `loop_check`'s and
+  `item_check`'s "right lights it" assertions pass untouched.
+- **A press on the thing while its effect runs may be a second action** (`_press_again`), not the
+  D74 refusal: a sticky bomb on the clicker goes off when you click it, in the hand, on the desk
+  or riding him. Nothing in D74 takes one; the default is the refusal it always was.
+- **Losing the focus is letting go** (D70). The four that run while right is held — the duster,
+  the sponge, the cake, the tennis ball — stop on `NOTIFICATION_APPLICATION_FOCUS_OUT` as a cancel,
+  never as the release that did not come: no wish on an alt-tab, no serve (`_on_focus_lost`, false
+  by default, so no D74 weapon changes).
+
+**Any held thing can carry one.** The ability moved from `WeaponBase` to `BaseDraggable` line for
+line: the child built in `_ready` (`AbilityTable.attach`), the first refusal of every event in
+`_unhandled_input`, `right_click_is_mine`, and the pick-up and the drop. `WeaponAbility.body` is a
+`BaseDraggable`, and its one read of a weapon's own field, `damage_mult`, is by name. The class
+keeps its name: thirty-odd archetype and hook scripts extend it. A D74 weapon's events reach the
+same code in the same order, and the columns of `ability_check` that do not hang on the run — a
+lunge, a blade speed, a launch, a ball, a bite — are the baseline's to the digit.
+
+**Kind abilities are acts, and pay the way their item pays.** A row marked `kind` never bills him.
+It pays with `WeaponAbility.give` (an act: the combo, the contract board and the per-act Dollars
+see it) or `give_sustained` (a rate), on the bus as a value, which Economy alone turns into Hearts
+(docs/economy.md, one pipeline). What an item would have paid anyway and the ability only
+delivered — the box's helping, the sponge's grime, the baseball's ordinary catch — is marked `own`
+and is not the ability's `worth`.
+
+**His face.** An ability's line is a `controls` line, and to the brain a kind item with a controls
+line was "worked by hand" (D57), so the sponge lost its `cared_for` face the moment it gained one;
+`loop_check`'s THE SPONGE REACTS caught it on the first run. It is D67's fix again:
+`WeaponAbility.paying` is set while an ability's own kindness is on the bus, and an item with a
+kind row is otherwise judged as it always was. Each ability tells its own row a frame later on
+`ability_event`, as D74's do. Nine rows are new — `bowled`, `heading`, `showered`, `shaking_dry`,
+`tickled`, `swaddled`, `wishing`, `volleying`, `ticking` — and seven events use rows that already
+say it: a catch is `catch`, a donut `eat`, a pitch, a lob, a serve or a donut on its way
+`entranced`, a ball thrown back `amused`, a burst over him `blast`.
+
+**The eleven**, most delightful first, measured in `ability_check` on a 1280x720 desk with the real
+stage. A kind row's worth is kindness value in pets; a harm row's is ordinary hits, or for a charge
+ordinary blasts of itself.
+
+| Item | Ability | Archetype | What you do | Measured |
+|---|---|---|---|---|
+| Feather duster | Tickle | sustain (hook) | hold it on him: it flutters, feathers drift off, and every 0.3 s its feathers are on him he giggles — an act of 0.8, the combo climbing | 8 giggles in its 2.4 s, 6.4 of its own, beside the duster's own trickle |
+| Beach ball | Keepy-Uppy | throw (hook) | tap: lobbed onto his skull; he heads it back up, re-aimed at wherever his head is, four times with a count, and the last one home to the hand | 4 headers, 219 px over his skull at the top, 12.0; home |
+| Birthday cake | Make a Wish | charge (hook) | hold it near him: the flames swell and sparkles gather; let go at 60% or more and he shuts his eyes, breathes in and blows them out — smoke off each wick, stars over him | out 0.45 s after the release, 8.0; the cake uneaten; relit when the cooldown is up |
+| Baseball | Curveball | throw (hook) | tap: pitched fast and flat 70 px over his hands, it breaks late and hard down into them; he holds it, then throws it back to the hand | 820 px/s, 514 px/s of bend, caught: two catches (12.0, 6.0 of it the curve); home |
+| Tennis ball | Serve | throw (hook) | hold: it is tossed straight up out of the hand; let go at the top of the toss and it is struck flat and fast, an ace; he takes it and volleys it home. Held until it falls back past the hand, it is a fault | tossed 129 px, let go at 0.99 of the top: 1,143 px/s, an ace; his catch 12.0 and 5.9 of its own; home |
+| Warm towel | Swaddle | throw (hook) | tap within 300 px: it is thrown round his shoulders and rides him for 5 s, warmth rising, eyes closed — the towel's own rate, with the hand free to pet him | 5.02 s on him, 0.5 px drift in his frame, 15.1 warm (the rate says 15.0) and the wrap 3.0 |
+| Bowling ball | Strike | throw (hook) | tap: bowled down onto the desk with its topspin, it rolls in and he goes over like a pin, away from you, stiff; his landing is the ball's; you fetch it | rolled at 897, arrived at 833, 7,403 billed once at x1.5, he turned 1.57 rad, flat on his back; 1.33 ordinary 14 kg hits |
+| Sponge | Wring | sustain (hook) | hold it over him: squeezed flat, it rains; every drop on him takes grime off, paid as the sponge pays for it, the first is a rinse, and he shakes himself dry | 24 drops, 24 on him, 0.72 grime off paid 5.76 by the sponge's rule; rinse 2.0 |
+| Donut box | Donut Toss | projectile (hook) | tap: one donut flips out on the high arc into his mouth — one of the box's six, and a little for being hand-fed; a miss costs the box nothing | caught; the helping 5.0 and 1.0 of its own; 5 left |
+| Cluster bomb | Airburst | fuse (new) | lit, right again: set to burst over him; thrown over him it opens up there and its bomblets fall on a 90 px ring round his feet, each fall drawn | burst 208 px over his middle, 5 on the ring, 2 reach him; +0.1 to +0.3 of an ordinary blast |
+| Sticky bomb | Remote | fuse (new) | lit, right again: the sparks stop and a red light blinks; it sticks as ever and goes when you click it, wherever it is, or after 10 s | 3.7 s on the clicker, past its 2.2 s fuse, riding him; clicked, one blast at its own multiplier |
+
+**`fuse`** (`FuseAbility`) is the one new archetype: a lit charge's second press takes its fuse
+over. The charge no longer goes when its timer says; it goes when the hook says (`go`) — a click,
+him underneath — or after `wait_seconds` whatever happens, so a charge on hold can never be left
+live. `ThrowableBase.fuse_held()` is asked at the top of every `explode` (`StickyBomb`'s, which
+would otherwise let go of him first, and `ClusterBomb`'s too); that and
+`ClusterBomb.scatter_points` are the whole change to the explosives. Nothing in it bills him: the
+blast is the charge's own, at its own multiplier. An explosive's ability changes when and where,
+never how hard.
+
+**What cost time, measured.**
+
+- **Eighteen voices had never played.** The D74 blunt nine's seven (applause to sizzle) and D72's
+  eleven (psychic to rainbow) were registered after the `return` of two sample generators, where
+  they never ran; `play` on an unknown id is a silent no-op, and every suite mutes the audio. Found
+  while adding five (rumble, pins, flutter, drip, beep). They are in `_build_streams` now, and
+  `loop_check` reads the source for every voice named by literal — 73 — and fails any one
+  `AudioManager` does not hold.
+- **Letting go of the ball let go of the button.** The throw archetype ends the drag on the press,
+  and a drop stops listening for the right button (D74: an effect that needs the hand ends with
+  it). A Serve is a throw whose release is the stroke, so it never heard its release. It keeps
+  listening for it, and for the cursor on the way home.
+- **A carried charge shoves him out of its own blast.** Carried in beside him to be let go, the
+  cluster bomb pushed him 107 px, past the reach of its 130 px blast, and an ordinary one measured
+  nothing; the bumps on the way in had been counted as its blast. The ordinary probe is let go
+  clear of his side now, and only the blast is counted.
+- **The first strike was a third of a swing.** 2,400 at x1.5 was 0.4 of an ordinary 14 kg swing
+  (83.5 a hit). It is 8,000, and the shove on him a tenth of it, not a third: at 0.35 it would
+  have thrown 3 kg at 900 px/s before the topple.
+- **A 70 px ring put one bomblet in five on him.** Point blasts fall off with the square, and one
+  90 px from his middle hands him nothing. The ring is on the desk and 90 px wide, and two in five
+  reach him: an Airburst is where the bomblets go, not more of them.
+- **When he comes clean he sparkles, and that is the shake.** `sparkling` is HEAVY and its motion
+  is `shake_off`; a wring that takes the last grime off gets it instead of `shaking_dry`.
+- **A lambda holding a charge errors every frame once the charge is gone**, and a run aborted by
+  the script error left its stage — and its buddy — in the tree, so the next desk had two and
+  `buddy()` found the old one. The suite waits on plain loops for anything that frees itself.
+
+**Pacing.** A kind row's `worth` is priced against the petting `pacing_sim` models for every second
+of kind play: `AbilityTable.kindness_uplift` is `1 + worth / (pets a second x cycle)`, and the sim
+multiplies the item's share of kindness by it, as it multiplies a weapon's damage by
+`damage_uplift`. No kind row may pay more than D67's ceiling for anything worked by hand, 1.5 value
+a second over its cycle (`ability_check` asserts it); the eight run from 0.31 (the sponge) to 1.40
+(the tennis ball). A charge is used once a throw, so its uplift is `1 + worth` of an ordinary blast.
+Result, 4/4: the first Reincarnation 9:42:13 -> **9:20:31**, first automation 16:44 -> 16:11 of
+play, worst dead stretch 1:20 -> 1:21, worst ramp 1.2x. The sim buys the bowling ball, the duster,
+the beach ball, the baseball and the tennis ball in its first ten minutes and they are soon out of
+its five "recent" toys; the row that moves it is the birthday cake's wish (9:41 with the first nine
+rows, 9:21 with the cake), bought at six hours.
+
+**Budget.** Nothing runs while one lies on the desk or its ability is idle — the framework's rule,
+asserted by `ability_check` for each of the eleven before and after a use. The drops, the donut
+and the bomblets' falls are `AbilityShot`s or `WorldFX` lines that free themselves; a wrapped towel
+is frozen and written onto him once a tick for its five seconds; a charge on hold ticks until it
+goes.
+
+**Readability.** A shared vocabulary for abilities (the ready tell, the callout, the state visual,
+the payoff) is being built on another branch; D78 does not build a second one. Its abilities call
+three hooks at their three moments — `AbilityCues.activation`, `state` and `payoff`
+(`Scripts/Bodies/Abilities/ability_cues.gd`, static and free of state). Today they only record and
+emit `paid_off`, and `payoff` carries the callout word ("STRIKE!", "3!", "make a wish!"). At the
+merge those three bodies are pointed at the vocabulary, and every D78 ability speaks it without
+being touched.
+
+**Tested.** `ability_check` gives every row outside the melee drawer a life of its own
+(`_check_held_ability`): it carries its ability, is idle at rest, keeps the bin grammar (a charge's
+right at rest is still its fuse), counts one use, gets his face, pays through the pipeline — for a
+kind row, every event back as a Hearts payout and not one hit — refuses a press in the cooldown and
+comes back, leaves nothing behind, and pays no more than its row says: against an ordinary swing for
+the bowling ball, an ordinary blast for a charge. `ability_check` 1,416 -> **1,904**, 0 failed, on
+the merged baseline (the cricket bat, cleaver and scythe fix left it with no known failures), and a
+D70 suite: pressed and held, the window loses the focus, and the duster stops, the sponge stops
+squeezing, the wish fizzles and the toss is a fault. `item_check` drives the bowling ball's Strike
+through the catalog's own multiplier checks; the kind items and the charges it drives as it always
+did. `loop_check` 801 -> 802 (the voices); unit 254, ui 621, verbs 273, toys2 196, gun 280, powers
+187 and brain 402 pass — `brain_check` notes the nine new rows, as its convention is, since
+`ability_check` is what triggers them; fidget 205, its one ordinary-item assertion moved from the
+tennis ball to the jigsaw. `item_check` drove all 136 items with one failure, the fidget spinner's
+Ceramic Bearings gap read off the wall clock on a machine running seven suites (4,022 ms against
+3,966), which passes run again; D78's eleven pass 386/0 on the merged tree.
+
+*Consequence:* a held ability on anything is a row. A kind one says `kind: true` and pays with
+`give`; a charge's is a `fuse` hook; a row outside the melee drawer needs `_drive_<ability id>` in
+`ability_check`, which fails by name without one, and `_stage_<ability id>` in
+`tools/ability_shots.tscn`, which now holds any `BaseDraggable`. *Not done:* nobody has held any of
+these, and no window could open while they were built: the eleven stagings run headless without an
+error, and every frame is still to be looked at. The Airburst pays in where its bomblets land more
+than in damage. The sheet's next batch is not built.
+
+### The design sheet: every item that is not a melee weapon, a gun, a fidget toy or a power
+
+**Built** is the table above. **Next** is plausible and designed, not built. **Covered** already
+has a right-button verb of its own. **Not plausible** says why.
+
+| Drawer | Item | Verdict | The verb, or why not |
+|---|---|---|---|
+| Play | Bowling ball | built | Strike |
+| Play | Baseball | built | Curveball |
+| Play | Tennis ball | built | Serve |
+| Play | Beach ball | built | Keepy-Uppy |
+| Play | Kite | next | *Loop the Loop*: hold and it climbs on a gust; let go and it dives round him, the tail brushing his skull, his catch at the bottom |
+| Play | Rubber duck | covered | D67: squeezed with right, zone from edge to edge |
+| Play | Party popper | covered | D67: right in the hand is its pull |
+| Play | Bubble machine, desk fan | covered | D67: the crank and the aim, on things put down |
+| Play | Jigsaw puzzle | not plausible | D67 again: a piece placed needs a drawing per piece, and it is his to do |
+| Play | Trampoline | not plausible | a mat on the desk; in the hand it is only being moved |
+| Care | Sponge | built | Wring |
+| Care | Feather duster | built | Tickle |
+| Care | Warm towel | built | Swaddle |
+| Care | Water pistol, bubble blaster, foam dart blaster | covered | D56: right is the shot |
+| Care | Soft brush, open hand, blessing, levitation, rainbow | not here | cursor powers (D72): nothing is in the hand |
+| Food | Donut box | built | Donut Toss |
+| Food | Birthday cake | built | Make a Wish |
+| Food | Noodle bowl | next | *Slurp*: held by his face, one noodle from the bowl to his mouth, slurped in as the hand draws back |
+| Food | Cup of tea | covered | D67: stirred |
+| Food | Pizza, ice cream | not plausible | one helping, gone on first touch (D67 found the same); hand-feeding is the donut box's |
+| Food | Chocolate fountain | not plausible | a generator put down, with nothing in the hand to dip (D67) |
+| Comfort | Hot tub | covered | D67: the jets |
+| Comfort | Beanbag, foot spa, hammock, heated blanket, massage chair, paddling pool, recliner | not plausible | furniture he gets into (D70); in the hand it is only being moved, and the blanket's tuck-in is the towel's Swaddle |
+| Ambience | Boombox, fairy lights, fish tank, houseplant, lava lamp, record player, wind chimes | covered | D67: a verb each |
+| Explosives | Sticky bomb | built | Remote |
+| Explosives | Cluster bomb | built | Airburst |
+| Explosives | Napalm charge | next | *Firebreak*: lit, right held pours the burning patch along the desk behind the hand, a line of fire instead of a pool |
+| Explosives | Black hole charge | next | *Collapse*: lit, right again collapses it now, the pull doubled for a moment before it lets go |
+| Explosives | Grenade | covered | cooking it is what a lit grenade in the hand already is |
+| Explosives | Nail bomb | not plausible | the cluster bomb's class, and its second press would be the Airburst again |
+| Explosives | Implosion charge | not plausible | the black hole's verb again |
+| Explosives | Firework | not plausible | it flies where it likes; D59 lists it as unaimed by design |
+| Explosives | Mine, oil drum | not plausible | placed and set off by him; right on them is the bin (D59) |
+| Explosives | Dynamite, concussion, demolition and satchel charges | not plausible | a fuse and a bang; a second press would be a grenade's |
+| Turrets | all eight | not a held ability | a turret is put down and forgotten, and in the hand it is a gun, which D56 and D71 are. An *Overdrive* belongs on the placed turret as a D67 zone verb — three seconds at double rate, then a long cool-off — and that is the owner's call, because right on a placed harm item is the bin today |
+| Critters | Goose, gorilla, hornet, raccoon | next | riled in the hand — the goose honks in his face, the hornet buzzes, the gorilla beats its chest, the raccoon eyes his headphones — and let go, it goes for him at once. Each needs `NpcBase`'s attack hooks and `brain_check`'s critter suite |
+
+Seventy items: eleven built; eight next (the kite, the noodle bowl, the napalm and black hole
+charges, and the four critters as one design); seventeen covered; twenty-one not plausible; eight
+turrets for the owner; and five powers, which are not held.
+
+
 ## Recommendations not yet decided
 
 Carried in the spec, owner's call before they matter:

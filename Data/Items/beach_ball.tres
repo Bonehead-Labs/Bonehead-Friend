@@ -14,3 +14,4 @@ cost = 100
 currency = 1
 scene = ExtResource("1_j5xtt")
 icon = ExtResource("1_jmyer")
+controls = "Hold · Right: Keepy-Uppy — tap: lobbed onto his head, he heads it up"

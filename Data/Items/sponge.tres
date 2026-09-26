@@ -15,3 +15,4 @@ currency = 1
 scene = ExtResource("1_d33p2")
 icon = ExtResource("1_momap")
 sort_order = 10
+controls = "Hold · Right: Wring — hold it over him: it rains, grime runs off"

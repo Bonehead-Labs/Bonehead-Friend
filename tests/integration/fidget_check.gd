@@ -864,8 +864,9 @@ func _the_shop_says_how() -> void:
 			and line.text == ItemDB.get_item(&"jack_in_the_box").controls)
 		_check("on the theme's own HowTo style", how.theme_type_variation == &"HowTo"
 			and UITheme.get_theme().has_stylebox("panel", "HowTo"))
-		# The tennis ball: the duck squeaks now (D67), and a thing with a verb says so.
-		shop.call("select", &"tennis_ball")
+		# The jigsaw: the duck squeaks now (D67) and the tennis ball serves (D78), and a thing with a
+		# verb or an ability says so. The jigsaw is on D78's sheet as not plausible.
+		shop.call("select", &"jigsaw_puzzle")
 		await _settle()
 		_check("an item worked the ordinary way shows nothing", not how.visible)
 	panels.call("close")

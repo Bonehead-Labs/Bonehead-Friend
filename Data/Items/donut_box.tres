@@ -15,3 +15,4 @@ currency = 1
 scene = ExtResource("1_a6aag")
 icon = ExtResource("1_n6hta")
 sort_order = 20
+controls = "Hold · Right: Donut Toss — tap: one flips out into his mouth"

@@ -15,3 +15,4 @@ currency = 1
 scene = ExtResource("1_xtvg2")
 icon = ExtResource("1_s21wm")
 sort_order = 42
+controls = "Hold · Right: Serve — hold to toss it up, let go at the top: an ace"

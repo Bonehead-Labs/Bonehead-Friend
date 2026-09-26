@@ -258,7 +258,10 @@ func _earn(delta: float, playing: bool) -> void:
 		var kinds := _side(true)
 		for kind in kinds:
 			var pets := PETS_PER_SECOND * delta * (1.0 - DAMAGE_SHARE) * _attention(kinds, kind)
-			var value := pets * b.pet_value * _modifier(kind, &"damage_mult")
+			# A kind item with an ability (D78) is used every time it is ready, like a weapon's: its
+			# row's `worth` is kindness value in pets, priced against the petting this models.
+			var value := pets * b.pet_value * _modifier(kind, &"damage_mult") \
+				* AbilityTable.kindness_uplift(kind, PETS_PER_SECOND)
 			# Petting inside the combo window is the point of petting, so the sim earns at
 			# the middle of the ramp rather than at its floor.
 			var combo := (1.0 + b.kindness_combo_max) * 0.5

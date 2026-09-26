@@ -318,6 +318,39 @@ const ROWS := {
 	# Scalded by the office mug's coffee: crying and shivering while the steam comes off him.
 	&"scalded": {"face": &"crying", "tag": &"hurt", "motion": &"shiver", "seconds": 0.4,
 		"priority": PAIN, "gate": GATE_REACTIVE, "hold": true, "refresh": 0.45, "sound": &"gasp"},
+	# --- L: held things beyond the melee drawer (D78) ---
+	# Bowled over by the bowling ball: toppled stiff as a pin, and dizzy when he lands.
+	&"bowled": {"face": &"shocked", "tag": &"hurt", "tail_face": &"dizzy", "motion": &"impact_wobble",
+		"seconds": 0.5, "tail": 0.8, "priority": HEAVY, "gate": GATE_REACTIVE, "sound": &"oof"},
+	# A served tennis ball taken and knocked straight back: a pleased little hop.
+	&"volleying": {"face": &"smug", "tag": &"", "motion": &"hop", "seconds": 0.4,
+		"priority": REACTION, "gate": GATE_REACTIVE},
+	# A beach ball off his skull: a nod up into it and a grin, one beat a header.
+	&"heading": {"face": &"happy", "tag": &"", "motion": &"nod", "seconds": 0.35,
+		"priority": REACTION, "gate": GATE_REACTIVE},
+	# Under the wrung sponge: eyes shut and blissful for as long as the drops keep coming.
+	&"showered": {"face": &"blissful", "tag": &"relax", "fallback": &"idle_happy",
+		"motion": &"slow_bob", "seconds": 0.5, "priority": REACTION, "gate": GATE_REACTIVE,
+		"hold": true, "refresh": 0.5},
+	# Wet through, once the shower stops: he shakes himself dry like a dog.
+	&"shaking_dry": {"face": &"happy", "tag": &"", "motion": &"shake_off", "seconds": 0.7,
+		"priority": REACTION, "gate": GATE_REACTIVE},
+	# The feather duster on him: helpless with giggles and squirming, for as long as it keeps at
+	# it. The giggles themselves are the duster's, one every other tickle.
+	&"tickled": {"face": &"blissful", "tag": &"happy", "motion": &"wiggle", "seconds": 0.5,
+		"priority": REACTION, "gate": GATE_REACTIVE, "hold": true, "refresh": 0.5},
+	# A warm towel round his shoulders: eyes closed and a slow bob, for as long as it is on him.
+	&"swaddled": {"face": &"blissful", "tag": &"relax", "fallback": &"idle_happy",
+		"motion": &"slow_bob", "seconds": 1.0, "priority": REACTION, "gate": GATE_REACTIVE,
+		"hold": true, "refresh": 1.0, "speed": 0.7},
+	# A birthday cake held up to him: eyes shut, a deep breath in — then the candles are out and he
+	# is delighted.
+	&"wishing": {"face": &"asleep", "tag": &"", "tail_face": &"blissful", "motion": &"puff",
+		"seconds": 0.5, "tail": 0.8, "priority": REACTION, "gate": GATE_REACTIVE},
+	# A sticky bomb on the clicker, stuck to him: wide-eyed and pawing at it, for as long as it rides
+	# him. HEAVY, so a hit does not end it while the light still blinks.
+	&"ticking": {"face": &"shocked", "tag": &"flinch", "fallback": &"", "motion": &"shake_off",
+		"seconds": 0.6, "priority": HEAVY, "gate": GATE_REACTIVE, "hold": true, "refresh": 0.6},
 	# --- K: the supernatural powers (D72) ---
 	# Taken from anywhere by telekinesis: he dangles in the grip and kicks. A hold the spell
 	# refreshes while it has him, so it lapses a moment after the hand lets go.
@@ -415,6 +448,25 @@ const ABILITY_ROWS := {
 	&"frozen": &"frozen",
 	&"scalded": &"scalded",
 	&"targeted": &"aimed_at",
+	# D78: held things beyond the melee drawer. Nine rows of their own; a catch is his `catch`, a
+	# donut is his `eat`, a thing coming at him he watches (`entranced`), a burst over him is `blast`.
+	&"bowled": &"bowled",
+	&"pitched": &"entranced",
+	&"caught_it": &"catch",
+	&"threw_back": &"amused",
+	&"lobbed": &"entranced",
+	&"served": &"entranced",
+	&"volley": &"volleying",
+	&"header": &"heading",
+	&"showered": &"showered",
+	&"shake_dry": &"shaking_dry",
+	&"tickled": &"tickled",
+	&"swaddled": &"swaddled",
+	&"donut_incoming": &"entranced",
+	&"fed": &"eat",
+	&"wish": &"wishing",
+	&"ticking": &"ticking",
+	&"airburst": &"blast",
 }
 
 ## The face he pulls when hit, by what hit him — keyed on category, not id, so ten entries
@@ -907,9 +959,11 @@ func _on_kindness_sustained(source_id: StringName, _value: float, world_pos: Vec
 ## trickles. For those only the verb's own act is the hand's, and the verb says so while it
 ## pays.
 func _worked_by_hand(source_id: StringName) -> bool:
-	if ItemVerbs.paying:
+	if ItemVerbs.paying or WeaponAbility.paying:
 		return true
-	if ItemVerbs.carried_by(source_id):
+	# An ability's line is a `controls` line too (D78), and the sponge is still a sponge: only the
+	# ability's own payments are the hand's, and they say so while they pay.
+	if ItemVerbs.carried_by(source_id) or AbilityTable.is_kind(source_id):
 		return false
 	var item := ItemDB.get_item(source_id)
 	return item != null and item.is_kind() and not item.controls.is_empty()
