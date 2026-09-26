@@ -82,6 +82,7 @@ func _ready() -> void:
 	# plenty: we only ever ask whether one specific body is in the list.
 	contact_monitor = true
 	max_contacts_reported = maxi(max_contacts_reported, 4)
+	_arrived_msec = Time.get_ticks_msec()
 	_build_ambient()
 	EventBus.focus_mode_changed.connect(func(_level: int) -> void: _gate_ambient())
 
@@ -211,7 +212,7 @@ func _pay_event(value: float, at: Vector2) -> void:
 func _pay_contact(value: float, at: Vector2) -> void:
 	if value <= 0.0:
 		return
-	if _his_own_play():
+	if _his_own_play() or _nobody_behind_it():
 		_bank(value, at)
 		_flush()
 		return
@@ -220,6 +221,9 @@ func _pay_contact(value: float, at: Vector2) -> void:
 ## How long a toy the player let go of stays theirs: a throw lands inside it.
 const HANDLED_MSEC := 3000
 var _let_go_msec := -100000
+## When it arrived on the desk. Putting a thing down beside him from the shop is the player's
+## doing too, so what it pays in the next moment is theirs.
+var _arrived_msec := -100000
 
 ## Whether he is playing with this by himself right now (`Buddy.is_own_play`, D70), and the
 ## player has not had it in hand since just now.
@@ -228,6 +232,30 @@ func _his_own_play() -> bool:
 		return false
 	var him := get_tree().get_first_node_in_group(Buddy.GROUP_BUDDY) as Buddy
 	return him != null and him.is_own_play(self)
+
+## **A touch with nobody's hand behind it is not an act either** (D76 amended). A rubber duck
+## left leaning on him paid an act every two seconds for as long as it stayed there — 720 Dollars
+## an hour and 1,800 on the "be kind" board, measured at an empty desk — and because an act is the
+## player arriving as far as his idle brain knows, he never went off to play either. The same for
+## a massage chair he was left in, or a ball a raccoon threw at him. So a toy that pays on touch
+## pays an act only while it is in the player's hand, or was let go of or put down in the last
+## three seconds, or while a hand is behind *him* (`Economy.hand_behind_him`: held, thrown, or
+## just hit). Otherwise it pays the same value as a trickle, as his own play does.
+##
+## Food is left alone: a helping is bounded by its servings, so whoever put it there fed him,
+## and a donut box's six helpings run past three seconds.
+func _nobody_behind_it() -> bool:
+	if dragging or not is_inside_tree():
+		return false
+	# Thrown by a raccoon or blown by a fan nobody holds: nobody's, whoever last put it down.
+	if acts_by_itself():
+		return not Economy.hand_behind_him()
+	if consume_on_use:
+		return false
+	var now := Time.get_ticks_msec()
+	if now - maxi(_let_go_msec, _arrived_msec) < HANDLED_MSEC:
+		return false
+	return not Economy.hand_behind_him()
 
 func _bank(value: float, at: Vector2) -> void:
 	if value <= 0.0:

@@ -1026,6 +1026,29 @@ func _nobody_at_the_desk_is_not_an_act() -> void:
 		_check("and so is the same catch with him not at play: three acts, three Dollars, three on the board",
 			_d76_given == 3 and _d76_board("kindness") == 3 and is_equal_approx(
 				Economy.balance_of(Economy.DOLLARS) - dollars, 3.0 * b.dollars_per_kind_act))
+		# With nobody's hand behind it (D76 amended): the ball put down long ago, and nobody has
+		# had him. Before the fix a rubber duck left on him paid 28 acts a minute, 720 Dollars an
+		# hour and 1,800 on the board, at an empty desk.
+		ball._arrived_msec = -100000
+		Economy._held = false
+		Economy._moved_msec -= Economy.WORLD_FOLLOWS_MSEC + 1000
+		var trickled := _d76_sustained
+		ball._next_contact_msec = 0
+		ball.pay_presence(buddy, 1.0)
+		Economy.flush_dollars()
+		_check("a toy touching him with nobody's hand behind it pays a trickle, not an act (%d acts)" % _d76_given,
+			_d76_given == 3 and _d76_sustained > trickled and _d76_board("kindness") == 3
+			and is_equal_approx(Economy.balance_of(Economy.DOLLARS) - dollars, 3.0 * b.dollars_per_kind_act))
+		Economy._on_buddy_state_changed(&"dragged")
+		Economy._on_buddy_state_changed(&"idle")
+		ball._next_contact_msec = 0
+		ball.pay_presence(buddy, 1.0)
+		_check("but him put against it by the player is the player's act", _d76_given == 4)
+		Economy._moved_msec -= Economy.WORLD_FOLLOWS_MSEC + 1000
+		ball._arrived_msec = Time.get_ticks_msec()
+		ball._next_contact_msec = 0
+		ball.pay_presence(buddy, 1.0)
+		_check("and so is a toy the player has just put down on him", _d76_given == 5)
 		# A fidget toy worked by hand while he is at it is the hand's (D57's `pay_act`), always.
 		var wrap := _instance_of(&"bubble_wrap") as FidgetToy
 		if wrap:
