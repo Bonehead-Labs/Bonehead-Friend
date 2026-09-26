@@ -16,12 +16,13 @@ const PERIOD_WEEKLY := 1
 @export_multiline var description: String
 
 ## The `EventBus.contract_event` key this counts. Live keys:
-##   &"deal_damage"  — count is damage, so targets are in damage points
+##   &"deal_damage"  — count is damage, so targets are in damage points. A hand's damage only:
+##                     a turret's, an animal's and the wall one throws him into are not (D76)
 ##   &"kindness"     — a deliberate kind act. NOT generator ticks: a placed boombox would
 ##                     otherwise finish a 150-target contract in seventy-five seconds with
-##                     nobody at the keyboard
+##                     nobody at the keyboard. Nor his own play at a toy, a trickle (D76)
 ##   &"pet"          — the open hand specifically
-##   &"knockout"     — one per collapse
+##   &"knockout"     — one per collapse a hand had a part in (D76)
 ##   &"purchase"     — one per **shop item** bought, so it runs dry on a completed catalog
 ##                     and refills on a Reincarnation
 ##   &"pick_up"      — Bonehead lifted off the desk by hand. The one key that needs nothing

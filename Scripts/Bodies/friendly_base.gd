@@ -132,7 +132,7 @@ func _physics_process(delta: float) -> void:
 			if now >= _next_contact_msec:
 				var gap := contact_cooldown * Progression.get_modifier(item_id, &"cooldown_mult")
 				_next_contact_msec = now + int(gap * 1000.0)
-				_pay_event(hearts_per_contact * value, buddy.global_position)
+				_pay_contact(hearts_per_contact * value, buddy.global_position)
 				if consume_on_use:
 					_eaten += 1
 					if _eaten >= servings:
@@ -170,7 +170,7 @@ func pay_presence(him: Buddy, seconds: float) -> void:
 		if now >= _next_contact_msec:
 			var gap := contact_cooldown * Progression.get_modifier(item_id, &"cooldown_mult")
 			_next_contact_msec = now + int(gap * 1000.0)
-			_pay_event(hearts_per_contact * value, him.global_position)
+			_pay_contact(hearts_per_contact * value, him.global_position)
 			if consume_on_use:
 				_eaten += 1
 				if _eaten >= servings:
@@ -195,10 +195,39 @@ func value_multiplier() -> float:
 func _approach_speed() -> float:
 	return maxf(linear_velocity.length(), _previous_speed)
 
+## An act: the player's hand. `FidgetToy.pay_act` comes straight here, and so does a helping
+## or a catch that was not his own play.
 func _pay_event(value: float, at: Vector2) -> void:
 	if value <= 0.0:
 		return
 	EventBus.kindness_given.emit(item_id, value, at)
+
+## **His own play is not an act** (D76). A helping, a catch, a bite on contact — which, while
+## the idle brain has him at this toy, is the pizza he eats, the ball he bops, the duck he
+## knocks about with nobody at the desk. Those pay what they always paid, as a trickle, the
+## idle brain's own road (D14): no combo (his own bops sat him at the 3x ceiling), no contract
+## count (a tennis ball did 19 of "be kind 150 times" a dwell) and no per-act Dollar. The same
+## contact with the toy in the player's hand, or just thrown from it, is the player's act.
+func _pay_contact(value: float, at: Vector2) -> void:
+	if value <= 0.0:
+		return
+	if _his_own_play():
+		_bank(value, at)
+		_flush()
+		return
+	_pay_event(value, at)
+
+## How long a toy the player let go of stays theirs: a throw lands inside it.
+const HANDLED_MSEC := 3000
+var _let_go_msec := -100000
+
+## Whether he is playing with this by himself right now (`Buddy.is_own_play`, D70), and the
+## player has not had it in hand since just now.
+func _his_own_play() -> bool:
+	if dragging or not is_inside_tree() or Time.get_ticks_msec() - _let_go_msec < HANDLED_MSEC:
+		return false
+	var him := get_tree().get_first_node_in_group(Buddy.GROUP_BUDDY) as Buddy
+	return him != null and him.is_own_play(self)
 
 func _bank(value: float, at: Vector2) -> void:
 	if value <= 0.0:
@@ -245,6 +274,10 @@ func _start_drag() -> void:
 	if _guest != null:
 		_release_guest(false)
 	super._start_drag()
+
+func _end_drag() -> void:
+	super._end_drag()
+	_let_go_msec = Time.get_ticks_msec()
 
 # --- getting in (D70) ------------------------------------------------------------------
 #

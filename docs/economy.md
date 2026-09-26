@@ -326,7 +326,19 @@ each damaging hit: dollars_per_hit          (flat, whatever the weapon, whatever
 each kind act:     dollars_per_kind_act     (flat, whatever the item)
 milestones:        the reward on the MilestoneData
 automation & offline: x dollars_idle_efficiency
+unattended:        dollars_per_hit x dollars_idle_efficiency a second, once, in any second
+                   that automation ran or something acting on its own hurt him
 ```
+
+**An act is a hand's** (docs/decisions.md D76). A turret or an animal hurting him
+(`ItemData.is_autonomous`), the wall one of them throws him into, and a toy paying him while he
+plays with it by himself are not acts: they earn their Bones and Hearts as before, and no per-act
+Dollar, no contract or milestone count and no combo. What unattended damage earns instead is the
+one idle trickle automation already pays, once a second however many things are doing it — so a
+desk of turrets is worth at most what automation is, 540 an hour, where one nail gun used to bank
+about 20,000. A `world` hit is the hand's only while he is held or inside three seconds of a
+hand last moving him; a toy's contact is the player's while it is in their hand and for three
+seconds after they let go.
 
 Three properties, each load-bearing:
 
@@ -380,11 +392,14 @@ Ectoplasm, which no longer exists). The reason for the rule is unchanged and Dol
 it just as well: a daily that paid Bones or Hearts would set the pace of the shop ladder by
 the calendar instead of by play, and Dollars buy nothing in the shop.
 
-Two things deliberately do not count:
+Three things deliberately do not count:
 
 - **Sustained kindness is not a contract event.** A placed boombox flushes twice a second
   forever; on the shared `kindness` key it would finish a 150-target contract in seventy-five
   seconds with nobody at the keyboard. Contracts count *acts*.
+- **Nor is anything with nobody at the desk** (D76): a turret's or an animal's damage, the wall
+  it throws him into, a knockout no hand had a part in, and his own play at a toy, which pays
+  as a trickle. A nail gun left alone finished "deal 10,000 damage" in about ten minutes.
 - **Prestige does not reset the board.** Contracts are a real-time hook, not a run-scoped one,
   and resetting them would let a player farm a daily by reincarnating.
 

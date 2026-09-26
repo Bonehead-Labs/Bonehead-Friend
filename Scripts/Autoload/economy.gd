@@ -126,6 +126,47 @@ func flush_dollars() -> void:
 	_dollars_banked = 0.0
 	grant(DOLLARS, amount, Vector2.ZERO, &"acts")
 
+## **Unattended income is priced like unattended income** (D76). A turret or an animal hurting
+## him is the item working, not somebody at the desk — `ItemData.is_autonomous`, the flag the
+## idle brain already asks the same question of. Such a hit pays its Bones like any other (a
+## placed turret is an active-play amplifier, and its Bones are its point) but it is not an act:
+## no per-act Dollar, no contract or milestone count. What it does earn is the one idle trickle
+## automation already pays, `dollars_per_hit x dollars_idle_efficiency` a second, in any tick in
+## which something hurt him on its own — once, however many things did. Per hit, a nail gun at
+## an empty desk banked about 20,000 Dollars an hour and a desk of turrets scaled with the
+## desk; a tick is a ceiling no number of turrets raises.
+var _unattended_hit := false
+## Whether a hand dealt any of this round's damage. A knockout is on the board only if one did:
+## a round a turret finished alone is the turret's.
+var _round_hands_on := false
+
+## **The floor is the hand's only when a hand put him there.** A gorilla's slam lands him on a
+## wall and the wall bills as `world`: 12 of the 21 hits a gorilla dealt in a minute at an empty
+## desk, and some of them eight seconds after its last blow, shoved about by its body. So a
+## `world` hit is an act only while he is held, or inside this long of a hand being the last
+## thing to move him — a bat carrying him into the wall, the player letting go of a throw — and
+## a chain of them stays the hand's. Anything else, including a fall with nobody behind it, is
+## nobody's.
+const WORLD_FOLLOWS_MSEC := 3000
+## Whether the last thing that moved him was a hand, and when.
+var _moved_by_hand := false
+var _moved_msec := -100000
+var _held := false
+var _down := false
+
+## Whether a hit from `source_id` was dealt by something acting on its own. Asked of the data,
+## so a turret added next month is covered by the seeder that writes it.
+func is_unattended(source_id: StringName) -> bool:
+	if source_id == &"world":
+		return not _held and not (_moved_by_hand
+			and Time.get_ticks_msec() - _moved_msec <= WORLD_FOLLOWS_MSEC)
+	var item := ItemDB.get_item(source_id)
+	return item != null and item.is_autonomous
+
+func _moved_by(unattended: bool) -> void:
+	_moved_by_hand = not unattended
+	_moved_msec = Time.get_ticks_msec()
+
 # --- payout pipeline -------------------------------------------------------
 
 ## Mood multiplier: a U-curve, worst at neutral. Sitting in the middle is the worst
@@ -287,6 +328,14 @@ func _on_damage_dealt(info: HitInfo) -> void:
 	var bones := payout_for(
 		info.amount * ItemDB.balance.bones_per_damage * grime_multiplier(), info.source_id)
 	grant(BONES, bones, info.position, info.source_id)
+	# Something that acts on its own is not an act (D76): it marks the tick as earning on its
+	# own, and the board and the till never hear of it.
+	if is_unattended(info.source_id):
+		_unattended_hit = true
+		_moved_by(true)
+		return
+	_moved_by(false)
+	_round_hands_on = true
 	# `damage:<item_id>`, which turns "deal N damage with the mace" into pure data for every
 	# weapon in the game at once — HitInfo has always carried source_id and nothing read it
 	# for this. Emitted with the damage as its count, so a contract counts damage rather
@@ -347,6 +396,17 @@ var _round_bones := 0.0
 var last_round: Dictionary = {}
 
 func _on_buddy_state_changed(state: StringName) -> void:
+	# In the player's hand, and the moment he leaves it: what he lands on after a throw is theirs.
+	var held := state == &"dragged"
+	if held or _held:
+		_moved_by(false)
+	_held = held
+	# A knockout stops the hand's clock: he is down for about three seconds, and the bat that
+	# floored him is still what carries him into the wall as he gets up.
+	var down := state == &"knockout" or state == &"pile" or state == &"reassemble"
+	if _down and not down and _moved_by_hand:
+		_moved_msec = Time.get_ticks_msec()
+	_down = down
 	if state != &"knockout":
 		return
 	var b := ItemDB.balance
@@ -373,7 +433,11 @@ func _on_buddy_state_changed(state: StringName) -> void:
 	_round_started_msec = 0
 	round_damage = 0.0
 	EventBus.knockout_payout.emit(bonus)
-	EventBus.contract_event.emit(&"knockout", 1)
+	# On the board only if a hand was in the round (D76): turrets alone at an empty desk
+	# finished "knock him out 5 times" with nobody there.
+	if _round_hands_on:
+		EventBus.contract_event.emit(&"knockout", 1)
+	_round_hands_on = false
 	EventBus.save_requested.emit()
 
 func _on_mood_changed(value: float) -> void:
@@ -390,7 +454,7 @@ func _process(delta: float) -> void:
 	var bones_rate := Progression.automation_rate_per_second(BONES)
 	var hearts_rate := Progression.automation_rate_per_second(HEARTS)
 	var automating := bones_rate > 0.0 or hearts_rate > 0.0
-	if not automating and _dollars_banked <= 0.0:
+	if not automating and not _unattended_hit and _dollars_banked <= 0.0:
 		return
 
 	if automating:
@@ -412,10 +476,12 @@ func _process(delta: float) -> void:
 		grant(currency, payout_for(banked, &"automation"), _last_payout_pos, &"automation")
 	# The devices' own trickle of Dollars, at a fraction of what a hand on the game earns —
 	# the one deliberately idle-unfriendly rate in the economy — joins the acts banked since
-	# the last tick, and the till is paid once.
-	if automating:
+	# the last tick, and the till is paid once. A turret or an animal that hurt him this tick
+	# earns the same trickle and no more (D76): one per tick, whatever is doing the earning.
+	if automating or _unattended_hit:
 		var b := ItemDB.balance
 		_bank_dollars(b.dollars_per_hit * b.dollars_idle_efficiency * b.automation_payout_interval)
+	_unattended_hit = false
 	flush_dollars()
 
 # --- offline ---------------------------------------------------------------
@@ -548,6 +614,7 @@ func perform_prestige() -> float:
 	# player's hat money would make Reincarnating something to avoid.
 	run_earnings = 0.0
 	round_damage = 0.0
+	_round_hands_on = false
 	_combo_count = 0
 	_automation_banked = {BONES: 0.0, HEARTS: 0.0}
 	Progression.reset_for_prestige()
@@ -605,6 +672,7 @@ func from_save(root: Dictionary) -> void:
 	offline_cap_level = int(root.get("offline_cap_level", 0))
 	stats = (root.get("stats", {}) as Dictionary).duplicate()
 	round_damage = 0.0
+	_round_hands_on = false
 
 	var cosmetics: Dictionary = root.get("cosmetics", {})
 	_cosmetics_owned.clear()

@@ -199,6 +199,13 @@ same leak by a different road: the toys he nibbles and bops pay as acts (`kindne
 their unattended pay counts on the combo, the contract board and the Dollars. A balance call for
 the owner: bank an autonomous source's hits at `dollars_idle_efficiency`, and route a toy's pay
 during his own routine through `kindness_sustained`.
+*Fixed (D76), the owner's call:* measured first, and it was worse than the pellet turret — a nail
+gun alone at an empty desk banked 20,648 Dollars an hour, five pellet turrets 10,719, and a tennis
+ball he bopped by himself paid 19 acts a dwell at the 3x combo, each on the board. An autonomous
+hit, and the wall one throws him into, is now no act: its Bones as before, no per-act Dollar, no
+contract or milestone count, and the one idle trickle automation pays, once a second however many
+things are doing it — 455, 414, and 63 for the gorilla. A toy's contact during his own play pays
+as a trickle: 0 acts, 0 Dollars, 0 on the board. A bat by hand pays what it did, a Dollar a hit.
 
 **I. Melee animals cannot reach him in the furniture (low, new in D70).** Sat in a beanbag his
 middle is about 116 px from a goose standing at its side, past the goose's 78 px reach, so it
