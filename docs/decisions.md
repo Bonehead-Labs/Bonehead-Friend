@@ -3882,9 +3882,9 @@ the stars going out as it wears off, and every follow-up called out bigger than 
 `ui_check`'s "numbers keep apart" checks an ability's words with the payout they name: found by
 group, the landing replacing the name, both drawn, in the display face, apart for their whole rise.
 The letter opener's driver checks its fetch badge is there, never ticked, and gone once fetched.
-`ability_check` 1,335 -> 1,749 passed, its 14 failures the cricket bat's, the cleaver's drift and
-the scythe's that another stream was fixing and none new; `ui_check` 621 -> 626; `item_check` 136
-items, 0 failed; unit 254, `loop_check` 776 and `brain_check` 393 with none failed.
+Before the merges `ability_check` went 1,335 -> 1,749 passed, its 14 failures the cricket bat's, the
+cleaver's drift and the scythe's that another stream was fixing, and none new; on the tree with
+that fix merged, 1,416 -> 1,830 and 0 failed. `ui_check` 621 -> 626.
 
 *Not done:* the frames. Nothing here has been captured yet (the machine was in use); the table is
 what the code draws, not what a person has seen. The idle budget is not re-measured on a release
@@ -3934,7 +3934,10 @@ right press is still its fuse, and the glint says there is more to it than that.
 assertions as the melee one — the glint in the hand, the name, a state over him or over the thing,
 the payoff drawn with a word, the glint gone while it cools and back with a pop, not drawn on the
 desk — reading the ability's records by reference, because a charge goes with its blast and takes
-its ability with it. The eleven pass 1,100 of 1,100 on their own.
+its ability with it. The eleven pass 1,100 of 1,100 on their own. On D78's merged tree, every suite:
+`ability_check` 1,904 -> 2,444 and 0 failed, `ui_check` 626, `loop_check` 802, `item_check` 136
+items and 0 failed (one known finding, as on the integration branch), `brain_check` 402 and unit
+254.
 
 
 ## D78 — The right button beyond the melee drawer: eleven more things that do something in the hand (2026-09-26)
