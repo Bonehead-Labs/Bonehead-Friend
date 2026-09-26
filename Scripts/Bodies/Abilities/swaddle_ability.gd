@@ -9,10 +9,11 @@ extends ThrowAbility
 ## Arriving, it **wraps him**: frozen, laid level across his shoulders a little wider than it
 ## folds, drawn over him — round his middle, under his face (`_drape`) — and riding him
 ## wherever he goes for `wrap_seconds`, the cleaver's way of staying in him (D74) with nothing sharp
-## about it. Its ends hang down his sides and steam rises off them (the payoff's shape,
-## `towel_wrap`). The wrap itself is one act (`wrap_value`); while it is on him it pays `warm_rate` a
-## second, banked and paid as a rate, the towel's own warmth without a hand on it — which is the
-## point: the hand is free to pet him.
+## about it. Its picture rides his breath too (`_breathe`): his figure rises and falls inside its
+## frame, and a towel fixed to his collider was left behind at the top of every breath. Its ends hang
+## down his sides and steam rises off them (the payoff's shape, `towel_wrap`). The wrap itself is one
+## act (`wrap_value`); while it is on him it pays `warm_rate` a second, banked and paid as a rate, the
+## towel's own warmth without a hand on it — which is the point: the hand is free to pet him.
 ## He is `swaddled`: eyes closed, bobbing slowly, for as long as it is round him.
 ##
 ## It slides off when the time is up, when he is picked up or knocked down, or when the player takes
@@ -23,7 +24,6 @@ extends ThrowAbility
 const FLYING := 60
 const WRAPPED := 61
 
-const WARMTH := Color("ffb37a")
 var _wrap_local := Transform2D.IDENTITY
 var _wrapped: Buddy
 var _layer := 0
@@ -32,14 +32,20 @@ var _freeze_mode := RigidBody2D.FREEZE_MODE_STATIC
 var _frozen := false
 var _z := 0
 var _sprite_scale := Vector2.INF
+var _sprite_pos := Vector2.INF
 var _next_tell := 0.0
 var _banked := 0.0
 var _since_flush := 0.0
+## His body sprite while it is round him: the towel's picture is re-laid as his frame changes, in
+## step with his face (`_breathe`).
+var _puppet: AnimatedSprite2D
 
-## For the suites: whether it wrapped him, for how long, and why it came off.
+## For the suites: whether it wrapped him, for how long, and why it came off; and how far its picture
+## was last lifted with his breath (`_breathe`), in his frame.
 var wrapped := false
 var wrap_time := 0.0
 var came_off := &""
+var ride_lift := 0.0
 
 func is_wrapped() -> bool:
 	return _active and _phase == WRAPPED
@@ -198,14 +204,20 @@ func _wrap(him: Buddy) -> void:
 	var s := sprite()
 	if s:
 		_sprite_scale = s.scale
+		_sprite_pos = s.position
 		s.scale = _sprite_scale * Vector2(num("drape", 1.25), 0.85)
 	give(num("wrap_value", 3.0), at)
 	notice_player()
-	# The warmth rising off it is steam: the wrap's shape draws it for as long as it is on him.
+	# The warmth rising off it is steam, which the wrap's shape draws at his sides for as long as it is
+	# on him. It used to be a puff of warm chips from under his face as well, which rose straight up
+	# over it (D77's captures).
 	var fx := fx()
 	if fx:
-		fx.puff(at, 6, WARMTH, 50.0, 0.8)
 		fx.burst(at, &"heart", WorldFX.kind_colour(body.juice_tier), 3 + body.juice_tier, 100.0, 0.7)
+	_puppet = him.art.body if him.art else null
+	if _puppet and not _puppet.frame_changed.is_connected(_breathe):
+		_puppet.frame_changed.connect(_breathe)
+	_breathe()
 	sound(&"impact_soft", -6.0, 0.8)
 	tell(&"swaddled", him.get_interaction_rect().get_center())
 	AbilityCues.payoff(self, &"swaddle", at, "cosy")
@@ -214,11 +226,29 @@ func _wrap(him: Buddy) -> void:
 func _ride() -> void:
 	if is_instance_valid(_wrapped):
 		body.global_transform = _wrapped.global_transform * _wrap_local
+		_breathe()
+
+## Its picture lifted with his figure (`BuddyArt.figure_lift_local`), from the tick and again the
+## moment his frame changes — as his face is placed, so the two never part for a frame. The picture
+## and not the body: a frozen kinematic body moved between physics steps is put back where the server
+## had it at the next one, so the towel lagged his face by a step at every change of frame.
+func _breathe() -> void:
+	if not is_instance_valid(_wrapped) or not _frozen:
+		return
+	var s := sprite()
+	if s == null or _sprite_pos == Vector2.INF:
+		return
+	ride_lift = _wrapped.art.figure_lift_local() if _wrapped.art else 0.0
+	var up := _wrapped.global_transform.basis_xform(Vector2(0.0, ride_lift))
+	s.position = _sprite_pos + body.global_transform.basis_xform_inv(up)
 
 func _unwrap() -> void:
 	if not _frozen or body == null:
 		return
 	_frozen = false
+	if is_instance_valid(_puppet) and _puppet.frame_changed.is_connected(_breathe):
+		_puppet.frame_changed.disconnect(_breathe)
+	_puppet = null
 	if is_instance_valid(_wrapped):
 		_flush(_wrapped)
 	body.freeze = false
@@ -229,7 +259,11 @@ func _unwrap() -> void:
 	var s := sprite()
 	if s and _sprite_scale != Vector2.INF:
 		s.scale = _sprite_scale
+	if s and _sprite_pos != Vector2.INF:
+		s.position = _sprite_pos
 	_sprite_scale = Vector2.INF
+	_sprite_pos = Vector2.INF
+	ride_lift = 0.0
 	_wrapped = null
 	AbilityCues.state(self, false, com_world())
 

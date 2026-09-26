@@ -671,15 +671,42 @@ const UPRIGHT: Array[StringName] = [&"idle", &"idle_happy", &"happy", &"hurt", &
 func face_floor_local() -> float:
 	if face == null:
 		return 0.0
-	var lowest := 0.0
-	for tag in UPRIGHT:
-		var positions: PackedVector2Array = _offset_positions.get(tag, PackedVector2Array())
-		var shown: PackedByteArray = _offset_visible.get(tag, PackedByteArray())
-		for i in positions.size():
-			if i < shown.size() and shown[i] == 1:
-				lowest = maxf(lowest, positions[i].y)
-	return _face_home.y + lowest * _base_scale.y \
+	return _face_home.y + _upright_lowest() * _base_scale.y \
 		+ (FACE_INK.end.y - FACE_CELL * 0.5 + face.offset.y) * absf(_face_base_scale.y)
+
+## The lowest his head sits in any `UPRIGHT` frame, in art pixels of the offsets table: read once, as
+## the table never changes after load.
+var _lowest_upright := NAN
+
+func _upright_lowest() -> float:
+	# Not cached before the table is read: a zero kept from then would be wrong for good.
+	if _offset_positions.is_empty():
+		return 0.0
+	if is_nan(_lowest_upright):
+		_lowest_upright = 0.0
+		for tag in UPRIGHT:
+			var positions: PackedVector2Array = _offset_positions.get(tag, PackedVector2Array())
+			var shown: PackedByteArray = _offset_visible.get(tag, PackedByteArray())
+			for i in positions.size():
+				if i < shown.size() and shown[i] == 1:
+					_lowest_upright = maxf(_lowest_upright, positions[i].y)
+	return _lowest_upright
+
+## How far his figure is drawn from where it stands lowest (`face_floor_local`'s frame), in his own
+## frame and screen pixels, negative for up: the breath or bounce drawn into the body frame he is on,
+## plus the code motion that moves the body sprite (a bob, a hop, a squash at his feet). Something
+## that rides on him and not on his collider — a towel round him — follows this, or he breathes up
+## out of it: `idle_happy` lifts his whole figure 8 art pixels over its loop (D77 amended), and a towel
+## pinned to his collider showed his headphones hopping over it with a hollow under the band.
+func figure_lift_local() -> float:
+	if body == null:
+		return 0.0
+	var lowest := _upright_lowest()
+	var entry_y := lowest
+	var frame := body.frame
+	if frame < _track_positions.size() and frame < _track_visible.size() and _track_visible[frame] == 1:
+		entry_y = _track_positions[frame].y
+	return (entry_y - lowest) * _base_scale.y * _squash.y + _bob + _hop_y + _foot_fix
 
 ## Face -> face, from the personality's tell (`PersonalityData.face_swaps`). Applied to every
 ## expression he pulls, mood faces included: the Goth's `sad` is his contented face. Set by

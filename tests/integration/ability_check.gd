@@ -2208,6 +2208,44 @@ func _ink_rect(sprite: Sprite2D) -> Rect2:
 	out = out.expand(xf * Vector2(used.end.x, used.position.y))
 	return out.expand(xf * Vector2(used.position.x, used.end.y))
 
+## How many of the Swaddle's live steam wisps (`Shapes/towel_wrap.gd`) rise within `face` sideways:
+## each is a wave swinging 4 px about its x, from the towel straight up past his face's height, so
+## one that overlaps it sideways is over it. Read off the shape's own canvas; a wisp lives 1 s.
+func _steam_over(steam: Node, face: Rect2) -> int:
+	if steam == null or not steam.visible:
+		return 0
+	var at: PackedVector2Array = steam.get("_wisp_at")
+	var born: PackedFloat32Array = steam.get("_wisp_born")
+	var clock := float(steam.get("clock"))
+	var centre: Vector2 = steam.get("_centre")
+	var over := 0
+	for i in at.size():
+		var age := clock - born[i]
+		if age < 0.0 or age > 1.0:
+			continue
+		var x := centre.x + at[i].x
+		if x + 6.0 > face.position.x and x - 6.0 < face.end.x:
+			over += 1
+	return over
+
+## How many of the world's pooled emitters are throwing plain chips that rise (a puff: dust, soot,
+## warmth) from a point under `face` and within its width, so straight up over it.
+func _rising_chips(face: Rect2) -> int:
+	var wfx := WorldFX.of(_buddy) if is_instance_valid(_buddy) else null
+	if wfx == null or not face.has_area():
+		return 0
+	var chip: Texture2D = wfx.get("_chip")
+	var rising := 0
+	for emitter in wfx.get("_pool"):
+		var e := emitter as GPUParticles2D
+		var mat := e.process_material as ParticleProcessMaterial if e else null
+		if e == null or not e.emitting or e.texture != chip or mat == null or mat.gravity.y >= 0.0:
+			continue
+		var at := e.global_position
+		if at.x > face.position.x and at.x < face.end.x and at.y > face.position.y:
+			rising += 1
+	return rising
+
 ## The ready glint (D77 amended) is big enough to catch the eye at 1x and has a twinkle of its own:
 ## the first pass had a 7-pixel cross in the tier colour, a gold cross on a gold bat.
 func _check_glint_reads(glint: AbilityFX.ReadyGlint) -> void:
@@ -2708,6 +2746,38 @@ func _drive_swaddle(body: BaseDraggable, ability: SwaddleAbility) -> Dictionary:
 	var face := _buddy.art.face_rect() if _buddy.art else Rect2()
 	_check("it lies under his face, not across it (towel %s, face %s)" % [towel, face],
 		face.has_area() and towel.has_area() and not towel.grow(-1.0).intersects(face))
+	# Through his breath (D77 amended): `idle_happy` lifts his whole figure 8 art pixels over its loop,
+	# and a towel fixed to his collider was left under a hollow at the top of every breath. It rides
+	# his figure now, so the gap under his face holds, and it never meets his face or lets its steam
+	# rise over it.
+	var gaps := PackedFloat32Array()
+	var lifts := PackedFloat32Array()
+	var met := 0
+	var steamed := 0
+	var steam := _afx_probe.get_node_or_null("ShapeTowelWrap") if is_instance_valid(_afx_probe) else null
+	# Its warmth was a puff of orange chips from under his face that rose straight up over it; the
+	# steam is the shape's, at his sides. Sampled from here: a puff lives 0.8 s.
+	var chips := _rising_chips(face)
+	for i in 90:
+		await _step()
+		if not ability.is_wrapped():
+			break
+		towel = _ink_rect(body.sprite as Sprite2D)
+		face = _buddy.art.face_rect() if _buddy.art else Rect2()
+		if not face.has_area():
+			continue
+		gaps.append(towel.position.y - face.end.y)
+		lifts.append(ability.ride_lift)
+		if towel.grow(-1.0).intersects(face):
+			met += 1
+		steamed += _steam_over(steam, face)
+	var spread: float = (Array(gaps).max() - Array(gaps).min()) if gaps.size() > 1 else INF
+	var breath: float = (Array(lifts).max() - Array(lifts).min()) if lifts.size() > 1 else 0.0
+	_check("it rises and falls with his breath (%.0f px of breath, the gap under his face within %.1f px)"
+		% [breath, spread], breath >= 4.0 and spread <= 1.5)
+	_check("and never meets his face (%d of %d steps)" % [met, gaps.size()], met == 0 and gaps.size() > 30)
+	_check("its steam rises clear of his face (%d wisps over it, %d chips rising from under it)"
+		% [steamed, chips], steam != null and steamed == 0 and chips == 0)
 	var local0 := _buddy.to_local(body.global_position)
 	_buddy.apply_central_impulse(Vector2(220.0, -120.0) * _buddy.mass)
 	await _step(20)
