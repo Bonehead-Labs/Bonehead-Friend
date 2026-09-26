@@ -20,6 +20,9 @@ extends SustainAbility
 ##
 ## Row: `fuel_seconds`, `spin_up`, `tick_seconds`, `clean`, `rinse_value`, `squeeze`.
 
+## The rinse's suds, and a bubble off him every few drops (D77's shapes): the payoff's own script.
+const Suds := preload("res://Scripts/Bodies/Abilities/Shapes/sponge_suds.gd")
+
 var _shots: Array[WeakRef] = []
 var _sprite_scale := Vector2.INF
 var _rinsed := false
@@ -191,6 +194,9 @@ func shot_hit(_shot: AbilityShot, him: Buddy, at: Vector2, _heading: Vector2) ->
 		if not _sparkled and _all_clean(him):
 			_sparkled = true
 			fx.burst(him.get_interaction_rect().get_center(), &"star", WorldFX.GOLD, 3, 120.0, 0.6)
+	# Lather: a bubble rises off him every third drop that lands.
+	if landed % 3 == 2:
+		Suds.bubble(AbilityFX.of(body), at)
 	if _next_tell <= 0.0:
 		_next_tell = 0.35
 		tell(&"showered", him.get_interaction_rect().get_center())

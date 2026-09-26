@@ -7,10 +7,12 @@ extends ThrowAbility
 ## The Tomahawk's archetype, landing soft. Within `reach` of him, the towel leaves the hand on the
 ## low arc at his shoulders; for the flight the two do not collide and it is swept for him (D74).
 ## Arriving, it **wraps him**: frozen, laid level across his shoulders a little wider than it
-## folds, drawn over him, and riding him wherever he goes for `wrap_seconds` — the cleaver's way of
-## staying in him (D74), with nothing sharp about it. Warmth rises off him. The wrap itself is one
-## act (`wrap_value`); while it is on him it pays `warm_rate` a second, banked and paid as a rate,
-## the towel's own warmth without a hand on it — which is the point: the hand is free to pet him.
+## folds, drawn over him — its picture round his middle, under his face (`LOWER`) — and riding him
+## wherever he goes for `wrap_seconds`, the cleaver's way of staying in him (D74) with nothing sharp
+## about it. Its ends hang down his sides and steam rises off them (the payoff's shape,
+## `towel_wrap`). The wrap itself is one act (`wrap_value`); while it is on him it pays `warm_rate` a
+## second, banked and paid as a rate, the towel's own warmth without a hand on it — which is the
+## point: the hand is free to pet him.
 ## He is `swaddled`: eyes closed, bobbing slowly, for as long as it is round him.
 ##
 ## It slides off when the time is up, when he is picked up or knocked down, or when the player takes
@@ -22,6 +24,9 @@ const FLYING := 60
 const WRAPPED := 61
 
 const WARMTH := Color("ffb37a")
+## Its picture is laid lower than where it holds him, `LOWER` of his height: round his middle, under
+## his face, never over it. Only the picture: the body the hand takes back stays where it wrapped.
+const LOWER := 0.24
 
 var _wrap_local := Transform2D.IDENTITY
 var _wrapped: Buddy
@@ -31,10 +36,10 @@ var _freeze_mode := RigidBody2D.FREEZE_MODE_STATIC
 var _frozen := false
 var _z := 0
 var _sprite_scale := Vector2.INF
+var _sprite_pos := Vector2.INF
 var _next_tell := 0.0
 var _banked := 0.0
 var _since_flush := 0.0
-var _warmth: GPUParticles2D
 
 ## For the suites: whether it wrapped him, for how long, and why it came off.
 var wrapped := false
@@ -185,11 +190,11 @@ func _wrap(him: Buddy) -> void:
 	if s:
 		_sprite_scale = s.scale
 		s.scale = _sprite_scale * Vector2(num("drape", 1.25), 0.85)
+		_sprite_pos = s.position
+		s.position = _sprite_pos + Vector2(0.0, roundf(him.get_interaction_rect().size.y * LOWER))
 	give(num("wrap_value", 3.0), at)
 	notice_player()
-	_warmth = emitter("warmth", &"chip", WARMTH, 10, Vector2(0.0, -8.0), Vector2(0, -50), 40.0, 1.0,
-		Vector2(0, -40))
-	emit_from(_warmth, true)
+	# The warmth rising off it is steam: the wrap's shape draws it for as long as it is on him.
 	var fx := fx()
 	if fx:
 		fx.puff(at, 6, WARMTH, 50.0, 0.8)
@@ -218,7 +223,9 @@ func _unwrap() -> void:
 	if s and _sprite_scale != Vector2.INF:
 		s.scale = _sprite_scale
 	_sprite_scale = Vector2.INF
-	emit_from(_warmth, false)
+	if s and _sprite_pos != Vector2.INF:
+		s.position = _sprite_pos
+	_sprite_pos = Vector2.INF
 	_wrapped = null
 	AbilityCues.state(self, false, com_world())
 

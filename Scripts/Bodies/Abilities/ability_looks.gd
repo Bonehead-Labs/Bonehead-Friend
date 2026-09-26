@@ -247,7 +247,7 @@ const LOOKS := {
 		"cue": {"icon": &"feather", "left": &"pip_fill", "count": &"giggles",
 			"aura": {"glyph": &"heart", "colour": "ff5f9e", "amount": 5, "rise": 50.0}},
 		"states": {&"tickled": {"none": true}},
-		"pay": {&"tickle": {"size": 0.25}},
+		"pay": {&"tickle": {"size": 0.25, "shape": &"feather_giggle"}},
 	},
 	&"keepy_uppy": {
 		"colour": "ff9a2e", "call": "KEEPY-UPPY", "burst": &"ball", "glint": 0.5,
@@ -259,7 +259,7 @@ const LOOKS := {
 		"colour": "ffd23a", "call": "MAKE A WISH", "burst": &"star", "glint": 0.85,
 		"states": {&"wish": {"icon": &"cake", "seconds": 1.8,
 			"aura": {"glyph": &"star", "colour": "ffd23a", "amount": 6, "rise": 40.0}}},
-		"pay": {&"wish": {"size": 0.7, "land": "HAPPY BIRTHDAY!"}},
+		"pay": {&"wish": {"size": 0.7, "land": "HAPPY BIRTHDAY!", "shape": &"birthday_wish"}},
 	},
 	&"curveball": {
 		"colour": "e04a4a", "call": "CURVEBALL", "burst": &"ball", "glint": 0.5,
@@ -278,7 +278,7 @@ const LOOKS := {
 		"cue": {"icon": &"towel", "left": &"wrap_left",
 			"aura": {"glyph": &"heart", "colour": "ff8fbb", "amount": 4, "rise": 40.0}},
 		"states": {&"swaddled": {"none": true}},
-		"pay": {&"swaddle": {"size": 0.4}},
+		"pay": {&"swaddle": {"size": 0.4, "shape": &"towel_wrap"}},
 	},
 	&"strike": {
 		"colour": "5a78ff", "call": "BOWL!", "burst": &"pin", "glint": 0.5,
@@ -290,14 +290,14 @@ const LOOKS := {
 		"colour": "4fb8ff", "call": "WRING", "burst": &"drop", "glint": 0.5,
 		"cue": {"icon": &"drop", "left": &"pip_fill"},
 		"states": {&"showered": {"none": true}, &"shake_dry": {"icon": &"drop", "seconds": 1.0}},
-		"pay": {&"wring": {"size": 0.4}},
+		"pay": {&"wring": {"size": 0.4, "shape": &"sponge_suds"}},
 	},
 	&"donut_toss": {
 		"colour": "ff6fae", "call": "DONUT TOSS", "burst": &"donut", "glint": 0.5,
 		"states": {&"donut_incoming": {"icon": &"donut", "seconds": 0.9},
 			&"fed": {"icon": &"donut", "seconds": 1.2,
 				"aura": {"glyph": &"heart", "colour": "ff5f9e", "amount": 4, "rise": 40.0}}},
-		"pay": {&"donut_toss": {"size": 0.5}},
+		"pay": {&"donut_toss": {"size": 0.5, "shape": &"donut_chomp"}},
 	},
 	&"airburst": {
 		"colour": "ff8c1a", "call": "AIRBURST", "burst": &"bomb", "glint": 0.5,
