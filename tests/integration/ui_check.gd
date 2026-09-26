@@ -1278,12 +1278,18 @@ func _numbers_leave_without_a_ghost() -> void:
 
 ## Samples every frame for `seconds`: the faintest alpha any visible number or coin was drawn at,
 ## and which of them were still more than a third of their size on their last visible frame.
+## Watched at quarter speed: a frame is sampled on the wall clock, and on a machine busy with
+## other suites one 60 ms stall carried a coin from half size to gone between two samples, which
+## reads exactly like a coin that vanished.
 func _watch_leaving(fx: Node, seconds: float) -> Dictionary:
+	const SLOW := 0.25
+	var saved_scale := Engine.time_scale
+	Engine.time_scale = SLOW
 	var faintest := 1.0
 	var last_scale := {}
 	var peak_scale := {}
 	var coins := {}
-	var until := Time.get_ticks_msec() + int(seconds * 1000.0)
+	var until := Time.get_ticks_msec() + int(seconds / SLOW * 1000.0)
 	while Time.get_ticks_msec() < until:
 		await get_tree().process_frame
 		for child in fx.get_children():
@@ -1295,6 +1301,7 @@ func _watch_leaving(fx: Node, seconds: float) -> Dictionary:
 			peak_scale[child] = maxf(float(peak_scale.get(child, 0.0)), s)
 			if child is Sprite2D:
 				coins[child] = true
+	Engine.time_scale = saved_scale
 	var popped: Array[String] = []
 	for item in last_scale:
 		if (item as CanvasItem).visible:
