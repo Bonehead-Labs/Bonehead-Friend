@@ -219,8 +219,8 @@ PROJ='C:\Users\George\Godot Projects\Projects\Bonehead_Friend\interactive-buddy-
 "$GODOT" --headless --path "$PROJ" res://tests/integration/toys2_check.tscn
 "$GODOT" --headless --path "$PROJ" res://tests/integration/verbs_check.tscn
 
-# Every held weapon's ability (D74), the cursor powers (D72): each driven with real input and
-# measured. A new ability of an existing archetype is driven automatically; a hook of one brings
+# Every held ability — the 35 melee weapons' (D74) and eleven more on toys, care, food and
+# charges (D78) — and the cursor powers (D72): each driven with real input and measured. A new ability of an existing archetype is driven automatically; a hook of one brings
 # `_drive_<ability id>` or `_drive_<item id>`, and a new archetype fails by name until it has one.
 "$GODOT" --headless --path "$PROJ" res://tests/integration/ability_check.tscn
 "$GODOT" --headless --path "$PROJ" res://tests/integration/powers_check.tscn
@@ -344,7 +344,9 @@ GDScript quirks already paid for once each:
   a `return` in the middle of `FXLayer._ready()` — no parse error, no warning, no missing node,
   and the game simply stopped showing payout numbers, taking hit-stops and playing its knockout
   fountain. `ui_check` now asserts the connections exist and that a payout draws something.
-  Build UI nodes with an explicit `name`, too: `FXLayer.new()` came out as `@CanvasLayer@24`,
+  It happened again at a merge: eighteen synthesised voices were registered after a `return` in
+  `AudioManager` and never played (D78); loop_check now fails any voice id nobody registered. Read
+  the tail of a function a merge touched. Build UI nodes with an explicit `name`, too: `FXLayer.new()` came out as `@CanvasLayer@24`,
   which no test can find and nobody can read in the remote scene tree.
 - **A child of a plain `Control` is never laid out**, so it keeps the zero size it was created
   with — and, just as importantly, keeps its *old* size when its minimum later shrinks. Own
@@ -460,6 +462,26 @@ GDScript quirks already paid for once each:
   black hole at 56,000 px/s); pass a smaller `max_speed` for a slam.
 - **A hold-to-act toy ignores a `Gesture.cancelled` release** — alt-tab mid-draw used to fire the
   slingshot — and a live gesture listens in `_input` so a drag over a HUD panel keeps tracking.
+- **Anything held lets go when the game loses the focus** (D70): the release goes to the other
+  window. `CursorPowerBase.release_hold`, `SpellPower._hold_lost` (a release that is a cast
+  cancels instead), `WeaponAbility._on_focus_lost`, `HeldGun`. D72's spells shipped without it and
+  the meteor shower paid Bones at an empty desk; powers_check and ability_check each drive a
+  focus-out with real presses, so a new held thing gets a line there.
+- **A gap that gates a hit counts physics steps, never the wall clock** (`Buddy.cooldown_steps`).
+  Steps run in bursts — two to a frame at the idle cap, more under load — so a 150 ms cooldown let
+  through a different number of a sweep's contacts at 15 fps than at 30, and the cleaver measured
+  17.3 or 20.7 for the same hit (D74, fixed). A suite that measures a gap on the wall clock flakes
+  when other suites share the machine; slow `Engine.time_scale` or count frames instead.
+- **An act is a hand's** (D76). `Economy.is_unattended(id)` is an `ItemData.is_autonomous` hit (a
+  turret, an animal) or a `world` hit with no hand in the last 3 s (a knockout pauses that clock):
+  it pays Bones, but no per-act Dollar and no contract or milestone count, and unattended damage
+  earns automation's Dollar trickle once a tick. A toy paying him on touch goes through
+  `FriendlyBase._pay_contact`, which is a trickle during his own routine; `pay_act` is always the
+  hand's. A nail gun at an empty desk had been banking 20,000 Dollars an hour.
+- **A held ability on anything is an `AbilityTable` row** (D78): `BaseDraggable._ready` attaches it,
+  not `WeaponBase`. A kind row pays with `give()` / `give_sustained()` and stays under
+  `AbilityTable.KIND_CEILING` (1.5 value a second, D67's); a charge's second press is a `fuse` hook; ability_check wants a `_drive_<ability id>`.
+  After re-seeding an item, re-run `seed_m311_abilities` for its controls line.
 - **Anything an ability or item applies to him happens in `_physics_process`, before
   `Buddy.StepStart`** (D74). From a timer or a deferred call, D64's ledger bills it a second time.
   A hit attributed in `_integrate_forces` is dealt on his next tick: a suite waits two or three
@@ -480,8 +502,10 @@ GDScript quirks already paid for once each:
 - **`instantiate() as T` can come back null and the instance lives on** — free what you instanced
   (it leaked all ten cursor powers from loop_check for a week).
 - **The pacing simulator's first run hinges on the massage chair reaching rank 25 inside the
-  hour-9 play window**, with about a minute to spare (D72): any Hearts purchase in run one pushes
-  the first Reincarnation back ~20 minutes. When pacing fails, check the trees before the prices
+  hour-9 play window**, with little to spare (D72; 9:20 after D78's cake): any Hearts purchase in
+  run one pushes the first Reincarnation back ~20 minutes. An optional fix waits on the owner on
+  branch `opt/d76-first-run-headroom` (`marrow_divisor` 5e6 lands it at 8:01 whatever run one
+  buys, and the kind spells drop to Care prices). When pacing fails, check the trees before the prices
   (the modelled buyer levels every cheap node); `pacing_sim -- --price id=cost` tries a price in
   memory.
 - **A perf number is the minimum of `perf_measure -Repeat 3`**, read with its "everything else"
@@ -610,6 +634,14 @@ meteors, smite, and blessing, levitation and a rainbow on the kind side (D72); *
 where the archetype is not enough, and loop_check fails a melee weapon without one (D74); and the
 art draws as authored now that the shaders stopped squaring every colour (D75). Tools for looking:
 `tools/{fidget_shots,ability_shots,power_shots,gun_shots,soak_shots}.tscn`, all windowed.
+
+The day after (D76–D78): **nobody at the desk is not an act** — turrets, animals and his own play
+pay Bones and Hearts as before but earn Dollars like automation and count on no board (D76); the
+right button reaches **eleven held things beyond the melee drawer** — a curveball, a serve, a
+strike, keepy-uppy, a tickle, a swaddle, a wring, a wish on the cake, a donut toss, an airburst and
+a sticky bomb on a remote — with a design sheet of the other 59 in D78 (eight marked next; a
+turret Overdrive waits on the owner, since right on a placed turret bins it today). D77, a
+readable effect for every ability (ready glint, callout, state on him, payoff), was in flight.
 
 **M3's engineering is closed. What remains of the milestone is the art pass and the two
 playtests — neither of which can be done from a keyboard.** Mood, grime, the Hearts economy, the knockout beat, mastery and the shared pool,
