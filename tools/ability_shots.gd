@@ -7,10 +7,17 @@ extends CaptureWindow
 ##   Godot --fixed-fps 60 --path <project> res://tools/ability_shots.tscn        (NOT --headless)
 ##   ... -- --only=baseball_bat,katana
 ##   ... -- --trace          (where the hand, the handle, the grip and he are at each shot)
+##   ... -- --backdrop=dark  (a flat backdrop behind the desk: `dark` is Charcoal, `chroma` the key
+##                            green; any `Backdrop` id works. Restored afterwards.)
 ##
 ## `--fixed-fps 60` is mandatory: each shot is a frame count after the press, and without it a
-## frame is however long the last PNG took to write. Files land in `user://ability_shots/`. Its own
+## frame is however long the last PNG took to write. Files land in `user://ability_shots/`, or
+## `user://ability_shots_<backdrop>/` with a backdrop, so two passes sit side by side. Its own
 ## save slot and settings file, through `CaptureWindow._use_capture_slot()`.
+##
+## A glint, a badge or a word has to read on the key green a streamer uses and on a dark desk
+## alike — a dark rim vanishes on one and a pale core on the other — which is why the backdrop is a
+## flag rather than whatever the capture's settings file last held (D77 amended).
 ##
 ## **The hand is the tool's, not the cursor.** The root viewport's mouse position is the OS
 ## pointer, which nothing here can move, so each weapon is held the way `tools/swing_rig.gd` holds
@@ -30,12 +37,27 @@ var _hand := Vector2.ZERO
 var _weapon: BaseDraggable
 var _buddy: Buddy
 var _n := 0
+var _out := OUT
+## The backdrop asked for, or empty for whatever the settings file holds.
+var _backdrop_id: StringName = &""
+
+## `dark` is the darkest flat backdrop; `chroma` and the rest are `Backdrop` ids as they are.
+const BACKDROP_ALIASES := {"dark": &"charcoal"}
 
 func _ready() -> void:
 	_use_capture_slot()
 	_had = {"hud": Settings.hud_pinned, "tabs": Settings.tabs_pinned, "scale": Settings.ui_scale,
-		"focus": Settings.focus_intensity}
-	DirAccess.make_dir_recursive_absolute(OUT + "/zoom")
+		"focus": Settings.focus_intensity, "backdrop": Settings.backdrop}
+	for arg in OS.get_cmdline_user_args():
+		if String(arg).begins_with("--backdrop="):
+			var asked := String(arg).trim_prefix("--backdrop=")
+			_backdrop_id = StringName(BACKDROP_ALIASES.get(asked, asked))
+			if not Backdrop.ids().has(_backdrop_id):
+				push_error("ability_shots: no backdrop '%s' (%s)" % [asked, ", ".join(Backdrop.ids())])
+				get_tree().quit(1)
+				return
+			_out = "%s_%s" % [OUT, asked]
+	DirAccess.make_dir_recursive_absolute(_out + "/zoom")
 	Settings.focus_intensity = Settings.Intensity.NORMAL
 	Settings.ui_scale = 0
 	Settings.hud_pinned = true
@@ -46,6 +68,8 @@ func _ready() -> void:
 	add_child(_main)
 	await _idle(20)
 	_show_window(SIZE, "abilities")
+	if _backdrop_id != &"":
+		OverlayManager.set_backdrop(_backdrop_id)
 	await _idle(30)
 	Economy.grant(Economy.BONES, 1.0e7)
 	for id in AbilityTable.item_ids():
@@ -76,11 +100,14 @@ func _ready() -> void:
 		await _stage(id)
 
 	_clear_slot()
-	print("ability_shots: wrote %s" % ProjectSettings.globalize_path(OUT))
+	print("ability_shots: wrote %s" % ProjectSettings.globalize_path(_out))
 	Settings.hud_pinned = _had["hud"]
 	Settings.tabs_pinned = _had["tabs"]
 	Settings.ui_scale = _had["scale"]
 	Settings.focus_intensity = _had["focus"]
+	if _backdrop_id != &"":
+		OverlayManager.set_backdrop(_had["backdrop"])
+	Settings.backdrop = _had["backdrop"]
 	Settings.save_settings()
 	get_tree().quit()
 
@@ -486,7 +513,7 @@ func _shot(name: String, after: int = 0) -> void:
 		return
 	await RenderingServer.frame_post_draw
 	var frame := _grab()
-	frame.save_png("%s/%s.png" % [OUT, name])
+	frame.save_png("%s/%s.png" % [_out, name])
 	# And the part that matters at 3x, nearest-neighbour: a 1x frame of a whole desk is too small
 	# to judge a two-pixel glow or a hole in him by. Centred between the weapon and him.
 	if is_instance_valid(_weapon) and is_instance_valid(_buddy):
@@ -496,7 +523,7 @@ func _shot(name: String, after: int = 0) -> void:
 		if box.size.x > 8 and box.size.y > 8:
 			var crop := frame.get_region(box)
 			crop.resize(box.size.x * 3, box.size.y * 3, Image.INTERPOLATE_NEAREST)
-			crop.save_png("%s/zoom/%s.png" % [OUT, name])
+			crop.save_png("%s/zoom/%s.png" % [_out, name])
 	print("    %s" % name)
 	if OS.get_cmdline_user_args().has("--trace") and is_instance_valid(_weapon):
 		print("      hand %s handle %s grip %s him %s" % [_hand.round(), _weapon.handle.global_position.round(),
