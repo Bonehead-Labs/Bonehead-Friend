@@ -96,6 +96,10 @@ func _ready() -> void:
 	OS.add_logger(_catch)
 	EventBus.payout.connect(_on_payout)
 	EventBus.damage_dealt.connect(_on_damage)
+	# D78's kind rows pay on the bus: what they emit, and the Hearts it came back as.
+	EventBus.kindness_given.connect(_on_kind_act)
+	EventBus.kindness_sustained.connect(_on_kind_rate)
+	EventBus.payout.connect(_on_kind_payout)
 
 	_view = SubViewport.new()
 	_view.name = "Desk"
@@ -110,6 +114,8 @@ func _ready() -> void:
 	print("Bonehead Friend — ability check")
 	print("===============================")
 	_the_table_is_whole()
+	await _the_d78_rows()
+	await _d78_focus_lost()
 
 	var only := _only()
 	for id in AbilityTable.item_ids():
@@ -148,8 +154,11 @@ func _the_table_is_whole() -> void:
 	for id in AbilityTable.item_ids():
 		var row := AbilityTable.row_for(id)
 		var item := ItemDB.get_item(id)
-		_check("%s is an item in the melee drawer" % id,
-			item != null and item.category == ItemData.CATEGORY_WEAPON)
+		# D78: the same button beyond the melee drawer — never on a gun or a power, whose right is
+		# already theirs (D56, D72). The fidget toys are asked in the D78 suite, by what they are.
+		_check("%s is an item in the melee drawer, or in one D78 opened" % id,
+			item != null and (item.category == ItemData.CATEGORY_WEAPON
+				or D78_DRAWERS.has(item.category)))
 		_check("%s names an archetype the table knows" % id,
 			AbilityTable.ARCHETYPES.has(StringName(row.get("archetype", &""))))
 		for key in ["id", "name", "controls", "cooldown", "busy", "worth"]:
@@ -166,6 +175,12 @@ func _the_table_is_whole() -> void:
 func _check_ability(id: StringName) -> void:
 	var row := AbilityTable.row_for(id)
 	_suite("%s — %s (%s)" % [id, row.get("name", ""), row.get("archetype", "")])
+	# D78: anything that is not a melee weapon has a life of its own below — a ball is not swung
+	# through him to learn what an ordinary hit is, and a sponge pays Hearts, not hits.
+	var item := ItemDB.get_item(id)
+	if item and item.category != ItemData.CATEGORY_WEAPON:
+		await _check_held_ability(id)
+		return
 	_id = id
 	_clear_slot()
 	SaveManager.load_game()
@@ -1915,3 +1930,773 @@ func _heavier(body: WeaponBase, ordinary: float) -> float:
 		if m > 1.0005 and not _capped(info):
 			extra += maxf(info.amount / m - ordinary, 0.0)
 	return extra
+
+# --- D78: beyond the melee drawer ---------------------------------------------------------------
+#
+# The same button on a ball, a care item, a box of donuts and two charges. Each row gets the life a
+# weapon's does — it carries its ability, nothing runs at rest, the bin grammar holds, one use is
+# one use, his face answers, everything goes through the real pipeline, the cooldown is refused and
+# comes back, nothing is left behind — measured by what it is rather than by an ordinary swing:
+#
+#   - a kind row by the kindness it paid, on the bus, as Hearts, and never a hit; its `worth` is the
+#     part of that the item would not have paid without it, in pets;
+#   - a charge by its blast against an ordinary blast of the same charge, placed the ordinary way;
+#   - the bowling ball, which is a `WeaponBase`, by an ordinary hit as a weapon is.
+
+## Where a charge sticks or lands moves its blast by this much of an ordinary one, run to run: a
+## sticky bomb clicked at 3.7 s is on a different part of him than one that went at 2.2 s.
+const FUSE_NOISE := 0.5
+
+## Every drawer the right button may be given in (D78): all but the guns and the powers, whose
+## right is already theirs (D56, D72).
+const D78_DRAWERS: Array[int] = [ItemData.CATEGORY_THROWABLE, ItemData.CATEGORY_FRIENDLY,
+	ItemData.CATEGORY_TOY, ItemData.CATEGORY_TURRET, ItemData.CATEGORY_CRITTER,
+	ItemData.CATEGORY_COMFORT, ItemData.CATEGORY_FOOD, ItemData.CATEGORY_AMBIENCE]
+
+## What the item under test emitted on the bus, and the Hearts it came back as.
+var _kind_acts: Array[float] = []
+var _kind_rates: Array[float] = []
+var _kind_hearts := 0
+
+func _on_kind_act(source_id: StringName, value: float, _at: Vector2) -> void:
+	if _id != &"" and source_id == _id:
+		_kind_acts.append(value)
+
+func _on_kind_rate(source_id: StringName, value: float, _at: Vector2) -> void:
+	if _id != &"" and source_id == _id:
+		_kind_rates.append(value)
+
+func _on_kind_payout(currency: StringName, amount: float, _at: Vector2, source_id: StringName) -> void:
+	if _id != &"" and source_id == _id and currency == Economy.HEARTS and amount > 0.0:
+		_kind_hearts += 1
+
+func _reset_probes() -> void:
+	_hits.clear()
+	_claimed.clear()
+	_claimed_seen = false
+	_faces.clear()
+	_pipeline_bad.clear()
+	_kind_acts.clear()
+	_kind_rates.clear()
+	_kind_hearts = 0
+
+func _sum(values: Array[float]) -> float:
+	var total := 0.0
+	for v in values:
+		total += v
+	return total
+
+func _damage_total() -> float:
+	var total := 0.0
+	for info in _hits:
+		total += info.amount
+	return total
+
+## The rows D78 added, as data: each on a side it can pay on, a kind row no faster than D67's
+## ceiling, and none on a thing whose right while held is already its own.
+func _the_d78_rows() -> void:
+	_suite("D78: the rows beyond the melee drawer")
+	var count := 0
+	for id in AbilityTable.item_ids():
+		var item := ItemDB.get_item(id)
+		if item == null or item.category == ItemData.CATEGORY_WEAPON:
+			continue
+		count += 1
+		var row := AbilityTable.row_for(id)
+		var kind := AbilityTable.is_kind(id)
+		_check("%s's row is %s, and the item is bought with %s" % [id, "kind" if kind else "harm",
+			item.currency_id()], kind == (item.currency == ItemData.CURRENCY_HEARTS and item.is_kind()))
+		if kind:
+			_check("%s pays %.2f value a second at most, under D67's ceiling of %.1f" % [id,
+				AbilityTable.kindness_rate(id), AbilityTable.KIND_CEILING],
+				AbilityTable.kindness_rate(id) <= AbilityTable.KIND_CEILING + 0.0001)
+			_check("and adds no damage to the sim", is_equal_approx(AbilityTable.damage_uplift(id, 1.5), 1.0))
+		else:
+			_check("%s adds no kindness to the sim" % id, is_equal_approx(AbilityTable.kindness_uplift(id, 3.0), 1.0))
+		var node: Node = item.scene.instantiate() if item.scene else null
+		var draggable := node is BaseDraggable
+		var own_right := node is HeldGun or node is FidgetToy
+		if node:
+			for child in node.get_children():
+				if child is GestureZones and (child as GestureZones).action_enabled:
+					own_right = true
+			node.free()
+		_check("%s is a thing in the hand, whose right press was not already its own" % id,
+			draggable and not own_right)
+		if row.get("archetype", &"") == &"fuse":
+			_check("%s, a fuse, is on a charge" % id, item.category == ItemData.CATEGORY_THROWABLE)
+	_check("%d rows beyond the melee drawer" % count, count >= 8)
+
+## One D78 row, on a desk of its own.
+func _check_held_ability(id: StringName) -> void:
+	var row := AbilityTable.row_for(id)
+	var kind := AbilityTable.is_kind(id)
+	var fuse := StringName(row.get("archetype", &"")) == &"fuse"
+	_id = id
+	_clear_slot()
+	SaveManager.load_game()
+	await _build_stage()
+	_own(id)
+	_catch.take()
+	seed(hash(String(id)))
+	_reset_probes()
+
+	# A charge is measured against an ordinary blast of itself, set off the ordinary way first.
+	var ordinary := 0.0
+	if fuse:
+		ordinary = await _ordinary_blast(id)
+		_check("an ordinary blast lands (%.1f)" % ordinary, ordinary > 0.0)
+
+	var body := await _spawn_any(id, _centre() + Vector2(-260.0, -150.0))
+	if body == null:
+		_check("%s spawns" % id, false)
+		await _free_stage()
+		return
+	var ability := body.ability
+	var archetype := StringName(row.get("archetype", &""))
+	_check("it carries its ability, the %s archetype" % archetype,
+		ability != null and ability.archetype() == archetype and ability.row == row)
+	if ability == null:
+		await _free_stage()
+		return
+
+	# --- lying on the desk ---------------------------------------------------------------
+	await _await_still(body, 60)
+	_check("at rest nothing of it runs", not ability.is_busy())
+	if fuse:
+		_check("right on it lying there is still its fuse, never the bin (D59)",
+			body.right_click_is_mine() and not body.click_would_bin(false) and body.click_would_bin(true))
+	else:
+		_check("right on it lying there is still the bin",
+			not body.right_click_is_mine() and body.click_would_bin(false) and body.click_would_bin(true))
+	var press := InputEventMouseButton.new()
+	press.button_index = MOUSE_BUTTON_RIGHT
+	press.pressed = true
+	_check("a right press on it unheld is not the ability", not ability.take(press) and ability.uses == 0)
+
+	# --- in the hand -----------------------------------------------------------------------
+	if not await _grab(body):
+		_check("its grab region takes a click", false)
+		await _free_stage()
+		return
+	_check("held, right is its own and Shift+right is still the bin",
+		body.right_click_is_mine() and not body.click_would_bin(false) and body.click_would_bin(true))
+	if body is WeaponBase:
+		_buddy.health.reset_meter()
+		ordinary = await _ordinary_hit(body as WeaponBase)
+		_check("an ordinary swing lands (%.1f a hit)" % ordinary, ordinary > 0.0)
+	await _settle_him()
+	_reset_probes()
+	var before_uses := ability.uses
+
+	var driver := "_drive_%s" % row.get("id", "")
+	if not has_method(driver):
+		_check("a driver for %s — add `%s` before this ability can ship" % [row.get("id", ""), driver],
+			false)
+		await _free_stage()
+		return
+	var measured: Dictionary = await call(driver, body, ability)
+	# A charge is spent with its blast: its ability goes with it, and is never read once it may be.
+	var uses := int(measured.get("uses", -1))
+	if uses < 0 and not fuse and is_instance_valid(ability):
+		uses = ability.uses
+	_check("one use was counted", uses == before_uses + 1)
+
+	# --- what it paid ----------------------------------------------------------------------
+	await _step(20)
+	var consumed := fuse or _gone(body) or not is_instance_valid(ability)
+	var worth := 0.0
+	var declared := float(row.get("worth", 0.0))
+	if kind:
+		_check("a kind ability bills him nothing (%d hits)" % _hits.size(), _hits.is_empty())
+		var events := _kind_acts.size() + _kind_rates.size()
+		_check("everything it paid went on the bus and came back as Hearts (%d events, %d payouts)"
+			% [events, _kind_hearts], events > 0 and _kind_hearts == events)
+		worth = float(measured.get("extra", ability.given_extra if not consumed else 0.0))
+		_check("one use added %.1f value of its own, and the row says %.1f (x%.1f slack)"
+			% [worth, declared, WORTH_SLACK], worth > 0.0 and worth <= declared * WORTH_SLACK)
+	else:
+		_check("every hit was paid through the pipeline to the unit%s"
+			% ("" if _pipeline_bad.is_empty() else ": " + _pipeline_bad[0]), _pipeline_bad.is_empty())
+		if not consumed and body is WeaponBase:
+			var bad_mult := _bad_multiplier(body as WeaponBase)
+			_check("every hit it caused carries a multiplier the data allows%s" % bad_mult, bad_mult == "")
+			worth = _extra_damage(body as WeaponBase, archetype, ordinary) / maxf(ordinary, 0.01)
+		else:
+			worth = float(measured.get("blast", 0.0)) / maxf(ordinary, 0.01) - 1.0
+		_check("one use added %.2f ordinary %s' worth, and the row says %.2f (x%.1f slack)"
+			% [worth, "blasts" if fuse else "hits", declared, WORTH_SLACK],
+			worth <= maxf(declared, 0.05) * WORTH_SLACK + (FUSE_NOISE if fuse else 0.0))
+
+	if consumed:
+		# A charge is gone with its blast; there is no cooldown to wait out and nothing to bin.
+		_check("it is used up, and gone from the desk", _gone(body))
+	else:
+		# --- the cooldown ---------------------------------------------------------------
+		if not body.dragging:
+			await _grab(body)
+		await _await_cond(func() -> bool: return not ability.is_active(), 600)
+		_check("its effect ends", not ability.is_active())
+		_check("and it is cooling down (%.1f s)" % ability.cooldown_left(), ability.is_cooling())
+		var used := ability.uses
+		var refused := ability.denied
+		_press(MOUSE_BUTTON_RIGHT)
+		await _step(2)
+		_release(MOUSE_BUTTON_RIGHT)
+		await _step(2)
+		_check("a press inside the cooldown is refused", ability.uses == used and ability.denied == refused + 1)
+		_check("and does not throw it away", not _gone(body) and body.dragging)
+		var pip := ability.get_node_or_null("AbilityPip") as Node2D
+		_check("the pip is drawn by the hand while it cools", pip != null and pip.visible)
+		var wait := int((ability.cooldown_left() + 0.3) * 60.0)
+		await _await_cond(func() -> bool: return ability.is_ready(), wait + 60)
+		_check("it is ready again when the cooldown is up", ability.is_ready())
+		_check("and the pip is gone", pip == null or not pip.visible)
+		# What an ability puts back when it is ready again, if it puts anything back: a candle.
+		var after := "_after_cooldown_%s" % row.get("id", "")
+		if has_method(after):
+			await call(after, body, ability)
+
+		# --- at rest, and away ------------------------------------------------------------
+		_release(MOUSE_BUTTON_LEFT)
+		await _await_still(body, 90)
+		await _step(4)
+		_check("put down and idle, nothing of it runs", not ability.is_busy())
+		if await _grab(body):
+			_move(_grab_point(body))
+			await _step(2)
+			_press(MOUSE_BUTTON_RIGHT, true)
+			_release(MOUSE_BUTTON_RIGHT, true)
+			await _step(3)
+			_check("Shift+right in the hand bins it", _gone(body))
+	_release_all()
+	var errors := _catch.take()
+	_check("nothing was pushed to the error log%s" % ("" if errors.is_empty() else ": " + errors[0]),
+		errors.is_empty())
+	await _step(60)
+	_check("and nothing of it is left behind", _leftovers() == "" and _d78_leftovers() == "")
+
+	measured.erase("uses")
+	measured.erase("extra")
+	measured["ordinary"] = ordinary
+	measured["worth"] = worth
+	_report.append("%-14s %s" % [id, _format(measured)])
+	await _free_stage()
+
+func _spawn_any(id: StringName, at: Vector2) -> BaseDraggable:
+	EventBus.spawn_requested.emit(id, at)
+	var node: Node = _spawner._active.back() if not _spawner._active.is_empty() else null
+	await _step(2)
+	return node as BaseDraggable
+
+## What D78's abilities could leave behind that D74's could not: a drop, a donut, a light, a towel
+## still over him.
+func _d78_leftovers() -> String:
+	if not is_instance_valid(_stage):
+		return ""
+	for node in _stage.get_children():
+		if node is AbilityShot and not node.is_queued_for_deletion():
+			return "a %s" % String(node.name).to_lower()
+	if is_instance_valid(_buddy) and _buddy.get_collision_exceptions().size() > 0:
+		return "an exception on him"
+	return ""
+
+## The charge set off the ordinary way, for what an ordinary blast of it is worth: lit, and put on
+## him (a sticky bomb) or let go beside him (anything else).
+func _ordinary_blast(id: StringName) -> float:
+	var probe := await _spawn_any(id, _centre() + Vector2(-260.0, -150.0)) as ThrowableBase
+	if probe == null:
+		return 0.0
+	await _await_still(probe, 60)
+	if not await _grab(probe):
+		probe.bin_myself()
+		return 0.0
+	_press(MOUSE_BUTTON_RIGHT)
+	await _step()
+	_release(MOUSE_BUTTON_RIGHT)
+	await _step()
+	if probe is StickyBomb:
+		await _stick_on_him(probe as StickyBomb)
+	else:
+		# Let go just clear of his side, above the desk, the best an ordinary throw can do without
+		# touching him: carried in against him it shoves him out of its own blast (107 px, measured),
+		# and dropped on his head it bills the bump.
+		var rect := _buddy.get_interaction_rect()
+		var beside := Vector2(rect.position.x - 30.0, rect.get_center().y - 20.0)
+		await _mouse_to(Vector2(_mouse.x, rect.position.y - 120.0), 800.0)
+		await _mouse_to(Vector2(beside.x, rect.position.y - 120.0), 800.0)
+		await _mouse_to(beside, 500.0)
+		await _steady(probe, 30)
+		_release(MOUSE_BUTTON_LEFT)
+	# Only the blast: carrying it into place may have bumped him, which is its own contact.
+	_hits.clear()
+	# A plain loop, not `_await_cond`: a lambda holding the charge errors every frame once it is freed.
+	for i in 480:
+		if _gone(probe):
+			break
+		await _step()
+	await _step(60)
+	var total := _damage_total()
+	_hits.clear()
+	await _settle_him()
+	return total
+
+## Carried into him until it sticks, then let go of.
+func _stick_on_him(bomb: StickyBomb) -> void:
+	await _mouse_to(_centre() + Vector2(-160.0, -30.0), 800.0)
+	await _steady(bomb, 30)
+	for i in 90:
+		if bomb.is_stuck():
+			break
+		_move(_mouse.move_toward(_centre(), 10.0))
+		await _step()
+	_release(MOUSE_BUTTON_LEFT)
+	await _step(4)
+
+# --- D78 drivers --------------------------------------------------------------------------------
+
+## Strike: bowled from beside him at desk height, it rolls in along the desk, billed once at its
+## multiplier, and he goes over like a pin, his landing the ball's.
+func _drive_strike(body: BaseDraggable, ability: StrikeAbility) -> Dictionary:
+	var start := Vector2(_centre().x - 330.0, _centre().y)
+	await _mouse_to(Vector2(_mouse.x, start.y - 60.0), 700.0)
+	await _mouse_to(start, 700.0)
+	await _steady(body, 60)
+	await _settle_him()
+	_reset_probes()
+	var turned_from := _buddy.rotation
+	_press(MOUSE_BUTTON_RIGHT)
+	await _step()
+	_release(MOUSE_BUTTON_RIGHT)
+	await _step()
+	_check("a tap bowls it: it leaves the hand", not body.dragging and ability.is_active())
+	var peak := 0.0
+	for i in 180:
+		peak = maxf(peak, absf(body.linear_velocity.x))
+		if ability.strikes > 0 or not ability.is_active():
+			break
+		await _step()
+	_check("it rolls along the desk at him (%.0f px/s)" % peak, peak >= ability.num("roll_speed", 900.0) * 0.6)
+	_check("and it reaches him: a strike", ability.strikes == 1)
+	var claimed := _buddy.impacts_claimed_by() == _id
+	await _step(3)
+	var hit := _hit_with_impulse(ability.last_hit)
+	var base := Progression.damage_mult_for(_id, (body as WeaponBase).damage_mult)
+	var want := base * ability.num("strike_mult", 1.5)
+	_check("the strike is billed once as its own impulse, at x%.2f" % ability.num("strike_mult", 1.5),
+		_hits_with_impulse(ability.last_hit) == 1 and hit != null
+		and (_capped(hit) or absf(_mult_of(hit) - want) <= 0.001 * want))
+	var turned := 0.0
+	for i in 50:
+		turned = maxf(turned, absf(angle_difference(turned_from, _buddy.rotation)))
+		await _step()
+	_check("he goes over like a pin (%.2f rad)" % turned, turned >= 0.6)
+	_check("and where he comes down is the ball's", claimed)
+	await _expect_face(&"bowled", &"bowled")
+	await _await_cond(func() -> bool: return not ability.is_active(), 240)
+	_check("it stays where it rolled: a bowling ball is fetched", not body.dragging)
+	return {"speed": peak, "arrived": ability.arrived_at, "strike": ability.last_hit, "turned": turned,
+		"hits": _hits.size()}
+
+## Curveball: pitched from 300 px, it breaks down into his hands, pays two catches, and he throws
+## it back to the hand that is still holding left.
+func _drive_curveball(body: BaseDraggable, ability: CurveballAbility) -> Dictionary:
+	await _mouse_to(_centre() + Vector2(-300.0, -30.0), 700.0)
+	await _steady(body, 60)
+	await _settle_him()
+	_reset_probes()
+	_press(MOUSE_BUTTON_RIGHT)
+	await _step()
+	_release(MOUSE_BUTTON_RIGHT)
+	await _step()
+	_check("a tap pitches it (%.0f px/s)" % ability.last_throw_speed, not body.dragging and ability.is_active())
+	await _await_cond(func() -> bool: return ability.catches > 0 or not ability.is_active(), 150)
+	_check("it breaks late (%.0f px/s of bend)" % ability.bend, ability.broke and ability.bend >= 150.0)
+	_check("and drops into his hands: caught", ability.catches == 1)
+	var catch_value := ability._catch_value()
+	var curve := ability.num("curve_mult", 2.0)
+	_check("a curveball pays two catches (%.1f), one of them its own (%.1f)" % [ability.given,
+		ability.given_extra], is_equal_approx(ability.given, catch_value * curve)
+		and is_equal_approx(ability.given_extra, catch_value * (curve - 1.0)))
+	await _expect_face(&"caught_it", &"catch")
+	await _await_cond(func() -> bool: return ability.thrown_back or not ability.is_active(), 90)
+	_check("he throws it back", ability.thrown_back)
+	await _await_cond(func() -> bool: return body.dragging or not ability.is_active(), 240)
+	_check("and it comes home to the hand", ability.caught and body.dragging)
+	return {"speed": ability.last_throw_speed, "bend": ability.bend, "caught": ability.catches,
+		"home": ability.caught}
+
+## Keepy-Uppy: lobbed from beside him, he heads it up four times and the last one home.
+func _drive_keepy_uppy(body: BaseDraggable, ability: KeepyUppyAbility) -> Dictionary:
+	await _mouse_to(_centre() + Vector2(-220.0, -60.0), 700.0)
+	await _steady(body, 60)
+	await _settle_him()
+	_reset_probes()
+	_press(MOUSE_BUTTON_RIGHT)
+	await _step()
+	_release(MOUSE_BUTTON_RIGHT)
+	await _step()
+	_check("a tap lobs it", not body.dragging and ability.is_active())
+	await _await_cond(func() -> bool: return ability.headed_home or not ability.is_active(), 480)
+	var want := int(ability.num("headers", 4))
+	_check("he heads it up %d times (%d)" % [want, ability.count], ability.count == want)
+	_check("each header an act on the bus (%d acts)" % _kind_acts.size(), _kind_acts.size() >= ability.count)
+	_check("up over his skull each time (%.0f px at best)" % ability.peak_height, ability.peak_height >= 80.0)
+	await _expect_face(&"header", &"heading")
+	await _await_cond(func() -> bool: return body.dragging or not ability.is_active(), 240)
+	_check("and the last one comes home to the hand", ability.headed_home and body.dragging)
+	return {"headers": ability.count, "peak": ability.peak_height, "home": body.dragging}
+
+## Wring: held over a grimy skeleton for its whole fuel, it rains; the drops take grime off, paid as
+## the sponge pays for it, the first a rinse; he shakes himself dry.
+func _drive_wring(body: BaseDraggable, ability: WringAbility) -> Dictionary:
+	var over := Vector2(_centre().x, _buddy.get_interaction_rect().position.y - 70.0)
+	await _mouse_to(Vector2(_mouse.x, over.y), 700.0)
+	await _mouse_to(over, 600.0)
+	await _steady(body, 60)
+	await _settle_him()
+	# Not so much that it all comes off: clean through, he sparkles instead of shaking dry (both are
+	# a `shake_off`, and the sparkle is the heavier row).
+	_buddy.grime.add(1.0)
+	var grime_before := _buddy.grime.value
+	var s := ability.sprite()
+	var rest := s.scale if s else Vector2.ONE
+	_reset_probes()
+	_press(MOUSE_BUTTON_RIGHT)
+	var hold := int((ability.num("fuel_seconds", 2.0) + 0.2) * 60.0)
+	for i in hold:
+		var here := Vector2(_centre().x, _buddy.get_interaction_rect().position.y - 70.0)
+		_move(here + Vector2(8.0 * sin(float(i) * 0.15), 0.0))
+		await _step()
+		if i == 40:
+			_check("squeezed, it is flatter in the hand", s == null or s.scale.y < rest.y * 0.95)
+	_release(MOUSE_BUTTON_RIGHT)
+	await _await_cond(func() -> bool: return not ability.is_active(), 180)
+	var cleaned := grime_before - _buddy.grime.value
+	_check("it rains: %d drops" % ability.drops, ability.drops >= 15)
+	_check("and they land on him (%d)" % ability.landed, ability.landed >= 5)
+	_check("taking grime off him (%.3f of %.3f)" % [cleaned, grime_before], cleaned >= 0.1
+		and is_equal_approx(cleaned, ability.cleaned))
+	var paid := _sum(_kind_rates) / ability.kind_value()
+	var want := ability.cleaned * ItemDB.balance.hearts_per_grime_cleaned
+	_check("paid exactly as the sponge pays for grime (%.2f, the rule says %.2f)" % [paid, want],
+		absf(paid - want) <= 0.001 * maxf(want, 1.0))
+	_check("and the rinse is one act of its own (%.1f)" % ability.given_extra,
+		_kind_acts.size() == 1 and is_equal_approx(ability.given_extra, ability.num("rinse_value", 2.0)))
+	_check("the sponge is itself again", s == null or s.scale.is_equal_approx(rest))
+	await _expect_face(&"showered", &"showered")
+	await _expect_face(&"shake_dry", &"shaking_dry")
+	return {"drops": ability.drops, "landed": ability.landed, "cleaned": cleaned}
+
+## Tickle: its feathers on his side, held for its whole fuel: he giggles every tick, an act each.
+func _drive_tickle(body: BaseDraggable, ability: TickleAbility) -> Dictionary:
+	var rect := _buddy.get_interaction_rect()
+	var at := Vector2(rect.position.x + 6.0, rect.get_center().y - 12.0)
+	await _mouse_to(Vector2(_mouse.x, rect.position.y - 120.0), 700.0)
+	await _mouse_to(Vector2(at.x - 60.0, rect.position.y - 120.0), 700.0)
+	await _mouse_to(at, 400.0)
+	await _steady(body, 40)
+	await _settle_him()
+	var s := ability.sprite()
+	var rest_rot := s.rotation if s else 0.0
+	_reset_probes()
+	_press(MOUSE_BUTTON_RIGHT)
+	var hold := int((ability.num("fuel_seconds", 2.4) + 0.2) * 60.0)
+	for i in hold:
+		var r := _buddy.get_interaction_rect()
+		_move(Vector2(r.position.x + 6.0, r.get_center().y - 12.0) + Vector2(0.0, 6.0 * sin(float(i) * 0.3)))
+		await _step()
+	_release(MOUSE_BUTTON_RIGHT)
+	await _await_cond(func() -> bool: return not ability.is_active(), 60)
+	_check("it flutters on him and he giggles (%d)" % ability.giggles, ability.giggles >= 4)
+	_check("every giggle one act (%d acts)" % _kind_acts.size(), _kind_acts.size() == ability.giggles)
+	_check("worth %.1f each" % ability.num("giggle_value", 0.8),
+		is_equal_approx(ability.given_extra, ability.giggles * ability.num("giggle_value", 0.8)))
+	_check("the duster is still again", s == null or is_equal_approx(s.rotation, rest_rot))
+	await _expect_face(&"tickled", &"tickled")
+	return {"giggles": ability.giggles, "peak_rev": ability.peak_rev}
+
+## Swaddle: tossed from 200 px, it wraps round his shoulders and rides him; warm the whole time,
+## then it slides off.
+func _drive_swaddle(body: BaseDraggable, ability: SwaddleAbility) -> Dictionary:
+	await _mouse_to(_centre() + Vector2(-200.0, -60.0), 700.0)
+	await _steady(body, 60)
+	await _settle_him()
+	_reset_probes()
+	_press(MOUSE_BUTTON_RIGHT)
+	await _step()
+	_release(MOUSE_BUTTON_RIGHT)
+	await _step()
+	_check("a tap throws it", not body.dragging and ability.is_active())
+	await _await_cond(func() -> bool: return ability.is_wrapped() or not ability.is_active(), 120)
+	_check("round his shoulders", ability.is_wrapped())
+	await _step(5)
+	var local0 := _buddy.to_local(body.global_position)
+	_buddy.apply_central_impulse(Vector2(220.0, -120.0) * _buddy.mass)
+	await _step(20)
+	var drift := local0.distance_to(_buddy.to_local(body.global_position))
+	_check("it rides him (%.1f px drift in his frame)" % drift, ability.is_wrapped() and drift <= 1.5)
+	await _expect_face(&"swaddled", &"swaddled")
+	await _await_cond(func() -> bool: return not ability.is_wrapped(), 420)
+	var seconds := ability.num("wrap_seconds", 5.0)
+	_check("it comes off when its time is up (%.2f s on him)" % ability.wrap_time,
+		ability.came_off == &"time" and ability.wrap_time >= seconds - 0.1)
+	var warm := _sum(_kind_rates) / ability.kind_value()
+	var want := ability.num("warm_rate", 3.0) * seconds
+	_check("warm the whole time: %.1f, the rate says %.1f" % [warm, want], absf(warm - want) <= want * 0.1)
+	_check("and the wrap itself one act (%d)" % _kind_acts.size(), _kind_acts.size() == 1)
+	return {"wrapped": ability.wrap_time, "warm": warm, "drift": drift}
+
+## Donut Toss: one tap from 220 px; the donut goes over and into him, one helping from the box.
+func _drive_donut_toss(body: BaseDraggable, ability: DonutTossAbility) -> Dictionary:
+	var box := body as FriendlyBase
+	var eaten := box._eaten
+	await _mouse_to(_centre() + Vector2(-220.0, -40.0), 700.0)
+	await _steady(body, 60)
+	await _settle_him()
+	_reset_probes()
+	_press(MOUSE_BUTTON_RIGHT)
+	await _step()
+	_release(MOUSE_BUTTON_RIGHT)
+	await _step()
+	_check("a tap flips a donut out and it stays in the hand", ability.tossed == 1 and body.dragging)
+	await _await_cond(func() -> bool: return not ability.is_active(), 180)
+	_check("into his mouth", ability.caught_donuts == 1)
+	_check("one helping from the box (%d left)" % ability.helpings(), box._eaten == eaten + 1)
+	var helping := box.hearts_per_contact
+	var bonus := ability.num("fed_bonus", 1.0)
+	_check("paid as the helping the box would have (%.1f) and the hand-fed bonus (%.1f)"
+		% [ability.given, ability.given_extra], is_equal_approx(ability.given, helping + bonus)
+		and is_equal_approx(ability.given_extra, bonus) and _kind_acts.size() == 1)
+	await _expect_face(&"fed", &"eat")
+	return {"tossed": ability.tossed, "caught": ability.caught_donuts, "left": ability.helpings()}
+
+## Remote: lit by the first press as ever, put on the clicker by the second; stuck to him it waits
+## out its fuse, and a click on it sets it off.
+func _drive_remote(body: BaseDraggable, ability: RemoteFuse) -> Dictionary:
+	var bomb := body as StickyBomb
+	_press(MOUSE_BUTTON_RIGHT)
+	await _step()
+	_release(MOUSE_BUTTON_RIGHT)
+	await _step()
+	_check("the first right press lights it, as it always did", bomb.is_primed and ability.uses == 0
+		and not ability.is_active())
+	_press(MOUSE_BUTTON_RIGHT)
+	await _step()
+	_release(MOUSE_BUTTON_RIGHT)
+	await _step()
+	_check("right again puts it on the clicker", ability.holds_fuse() and ability.uses == 1)
+	var led := body.get_node_or_null("RemoteLed") as Node2D
+	_check("a light on it", led != null and led.visible)
+	var uses := ability.uses
+	await _stick_on_him(bomb)
+	_check("thrown into him, it sticks", bomb.is_stuck())
+	# Carried into him it bumped him, which is the bomb's own contact: the fuse is what is watched.
+	_hits.clear()
+	await _step(int((bomb.throwable_delay + 0.8) * 60.0))
+	_check("its fuse runs out and it does not go (%.1f s on the clicker)" % ability.held_for,
+		not _gone(bomb) and ability.holds_fuse() and _hits.is_empty())
+	_check("and it rides him", ability.rode_him and bomb.is_stuck())
+	await _expect_face(&"ticking", &"ticking")
+	var base := Progression.damage_mult_for(_id, bomb.damage_mult)
+	_move(_grab_point(bomb))
+	await _step(2)
+	_press(MOUSE_BUTTON_RIGHT)
+	await _step()
+	var went: StringName = ability.went if is_instance_valid(ability) else &""
+	_release(MOUSE_BUTTON_RIGHT)
+	_check("a click on it sets it off, there and then (%s)" % went, went == &"clicked")
+	await _step(30)
+	_check("and it went off on him (%d hits)" % _hits.size(), _hits.size() >= 1)
+	var bad := false
+	for info in _hits:
+		bad = bad or (not _capped(info) and absf(_mult_of(info) - base) > 0.001 * base)
+	_check("every hit at the charge's own multiplier", not bad)
+	return {"uses": uses, "blast": _damage_total(), "hits": _hits.size()}
+
+## Airburst: lit, set, carried over his head and let go: it bursts over him and the bomblets land on
+## a ring round his feet.
+func _drive_airburst(body: BaseDraggable, ability: AirburstFuse) -> Dictionary:
+	var bomb := body as ClusterBomb
+	var submunitions := bomb.submunitions
+	var height := ability.num("height", 60.0)
+	var ring := ability.num("ring", 70.0)
+	_press(MOUSE_BUTTON_RIGHT)
+	await _step()
+	_release(MOUSE_BUTTON_RIGHT)
+	await _step()
+	_check("the first right press lights it, as it always did", bomb.is_primed and ability.uses == 0)
+	_press(MOUSE_BUTTON_RIGHT)
+	await _step()
+	_release(MOUSE_BUTTON_RIGHT)
+	await _step()
+	_check("right again sets it to burst", ability.holds_fuse() and ability.uses == 1)
+	var uses := ability.uses
+	var rect := _buddy.get_interaction_rect()
+	var over := Vector2(rect.get_center().x, rect.position.y - 150.0)
+	await _mouse_to(Vector2(_mouse.x, over.y), 900.0)
+	await _mouse_to(over, 900.0)
+	await _steady(bomb, 20)
+	_check("held over him, it waits in the hand", not _gone(bomb) and ability.holds_fuse())
+	_hits.clear()
+	_release(MOUSE_BUTTON_LEFT)
+	for i in 120:
+		if not is_instance_valid(ability) or ability.went != &"":
+			break
+		await _step()
+	var went: StringName = ability.went if is_instance_valid(ability) else &"gone"
+	var burst: Vector2 = ability.burst_over if is_instance_valid(ability) else Vector2.INF
+	var points: Array[Vector2] = []
+	if is_instance_valid(ability):
+		points = ability.points.duplicate()
+	_check("let go over him, it bursts overhead (%s)" % went, went == &"over_him")
+	_check("well over his skull (%.0f px over his middle)" % (-burst.y if burst != Vector2.INF else 0.0),
+		burst != Vector2.INF and -burst.y >= rect.size.y * 0.5 + height)
+	rect = _buddy.get_interaction_rect()
+	var on_ring := points.size() == submunitions
+	for p in points:
+		on_ring = on_ring and absf(p.x - rect.get_center().x) <= ring + 4.0 and absf(p.y - rect.end.y) <= 24.0
+	_check("its %d bomblets sent to a ring round his feet" % points.size(), on_ring)
+	await _step(80)
+	var landed := 0
+	for info in _hits:
+		for p in points:
+			if info.position.distance_to(p) <= 1.0:
+				landed += 1
+				break
+	_check("and they land round him (%d of %d reach him)" % [landed, points.size()], landed >= 2)
+	return {"uses": uses, "blast": _damage_total(), "hits": _hits.size(),
+		"height": -burst.y if burst != Vector2.INF else 0.0}
+
+## Make a Wish: held up beside his face, gathered to full and let go; he blows the candles out, the
+## wish is one act, the cake is not eaten, and the candles are lit again after the cooldown.
+func _drive_make_a_wish(body: BaseDraggable, ability: MakeAWishAbility) -> Dictionary:
+	var rect := _buddy.get_interaction_rect()
+	var at := Vector2(rect.position.x - 130.0, rect.position.y + 10.0)
+	await _mouse_to(Vector2(_mouse.x, rect.position.y - 80.0), 700.0)
+	await _mouse_to(at, 600.0)
+	await _steady(body, 60)
+	await _settle_him()
+	var s := ability.sprite() as Sprite2D
+	var lit := s.texture if s else null
+	_reset_probes()
+	_press(MOUSE_BUTTON_RIGHT)
+	var hold := int((ability.num("charge_seconds", 1.2) + 0.2) * 60.0)
+	for i in hold:
+		_move(_mouse)
+		await _step()
+	_check("held up to him, the wish gathers (%.2f)" % ability.charge(), ability.charge() >= 0.99)
+	var glow := s.get_node_or_null("WishGlow") as Node2D if s else null
+	_check("and the flames swell", glow != null and glow.visible)
+	_release(MOUSE_BUTTON_RIGHT)
+	await _expect_face(&"wish", &"wishing")
+	await _await_cond(func() -> bool: return ability.is_blown_out() or not ability.is_active(), 90)
+	_check("he blows them out", ability.is_blown_out() and ability.wishes == 1)
+	var unlit := s.texture if s else null
+	var flame: Vector2 = (ability.row.get("wicks", [Vector2(27, 18)]) as Array)[0]
+	var gone := unlit != null and unlit != lit and unlit.get_image().get_pixelv(Vector2i(flame)).a < 0.01 \
+		and lit.get_image().get_pixelv(Vector2i(flame)).a > 0.5
+	_check("and the flames are gone from the picture", gone)
+	_check("the wish is one act of its own (%.1f)" % ability.given_extra,
+		_kind_acts.size() == 1 and is_equal_approx(ability.given_extra, ability.num("wish_value", 8.0)))
+	_check("and the cake is still his to eat", not _gone(body))
+	return {"charge": ability.last_charge, "wishes": ability.wishes}
+
+## And when the cooldown is up, the candles are lit again.
+func _after_cooldown_make_a_wish(_body: BaseDraggable, ability: MakeAWishAbility) -> void:
+	var s := ability.sprite() as Sprite2D
+	_check("the candles relight when the cooldown is up", not ability.is_blown_out() and s != null
+		and s.texture == ability._lit_texture and s.texture.get_image().get_pixelv(
+		Vector2i((ability.row.get("wicks", [Vector2(27, 18)]) as Array)[0])).a > 0.5)
+
+## Serve: held, it is tossed up; let go at the top of the toss and it goes flat and fast at him, an
+## ace; he takes it, it pays his catch and the ace's share, and he volleys it home to the hand.
+func _drive_serve(body: BaseDraggable, ability: ServeAbility) -> Dictionary:
+	await _mouse_to(_centre() + Vector2(-280.0, -20.0), 700.0)
+	await _steady(body, 60)
+	await _settle_him()
+	_reset_probes()
+	var from := body.global_position
+	_press(MOUSE_BUTTON_RIGHT)
+	await _step()
+	_check("held, it is tossed up out of the hand", not body.dragging and ability.is_active())
+	var top := from.y
+	for i in 120:
+		top = minf(top, body.global_position.y)
+		if ability.timing_now() >= 0.98 or ability._t >= ability._apex_seconds:
+			break
+		await _step()
+	_check("up it goes (%.0f px)" % (from.y - top), from.y - top >= 80.0)
+	_release(MOUSE_BUTTON_RIGHT)
+	await _step()
+	_check("let go at the top, it is an ace's timing (%.2f) and flat and fast (%.0f px/s)"
+		% [ability.timing, ability.serve_speed], ability.timing >= ability.num("ace", 0.8)
+		and ability.serve_speed >= ability.num("max_speed", 1150.0) * 0.9)
+	await _await_cond(func() -> bool: return ability.returned > 0 or not ability.is_active(), 120)
+	_check("he takes it: an ace (%d)" % ability.aces, ability.returned == 1 and ability.aces == 1)
+	var catch_value := float(body.get(&"hearts_per_contact"))
+	var bonus := ability.num("ace_value", 6.0) * ability.timing
+	_check("his catch (%.1f) and the ace's share (%.1f), one act" % [catch_value, ability.given_extra],
+		_kind_acts.size() == 1 and is_equal_approx(ability.given, catch_value + bonus)
+		and is_equal_approx(ability.given_extra, bonus))
+	await _expect_face(&"volley", &"volleying")
+	await _await_cond(func() -> bool: return body.dragging or not ability.is_active(), 240)
+	_check("and he volleys it home to the hand", ability.caught and body.dragging)
+	return {"toss": from.y - top, "timing": ability.timing, "speed": ability.serve_speed,
+		"aces": ability.aces}
+
+## D70's rule for anything held down: losing the focus is letting go, never the release that did not
+## come. Each D78 ability that runs while right is held is pressed, the window loses the focus, and it
+## must have let go — the flutter and the squeeze stopped, the wish fizzled, the toss a fault — and
+## the right button must not be left held down inside it.
+const D78_HELD: Array[StringName] = [&"feather_duster", &"sponge", &"birthday_cake", &"tennis_ball"]
+
+func _d78_focus_lost() -> void:
+	var only := _only()
+	var ran := false
+	for id in D78_HELD:
+		if not only.is_empty() and not only.has(String(id)):
+			continue
+		if not ran:
+			_suite("D78: losing the focus is letting go (D70)")
+			ran = true
+		_id = id
+		_clear_slot()
+		SaveManager.load_game()
+		await _build_stage()
+		_own(id)
+		var body := await _spawn_any(id, _centre() + Vector2(-260.0, -150.0))
+		if body == null or body.ability == null or not await _grab(body):
+			_check("%s is in the hand with its ability" % id, false)
+			await _free_stage()
+			continue
+		var ability := body.ability
+		await _mouse_to(_centre() + Vector2(-170.0, -60.0), 700.0)
+		await _steady(body, 40)
+		_press(MOUSE_BUTTON_RIGHT)
+		await _step(20)
+		var was_active := ability.is_active()
+		body.propagate_notification(NOTIFICATION_APPLICATION_FOCUS_OUT)
+		await _step(3)
+		var let_go := not ability.right_held()
+		match id:
+			&"feather_duster":
+				_check("the duster: fluttering, the focus goes and it stops", was_active
+					and let_go and not ability.is_active())
+			&"sponge":
+				var wring := ability as WringAbility
+				_check("the sponge: wringing, the focus goes and it stops squeezing", was_active
+					and let_go and not wring.is_raining())
+			&"birthday_cake":
+				var wish := ability as MakeAWishAbility
+				_check("the cake: gathering a wish, the focus goes and nothing is wished", was_active
+					and let_go and wish.fizzled == 1 and wish.wishes == 0 and not wish.is_blown_out())
+			&"tennis_ball":
+				var serve := ability as ServeAbility
+				_check("the tennis ball: tossed, the focus goes and it is a fault, not a serve",
+					was_active and let_go and serve.faults == 1 and serve.serve_speed == 0.0)
+		_release(MOUSE_BUTTON_RIGHT)
+		await _step(4)
+		_check("and the release when it comes back does nothing more", ability.uses == 1)
+		_release_all()
+		await _free_stage()

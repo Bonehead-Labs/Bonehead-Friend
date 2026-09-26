@@ -26,7 +26,8 @@ const ZOOM_BOX := Vector2i(360, 240)
 var _main: Node
 var _had := {}
 var _hand := Vector2.ZERO
-var _weapon: WeaponBase
+## The thing in the hand: a weapon (D74), or since D78 a ball, a sponge, a charge.
+var _weapon: BaseDraggable
 var _buddy: Buddy
 var _n := 0
 
@@ -59,6 +60,11 @@ func _ready() -> void:
 		shop.call("show_category", ItemData.CATEGORY_WEAPON)
 		shop.call("select", &"baseball_bat")
 		await _shot("shop-howto-bat", 45)
+		# And one of D78's, on the kind side: the line a sponge teaches.
+		shop.call("show_side", ItemData.SIDE_KIND)
+		shop.call("show_category", ItemData.CATEGORY_FRIENDLY)
+		shop.call("select", &"sponge")
+		await _shot("shop-howto-sponge", 45)
 		panels.call("close")
 		await _idle(10)
 
@@ -130,9 +136,9 @@ func _stage(id: StringName) -> void:
 	_weapon = null
 	for node in get_tree().get_nodes_in_group(BaseDraggable.GROUP_SPAWNED):
 		if (node as BaseDraggable).item_id == id:
-			_weapon = node as WeaponBase
+			_weapon = node as BaseDraggable
 	if _weapon == null or _weapon.ability == null:
-		print("  %s: no weapon with an ability" % id)
+		print("  %s: nothing with an ability" % id)
 		return
 	_hold(start)
 	await _carry(start, 20)
@@ -757,3 +763,193 @@ func _stage_tether(id: StringName, tether: TetherAbility, centre: Vector2) -> vo
 	tether.release()
 	await _shot("%s-flung" % id, 3)
 	await _shot("%s-landing" % id, 14)
+
+# --- beyond the melee drawer (D78) -----------------------------------------------------------
+#
+# Staged blind: written while no window could open on this machine. Each one's frames are the
+# moments D78 says the ability is — look at every one before believing a word of it.
+
+## Strike: bowled from beside him at his height; the roll, the strike, him going over.
+func _stage_strike(id: StringName, ability: WeaponAbility, centre: Vector2, _floor_y: float) -> void:
+	await _carry(Vector2(centre.x - 330.0, centre.y), 40)
+	var strike := ability as StrikeAbility
+	ability.press()
+	await _shot("%s-bowled" % id, 8)
+	for i in 90:
+		await _idle(1)
+		if strike.strikes > 0:
+			break
+	await _shot("%s-strike" % id, 1)
+	await _shot("%s-over" % id, 10)
+
+## Curveball: the pitch over his hands, the break, the catch, and the throw back. Let go of before
+## it comes home: the catch re-grabs at the OS pointer.
+func _stage_curveball(id: StringName, ability: WeaponAbility, centre: Vector2, _floor_y: float) -> void:
+	await _carry(centre + Vector2(-300.0, -30.0), 40)
+	var curve := ability as CurveballAbility
+	ability.press()
+	await _shot("%s-pitched" % id, 8)
+	for i in 60:
+		await _idle(1)
+		if curve.broke:
+			break
+	await _shot("%s-break" % id, 3)
+	for i in 60:
+		await _idle(1)
+		if curve.catches > 0:
+			break
+	await _shot("%s-caught" % id, 2)
+	curve._left_down = false
+	for i in 60:
+		await _idle(1)
+		if curve.thrown_back:
+			break
+	await _shot("%s-thrown-back" % id, 6)
+
+## Keepy-Uppy: the lob, the first header, and the count at three.
+func _stage_keepy_uppy(id: StringName, ability: WeaponAbility, centre: Vector2, _floor_y: float) -> void:
+	await _carry(centre + Vector2(-220.0, -60.0), 40)
+	var keepy := ability as KeepyUppyAbility
+	ability.press()
+	await _shot("%s-lob" % id, 12)
+	for i in 120:
+		await _idle(1)
+		if keepy.count >= 1:
+			break
+	await _shot("%s-header" % id, 1)
+	for i in 180:
+		await _idle(1)
+		if keepy.count >= 3:
+			break
+	await _shot("%s-third" % id, 6)
+	keepy._left_down = false
+
+## Wring: squeezed over a grimy skeleton; the rain, and the shake when it stops.
+func _stage_wring(id: StringName, ability: WeaponAbility, centre: Vector2, _floor_y: float) -> void:
+	_buddy.grime.add(0.7)
+	var over := Vector2(centre.x, _buddy.get_interaction_rect().position.y - 70.0)
+	await _carry(Vector2(_hand.x, over.y), 20)
+	await _carry(over, 30)
+	ability.press()
+	await _shot("%s-squeezed" % id, 20)
+	await _carry(over, 30)
+	await _shot("%s-shower" % id)
+	ability.release()
+	await _shot("%s-shake" % id, 40)
+
+## Tickle: its feathers on his side, fluttering, and him helpless.
+func _stage_tickle(id: StringName, ability: WeaponAbility, _centre: Vector2, _floor_y: float) -> void:
+	var rect := _buddy.get_interaction_rect()
+	var at := Vector2(rect.position.x + 6.0, rect.get_center().y - 12.0)
+	await _carry(Vector2(at.x - 60.0, rect.position.y - 100.0), 20)
+	await _carry(at, 30)
+	ability.press()
+	await _carry(at, 30)
+	await _shot("%s-fluttering" % id)
+	await _carry(at, 30)
+	await _shot("%s-giggling" % id)
+	ability.release()
+
+## Swaddle: thrown, round his shoulders, and warm.
+func _stage_swaddle(id: StringName, ability: WeaponAbility, centre: Vector2, _floor_y: float) -> void:
+	await _carry(centre + Vector2(-200.0, -60.0), 40)
+	var swaddle := ability as SwaddleAbility
+	ability.press()
+	await _shot("%s-thrown" % id, 6)
+	for i in 60:
+		await _idle(1)
+		if swaddle.is_wrapped():
+			break
+	await _shot("%s-wrapped" % id, 4)
+	await _shot("%s-warm" % id, 60)
+
+## Donut Toss: one flipped out of the box, in the air, and in him.
+func _stage_donut_toss(id: StringName, ability: WeaponAbility, centre: Vector2, _floor_y: float) -> void:
+	await _carry(centre + Vector2(-220.0, -40.0), 40)
+	var toss := ability as DonutTossAbility
+	ability.press()
+	ability.release()
+	await _shot("%s-flip" % id, 8)
+	for i in 90:
+		await _carry(_hand, 1)
+		if toss.caught_donuts > 0 or not toss.is_active():
+			break
+	await _shot("%s-eaten" % id, 1)
+
+## Remote: lit, on the clicker, stuck to him and blinking; then clicked.
+func _stage_remote(id: StringName, ability: WeaponAbility, centre: Vector2, _floor_y: float) -> void:
+	var bomb := _weapon as StickyBomb
+	bomb.prime_explosion()
+	await _carry(_hand, 5)
+	ability.press()
+	ability.release()
+	await _shot("%s-clicker" % id, 6)
+	for i in 90:
+		await _carry(_hand.move_toward(centre, 8.0), 1)
+		if bomb.is_stuck():
+			break
+	bomb._end_drag()
+	await _shot("%s-stuck" % id, 30)
+	await _shot("%s-ticking" % id, 60)
+	(ability as RemoteFuse).go(&"clicked")
+	await _shot("%s-boom" % id, 3)
+
+## Airburst: lit, set, over his head and let go; the burst and the ring.
+func _stage_airburst(id: StringName, ability: WeaponAbility, centre: Vector2, _floor_y: float) -> void:
+	var bomb := _weapon as ClusterBomb
+	var burst := ability as AirburstFuse
+	bomb.prime_explosion()
+	await _carry(_hand, 5)
+	ability.press()
+	ability.release()
+	await _shot("%s-set" % id, 6)
+	var over := Vector2(centre.x, _buddy.get_interaction_rect().position.y - 150.0)
+	await _carry(Vector2(_hand.x, over.y), 20)
+	await _carry(over, 30)
+	bomb._end_drag()
+	for i in 30:
+		await _idle(1)
+		if not is_instance_valid(burst) or burst.went != &"":
+			break
+	await _shot("%s-burst" % id, 1)
+	await _shot("%s-ring" % id, 8)
+
+## Make a Wish: held up beside his face; the flames swelling, him with his eyes shut, and out.
+func _stage_make_a_wish(id: StringName, ability: WeaponAbility, _centre: Vector2, _floor_y: float) -> void:
+	var rect := _buddy.get_interaction_rect()
+	var at := Vector2(rect.position.x - 130.0, rect.position.y + 10.0)
+	await _carry(Vector2(_hand.x, rect.position.y - 80.0), 20)
+	await _carry(at, 30)
+	var wish := ability as MakeAWishAbility
+	ability.press()
+	await _carry(at, 50)
+	await _shot("%s-gathering" % id)
+	await _carry(at, 30)
+	ability.release()
+	await _shot("%s-wishing" % id, 8)
+	for i in 60:
+		await _carry(at, 1)
+		if wish.is_blown_out():
+			break
+	await _shot("%s-blown" % id, 2)
+	await _shot("%s-smoke" % id, 20)
+
+## Serve: the toss at its top, the serve leaving flat, his volley, and the ball on its way home.
+func _stage_serve(id: StringName, ability: WeaponAbility, centre: Vector2, _floor_y: float) -> void:
+	await _carry(centre + Vector2(-280.0, -20.0), 40)
+	var serve := ability as ServeAbility
+	ability.press()
+	for i in 60:
+		await _idle(1)
+		if serve.timing_now() >= 0.98 or serve._t >= serve._apex_seconds:
+			break
+	await _shot("%s-tossed" % id)
+	ability.release()
+	await _shot("%s-served" % id, 4)
+	for i in 60:
+		await _idle(1)
+		if serve.returned > 0:
+			break
+	await _shot("%s-volley" % id, 1)
+	serve._left_down = false
+	await _shot("%s-returning" % id, 10)

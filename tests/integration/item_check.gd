@@ -1212,6 +1212,10 @@ func _ball(run: Run) -> void:
 		await _throw_at(_centre(), 1300.0)
 		await _step(40)
 	run.notes.append("drop and throw landed %d hits" % run.hits.size())
+	# A ball with an ability of its own (D78: the bowling ball's Strike) uses it too, through the
+	# same pipeline and multiplier checks as everything else in the catalog.
+	if not _gone(body) and body is WeaponBase and (body as WeaponBase).ability:
+		await _use_ability(run, body as WeaponBase)
 
 ## Waits for something held on the drag joint to stop swinging.
 func _steady(body, frames: int) -> void:
