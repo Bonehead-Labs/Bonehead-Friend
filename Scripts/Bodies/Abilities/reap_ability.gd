@@ -47,6 +47,10 @@ var last_flip := 0.0
 var last_lift := 0.0
 var caught_him := false
 
+## Which side of the hand he was on (+1 right): the flip goes that way, for its payoff's arrow.
+func side() -> float:
+	return _side
+
 func is_reaping() -> bool:
 	return _active and (_phase == DROP or _phase == SWEEP or _phase == PULL)
 

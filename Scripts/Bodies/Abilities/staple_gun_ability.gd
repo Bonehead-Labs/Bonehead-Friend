@@ -26,6 +26,8 @@ var _chomp := 0.0
 ## For the suites: staples fired and landed this press.
 var fired := 0
 var landed := 0
+## The way the last staple that found him was going, for its payoff's stitch (`Shapes/staple_stitch.gd`).
+var last_heading := Vector2.RIGHT
 
 func _exit_tree() -> void:
 	super._exit_tree()
@@ -151,6 +153,7 @@ func shot_hit(shot: AbilityShot, him: Buddy, at: Vector2, heading: Vector2) -> v
 		return
 	strike(shot.force, heading, at, shot.mult, shot.shove)
 	landed += 1
+	last_heading = heading
 	if landed == 1:
 		paid_off.emit(&"staple")
 	# The strip counted into him on the badge over him (D77).
