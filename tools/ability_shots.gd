@@ -784,7 +784,9 @@ func _stage_strike(id: StringName, ability: WeaponAbility, centre: Vector2, _flo
 		if strike.strikes > 0:
 			break
 	await _shot("%s-strike" % id, 1)
-	await _shot("%s-over" % id, 10)
+	await _shot("%s-pins" % id, 5)
+	await _shot("%s-over" % id, 6)
+	await _shot("%s-down" % id, 24)
 
 ## Curveball: the pitch over his hands, the break, the catch, and the throw back. Let go of before
 ## it comes home: the catch re-grabs at the OS pointer.
@@ -803,6 +805,7 @@ func _stage_curveball(id: StringName, ability: WeaponAbility, centre: Vector2, _
 		if curve.catches > 0:
 			break
 	await _shot("%s-caught" % id, 2)
+	await _shot("%s-mitt" % id, 8)
 	curve._left_down = false
 	for i in 60:
 		await _idle(1)
@@ -821,6 +824,7 @@ func _stage_keepy_uppy(id: StringName, ability: WeaponAbility, centre: Vector2, 
 		if keepy.count >= 1:
 			break
 	await _shot("%s-header" % id, 1)
+	await _shot("%s-boing" % id, 5)
 	for i in 180:
 		await _idle(1)
 		if keepy.count >= 3:
@@ -835,7 +839,13 @@ func _stage_wring(id: StringName, ability: WeaponAbility, centre: Vector2, _floo
 	await _carry(Vector2(_hand.x, over.y), 20)
 	await _carry(over, 30)
 	ability.press()
-	await _shot("%s-squeezed" % id, 20)
+	var wring := ability as WringAbility
+	for i in 90:
+		await _carry(over, 1)
+		if wring.landed > 0:
+			break
+	await _shot("%s-rinse" % id, 2)
+	await _shot("%s-lather" % id, 12)
 	await _carry(over, 30)
 	await _shot("%s-shower" % id)
 	ability.release()
@@ -850,6 +860,13 @@ func _stage_tickle(id: StringName, ability: WeaponAbility, _centre: Vector2, _fl
 	ability.press()
 	await _carry(at, 30)
 	await _shot("%s-fluttering" % id)
+	var tickle := ability as TickleAbility
+	var seen := tickle.giggles
+	for i in 30:
+		await _carry(at, 1)
+		if tickle.giggles > seen:
+			break
+	await _shot("%s-giggle" % id, 3)
 	await _carry(at, 30)
 	await _shot("%s-giggling" % id)
 	ability.release()
@@ -864,7 +881,9 @@ func _stage_swaddle(id: StringName, ability: WeaponAbility, centre: Vector2, _fl
 		await _idle(1)
 		if swaddle.is_wrapped():
 			break
+	await _shot("%s-wrap" % id, 1)
 	await _shot("%s-wrapped" % id, 4)
+	await _shot("%s-steam" % id, 30)
 	await _shot("%s-warm" % id, 60)
 
 ## Donut Toss: one flipped out of the box, in the air, and in him.
@@ -879,6 +898,8 @@ func _stage_donut_toss(id: StringName, ability: WeaponAbility, centre: Vector2, 
 		if toss.caught_donuts > 0 or not toss.is_active():
 			break
 	await _shot("%s-eaten" % id, 1)
+	await _shot("%s-bite" % id, 6)
+	await _shot("%s-crumbs" % id, 10)
 
 ## Remote: lit, on the clicker, stuck to him and blinking; then clicked.
 func _stage_remote(id: StringName, ability: WeaponAbility, centre: Vector2, _floor_y: float) -> void:
@@ -896,7 +917,9 @@ func _stage_remote(id: StringName, ability: WeaponAbility, centre: Vector2, _flo
 	await _shot("%s-stuck" % id, 30)
 	await _shot("%s-ticking" % id, 60)
 	(ability as RemoteFuse).go(&"clicked")
+	await _shot("%s-click" % id, 1)
 	await _shot("%s-boom" % id, 3)
+	await _shot("%s-signal" % id, 6)
 
 ## Airburst: lit, set, over his head and let go; the burst and the ring.
 func _stage_airburst(id: StringName, ability: WeaponAbility, centre: Vector2, _floor_y: float) -> void:
@@ -917,6 +940,7 @@ func _stage_airburst(id: StringName, ability: WeaponAbility, centre: Vector2, _f
 			break
 	await _shot("%s-burst" % id, 1)
 	await _shot("%s-ring" % id, 8)
+	await _shot("%s-bomblets" % id, 10)
 
 ## Make a Wish: held up beside his face; the flames swelling, him with his eyes shut, and out.
 func _stage_make_a_wish(id: StringName, ability: WeaponAbility, _centre: Vector2, _floor_y: float) -> void:
@@ -936,7 +960,9 @@ func _stage_make_a_wish(id: StringName, ability: WeaponAbility, _centre: Vector2
 		if wish.is_blown_out():
 			break
 	await _shot("%s-blown" % id, 2)
-	await _shot("%s-smoke" % id, 20)
+	await _shot("%s-breath" % id, 4)
+	await _shot("%s-party" % id, 12)
+	await _shot("%s-smoke" % id, 14)
 
 ## Serve: the toss at its top, the serve leaving flat, his volley, and the ball on its way home.
 func _stage_serve(id: StringName, ability: WeaponAbility, centre: Vector2, _floor_y: float) -> void:
@@ -949,11 +975,13 @@ func _stage_serve(id: StringName, ability: WeaponAbility, centre: Vector2, _floo
 			break
 	await _shot("%s-tossed" % id)
 	ability.release()
+	await _shot("%s-stroke" % id, 2)
 	await _shot("%s-served" % id, 4)
 	for i in 60:
 		await _idle(1)
 		if serve.returned > 0:
 			break
 	await _shot("%s-volley" % id, 1)
+	await _shot("%s-ace" % id, 8)
 	serve._left_down = false
 	await _shot("%s-returning" % id, 10)

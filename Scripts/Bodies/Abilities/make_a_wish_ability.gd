@@ -244,9 +244,19 @@ func _unlit_for(texture: Texture2D) -> Texture2D:
 	_unlit = ImageTexture.create_from_image(image)
 	return _unlit
 
-## The flames swelling while the wish gathers: a warm halo on each, drawn in the sprite's frame so
-## it sits exactly on the art at any angle.
+## The flames swelling while the wish gathers: each candle's flame drawn over the art in whole art
+## pixels, bigger at each third of the wish — a bud, a flame, a tall one — with a white heart and a
+## dark rim, flickering a pixel side to side. In the sprite's frame, so it sits exactly on the art at
+## any angle. Opaque, like everything on the chroma key: a soft halo read as a green smudge (D68).
 class Glow extends Node2D:
+	const FLAMES := [
+		[".O.", "OYO", "OWO", ".O."],
+		[".O.", ".O.", "OYO", "OYO", "YWY", "OWO", ".O."],
+		[".O.", ".O.", ".O.", "OYO", "OYO", "YWY", "YWY", "OWO", ".O."],
+	]
+	const INK := {"O": Color("e8862c"), "Y": Color("f2d06b"), "W": Color("ffffff")}
+	const RIM := Color("141210")
+
 	var points := PackedVector2Array()
 	var strength := 0.0
 	var flicker := 0.0
@@ -254,8 +264,20 @@ class Glow extends Node2D:
 	func _draw() -> void:
 		if strength <= 0.0:
 			return
-		for p in points:
-			var r := 1.5 + 2.5 * strength + 0.8 * flicker
-			draw_circle(p + Vector2(0, -1), r + 1.0, Color(1.0, 0.55, 0.15, 0.35 * strength))
-			draw_circle(p + Vector2(0, -1), r, Color(1.0, 0.82, 0.4, 0.6 * strength))
-			draw_circle(p + Vector2(0, -1), maxf(r - 1.5, 0.5), Color(1.0, 0.97, 0.8, 0.9 * strength))
+		var grid: Array = FLAMES[clampi(int(strength * 3.0), 0, FLAMES.size() - 1)]
+		var h := grid.size()
+		var w := String(grid[0]).length()
+		for i in points.size():
+			# Its foot on the wick; a pixel either way as it flickers, the candles out of step.
+			var sway := 1.0 if (flicker > 0.5) == (i % 2 == 0) else 0.0
+			var origin := (points[i] + Vector2(-floorf(w * 0.5) + sway - 0.5, -float(h) + 1.5)).floor()
+			for y in h:
+				var row := String(grid[y])
+				for x in w:
+					if row[x] != ".":
+						draw_rect(Rect2(origin + Vector2(x - 1, y - 1), Vector2(3, 3)), RIM)
+			for y in h:
+				var row := String(grid[y])
+				for x in w:
+					if row[x] != ".":
+						draw_rect(Rect2(origin + Vector2(x, y), Vector2(1, 1)), INK[row[x]])

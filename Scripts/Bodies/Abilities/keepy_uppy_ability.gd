@@ -19,11 +19,18 @@ extends ThrowAbility
 
 const RALLY := 50
 
+## The rally's striped ribbon and each header's boing (D77's shapes): the payoff's own script.
+const Header := preload("res://Scripts/Bodies/Abilities/Shapes/beach_header.gd")
+
 ## For the suites: headers this rally, and whether the last one went home.
 var count := 0
 var rallies := 0
 var headed_home := false
 var peak_height := 0.0
+
+## In the rally, going up and coming down on him, for its ribbon.
+func is_rallying() -> bool:
+	return _active and _phase == RALLY
 
 func _gravity_now() -> float:
 	return _gravity * body.gravity_scale
@@ -73,6 +80,7 @@ func _on_press() -> void:
 	rallies += 1
 	set_process_input(true)
 	run(true)
+	Header.rally(AbilityFX.of(body), self)
 	sound(&"boing", -8.0, 0.8)
 	AbilityCues.activation(self, from)
 	# Something is coming to him to catch, head or wear: whatever routine he was in stands down.

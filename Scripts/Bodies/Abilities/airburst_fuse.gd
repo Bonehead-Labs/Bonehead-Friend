@@ -57,10 +57,10 @@ func _burst(him: Buddy) -> void:
 		points.append(feet + Vector2(k * ring, 0.0))
 	if cluster:
 		cluster.scatter_points = points.duplicate()
+	# Each fall is drawn by the payoff's shape (`flak_burst`): the bomblet itself on its way down to
+	# its place on the ring, and a dotted line ahead of it to where it lands.
 	var fx := fx()
 	if fx:
-		for p in points:
-			fx.tracer(com, p, Color("2a2e38"), 0.3, 3.0)
 		fx.ring(com, 40.0, GLOW, 0.2, 3.0)
 	tell(&"airburst", rect.get_center())
 	AbilityCues.payoff(self, &"airburst", com, "airburst!")
