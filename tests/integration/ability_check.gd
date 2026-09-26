@@ -464,13 +464,30 @@ func _drive_stun(body: WeaponBase, ability: StunAbility) -> Dictionary:
 		_boosted_hits(body, ability.num("bong_mult", 1.5)) >= 1)
 	var stars := _buddy.get_node_or_null("DazeStars")
 	_check("stars circle his head", stars is Node2D and (stars as Node2D).is_visible_in_tree())
+	# How it reads (D77): the owner's own example of an ability that was not obvious.
+	var halo := stars as StunAbility.Halo
+	var all_out := halo.shown() if halo else 0
+	_check("five of them, all out as the daze begins (%d)" % all_out, all_out == StunAbility.Halo.STARS)
+	_check("under a badge over his head that counts the daze down",
+		AbilityFX.states_on(_buddy).has(&"dazed"))
 	await _expect_face(&"dazed", &"dazed")
 	var follow := 0
+	var fewest := all_out
 	while ability.is_dazed() and follow < 4:
 		await _sweep_through(900.0, 1300.0)
 		follow += 1
+		if is_instance_valid(halo) and ability.is_dazed():
+			fewest = mini(fewest, halo.shown())
+	_check("the stars go out one by one as it wears off (%d of %d left at the fewest)" % [fewest, all_out],
+		fewest < all_out)
 	_check("the follow-ups while he is dazed are x%.2f (%d)" % [ability.num("bonus_mult", 1.4),
 		ability.dazed_hits], ability.dazed_hits == 0 or _boosted_hits(body, ability.num("bonus_mult", 1.4)) >= 1)
+	var growing := true
+	for i in range(1, ability.follow_weights.size()):
+		var bigger := ability.follow_weights[i] > ability.follow_weights[i - 1]
+		growing = growing and (bigger or i >= StunAbility.FOLLOW_MOST)
+	_check("each follow-up is called out bigger than the last (%s)" % str(ability.follow_weights),
+		ability.follow_weights.size() == ability.dazed_hits and growing)
 	await _await_cond(func() -> bool: return not ability.is_active(), 240)
 	await _step(60)
 	_check("and when it wears off the stars go", not is_instance_valid(stars) or stars.is_queued_for_deletion())
