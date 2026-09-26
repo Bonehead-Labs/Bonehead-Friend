@@ -13,7 +13,7 @@ start the next milestone until the current gate passes.
 | M3.6 — The content explosion | 1 wk | ✅ **built** (2026-08-30) — 80 items, 50 jobs, arcade, milestones |
 | M3.7 — The desk you can clear, the kind half, a buddy who plays ([uplift-m3.7.md](uplift-m3.7.md)) | 1 wk | ✅ **built and drawn** (2026-08-30) — walk cycle and animation families outstanding |
 | M3.8 — The assessment's top ten ([assessment-2026-09.md](assessment-2026-09.md)) | 1–2 wk | 🟡 **code complete** (2026-09-06) — code fixes, kind rates, six hands-on items, HUD next-up, onboarding, sounds, the expressive buddy's Phase 1 (`ExpressionBrain`, D36), the walk and fall-floor fix ([plan-movement-hitboxes.md](plan-movement-hitboxes.md)) and the assessment's code findings all done; left: the five-minute playtest, a sandbox walk on two monitors, the owner decisions in [worklist-2026-09.md](worklist-2026-09.md) §4, and the art-generator items |
-| M3.9 — The toybox: held guns, fidget toys, verbs, and every item and behaviour tested alone | 2 days | 🟡 **code complete** (2026-09-26) — D56–D75, see below; left: a hands-on session with the abilities, powers and toys |
+| M3.9 — The toybox: held guns, fidget toys, verbs, and every item and behaviour tested alone | 2 days | 🟡 **code complete** (2026-09-27) — D56–D78, see below; left: a hands-on session with the abilities, powers and toys |
 | M4 — Demo / Next Fest | 2–3 wk | ⬜ |
 | M5 — 1.0 | 4+ wk | ⬜ |
 | M6 — The Arcade (post-1.0, [D32](decisions.md)) | 2–3 wk | ⬜ **planned** (2026-08-30) |
@@ -961,6 +961,7 @@ merged only after the full suite set passed on the combined tree.
 | Physics fidelity | 36 multi-collider weapons re-authored against their art; the collider guard now covers every authored body. | D55, D61 |
 | Art | 14 sprites redrawn as text grids, a walk cycle drawn from his own frames, headphones that fall with him, every new item hand-drawn. | D62, D69 |
 | Overnight, after the owner played the guns | Every gun a held gun (pistol, shotgun, minigun keep their ids; sixteen guns); seven supernatural cursor powers; **a unique right-while-held ability on every one of the 35 melee weapons**, on eleven archetypes; the loose ends of both audits (soak furniture he now gets into, Off still earns, blast ceiling, gestures that survive a panel or an alt-tab); the shaders stopped squaring every colour. | D70–D75 |
+| The day after, on the owner's answers | Nobody at the desk is not an act: turrets, animals and his own play earn Dollars like automation and count on no board (a nail gun at an empty desk had banked 20,000 Dollars an hour). Eleven held abilities beyond the melee drawer — curveball, serve, strike, keepy-uppy, tickle, swaddle, wring, a wish, a donut toss, an airburst, a remote — with a design sheet for the other 59 items. Every ability reads: a ready glint, its name called out, a badge on him, a payoff. | D76–D78 |
 
 Found on the way and fixed outside any stream: the Dream Journal was never in an exported pack;
 all three paid headphone colours drew wrong (and there was no way back to teal); shop icons lost
@@ -970,7 +971,13 @@ their outlines when scaled down.
 D68 regression, fixed), the overlay on the ultrawide, and a release build — idle 0.44 % of the
 machine, unchanged since D42 (D73).
 
-**Left:** a person holding everything — the guns were played on 2026-09-26 and called excellent;
-the 35 abilities, the seven powers and the new toys have not been. The recorded sounds and the
-synthesised ones have not been heard. Owner decisions are listed in the morning summary and in
-the checkpoint memory.
+Found on the way the day after: the cricket bat, cleaver and scythe measured differently alone
+and in the full run because his hit cooldown ran on the wall clock (it counts physics steps now);
+four held spells kept holding after an alt-tab (D70's bug, back in D72's base class); eighteen
+synthesised voices were registered after a `return` and had never played.
+
+**Left:** a person holding everything — the guns were played on 2026-09-26 and called excellent,
+and the abilities on 2026-09-27 ("amazing"; the frying pan's did not read, which is D77); D77's
+and D78's frames have not been looked at. The recorded sounds and the synthesised ones have not
+been heard. Owner calls open: the first run's headroom and the kind spells' prices (branch
+`opt/d76-first-run-headroom`), and a right-click Overdrive on a placed turret (D78).
