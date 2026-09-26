@@ -174,6 +174,10 @@ var _rows: Array[Dictionary] = []
 ## `-- --trace`: every tenth frame, where he and the item are and what has been billed. For
 ## working out why an item failed, which the assertions alone cannot say.
 var _trace := false
+## How the first desk stood him up, step by step (where, how fast, how turned), and whether the
+## desk just built did exactly the same through an unshaken picture (`_build_stage`).
+var _desk_first := PackedVector2Array()
+var _desk_same := true
 
 # --- the three helpers the suite is built on --------------------------------------------
 
@@ -451,6 +455,7 @@ func _phase(item: ItemData, cls: StringName, driver: StringName, upgraded: bool)
 	run.cls = cls
 	run.upgraded = upgraded
 	run.authored = _authored(item)
+	_expect(run, "desk", _desk_same, "its desk stood him up step for step as the first desk did, unshaken")
 	if not _own(item.id):
 		_expect(run, "buy", false, "it can be bought through the shop (%s)" % Progression.can_purchase(item.id))
 	if upgraded:
@@ -487,6 +492,22 @@ func _phase(item: ItemData, cls: StringName, driver: StringName, upgraded: bool)
 # --- the stage --------------------------------------------------------------------------
 
 func _build_stage() -> void:
+	# Every item is measured on a desk nothing before it has touched, so it measures the same alone
+	# as it does a hundred items into the run — ability_check's rule (D74 fixes), which this suite
+	# had not taken. Two things carried over from one item's desk to the next.
+	#
+	# The physics space: one SubViewport, one World2D, every body of every item so far added to and
+	# taken out of the same broadphase, whose history orders the contacts the solver works through.
+	# A difference in the last bits that a heavy weapon on a soft joint magnifies: the sledgehammer's
+	# approach to its Ground Pound threw him 150 px alone and 270 px after the hole punch or the bat,
+	# into the wall and out of the wave's 280 px, and its plain Ground Pound failed in either order.
+	#
+	# The frame: the first desk was built from `_ready` and every later one after `_free_stage`'s
+	# last tick, so the first stood him on the desk one physics step later than the rest. It is
+	# built straight after a physics tick every time, and the check below holds each desk to the
+	# first, step for step.
+	await get_tree().physics_frame
+	_view.world_2d = World2D.new()
 	_stage = Node2D.new()
 	_stage.name = "Stage"
 	# The game's own walls, not a hand-built floor: `WorldBounds` derives them from the viewport,
@@ -511,11 +532,19 @@ func _build_stage() -> void:
 	_mouse = Vector2(40, 40)
 	_held = 0
 	_move(_mouse)
-	# On the floor and still before anything is asked of him.
+	# On the floor and still before anything is asked of him — and, step for step, exactly as the
+	# first desk stood him there, through a picture no jolt is still offsetting.
+	var settle := PackedVector2Array()
 	for i in 90:
 		await _step()
+		settle.append(_buddy.global_position)
+		settle.append(_buddy.linear_velocity)
+		settle.append(Vector2(_buddy.rotation, _buddy.angular_velocity))
 		if i > 3 and _buddy.is_grounded() and _buddy.linear_velocity.length() < 2.0:
 			break
+	if _desk_first.is_empty():
+		_desk_first = settle
+	_desk_same = settle == _desk_first and _view.canvas_transform == Transform2D.IDENTITY
 
 func _free_stage() -> void:
 	if EventBus.kindness_given.is_connected(_on_kind_act_late):
