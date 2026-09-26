@@ -3681,6 +3681,168 @@ floats over the toy. The chips of a toast behind its card are a quieter burst th
 nothing here has been watched on a real desk.
 
 
+## D77 — Every ability reads: a glint, its name, a badge on him, and a bang where it lands (2026-09-26)
+
+**Decision.** Every held weapon's ability (D74) reads in the same four stages, in the same places,
+each in a colour and a word of its own:
+
+1. **Ready.** A four-point glint on the weapon in the hand, in its tier colour (D41), twinkling
+   white for a tenth of a second every 1.8 s. It is there while the ability can be used, gone while
+   it runs or cools, and pops back (2.5x to 1x) when it is ready again, with D74's ring and tick.
+2. **Activation.** The glint flares off the weapon — a spinning four-point star, a ring and a burst
+   of the ability's own icon, all in its accent — and its name rises over the weapon in the display
+   face through FXLayer's placement (D63): headline-sized for its first three uses in a session,
+   small once it has been learned.
+3. **State.** A badge over his head for as long as each state lasts: the state's icon on a dark
+   disc, inside a ring in the accent that drains as it counts down, with pips under it for whatever
+   the ability is counting (hits stored, staples in him, links in a chain). Beside any other badge on
+   him, never on top of it; folded away the moment it ends or the weapon leaves the desk.
+4. **Payoff.** Where it lands: a flash, impact lines, two rings and a spray of stars in the accent,
+   and a jolt, all sized 0..1 by the look, and its word — "BONG!", "SIX!", "HOLE IN ONE!" — over him,
+   replacing its name (the two are keyed as one line).
+
+**Why.** The owner called the abilities amazing, and then: "I also want nice visual effects for
+each one, for instance the frying pan one was not obvious to me." The mechanics were right and the
+reading was not. The pan's ring was a white ring and seven small stars on a white skull; the daze
+was four sixteen-pixel stars with no rim; nothing said the pan was armed, how long he was dazed
+for, or that a follow-up was worth more. Across the thirty-four the same gaps repeated: most had
+no tell that they were ready, no word for what had happened, and a state on him — lodged, frozen,
+burning, wrapped — that was there only if you already knew to look for it. And a good share of
+what was drawn was white, which on a white skeleton is nothing.
+
+**One vocabulary, two classes.** `AbilityFX` (`Scripts/Bodies/Abilities/ability_fx.gd`) draws the
+four stages; `AbilityLooks` (`ability_looks.gd`) says, per ability id, what they look like — its
+accent, its words, its burst, where its glint sits, a badge per thing it tells him and a payoff
+size per thing it pays off. `WeaponAbility` calls it from the places every archetype already
+passes through — the press, `tell`, `paid_off`, the cooldown, the pickup and the drop — so no
+archetype and no hook calls it to get the four stages. A row is optional: an ability with none gets
+its glint, its name called out in gold, a generic badge for anything it tells him and a middling
+payoff for anything it pays off. A hook with a moment of its own calls `callout`, `show_state` or
+`fx_land`; nine did (below). The API is on the class comment, for the streams bringing abilities to
+the other drawers:
+
+```gdscript
+var afx := AbilityFX.of(node)                          # the world's; null with no WorldFX
+AbilityFX.glint(sprite, point, colour, afx)            # READY: .show_ready(on, pop)
+afx.activate(at, colour, glyph)                        # ACTIVATION: flare, ring, burst
+AbilityFX.callout(node, text, at, colour, key, weight) # the words, through FXLayer.callout
+AbilityFX.state(him, kind, spec, owner, afx)           # STATE: a StateMark on him
+afx.payoff(at, size, colour)                           # PAYOFF
+```
+
+**The frying pan's BONG**, the owner's example, stage by stage:
+
+- *Armed* (a tap): "DING!" off the pan, the glint flares gold off its face, and for the two seconds
+  it is armed the face shines gold, pulsing, and gives off a small gold ring every third of a second
+  — a sound you can see. It shudders once as it is struck.
+- *The BONG* (the next hit): three thick gold waves off the pan's face out to 220 px and two off his
+  head, the pan shuddering in the hand for 0.7 s, a gold flash with impact lines on him, "BONG!"
+  over him at headline size, and a 7 px jolt.
+- *The daze*: five stars on an ellipse round his skull, 22 px each with a dark rim (they were four
+  of 16 px with none), the far half a step darker so the ring reads as round; under a star badge
+  whose gold ring drains over the three seconds. The stars go out one at a time as it wears off.
+- *Each follow-up* is bigger than the last: a wider ring off his head and off the pan, a harder
+  flash, the stars kicked round faster and lit pale, and a bigger word — "BONG!!", "BONG!!!",
+  "BONG!!!!" — from 0.86 of a headline to 1.5 by the fifth, where it holds (smaller, but still
+  growing, once the ability has been learned). FXLayer's `callout` takes a weight past 1 for this
+  alone: past a headline, the word only gets bigger.
+
+**The table.** Ready is the glint for all of them, at `glint` along the weapon (the pan's face,
+the bat's barrel, the keyboard's keys); the column says where it differs. Activation is the flare,
+the burst icon and the name; state is the badge (and what it counts) plus what was already drawn
+on him; payoff is the size and the word.
+
+| Weapon | Ability | Ready / activation | State on him | Payoff |
+|---|---|---|---|---|
+| Baseball bat | Home Run | gold; "HOME RUN!", stars; the bat shines brighter as it winds and stays lit while armed | arrow badge for the 2 s his landing is the bat's, gold stars streaming off him | 0.9, "CRACK!" |
+| Katana | Iaido | steel blue at the tip; "IAIDO", a glint | the cut held on him in blue with a bright nick running along it, under a slash badge that drains over the 0.3 s beat | 0.85, "SLASH!", and the cut flares and parts |
+| Frying pan | BONG | gold on the face; "DING!", the face shines and rings | five big stars going out one by one, star badge draining with the daze | 1.0, "BONG!", gong waves; follow-ups growing |
+| Chainsaw | Rev | orange; "REV!", chips; the bar runs hot with the revs | saw badge draining with the fuel, sparks off him | 0.2 per grind, "VRRRM!" |
+| Sledgehammer | Ground Pound | clay; "GROUND POUND" | quake badge for his flight | 1.0 at the desk, "BOOM!" |
+| Golf club | Drive | sky blue; "DRIVE", then "FORE!" as the ball leaves | target badge while it flies | 0.65, "HOLE IN ONE!" |
+| Nunchaku | Whirlwind | red; "WHIRLWIND", pow | pow badge draining with the spin, a pip per blow | 0.45, "WHAP!" |
+| Fire axe | Tomahawk | red; "TOMAHAWK" | red "!" badge while it flies at him | 0.75, "CHOP!" |
+| Mace | Lead Heart | dull red; "LEAD HEART", hearts | heart badge after every blow | 0.7 a blow, "CRUNCH!" every blow |
+| Energy sabre | Ignite | cyan; "IGNITE", flames | flame badge, and flames rising off him while he burns | 0.25, "SIZZLE!" |
+| Flail | Wrap | steel; "WRAP", links | chain badge draining with the hold; arrow badge after the fling | 0.5 "GOTCHA!", then 0.8 "FLING!" |
+| Halberd | Hook and Spike | slate; "HOOK AND SPIKE", hooks | hook badge while reeled; arrow badge after | 0.4 "HOOKED!", then 0.9 "SKEWERED!" |
+| Crowbar | Pry | red; "PRY", levers | lever badge whose ring *fills* as he is levered | 0.8, "POP!" |
+| Hole punch | Punch | pink; "PUNCH", holes | hole badge for the 3 s the hole is in him | 0.7, "CHUNK!" |
+| Shears | Snip | blue; "SNIP", slashes | teal headphones badge for the 4 s he is bare-headed; a slash badge for a snip elsewhere | 0.5, "SNIP SNIP!" |
+| Pipe wrench | Crank | orange; "CRANK" | crank badge draining with the clamp, a pip per crank | 0.45, "CREAK!" every crank |
+| Greatsword | Momentum | periwinkle; "MOMENTUM"; the blade burns brighter with every link | sword badge, a pip per link | 0.55, "CLEAVE!" |
+| Cleaver | Embed | blue; "EMBED" | red "!" while it flies; a cleaver badge draining with the lodge, a pip per tick | 0.75, "THUNK!" |
+| Machete | Brush Clear | straw; "BRUSH CLEAR", leaves | leaf badge and leaves off him for his flight | 0.75 (in the swathe if it missed him), "SWOOSH!" |
+| Sickle | Reap | wheat; "REAP" | flip badge for his fall | 0.75, "TRIP!" |
+| Scythe | Soul Reap | violet; "SOUL REAP", ghosts | ghost badge, ectoplasm rising off him | 0.75, "WOOOO!" |
+| Rapier | En Garde | yellow at the point; "EN GARDE" | sword badge draining with the guard, a pip per thrust | 0.65 and "TOUCHE!" every thrust |
+| Katar | Flurry | orange; "FLURRY" | pow badge draining with the fuel, a pip per jab | 0.45, "RATATAT!" |
+| Boxcutter | Snap | yellow at the point; "SNAP", tips | spike badge, a pip per tip in him | 0.45, "TING!" |
+| Letter opener | Special Delivery | postbox red; "SPECIAL DELIVERY", envelopes | envelope badge; then, stuck in the desk, a down arrow over its handle until it is fetched, drawn once | 0.75, "DELIVERED!" |
+| Morning star | Bristle | iron; "BRISTLE", spikes | red "!" as they fly; spike badge, a pip per spike | 0.35, "SPIKES!" |
+| Cricket bat | Middle It | gold on the middle of the face; "MIDDLE IT" | a 6 badge for his flight, gold stars off him | 1.0, "SIX!" |
+| Rolling pin | Flatten | wood; "FLATTEN" | pancake badge, a pip per pass | 0.6 and "SQUISH!" every pass |
+| Stapler | Staple Gun | red; "STAPLE GUN", staples | staple badge, a pip per staple in him | 0.3, "STAPLED!" |
+| Tyre iron | Ricochet | amber; "RICOCHET" | red bank badge at every bank, a pip per bank | 0.6 and "BANK SHOT!" every hit |
+| War pick | Pinpoint | red at the beak; "PINPOINT"; the beak reddens as the crosshair walks on | target badge while locked | 0.85, "BULLSEYE!" |
+| Mechanical keyboard | Keycap Barrage | amber on the keys; "KEYCAP BARRAGE", keys | red key badge as they rain; key badge, a pip per cap on him | 0.45, "CLACK!" |
+| Monitor | Blue Screen | blue on the glass; "BLUE SCREEN" | pause badge draining with the freeze, a pip per stored hit | 0.35 at the freeze; 0.9 "REBOOT!" at the dump |
+| Office mug | Hot Coffee | coffee; "HOT COFFEE", drops | red drop while it flies; a drop badge draining with the steam | 0.55, "HOT!" |
+
+**What changed besides the table.** White on him is nothing, so the cut's tracer and chips, the
+clamps' bite ring, the Home Run's chips and the rapier's touché line take the accent. Eight hooks
+tell him nothing while they work, so they put their badge up themselves (`show_state`): the
+whirl, the chain, the jabs, the tips, the spikes, the staples, the caps and a snip anywhere but
+his head. Five payoffs are not where the ability last struck him (`fx_at`): the ground pound's is
+the desk, a missed swipe's is its swathe, and the greatsword's, the katar's and the rapier's are
+the point. The monitor's is the reboot, not the freeze (`fx_land(&"reboot")`). The cleaver and the
+mug say how much of their state is left (`lodge_left`, `steam_left`). And the letter opener, the
+one ability whose next step is the player walking over to it, says so: stuck in the desk it wears
+a down arrow over its handle (`show_weapon_state`), a badge drawn once and never ticked, because
+it may wait for hours and D74 has nothing running while it does.
+
+**What cost time.** A method named `landed()` on `WeaponAbility` collided with the stapler's
+`landed` count, and a `_glint` with the pan's emitter of that name; a subclass that redeclares a
+parent's member is a parse error that takes its whole script down, and `ability_check` sat for ten
+minutes on a scene that never loaded. They are `fx_land` and `_ready_glint`. And the jolt moves the
+hand: the shake is the canvas transform (D39), which the cursor maps through, so every extra jolt
+nudges where a held weapon is. With the payoff shaking on top of an ability's own shake, the
+machete's swipe once measured him not moving away from it; a payoff now jolts the desk only from
+size 0.5 and only if nothing has jolted it yet, and the machete has passed since. The flare's stars
+are drawn unrounded and never under four pixels: a small star rounded to whole pixels collapses its
+inner points and fails to triangulate, which would push an error the suites fail.
+
+**Rules it keeps.** Nothing at rest: the glint is a sprite drawn once and its twinkle a shader on
+`TIME`, so it costs no CPU (`ItemGlow`'s way); a badge has `_process` only while it is on him, a
+burst only while it flies, and the pools (eight bursts, eight sprays) are built once and parked
+under `WorldFX`. Nothing fades (D68): rings thin, flashes shrink, badges fold to nothing, and every
+pixel is ink or nothing for the chroma key. Everything has a dark rim. Focus Off keeps the glint
+and the badges, which are information, still; the flares, bursts, payoffs and words are motion and
+stop. The words are FXLayer's lines, ranked over any payout (`CALLOUT_RANK` 6) so the word for the
+moment the player made happen is the one drawn, and keyed per ability so a landing replaces its own
+name.
+
+*Tested:* `ability_check`, by enumeration over `AbilityTable`, so a new ability is covered the day
+it lands: held and ready it wears its glint, which has no tick of its own; it calls out its name
+as it starts; it puts a badge on him; its payoff is drawn and has a word; the glint is gone while it
+cools and back with a pop when it is ready; it is not drawn on the desk; and nothing of it — no
+badge, no cut — is left on him once the weapon is binned. The table suite checks every look's
+icons exist (a misspelled one would fall back to the generic one without a word) and that none of
+its colours is a green the chroma key eats. The pan's own driver checks five stars out, the badge,
+the stars going out as it wears off, and every follow-up called out bigger than the last.
+`ui_check`'s "numbers keep apart" checks an ability's words with the payout they name: found by
+group, the landing replacing the name, both drawn, in the display face, apart for their whole rise.
+The letter opener's driver checks its fetch badge is there, never ticked, and gone once fetched.
+`ability_check` 1,335 -> 1,749 passed, its 14 failures the cricket bat's, the cleaver's drift and
+the scythe's that another stream was fixing and none new; `ui_check` 621 -> 626; `item_check` 136
+items, 0 failed; unit 254, `loop_check` 776 and `brain_check` 393 with none failed.
+
+*Not done:* the frames. Nothing here has been captured yet (the machine was in use); the table is
+what the code draws, not what a person has seen. The idle budget is not re-measured on a release
+build for the same reason; by construction nothing here exists at rest until an ability is first
+used, and after that what it leaves is parked and hidden.
+
+
 ## Recommendations not yet decided
 
 Carried in the spec, owner's call before they matter:
