@@ -91,9 +91,28 @@ class Wrap extends "res://Scripts/Bodies/Abilities/Shapes/kit/moment.gd":
 		if clock >= _next_wisp:
 			_next_wisp = clock + WISP_EVERY
 			_wisp_side = -_wisp_side
-			_wisp_at[_next] = Vector2(_wisp_side * (_half - 6.0 + rng.randf_range(-3.0, 3.0)), -4.0)
+			var x := _wisp_side * (_half - 6.0 + rng.randf_range(-3.0, 3.0))
+			_wisp_at[_next] = Vector2(_clear_of_face(x, _wisp_side), -4.0)
 			_wisp_born[_next] = clock
 			_next = (_next + 1) % WISPS
+
+	## A wisp's x, from the towel's middle, pushed out past his face on its side if it would rise over
+	## it. The towel's ends are nearer his middle than his face is wide (the towel is a hand towel on a
+	## skeleton), so steam straight up off them went up his cheeks and across his eyes (D77's captures).
+	## `WISP_AIR` is the wave's swing, the stroke and its rim, and a pixel.
+	const WISP_AIR := 8.0
+
+	func _clear_of_face(x: float, side: float) -> float:
+		var ability := _ability.get_ref() as WeaponAbility if _ability else null
+		var him := ability.buddy() if ability else null
+		if him == null or him.art == null:
+			return x
+		var face := him.art.face_rect()
+		if not face.has_area():
+			return x
+		if side > 0.0:
+			return maxf(x, face.end.x - _centre.x + WISP_AIR)
+		return minf(x, face.position.x - _centre.x - WISP_AIR)
 
 	func _parked() -> void:
 		_wrapped = false

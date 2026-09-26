@@ -673,8 +673,9 @@ class StateMark extends Node2D:
 	var aura: GPUParticles2D
 	var fraction := 1.0
 	var pips := 0
-	## True while a floating line is rising through where it goes: it is not drawn until the line has
-	## passed, and pops in then. A word is the moment and lasts a second; the badge lasts the state.
+	## True while a word or a headline is rising through where it goes: it is not drawn until the line
+	## has passed, and pops in then. A word is the moment and lasts a second; the badge lasts the
+	## state. A payout there is put away instead (`FXLayer.make_way`): the badge does not lag for one.
 	var waiting := false
 	var _age := 0.0
 	var _clock := 0.0
@@ -761,7 +762,12 @@ class StateMark extends Node2D:
 			return
 		place()
 		var layer := _fx_layer()
-		waiting = layer != null and layer.crosses(fx_keep_out())
+		var keep := fx_keep_out()
+		# A payout rising where it goes gives way to it (`FXLayer.make_way`); a word or a headline it
+		# waits for, since that is the moment and lasts under a second.
+		if layer:
+			layer.make_way(keep)
+		waiting = layer != null and layer.crosses(keep, FXLayer.CALLOUT_RANK)
 		# The pop plays when it is first drawn, not while it waits.
 		if not waiting:
 			_age += delta

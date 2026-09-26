@@ -11,7 +11,9 @@ extends RefCounted
 ##
 ## **The ace** (`play`, the payoff): a chalk line is drawn on the desk in front of him, where the ball
 ## came in, and the chalk jumps off it in a white puff — it was on the line — while its fuzz sprays off
-## him where it hit. A serve that was not an ace only sprays its fuzz.
+## him where it hit. A serve that was not an ace only sprays its fuzz. The line stands on the floor
+## with its centre mark up out of it, never across the floor line: the desk is often the window's
+## bottom edge, where a line centred on it was a four-pixel sliver.
 
 const Moment := preload("res://Scripts/Bodies/Abilities/Shapes/kit/moment.gd")
 const NAME := "ShapeTennisAce"
@@ -40,6 +42,9 @@ class Ace extends "res://Scripts/Bodies/Abilities/Shapes/kit/moment.gd":
 	const SWING_T := 0.14
 	const RACKET_OUT_T := 0.14
 	const LINE_T := 0.7
+	## The chalk line's height, standing on the floor, and its centre mark's above it.
+	const LINE_TALL := 6.0
+	const MARK_TALL := 7.0
 
 	var trail := Trail.new(14)
 	var _ability: WeakRef
@@ -98,7 +103,7 @@ class Ace extends "res://Scripts/Bodies/Abilities/Shapes/kit/moment.gd":
 		var centre_x := at.x + from_side * 70.0
 		if him:
 			var rect := him.get_interaction_rect()
-			floor_y = rect.end.y - 2.0
+			floor_y = rect.end.y
 			centre_x = rect.get_center().x + from_side * (rect.size.x * 0.5 + 50.0)
 		_line = Vector2(centre_x, floor_y).round()
 		_line_half = lerpf(34.0, 46.0, size)
@@ -107,7 +112,7 @@ class Ace extends "res://Scripts/Bodies/Abilities/Shapes/kit/moment.gd":
 		for i in Moment.count(12):
 			var x := _line.x + rng.randf_range(-_line_half * 0.7, _line_half * 0.7)
 			var dir := Vector2(rng.randf_range(-0.6, 0.6), -1.0).normalized()
-			var bit := throw(chalk, Vector2(x, _line.y - 3.0), dir * rng.randf_range(90.0, 230.0),
+			var bit := throw(chalk, Vector2(x, _line.y - LINE_TALL - 1.0), dir * rng.randf_range(90.0, 230.0),
 				rng.randf_range(0.45, 0.7), 260.0)
 			bit.drag = 3.0
 			bit.wait = rng.randf_range(0.0, 0.06)
@@ -194,5 +199,13 @@ class Ace extends "res://Scripts/Bodies/Abilities/Shapes/kit/moment.gd":
 		var half := _line_half * k
 		if half < 2.0:
 			return
-		draw_rect(Rect2(_line + Vector2(-half - 1.0, -3.0), Vector2(half * 2.0 + 2.0, 6.0)), OUTLINE)
-		draw_rect(Rect2(_line + Vector2(-half, -2.0), Vector2(half * 2.0, 4.0)), KEY["W"])
+		# On the floor line and up from it, rim included: `_line.y` is the floor.
+		var top := _line.y - LINE_TALL
+		draw_rect(Rect2(Vector2(_line.x - half - 1.0, top - 1.0), Vector2(half * 2.0 + 2.0, LINE_TALL + 1.0)),
+			OUTLINE)
+		draw_rect(Rect2(Vector2(_line.x - half, top), Vector2(half * 2.0, LINE_TALL - 1.0)), KEY["W"])
+		# The centre mark, standing up out of the middle of it: a court's line, not a bar.
+		if half >= 8.0:
+			var mark := MARK_TALL * k
+			draw_rect(Rect2(Vector2(_line.x - 2.0, top - mark - 1.0), Vector2(4.0, mark + 1.0)), OUTLINE)
+			draw_rect(Rect2(Vector2(_line.x - 1.0, top - mark), Vector2(2.0, mark + 1.0)), KEY["W"])

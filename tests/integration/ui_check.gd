@@ -1528,6 +1528,45 @@ func _abilities_read_clear_of_him() -> void:
 	await _clear_of(fx, [], true, "a word aimed at his face")
 	await _quiet_numbers(fx)
 
+	# An act with the hand at his face (D75 amended): the feather duster's "+1.0" and the towel's wrap
+	# printed on white bone across his eyes. Beside his face, on the side the hand was, at the hand's
+	# height — not over his head, where it would read as a trickle and not as the hand's.
+	for side in [1.0, -1.0]:
+		face = fx.face_rect()
+		var hand := face.get_center() + Vector2(float(side) * face.size.x * 0.2, 0.0)
+		Economy.paying_kind_act = true
+		EventBus.payout.emit(Economy.HEARTS, 1.0, hand, &"feather_duster")
+		Economy.paying_kind_act = false
+		await get_tree().process_frame
+		var act := _visible_label(fx, "+1.0")
+		var ink := _drawn_rect(act) if act else Rect2()
+		var beside := ink.position.x >= face.end.x - 0.5 if side > 0.0 else ink.end.x <= face.position.x + 0.5
+		_check("an act at his face is drawn beside it, on the hand's side (%s)" % ("right" if side > 0.0
+			else "left"), act != null and beside, "number %s, face %s" % [ink, face])
+		_check("at the hand's height, not over his head", act != null
+			and absf(ink.get_center().y - (hand.y + 14.0)) <= 8.0, "number %s, hand %s" % [ink, hand])
+		await _clear_of(fx, [], true, "an act aimed at his face")
+		await _quiet_numbers(fx)
+
+	# The chainsaw's frame (D77 amended): its badge went up over its own grind's numbers, already rising
+	# where the badge goes, and waited up to a line's life for them. A badge is what is happening to him
+	# now; a payout under it gives way.
+	var head_rect := buddy.get_interaction_rect()
+	var over := Vector2(head_rect.get_center().x, head_rect.position.y)
+	for i in 3:
+		EventBus.payout.emit(Economy.BONES, 20.0 + float(i), over + Vector2(0.0, 10.0 + 14.0 * float(i)),
+			&"chainsaw")
+	await get_tree().process_frame
+	var saw := AbilityFX.state(buddy, &"ui_revving", slash, self, afx)
+	var under := fx.crosses(saw.fx_keep_out())
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_check("a badge put up over rising payouts is drawn at once", under and not saw.waiting
+		and saw.drawn_rect().has_area(), "numbers under it %s, waiting %s" % [under, saw.waiting])
+	await _clear_of(fx, [saw], false, "payouts and a badge put up over them")
+	AbilityFX.clear_states(buddy, self)
+	await _quiet_numbers(fx)
+
 	# The word for the moment and the rank-up it earned, on one frame: both print.
 	var head := buddy.get_interaction_rect()
 	fx.callout("SLASH!", Vector2(head.get_center().x, head.position.y - 58.0), Color("6fa8ff"), 1.0,

@@ -86,13 +86,14 @@ class Flag extends Piece:
 
 	func _draw() -> void:
 		var up := ease_out(k_of(0.0, RISE_T)) * (1.0 - k_of(LIFE - 0.18, LIFE))
-		# The cup: a dark oval in the desk the pin stands in.
+		# The cup: a dark oval in the desk the pin stands in, sitting on the floor line rather than
+		# across it (the desk is often the bottom edge of the window).
 		var cup := 16.0 * minf(up * 3.0, 1.0)
 		if cup >= 3.0:
 			var oval := PackedVector2Array()
 			for i in 12:
 				var a := TAU * float(i) / 12.0
-				oval.append(Vector2(cos(a) * cup, sin(a) * 3.0 - 1.0))
+				oval.append(Vector2(cos(a) * cup, sin(a) * 3.0 - 4.0))
 			ink_poly(oval, Color("2a2622"))
 		var height := roundf(POLE * lerpf(0.8, 1.1, size) * up)
 		if height < 4.0:
