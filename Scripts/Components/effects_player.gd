@@ -13,11 +13,18 @@ const EXPLOSION_LIFETIME := 2.0
 
 const FLASH_SECONDS := 0.1
 
-## The hit flash is a shader that pushes every opaque pixel toward white, not a tint.
+## The hit flash is a shader that pushes his fill toward white, not a tint.
 ## `self_modulate = RED` multiplied a mostly-white skeleton into a flat red silhouette with
 ## the face swallowed, which reads as an error state rather than an impact; a solid white
-## pop is the genre's one-frame "you hit it". The outline stays black-ish because the mix
-## is on colour, not alpha.
+## pop is the genre's one-frame "you hit it".
+##
+## **Only his fill flashes; his rim stays dark** (D77 amended). This comment used to say the
+## outline stayed black-ish "because the mix is on colour, not alpha", and it did not: every
+## opaque pixel went white, rim included, so for the flash he was a white blob with no edge — and
+## a grind, a flurry or a crank lands a hit every few frames, each restarting the flash, so for
+## the whole of a sustained ability he was that blob. A texel as dark as his outline is left as
+## it is; the bone, the headphones and the dirt pop white. His face is a sprite of its own and
+## never flashed.
 ##
 ## `grime` shares this material rather than getting one of its own: it is **three fixed
 ## patches of dirt** on his bones that gain opacity as he gets filthier (D46), masked to
@@ -152,7 +159,9 @@ void fragment() {
 		}
 		alpha *= 1.0 - hidden;
 	}
-	COLOR = vec4(mix(grimed, vec3(1.0), flash * step(0.02, tex.a)), alpha);
+	// The fill flashes, the rim does not: a texel as dark as his outline keeps its colour.
+	float fill = step(0.3, dot(tex.rgb, vec3(0.299, 0.587, 0.114)));
+	COLOR = vec4(mix(grimed, vec3(1.0), flash * step(0.02, tex.a) * fill), alpha);
 }
 """
 static var _flash_shader: Shader
