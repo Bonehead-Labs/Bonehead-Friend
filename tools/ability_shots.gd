@@ -74,6 +74,7 @@ func _ready() -> void:
 	Economy.grant(Economy.BONES, 1.0e7)
 	for id in AbilityTable.item_ids():
 		_own(id)
+	await _season_toys()
 
 	# The shop's how-to strip, on the starter weapon.
 	var panels := _find(_main, "PanelLayer")
@@ -111,6 +112,26 @@ func _ready() -> void:
 	Settings.save_settings()
 	get_tree().quit()
 
+## The toys a staging puts on the desk for an ability to act on, rather than the thing in the hand.
+const STAGE_TOYS: Array[StringName] = [&"rubber_duck", &"tennis_ball", &"baseball"]
+## A mastery toast's life (`main.gd`), and a little: nothing is shot until it has gone.
+const TOAST_FRAMES := 260
+
+## Every staged toy past its first rank before anything is shot. The first time a toy touches him it
+## ranks up, and the machete's swathe throws three into him: its frames were "RUBBER DUCK RANK 1" and
+## "TENNIS BALL RANK 1" in headline over the swipe they were meant to show, and a mastery toast over the
+## machete's how-to. Ranked here, their lines and toasts come and go before the first frame. Their
+## payouts stay: they are the swathe's doing.
+func _season_toys() -> void:
+	var seasoned := false
+	for toy in STAGE_TOYS:
+		_own(toy)
+		if Progression.mastery_rank(toy) < 1:
+			Progression.add_mastery_xp(toy, ItemDB.balance.mastery_base - Progression.mastery_xp(toy) + 1.0)
+			seasoned = true
+	if seasoned:
+		await _idle(TOAST_FRAMES)
+
 func _only() -> PackedStringArray:
 	for arg in OS.get_cmdline_user_args():
 		if String(arg).begins_with("--only="):
@@ -129,9 +150,7 @@ func _own(id: StringName) -> void:
 # --- one weapon --------------------------------------------------------------------------
 
 func _stage(id: StringName) -> void:
-	var spawner := get_tree().get_first_node_in_group(&"item_spawner") as ItemSpawner
-	if spawner:
-		spawner.clear_desk()
+	_clear_desk()
 	await _idle(4)
 	var idle := get_tree().get_first_node_in_group(IdleBrain.GROUP_IDLE_BRAIN) as IdleBrain
 	if idle:
@@ -316,7 +335,18 @@ func _stage(id: StringName) -> void:
 	await _idle(30)
 	if is_instance_valid(_weapon):
 		_weapon.bin_myself()
+	# Whatever this staging put down goes with it, so the next one starts on an empty desk.
+	_clear_desk()
 	await _idle(10)
+
+## Everything off the desk: what the spawner put there, and anything spawned that it does not track.
+func _clear_desk() -> void:
+	var spawner := get_tree().get_first_node_in_group(&"item_spawner") as ItemSpawner
+	if spawner:
+		spawner.clear_desk()
+	for node in get_tree().get_nodes_in_group(BaseDraggable.GROUP_SPAWNED):
+		if node is BaseDraggable and not node.is_queued_for_deletion():
+			(node as BaseDraggable).bin_myself()
 
 # --- the blades (D74) -----------------------------------------------------------------------
 
@@ -359,9 +389,10 @@ func _stage_embed(id: StringName, ability: WeaponAbility, centre: Vector2, _floo
 			break
 	await _shot("%s-out" % id, 8)
 
-## Brush Clear: three toys on the desk in front of the hand, and one swipe.
+## Brush Clear: three toys on the desk in front of the hand, and one swipe. They come to it already
+## past their first rank (`_season_toys`).
 func _stage_brush_clear(id: StringName, ability: WeaponAbility, centre: Vector2, floor_y: float) -> void:
-	for toy in [&"rubber_duck", &"tennis_ball", &"baseball"]:
+	for toy in STAGE_TOYS:
 		_own(toy)
 	EventBus.spawn_requested.emit(&"rubber_duck", Vector2(centre.x - 110.0, floor_y - 30.0))
 	EventBus.spawn_requested.emit(&"tennis_ball", Vector2(centre.x - 75.0, floor_y - 30.0))
