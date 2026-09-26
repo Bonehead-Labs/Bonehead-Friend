@@ -746,6 +746,18 @@ func show_state(event: StringName) -> void:
 		fx_states.append(event)
 	AbilityFX.state(him, event, spec, self, AbilityFX.of(body))
 
+## A badge over the weapon itself rather than him: something the player has to do with it (a
+## letter opener waiting to be fetched). Its owner takes it off (`AbilityFX.clear_states(body, self)`).
+func show_weapon_state(event: StringName) -> AbilityFX.StateMark:
+	if body == null or not body.is_inside_tree():
+		return null
+	var spec := AbilityLooks.state_spec(look(), event, row)
+	if spec.is_empty():
+		return null
+	if not fx_states.has(event):
+		fx_states.append(event)
+	return AbilityFX.state(body, event, spec, self, AbilityFX.of(body))
+
 ## PAYOFF: every `paid_off` is drawn where it landed, sized by the look. A repeated event (a grind,
 ## a burn, a staple) is drawn no more than five times a second, half size after its first.
 func _on_paid_off_fx(event: StringName) -> void:

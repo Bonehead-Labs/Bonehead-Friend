@@ -179,7 +179,8 @@ const LOOKS := {
 	&"special_delivery": {
 		"colour": "e0463a", "call": "SPECIAL DELIVERY", "land": "DELIVERED!", "burst": &"envelope",
 		"glint": 0.9,
-		"states": {&"delivered": {"icon": &"envelope", "seconds": 1.6}},
+		"states": {&"delivered": {"icon": &"envelope", "seconds": 1.6},
+			&"fetch": {"icon": &"fetch", "static": true}},
 		"pay": {&"special_delivery": {"size": 0.75, "land": true}},
 	},
 

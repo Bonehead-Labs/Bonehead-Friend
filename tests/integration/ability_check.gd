@@ -844,8 +844,13 @@ func _drive_special_delivery(body: WeaponBase, ability: DeliveryAbility) -> Dict
 	await _step(60)
 	_check("and waits there: nothing runs, and no cooldown yet", body.freeze and not ability.is_busy()
 		and not ability.is_cooling() and ability.is_active())
+	var fetch := body.get_node_or_null("AbilityStateFetch") as Node2D
+	_check("a badge over its handle says to fetch it (D77), drawn once and never ticked",
+		ability.is_waiting_to_be_fetched() and fetch != null and fetch.visible and not fetch.is_processing())
 	await _grab(body)
 	await _step(2)
+	_check("fetched, the badge is gone", fetch == null or not is_instance_valid(fetch)
+		or fetch.is_queued_for_deletion())
 	_check("fetched, the cooldown starts", ability.fetched and ability.is_cooling() and body.dragging
 		and not body.freeze)
 	return {"speed": ability.last_throw_speed, "point": ability.last_hit, "hits": _hits.size()}

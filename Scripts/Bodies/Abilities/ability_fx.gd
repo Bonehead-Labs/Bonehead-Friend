@@ -382,6 +382,9 @@ class ReadyGlint extends Sprite2D:
 ##   count    a method or property of `owner`: pips under the badge, for what it is counting
 ##   refresh  a timed state told again starts its clock again
 ##   aura     {glyph, colour, amount}: chips coming off him for as long as it lasts
+##   static   drawn once and never ticked, for a badge over something that does not move and may
+##            wait for hours (a letter opener stuck in the desk); the owner takes it off
+## `him` is whatever it goes over: him, or the weapon itself.
 ## His child, `top_level` so it stays upright over his skull whatever he is doing; freed when the
 ## state ends, or at once when `owner` leaves the tree (`clear_states`).
 static func state(him: Node2D, kind: StringName, spec: Dictionary, owner: Object,
@@ -409,8 +412,14 @@ static func state(him: Node2D, kind: StringName, spec: Dictionary, owner: Object
 	mark.left_method = StringName(spec.get("left", &""))
 	mark.count_key = StringName(spec.get("count", &""))
 	mark.refresh = bool(spec.get("refresh", false))
+	mark.still = bool(spec.get("static", false))
 	var aura: Dictionary = spec.get("aura", {})
 	him.add_child(mark)
+	if mark.still:
+		mark.set_process(false)
+		mark.place()
+		mark.queue_redraw()
+		return mark
 	if not aura.is_empty() and afx and AbilityFX.moving():
 		var glyph := StringName(aura.get("glyph", &"chip"))
 		var tint: Color = aura.get("colour", colour)
@@ -461,6 +470,8 @@ class StateMark extends Node2D:
 	var left_method: StringName = &""
 	var count_key: StringName = &""
 	var refresh := false
+	## Drawn once, never ticked: it waits over something still for as long as it has to.
+	var still := false
 	var aura: GPUParticles2D
 	var fraction := 1.0
 	var pips := 0
@@ -569,6 +580,8 @@ class StateMark extends Node2D:
 			aura.global_position = rect.get_center().round()
 
 	func _size() -> float:
+		if still:
+			return 1.0
 		if not AbilityFX.moving():
 			return 0.0 if _leaving >= 0.0 else 1.0
 		if _leaving >= 0.0:
@@ -1034,6 +1047,17 @@ const ICONS := {
 		".xwwwwxx.",
 		".xxwwwxx.",
 		"..xxxxx..",
+	],
+	&"fetch": [
+		"...xxx...",
+		"...xwx...",
+		"...xwx...",
+		"...xwx...",
+		"xxxxwxxxx",
+		".xxwwwxx.",
+		"..xxwxx..",
+		"...xxx...",
+		"....x....",
 	],
 	&"pow": [
 		"x...x...x",
