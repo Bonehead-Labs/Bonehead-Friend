@@ -3730,6 +3730,97 @@ floats over the toy. The chips of a toast behind its card are a quieter burst th
 nothing here has been watched on a real desk.
 
 
+## D76 — Nobody at the desk is not an act: what earns unattended earns like automation (2026-09-27)
+
+**Decision.** The owner, on AI audit H: "it has to be balanced if it's too high an earner
+compared to the overall progression." An act is a hand's. Three things that were paid as acts
+with nobody at the desk are not any more:
+
+- a hit by something that acts on its own — a turret or an animal, `ItemData.is_autonomous`;
+- a `world` hit no hand caused — the wall a gorilla's slam throws him into;
+- a toy paying him on contact while the idle brain has him playing with it by himself (D70's
+  `Buddy.is_own_play`): the pizza he eats, the ball he bops, the duck he knocks about.
+
+Each still pays its Bones or Hearts through the same pipeline at the same multipliers. None of
+them banks the per-act Dollar, counts on the contract board or the milestones, or climbs the
+kindness combo. What unattended damage earns instead is the Dollar trickle automation already
+pays, `dollars_per_hit x dollars_idle_efficiency` a second, in any second something hurt him on
+its own — once, however many things did. The toy's contact is paid through
+`kindness_sustained`, the road the idle brain's own pay has always taken (D14).
+
+**Measured, before and after**, on the tree with `Buddy.cooldown_steps` merged, so a minute bills
+the same however busy the machine is: two scratch probes, not committed — item_check's stage for
+the desk and the bat, brain_check's for the routines — real physics in real time, a minute each,
+everything put down beside him and left, the bat swung through him by the synthetic hand.
+
+| | Dollars an hour, before | after | on the board in the minute, before → after |
+|---|---|---|---|
+| one pellet turret, empty desk | 3,120 | 464 | `deal_damage` 468 → 0; 1 knockout → 0 |
+| one nail gun, empty desk | 20,648 | 455 | 1,041 → 0; 3 knockouts → 0 |
+| five pellet turrets, empty desk | 10,719 | 414 | 1,634 → 0; 4 knockouts → 0 |
+| a gorilla's visit | 1,250 | 63 | 1,505 → 0; 3 knockouts → 0 |
+| a bat, by hand | 7,777 | 7,597 | 3,734 → 3,444; 8 knockouts → 8 |
+
+The bat is the same bat: 130 hits paid 130 Dollars before, 127 of 128 after — the one exception
+a `world` hit with no hand in the three seconds before it — and its hourly figure moves with how
+many swings the run happened to land. His own routine, one full dwell at each toy, Normal and Off
+alike: a tennis ball paid 19 acts with the combo at 17 — the 3x ceiling — 19 on the "be kind"
+board and 7.6 Dollars; a baseball and a beach ball the same, a duck 10, a donut box 6 at combo 5,
+a pizza 1. After, every one pays 0 acts, 0 Dollars and 0 on the board, and the same value as a
+trickle at 1x. An hour of him rotating three balls was about 900 Dollars and a "be kind 150
+times" daily in four minutes; it is nothing on either.
+
+**Why a tick and not a fraction of each hit.** The audit sketched banking each autonomous hit at
+the idle efficiency. That still scales with the desk: a nail gun lands six hits a second (3,100
+an hour at 0.15), a laser lattice six pellets a volley, and ten pellet turrets would be about
+4,900 — past a player swinging a bat. A tick is a ceiling no number of turrets raises, and it is
+what automation pays already: unattended, the desk is worth 0.15 of a hit a second whatever is
+doing the earning. A mortar every 3.6 s earns one trickle a shot; the nail gun, one a second.
+
+**How.**
+
+- `Economy.is_unattended(source_id)` asks the item's `is_autonomous` — the flag the idle brain
+  already reads for the same question, set by the turret and animal seeders. An unattended hit
+  pays its Bones, marks the tick, and returns before the board and the till.
+- **The floor is the hand's only when a hand put him there.** Measured first: 12 of a gorilla's
+  21 hits in a minute were `world`, some eight seconds after its last blow, shoved about by its
+  body. Economy remembers whether the last thing to move him was a hand — a hand's hit, or the
+  player holding him and letting go (`buddy_state_changed(&"dragged")`) — and when. A `world` hit
+  is an act while he is held or within 3 s of that, and a chain of them stays the hand's; anything
+  else, a fall with nobody behind it included, is nobody's. A knockout stops the hand's clock: he
+  is down for about three seconds, and the bat that floored him is still what carries him into
+  the wall as he gets up (three of 62 did, 3.2 to 3.5 s after it, before the clock stopped).
+- A knockout is on the board only if a hand dealt some of its round. Turrets alone knocked him
+  out three or four times a minute.
+- `FriendlyBase._pay_contact` — a helping or a catch on touch, and `pay_presence` at Off — pays
+  into the toy's own bank and flushes it while he is at his own play with it. `_pay_event` is
+  still the act, and `FidgetToy.pay_act` still goes straight to it: the player popping the
+  bubble wrap he is playing with is the player. A toy in the player's hand, or let go of within
+  3 s (a throw lands inside that), is the player's.
+
+**Not changed.** A turret's and an animal's Bones — a placed turret is an active-play amplifier
+and its Bones are its point (`TurretBase`'s header) — and their mastery. A turret's
+`use:<item>`, which nothing on the board or the milestones watches. The lifetime-Bones
+milestones, which count income, not acts. The HUD's damage streak, which pays nothing. The desk
+fan is not `is_autonomous`: a field that bends other throws, whose claimed impacts at an empty
+desk are rare. Offline still pays no Dollars at all, though D31 says it pays them at the fraction
+— the gap runs the safe way and is left. And what it looks and sounds like: his own bop no longer
+rings the kindness chime or bursts hearts, as an act does; the trickle's drifting heart and the
+burst as he gets in still show.
+
+*Consequence:* `Economy.is_unattended` and `FriendlyBase._pay_contact` are the seams; a new thing
+that acts on its own is covered by `is_autonomous` in its seeder, and a new way for a toy to pay
+him on touch goes through `_pay_contact`. loop_check's `nobody at the desk (D76)` suite is 20
+checks, 13 of which fail without the fix (the rest are the hand's own acts, which it must not
+touch); brain_check fails any routine toy that pays him an act, and without the fix 13 did —
+the balls, the duck, the popper, the kite, the massage chair and every food. The pacing simulator
+models no Dollars and no contracts, and nothing it reads moved.
+
+*Verified*, on the tree with `m3.9-toybox` @ 95791fa merged: unit 254; loop 804; ui 621; fidget 196;
+toys2 205; verbs 273; brain 393; item_check 136 items, 5,014 passed, 0 failed; pacing 4/4, first
+Reincarnation 9:42:13 as before.
+
+
 ## Recommendations not yet decided
 
 Carried in the spec, owner's call before they matter:
