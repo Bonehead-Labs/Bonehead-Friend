@@ -1,8 +1,8 @@
 extends RefCounted
 
 ## The monitor's REBOOT! (Blue Screen's dump): he comes back on like an old screen. A bright line cuts
-## across him, opens top and bottom into a blue frame round him, a boot bar under his feet fills in
-## blocks, and a power symbol pops up beside his head. Then the frame's corners fly off.
+## across him and opens top and bottom into a blue frame round him; beside his head a power symbol pops
+## up over a boot bar that fills in blocks. Then the frame's corners fly off.
 ##
 ## A line across him and a frame round him, never a fill over him: the dump is the moment every
 ## stored hit lands, and the player has to see him take it.
@@ -29,7 +29,6 @@ static func play(afx: AbilityFX, at: Vector2, size: float, colour: Color, abilit
 class Drawing extends PayoffSketch:
 	var _half := Vector2(40, 56)
 	var _side := 1.0
-	var _floor := 0.0
 	var _power: Texture2D
 
 	func setup(at: Vector2, s: float, tint: Color, ability: WeaponAbility) -> void:
@@ -42,7 +41,6 @@ class Drawing extends PayoffSketch:
 		_side = 1.0 if rect.get_center().x >= monitor.x else -1.0
 		fire(rect.get_center(), 0.75)
 		_half = rect.size * 0.5 + Vector2(16.0, 12.0) * (0.8 + 0.4 * s)
-		_floor = rect.end.y - global_position.y
 
 	func _paint(_k: float) -> void:
 		_scan()
@@ -78,21 +76,28 @@ class Drawing extends PayoffSketch:
 				var c := Vector2(sx * w, sy * h) * out
 				strokes(PackedVector2Array([c - Vector2(sx * arm, 0.0), c, c - Vector2(0.0, sy * arm)]), colour, 3.0)
 
-	## The boot bar under his feet, filling a block at a time.
+	## The boot bar, filling a block at a time.
 	func _bar() -> void:
 		var fill := span(0.1, 0.34)
 		var gone := span(0.55, 0.7)
 		if fill <= 0.0 or gone >= 1.0:
 			return
-		var w := 64.0 * (1.0 - gone)
+		var w := 56.0 * (1.0 - gone)
 		if w < 8.0:
 			return
-		var r := Rect2(Vector2(-w * 0.5, _floor + 10.0), Vector2(w, 10.0))
+		# Under the power symbol, beside him: the desk under his feet may be the bottom of the window.
+		var at := _beside() + Vector2(0.0, 30.0)
+		var r := Rect2((at - Vector2(w * 0.5, 5.0)).round(), Vector2(w, 10.0).round())
 		box(r, Color("0f2a6b"))
 		var blocks := int(fill * 8.0)
 		var step := (w - 4.0) / 8.0
 		for i in blocks:
-			draw_rect(Rect2(r.position + Vector2(2.0 + step * float(i), 2.0), Vector2(step - 2.0, 6.0)).abs(), colour.lightened(0.25))
+			var block := Rect2(r.position + Vector2(2.0 + step * float(i), 2.0), Vector2(step - 2.0, 6.0))
+			draw_rect(block.abs(), colour.lightened(0.25))
+
+	## Beside his head on the side away from the monitor: where the power symbol and the bar go.
+	func _beside() -> Vector2:
+		return Vector2(_side * (_half.x + 34.0), -_half.y + 20.0)
 
 	## The power symbol beside his head: popped in, and gone by scale.
 	func _symbol() -> void:
@@ -100,4 +105,4 @@ class Drawing extends PayoffSketch:
 		if k <= 0.0:
 			return
 		var scale := overshoot(k) * (1.0 - span(0.58, 0.75)) * (2.0 + 0.4 * size)
-		picture(_power, Vector2(_side * (_half.x + 30.0), -_half.y + 20.0), scale)
+		picture(_power, _beside(), scale)

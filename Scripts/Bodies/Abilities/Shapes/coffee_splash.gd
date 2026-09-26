@@ -43,8 +43,8 @@ class Drawing extends PayoffSketch:
 		if him:
 			var rect := him.get_interaction_rect()
 			var top := rect.position.y + 10.0
-			_steam[0] = Vector2(rect.position.x - 4.0, top + 6.0) - global_position
-			_steam[1] = Vector2(rect.end.x + 4.0, top + 6.0) - global_position
+			_steam[0] = Vector2(rect.position.x - 10.0, top + 6.0) - global_position
+			_steam[1] = Vector2(rect.end.x + 10.0, top + 6.0) - global_position
 			_steam[2] = Vector2(rect.get_center().x + back * (rect.size.x * 0.5 + 16.0), top + 34.0) - global_position
 		else:
 			_steam[0] = Vector2(-24, -30)
