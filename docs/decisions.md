@@ -3323,6 +3323,38 @@ Each row's `worth` is its measured use, rounded up.
 *Not done:* the coffee's grime is not in the pacing model (0.04 a use; the sponge takes it off).
 The capture tool's frames were looked at for all nine; the owner has not used any of them yet.
 
+### Fixed 2026-09-26: the same weapon measured differently alone and in the full run
+
+On the merged tree `ability_check` failed the cricket bat every full run (the blade met him at its
+handle, no six) and the scythe (the ghost missed by 80 px), and the cleaver's worth read 4.6 to
+5.5 against its row's 3.0, while each passed measured alone. Two root causes, one in the game and
+one in the harness, and neither was new code.
+
+- **His per-source hit cooldown ran on the wall clock.** The engine runs physics steps in bursts,
+  two to a drawn frame at the 30 fps idle cap and more under load, so 150 ms was a different
+  number of steps from one frame to the next, and which of a sweep's contacts it let through
+  depended on the frame rate: the cleaver's ordinary hit measured 17.3 at 30 fps and 20.7 at 15,
+  and its lodged blade drifted past the suite's limit only at 15. It counts physics steps now
+  (`Buddy.cooldown_steps`, 9 at 0.15 s). Two smaller wall-clock leaks went with it: the desk's
+  jolt drew its offsets from the global random stream once per drawn frame, so a suite seeded
+  per item replayed differently at a different frame rate (it has its own stream now), and
+  freed mid-jolt it left the whole picture, and every mouse position through it, offset (it
+  resets the canvas on the way out). And the cricket bat now reads where a hit touched it from
+  the contact point he bills (`Buddy.hit_at`), not from where the blade is when a hit the
+  ledger bills a step late (D64) is attributed.
+- **Every weapon shared one physics space.** `ability_check` hosts every desk in one SubViewport,
+  so each weapon's bodies went into a broadphase that every weapon before it had used, and the
+  first desk was also built one physics step later than the rest. A soft-jointed weapon is a
+  pendulum that keeps nearly all its energy, and it magnified that into a different swing:
+  0.05 px at the bat's spawn became its middle riding 2 px or 67 px below the hand at the
+  sweep. Each desk now gets a fresh `World2D`, built straight after a physics tick, and the suite
+  asserts that every desk starts him exactly where the first one did and unshaken.
+
+loop_check's "billing is the same however busy the machine is" guards the cooldown (a 210 ms
+stall ends nothing; 9 steps do), the jolt's own stream and its reset. Measured afterwards:
+ability_check 1416/0 in the full run (the six at 0.50 of the blade, 428 px up; the scythe
+reaps from 229 px; the cleaver's worth 2.5 against its 3.0), and every suite as before.
+
 
 ## Recommendations not yet decided
 
