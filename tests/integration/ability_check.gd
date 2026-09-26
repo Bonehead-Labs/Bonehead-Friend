@@ -968,6 +968,21 @@ func _expect_face(event: StringName, row: StringName) -> void:
 # --- the stage and the hand -------------------------------------------------------------------
 
 func _build_stage() -> void:
+	# Every weapon is measured on a desk that nothing before it has touched, so it measures the same
+	# alone as it does twenty-five weapons into the run (D74 fixes). Two things carried over.
+	#
+	# The frame: the first weapon's stage was built from `_ready` and every later one after
+	# `_free_stage`'s last tick, so the first stood him on the desk one physics step later than the
+	# rest. It is built straight after a physics tick every time.
+	#
+	# The physics space: one SubViewport, one World2D, every body of every weapon so far added to
+	# and taken out of the same broadphase, whose history orders the contacts the solver works
+	# through — a difference in the last bits that a soft-jointed swing magnifies. The cricket bat
+	# middled him alone and led with its handle in the full run, the cleaver's ordinary hit read 17
+	# alone and 42 in the run, the scythe's ghost reaped him alone and missed by 80 px in the run.
+	# Each weapon gets a World2D of its own.
+	await get_tree().physics_frame
+	_view.world_2d = World2D.new()
 	_stage = Node2D.new()
 	_stage.name = "Stage"
 	var bounds := WorldBounds.new()
@@ -991,10 +1006,25 @@ func _build_stage() -> void:
 	_mouse = Vector2(40, 40)
 	_held = 0
 	_move(_mouse)
+	var first := Vector2.INF
 	for i in 90:
 		await _step()
+		if i == 0:
+			first = _buddy.global_position
 		if i > 3 and _buddy.is_grounded() and _buddy.linear_velocity.length() < 2.0:
 			break
+	# Every desk starts step for step the same, and unshaken: a weapon measured first and the same
+	# weapon measured after another are measured on the same desk, through the same picture.
+	_check("the desk is not still shaking from the last weapon",
+		_view.canvas_transform == Transform2D.IDENTITY)
+	if _stage_first == Vector2.INF:
+		_stage_first = first
+	else:
+		_check("the desk started him exactly as it did for the first weapon (%s)" % first,
+			first == _stage_first)
+
+## Where he was one step into the first desk.
+var _stage_first := Vector2.INF
 
 func _free_stage() -> void:
 	if EventBus.ability_event.is_connected(_on_ability_face):

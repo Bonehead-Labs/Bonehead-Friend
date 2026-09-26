@@ -119,6 +119,10 @@ func _spell_deactivated(_was_held: bool) -> void:
 		_preview.visible = false
 		_phase = RESTING
 
+## Alt-tab mid-draw is not a cast: the half-drawn rainbow goes, and nothing is paid.
+func _hold_lost() -> void:
+	_spell_deactivated(true)
+
 func _exit_tree() -> void:
 	if _phase == RIDING and is_instance_valid(_rider):
 		_rider.collision_mask = _saved_mask

@@ -426,9 +426,11 @@ func _integrate_forces(state_: PhysicsDirectBodyState2D) -> void:
 			continue
 		if not _cooldown_ready(src, b.damage_cooldown):
 			continue
-		var attribution := _attribute(src)
 		# get_contact_local_position is global despite the name: "local" distinguishes
 		# this body's contact point from the collider's, not the coordinate space.
+		hit_at = state_.get_contact_local_position(i)
+		var attribution := _attribute(src)
+		hit_at = Vector2.INF
 		_queue_hit(impulse, attribution[0], attribution[1], state_.get_contact_local_position(i))
 	# The step before this one, now that the engine has said all it will about it; then this
 	# step, held for the same question next time. After a sleep the one still held is from
@@ -589,7 +591,9 @@ func _settle_ledger(state_: PhysicsDirectBodyState2D, b: BalanceData) -> void:
 			continue
 		if not _cooldown_ready(src, b.damage_cooldown):
 			continue
+		hit_at = _ledger_at[s]
 		var attribution := _attribute(src)
+		hit_at = Vector2.INF
 		_queue_hit(share, attribution[0], attribution[1], _ledger_at[s])
 
 ## Damage from a source that is not a contact — an explosion's blast, a gunshot. Fed the
@@ -698,6 +702,13 @@ func _attribute(src: Object) -> Array:
 		return [_claim_id, _claim_mult]
 	return [&"world", 1.0]
 
+## Where the contact being billed touched him, while `_attribute` asks its weapon for a
+## multiplier; INF the rest of the time. For a weapon whose multiplier depends on *where* on it the
+## hit landed — the cricket bat's middle (D74) — because by the time a hit the ledger bills is
+## attributed, a step late (D64), the weapon has already moved off him, and where it is then says
+## nothing about where it touched.
+var hit_at := Vector2.INF
+
 ## Above this many tracked sources, expired entries are swept. Items are spawned and binned
 ## all session; without a sweep this dictionary grows for every object that ever touched him,
 ## which in a game designed to idle for eight hours is an unbounded leak.
@@ -705,15 +716,27 @@ const COOLDOWN_SWEEP_AT := 64
 
 ## A weapon left leaning against him produces a contact impulse every tick. The cooldown
 ## is what stops that farming Bones while the player is away from the desk.
+##
+## **Counted in physics steps, not on the wall clock** (D74 fixes). Contacts happen in steps, and
+## the engine runs steps in bursts — two to a drawn frame at the 30 fps idle cap, more in Low Power
+## or after a hitch — so a wall-clock cooldown lasted a different number of steps from one frame to
+## the next, and which of a sweep's contacts it let through depended on the frame rate and the
+## load: the cleaver's ordinary hit measured 17.3 at 30 fps and 20.7 at 15, and its lodged blade
+## drifted past the suite's limit only at 15. `damage_cooldown` seconds of steps, rounded up.
 func _cooldown_ready(src: Object, cooldown: float) -> bool:
 	var key := src.get_instance_id() if src != null else 0
-	var now := Time.get_ticks_msec()
+	var now := Engine.get_physics_frames()
 	if now < int(_cooldowns.get(key, 0)):
 		return false
 	if _cooldowns.size() >= COOLDOWN_SWEEP_AT:
 		_sweep_cooldowns(now)
-	_cooldowns[key] = now + int(cooldown * 1000.0)
+	_cooldowns[key] = now + cooldown_steps(cooldown)
 	return true
+
+## Seconds of cooldown as physics steps: 0.15 s is 9 at 60 Hz. Zero stays zero, so a suite that
+## turns the cooldown off still sees a second bill in the same step.
+static func cooldown_steps(seconds: float) -> int:
+	return ceili(seconds * float(Engine.physics_ticks_per_second) - 0.001) if seconds > 0.0 else 0
 
 func _sweep_cooldowns(now: int) -> void:
 	for key in _cooldowns.keys():
