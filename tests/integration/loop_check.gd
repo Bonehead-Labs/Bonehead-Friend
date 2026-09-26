@@ -3685,6 +3685,12 @@ func _the_playtest_kit_writes_what_it_says() -> void:
 	_check("a checkout is not a playtest build, so nothing logs on its own",
 		not BuildInfo.is_playtest() and not Playtest.logging_enabled())
 	_check("with no config the uploader is off", not Playtest.uploads_enabled())
+	var overlay_keys: GDScript = load("res://Scripts/Overlay/debug_overlay.gd")
+	var moved := [KEY_F4, KEY_F5, KEY_F6, KEY_F7, KEY_F9, KEY_F10].filter(
+		func(k: Key) -> bool: return overlay_keys.key_is_live(k, true))
+	_check("a tester's build ignores the keys that move the window, and keeps F3 and F8",
+		moved.is_empty() and overlay_keys.key_is_live(KEY_F3, true)
+		and overlay_keys.key_is_live(KEY_F8, true) and overlay_keys.key_is_live(KEY_F4, false))
 
 	Playtest.begin_session()
 	var path := Playtest.session_path()

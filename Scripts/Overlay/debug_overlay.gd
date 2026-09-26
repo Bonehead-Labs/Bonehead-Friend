@@ -76,8 +76,20 @@ func _buddy_line() -> String:
 	return "%s  beat %s  arousal %.2f  attends %s  away %.0fs" % [
 		buddy.state, beat, brain.arousal(), brain.attention(), brain.away_seconds()]
 
+## The keys a tester keeps. F4–F7, F9 and F10 move, resize and repower the window from the keyboard
+## — the same settings the Settings page offers — and in a tester's hands a stray one is a window
+## that jumped monitors for no reason they can name, which is a note about a bug that is not one.
+## F3 stays (it shows the build id a note should quote), and so does F8, the overlay's escape
+## hatch if anything misbehaves (docs/test-matrix.md).
+const PLAYTEST_KEYS: Array[Key] = [KEY_F3, KEY_F8]
+
+static func key_is_live(keycode: Key, playtest: bool) -> bool:
+	return not playtest or PLAYTEST_KEYS.has(keycode)
+
 func _unhandled_key_input(event: InputEvent) -> void:
 	if not (event is InputEventKey) or not event.pressed or event.is_echo():
+		return
+	if not key_is_live((event as InputEventKey).keycode, BuildInfo.is_playtest()):
 		return
 	match (event as InputEventKey).keycode:
 		KEY_F3:
