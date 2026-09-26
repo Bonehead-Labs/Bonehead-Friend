@@ -10,7 +10,7 @@
 #
 # In order:
 #   1. A build id: the date, the short commit, and -dirty if the tree has changes the commit does
-#      not (the editor's own rewrites of *.import files are ignored — they are not the game).
+#      not (the editor's own rewrites of *.import files are ignored: they are not the game).
 #   2. Data/build_stamp.txt, which the export carries because Data/*.txt is on the preset's
 #      include list. The game reads it (BuildInfo): Settings shows it, F3 shows it, and every
 #      session log and feedback note is stamped with it. Deleted again when this finishes,
@@ -20,7 +20,7 @@
 #      scene, data file and the stamp must be inside, or no zip is made.
 #   5. Beside the exe: README-PLAYTEST.txt for the tester, an override.cfg that gives the build
 #      its own save folder (so a playtest on this PC never loads the developer's save, and the
-#      developer's save never sees the playtest), and — only with -UploadUrl — a playtest.cfg
+#      developer's save never sees the playtest), and, only with -UploadUrl, a playtest.cfg
 #      naming the endpoint. The endpoint is never written into the repository or the pack.
 #   6. One zip of that folder in -OutDir. Its path and size are the last thing printed.
 
@@ -98,7 +98,8 @@ try {
 
 	$code = Invoke-Godot @("--headless", "--path", $Project, "-s", "res://tools/pack_check.gd", "--",
 		$Exe, "--require=res://Data/build_stamp.txt") $CheckLog
-	Get-Content $CheckLog | Where-Object { $_ -match '^(pack|files|required|MISSING|ok|  )' } |
+	# UTF-8, or 5.1 reads the log as the ANSI code page and prints the dash as three letters.
+	Get-Content $CheckLog -Encoding UTF8 | Where-Object { $_ -match '^(pack|files|required|MISSING|ok|  )' } |
 		ForEach-Object { Write-Host "Pack      $_" }
 	if ($code -ne 0) { throw "the export is missing runtime files - see $CheckLog" }
 } finally {
