@@ -61,6 +61,11 @@ func _on_tick(delta: float) -> void:
 	if _t >= num("fuel_seconds", 2.4):
 		finish()
 
+## The focus went with right held (D70): the flutter stops, as if right had been let go.
+func _on_focus_lost() -> bool:
+	finish()
+	return true
+
 ## One flutter: a rustle, and if the feathers are on him, a giggle.
 func _engine_tick() -> void:
 	sound(&"flutter", lerpf(-16.0, -9.0, _rev), 0.9 + 0.4 * _rev, 0.08)

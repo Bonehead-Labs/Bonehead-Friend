@@ -265,6 +265,18 @@ func _wants_press() -> bool:
 func _press_again() -> bool:
 	return false
 
+## The window lost the focus with right still held: the release will never arrive (D70 — an
+## alt-tab mid-draw used to fire the slingshot). True if the ability let go of what it was doing,
+## as a cancel and never as the release it did not get; false, the default, changes nothing.
+func _on_focus_lost() -> bool:
+	return false
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_APPLICATION_FOCUS_OUT and _right_held and _active and _on_focus_lost():
+		_right_held = false
+		set_process_input(false)
+		_update_pip()
+
 func _on_press() -> void:
 	pass
 

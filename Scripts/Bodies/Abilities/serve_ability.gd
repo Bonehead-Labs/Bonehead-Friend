@@ -84,6 +84,15 @@ func _on_release(_seconds: float) -> void:
 		# The way home watches the cursor and the left button, as the axe's does.
 		set_process_input(true)
 
+## The focus went with right held mid-toss (D70): never a serve on a release that never came — it
+## is a fault, and the ball drops.
+func _on_focus_lost() -> bool:
+	if _phase != TOSSED:
+		return false
+	faults += 1
+	_let_go()
+	return true
+
 func _on_dropped() -> void:
 	pass
 

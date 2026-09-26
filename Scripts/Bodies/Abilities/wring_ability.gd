@@ -115,6 +115,11 @@ func _on_release(_seconds: float) -> void:
 func _on_dropped() -> void:
 	_stop_wringing()
 
+## The focus went with right held (D70): the squeeze lets go; the drops in the air still fall.
+func _on_focus_lost() -> bool:
+	_stop_wringing()
+	return true
+
 func _drops_alive() -> int:
 	var n := 0
 	for ref in _shots:

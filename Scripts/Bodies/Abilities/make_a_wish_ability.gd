@@ -110,13 +110,11 @@ func _on_tick(delta: float) -> void:
 func _on_release(_seconds: float) -> void:
 	if _phase != WINDING:
 		return
-	emit_from(_gather, false)
 	if _charge < num("min_charge", 0.6):
 		# Not held long enough to wish on: the flames settle back.
-		fizzled += 1
-		_rest_glow()
-		finish(num("cooldown", 6.0) * 0.25)
+		_fizzle()
 		return
+	emit_from(_gather, false)
 	last_charge = _charge
 	_phase = WISHING
 	_wait = num("blow_delay", 0.45)
@@ -124,11 +122,26 @@ func _on_release(_seconds: float) -> void:
 	if him:
 		tell(&"wish", _face(him))
 
+## The focus went with right held (D70): nothing is wished on a release that never came — the flames
+## settle back, as for a wish let go too early.
+func _on_focus_lost() -> bool:
+	if _phase != WINDING:
+		return false
+	_fizzle()
+	return true
+
 ## Let go of mid-wish, the cake is still where it was: the wish goes ahead. Let go of while gathering,
-## it is a fizzle.
+## it is a fizzle — a cake put down is not a wish made.
 func _on_dropped() -> void:
 	if _phase == WINDING:
-		_on_release(0.0)
+		_fizzle()
+
+## Nothing wished: the flames settle back, and a short wait.
+func _fizzle() -> void:
+	emit_from(_gather, false)
+	fizzled += 1
+	_rest_glow()
+	finish(num("cooldown", 6.0) * 0.25)
 
 ## Out: the flames gone from the picture, smoke off every wick, stars over his head, and the wish.
 func _blow() -> void:
