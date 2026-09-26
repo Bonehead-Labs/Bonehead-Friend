@@ -175,8 +175,10 @@ func _hit() -> void:
 	body.apply_central_impulse(-v * body.mass * 1.4)
 	var fx := fx()
 	if fx:
-		fx.chips(at, Color("f2ead8"), 6, 260.0)
-		fx.ring(at, 50.0, tier_colour(), 0.2, 3.0)
+		# A look with a shape of its own (`Shapes/tomahawk.gd`) chops its own chips.
+		if not AbilityLooks.pay_spec(look(), &"tomahawk").has("shape"):
+			fx.chips(at, Color("f2ead8"), 6, 260.0)
+			fx.ring(at, 50.0, tier_colour(), 0.2, 3.0)
 		fx.shake(3.0)
 	sound(&"impact_metal", -4.0, 0.8)
 

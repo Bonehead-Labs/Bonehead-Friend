@@ -166,10 +166,12 @@ func _spike() -> void:
 	spiked = true
 	var fx := fx()
 	if fx:
-		var at := tip_world()
-		fx.ring(at, 60.0, tier_colour(), 0.25, 3.0)
-		fx.burst(at, &"star", WorldFX.GOLD, 5, 260.0)
-		fx.chips(at, Color("f2ead8"), 6, 280.0)
+		# The skewer through him is the look's (`Shapes/hook_and_spike.gd`).
+		if not AbilityLooks.pay_spec(look(), &"spike").has("shape"):
+			var at := tip_world()
+			fx.ring(at, 60.0, tier_colour(), 0.25, 3.0)
+			fx.burst(at, &"star", WorldFX.GOLD, 5, 260.0)
+			fx.chips(at, Color("f2ead8"), 6, 280.0)
 		fx.shake(5.0)
 	sound(&"crack", -2.0, 0.8)
 	sound(&"impact_metal", -6.0, 0.9)

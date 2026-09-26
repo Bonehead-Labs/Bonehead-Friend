@@ -174,14 +174,21 @@ func _cut() -> void:
 	var share := clampf(_cut_speed / maxf(num("cut_speed", 1500.0), 1.0), 0.6, 1.4)
 	last_cut = num("cut_force", 2600.0) * share
 	strike(last_cut, _cut_dir, at, num("cut_mult", 1.0), num("shove", 0.6))
+	# The cut itself is the look's payoff when it has one (`Shapes/iaido.gd`: the long line laid across
+	# him, held, and parting): the short line held on him through the beat gives way to it.
+	var shaped := AbilityLooks.pay_spec(look(), &"iaido").has("shape")
 	if is_instance_valid(_cut_line):
-		_cut_line.split()
+		if shaped:
+			_cut_line.queue_free()
+		else:
+			_cut_line.split()
 	var fx := fx()
 	if fx:
-		# In its colour: a white cut across white bone is a cut only off the edges of him (D77).
-		fx.tracer(at - _cut_dir * 70.0, at + _cut_dir * 70.0, accent(), 0.22, 4.0)
+		if not shaped:
+			# In its colour: a white cut across white bone is a cut only off the edges of him (D77).
+			fx.tracer(at - _cut_dir * 70.0, at + _cut_dir * 70.0, accent(), 0.22, 4.0)
+			fx.burst(at, &"bone", Color("f2ead8"), 3, 240.0)
 		fx.chips(at, accent(), 8, 300.0)
-		fx.burst(at, &"bone", Color("f2ead8"), 3, 240.0)
 		fx.shake(4.0)
 	sound(&"shing", -4.0, 1.6)
 	paid_off.emit(&"iaido")

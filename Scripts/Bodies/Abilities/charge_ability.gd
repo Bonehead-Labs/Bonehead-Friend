@@ -144,12 +144,10 @@ func _land() -> void:
 		him.claim_impacts(body.item_id, base_mult(), num("claim_seconds", 2.0))
 		at = him.get_interaction_rect().get_center()
 	payoffs += 1
+	# The crack, the splinters and the ball for the sky are the look's payoff (`Shapes/home_run.gd`);
+	# here only the jolt.
 	var fx := fx()
 	if fx:
-		fx.ring(at, 70.0 + 50.0 * _charge, WorldFX.GOLD, 0.35, 4.0)
-		fx.burst(at, &"star", WorldFX.GOLD, 4 + int(5.0 * _charge), 320.0)
-		# Not white: white on him is invisible (D77).
-		fx.chips(at, accent(), 6, 260.0)
 		fx.shake(4.0 + 5.0 * _charge)
 	sound(&"crack", -2.0, lerpf(1.15, 0.9, _charge))
 	tell(&"home_run", at)

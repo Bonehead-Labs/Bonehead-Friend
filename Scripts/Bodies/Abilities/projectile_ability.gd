@@ -300,12 +300,13 @@ class Ball extends RigidBody2D:
 		var heading := linear_velocity.normalized()
 		him.apply_central_impulse(heading * force * shove)
 		him.take_impulse(force, source, mult, at)
+		var owner_ability := ability.get_ref() as ProjectileAbility if ability else null
 		var fx := WorldFX.of(self)
-		if fx:
+		# The tracer and the flag are the look's when it has them (`Shapes/drive.gd`).
+		if fx and not (owner_ability and AbilityLooks.pay_spec(owner_ability.look(), &"drive").has("shape")):
 			fx.ring(at, 40.0, Color.WHITE, 0.2, 3.0)
 			fx.burst(at, &"star", WorldFX.GOLD, 3, 220.0)
 		AudioManager.play(&"tock", 0.05, -4.0, 0.8)
-		var owner_ability := ability.get_ref() as ProjectileAbility if ability else null
 		if owner_ability:
 			owner_ability._ball_struck(force)
 		# Off him, most of its speed spent.

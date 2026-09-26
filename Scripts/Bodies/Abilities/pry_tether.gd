@@ -197,7 +197,9 @@ func _pop() -> void:
 	popped = true
 	var fx := fx()
 	if fx:
-		fx.ring(at, 50.0 + 40.0 * frac, WorldFX.DUST, 0.3, 3.0)
+		# The arrow over and the nails are the look's (`Shapes/pry.gd`); the ring is the generic one.
+		if not AbilityLooks.pay_spec(look(), &"pry").has("shape"):
+			fx.ring(at, 50.0 + 40.0 * frac, WorldFX.DUST, 0.3, 3.0)
 		fx.puff(at, 6, WorldFX.DUST, 90.0, 0.6)
 		fx.chips(at, WorldFX.SPARK, 5, 260.0)
 		fx.shake(3.0 + 3.0 * frac)

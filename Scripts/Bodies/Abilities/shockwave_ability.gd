@@ -211,11 +211,15 @@ func _wave(at: Vector2) -> void:
 		else:
 			other.apply_central_impulse(dir * impulse)
 		last_lifted += 1
+	var shaped := AbilityLooks.pay_spec(look(), &"ground_pound").has("shape")
 	var fx := fx()
 	if fx:
-		fx.ring(at, radius, Color("f2ead8"), 0.4, 5.0)
+		# With a look of its own (`Shapes/ground_pound.gd`) the desk cracks and throws up its own
+		# chunks and dust; the rings are the generic wave.
+		if not shaped:
+			fx.ring(at, radius, Color("f2ead8"), 0.4, 5.0)
+			fx.chips(at, WorldFX.DUST, 10, 360.0)
 		fx.puff(at, 12, WorldFX.DUST, 140.0, 0.8)
-		fx.chips(at, WorldFX.DUST, 10, 360.0)
 		fx.shake(8.0)
 	sound(&"quake", 0.0, 1.0, 0.04)
 	sound(&"impact_metal", -6.0, 0.55)
@@ -225,4 +229,4 @@ func _wave(at: Vector2) -> void:
 	fx_at = at
 	paid_off.emit(&"ground_pound")
 	# A second, wider ring a moment later: the wave going out through the desk.
-	_ring_again = 0.1
+	_ring_again = -1.0 if shaped else 0.1
