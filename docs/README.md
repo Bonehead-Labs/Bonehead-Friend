@@ -25,6 +25,7 @@ Production spec for **Bonehead Friend**, a Windows desktop-overlay idle game.
 | [plan-expressive-buddy.md](plan-expressive-buddy.md) | The reactive, expressive buddy: reaction tables, the expression brain, animation set, phasing (Phases 0–2 built; D36) |
 | [plan-movement-hitboxes.md](plan-movement-hitboxes.md) | Why he hops and gets hurt walking, and the fix: a fall floor by source, a bounded central walk, gated climbs; the multi-hitbox designed for the art pass |
 | [test-matrix.md](test-matrix.md) | Manual overlay test matrix + automated test strategy |
+| [playtest-plan.md](playtest-plan.md) | **The playtests.** One-command builds, the F1 feedback card, the session log, getting files back, the report tool — and the three rounds (partner, friends, strangers) with scripts, questions and pass criteria for the M2 and M3 gates |
 | [decisions.md](decisions.md) | ADR-lite: what was decided, when, and why |
 | [research/](research/) | Source research: prototype survey, market/design digest, pipeline findings |
 
