@@ -15,3 +15,4 @@ currency = 1
 scene = ExtResource("1_xdrmd")
 icon = ExtResource("1_mmhvb")
 sort_order = 15
+controls = "Hold · Right: Curveball — tap: it breaks late into his hands"

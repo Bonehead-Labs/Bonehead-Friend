@@ -437,6 +437,124 @@ const ABILITIES := {
 		"drops": 7, "splash_speed": 620.0, "whip": 9.0, "scald_force": 900.0, "scald_mult": 1.0,
 		"shove": 0.2, "grime": 0.04, "steam_seconds": 1.2, "steam_ticks": 2, "steam_force": 450.0,
 	},
+
+	# --- D78: beyond the melee drawer ---
+	#
+	# The same button on everything else it is plausible for (the design sheet is in D78). A row
+	# marked `kind` pays Hearts through the bus (`WeaponAbility.give`) and never bills him, and its
+	# `worth` is kindness value, in pets, that one use adds on top of what the item pays anyway —
+	# `pacing_sim` prices it against petting (`kindness_uplift`), and no kind row may pay faster
+	# than D67's ceiling for a hand-worked act, 1.5 value a second over its cycle. The rest are
+	# harm, billed by him, their `worth` in ordinary hits (a charge's in ordinary blasts).
+	#
+	# Bowled, not thrown: down onto the desk and rolling at him with its topspin; the strike is billed
+	# once at x1.5 and he goes over like a pin, his landing the ball's.
+	&"bowling_ball": {
+		"id": &"strike", "name": "Strike", "archetype": &"throw",
+		"script": "res://Scripts/Bodies/Abilities/strike_ability.gd",
+		"controls": "Hold · Right: Strike — tap: bowled along the desk, he goes over",
+		"cooldown": 5.0, "busy": 1.5, "worth": 1.5,
+		"roll_speed": 900.0, "hit_force": 8000.0, "strike_mult": 1.5, "shove": 0.1, "topple": 11.0,
+		"lift": 260.0, "claim_seconds": 2.0, "out_seconds": 2.5,
+	},
+	# Pitched high over his glove, it breaks late and hard down into his hands; he holds it a moment
+	# and throws it back to you. A caught curveball is two ordinary catches.
+	&"baseball": {
+		"id": &"curveball", "name": "Curveball", "archetype": &"throw", "kind": true,
+		"script": "res://Scripts/Bodies/Abilities/curveball_ability.gd",
+		"controls": "Hold · Right: Curveball — tap: it breaks late into his hands",
+		"cooldown": 3.0, "busy": 1.6, "worth": 6.0,
+		"throw_speed": 820.0, "break_height": 70.0, "break_distance": 150.0, "break_accel": 5200.0,
+		"spin": 26.0, "curve_mult": 2.0, "hold_seconds": 0.6, "out_seconds": 1.4,
+		"return_speed": 900.0, "return_accel": 5000.0, "catch_radius": 48.0, "give_up_seconds": 3.0,
+	},
+	# Tossed up by the press, struck by the release: at the top of the toss it goes flat and fast,
+	# an ace; he volleys it back to the hand. A good serve is his catch and a share of an ace.
+	&"tennis_ball": {
+		"id": &"serve", "name": "Serve", "archetype": &"throw", "kind": true,
+		"script": "res://Scripts/Bodies/Abilities/serve_ability.gd",
+		"controls": "Hold · Right: Serve — hold to toss it up, let go at the top: an ace",
+		"cooldown": 2.5, "busy": 1.8, "worth": 6.0,
+		"toss_speed": 520.0, "window": 0.25, "min_speed": 500.0, "max_speed": 1150.0, "ace": 0.8,
+		"ace_value": 6.0, "out_seconds": 1.2, "return_speed": 1000.0, "return_accel": 5000.0,
+		"catch_radius": 48.0, "give_up_seconds": 3.0,
+	},
+	# Lobbed onto his head; he heads it back up four times, a count over his head, and the last one
+	# home to the hand. Each header is an act.
+	&"beach_ball": {
+		"id": &"keepy_uppy", "name": "Keepy-Uppy", "archetype": &"throw", "kind": true,
+		"script": "res://Scripts/Bodies/Abilities/keepy_uppy_ability.gd",
+		"controls": "Hold · Right: Keepy-Uppy — tap: lobbed onto his head, he heads it up",
+		"cooldown": 5.0, "busy": 4.5, "worth": 12.0,
+		"lob_height": 200.0, "bounce_height": 150.0, "window": 46.0, "headers": 4, "header_value": 3.0,
+		"hop": 170.0, "out_seconds": 2.5, "return_speed": 900.0, "return_accel": 5000.0,
+		"catch_radius": 56.0, "give_up_seconds": 3.0,
+	},
+	# Squeezed over him, it rains; every drop on him takes grime off, paid as the sponge pays for
+	# it, and the first is a rinse. Quicker than scrubbing, never richer.
+	&"sponge": {
+		"id": &"wring", "name": "Wring", "archetype": &"sustain", "kind": true,
+		"script": "res://Scripts/Bodies/Abilities/wring_ability.gd",
+		"controls": "Hold · Right: Wring — hold it over him: it rains, grime runs off",
+		"cooldown": 4.0, "busy": 2.5, "worth": 2.0,
+		"fuel_seconds": 2.0, "spin_up": 0.2, "tick_seconds": 0.08, "clean": 0.03, "rinse_value": 2.0,
+		"squeeze": 0.25,
+	},
+	# It flutters on him and he giggles, an act every 0.3 s, for 2.4 s of fluttering.
+	&"feather_duster": {
+		"id": &"tickle", "name": "Tickle", "archetype": &"sustain", "kind": true,
+		"script": "res://Scripts/Bodies/Abilities/tickle_ability.gd",
+		"controls": "Hold · Right: Tickle — hold it on him: he can't stop giggling",
+		"cooldown": 3.5, "busy": 2.4, "worth": 6.4,
+		"fuel_seconds": 2.4, "spin_up": 0.25, "tick_seconds": 0.3, "giggle_value": 0.8, "reach": 14.0,
+		"flutter": 0.3,
+	},
+	# Thrown round his shoulders, it stays there five seconds keeping him warm, with the hand free.
+	&"warm_towel": {
+		"id": &"swaddle", "name": "Swaddle", "archetype": &"throw", "kind": true,
+		"script": "res://Scripts/Bodies/Abilities/swaddle_ability.gd",
+		"controls": "Hold · Right: Swaddle — tap near him: it wraps round him, warm",
+		"cooldown": 8.0, "busy": 5.5, "worth": 18.0,
+		"reach": 300.0, "throw_speed": 650.0, "wrap_seconds": 5.0, "wrap_value": 3.0, "warm_rate": 3.0,
+		"drape": 1.25, "out_seconds": 1.2,
+	},
+	# One donut flipped out of the box into his mouth: a helping the box would have paid anyway, and
+	# a little for being hand-fed.
+	&"donut_box": {
+		"id": &"donut_toss", "name": "Donut Toss", "archetype": &"projectile", "kind": true,
+		"script": "res://Scripts/Bodies/Abilities/donut_toss_ability.gd",
+		"controls": "Hold · Right: Donut Toss — tap: one flips out into his mouth",
+		"cooldown": 1.2, "busy": 0.9, "worth": 1.0,
+		"toss_speed": 480.0, "reach": 380.0, "fed_bonus": 1.0, "spin": 5.0,
+	},
+	# Held up to him, the candles burn brighter as the wish gathers; let go, and he shuts his eyes,
+	# takes a breath and blows them out. The wish is an act; the cake is still his to eat.
+	&"birthday_cake": {
+		"id": &"make_a_wish", "name": "Make a Wish", "archetype": &"charge", "kind": true,
+		"script": "res://Scripts/Bodies/Abilities/make_a_wish_ability.gd",
+		"controls": "Hold · Right: Make a Wish — hold it near him, let go: he blows them out",
+		"cooldown": 6.0, "busy": 1.7, "worth": 8.0,
+		"reach": 260.0, "charge_seconds": 1.2, "min_charge": 0.6, "blow_delay": 0.45, "wish_value": 8.0,
+		"flame_rows": Vector2i(16, 19), "wicks": [Vector2(27, 18), Vector2(32, 18), Vector2(37, 18)],
+	},
+	# Lit, right again: on the clicker. It goes when it is clicked, wherever it is — stuck to him,
+	# most likely — or after ten seconds.
+	&"sticky_bomb": {
+		"id": &"remote", "name": "Remote", "archetype": &"fuse",
+		"script": "res://Scripts/Bodies/Abilities/remote_fuse.gd",
+		"controls": "Hold · Right: Remote — lit, right again: it goes when you click it",
+		"cooldown": 0.0, "busy": 3.0, "worth": 0.2,
+		"wait_seconds": 10.0, "blink": 0.2,
+	},
+	# Lit, right again: set to burst over him. Thrown over him, it opens overhead and its bomblets
+	# land in a ring round his feet.
+	&"cluster_bomb": {
+		"id": &"airburst", "name": "Airburst", "archetype": &"fuse",
+		"script": "res://Scripts/Bodies/Abilities/airburst_fuse.gd",
+		"controls": "Hold · Right: Airburst — lit, right again, throw over him: it opens",
+		"cooldown": 0.0, "busy": 2.0, "worth": 0.5,
+		"wait_seconds": 4.0, "window": 90.0, "height": 60.0, "ring": 90.0,
+	},
 }
 
 static func has(item_id: StringName) -> bool:

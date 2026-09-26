@@ -15,3 +15,4 @@ scene = ExtResource("2_vtana")
 icon = ExtResource("1_86k5f")
 requires = Array[StringName]([&"oil_drum"])
 sort_order = 80
+controls = "Hold · Right: Airburst — lit, right again, throw over him: it opens"

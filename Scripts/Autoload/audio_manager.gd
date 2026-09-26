@@ -368,6 +368,17 @@ func _build_streams() -> void:
 	_streams[&"bless"] = _wav(_chime_samples([784.0, 988.0, 1175.0, 1568.0], 0.8))
 	_streams[&"float"] = _wav(_warble_samples(0.70, 330.0, 495.0, 5.0, 0.02))
 	_streams[&"rainbow"] = _wav(_chime_samples([523.0, 587.0, 659.0, 784.0, 880.0, 1046.0], 0.9))
+	# --- held things beyond the melee drawer (D78) ---
+	#
+	# A bowling ball rolling up the desk and the pins going down; a feather duster fluttering; a
+	# drop off a wrung sponge; the chirp of a charge put on the clicker. Everything else the D78
+	# abilities say is a voice above: the boing of a header, the tock of a catch, the crunch of a
+	# donut, the giggle.
+	_streams[&"rumble"] = _wav(_rumble_samples())
+	_streams[&"pins"] = _wav(_pins_samples())
+	_streams[&"flutter"] = _wav(_flutter_samples())
+	_streams[&"drip"] = _wav(_drip_samples())
+	_streams[&"beep"] = _wav(_beep_samples())
 
 ## A wide cut through leaves: bright noise whose band falls fast, with a rustle riding it —
 ## broader and higher than a whoosh, which is one thing passing the ear rather than many.
@@ -452,6 +463,98 @@ func _tink_samples() -> PackedFloat32Array:
 		var t := float(i) / float(MIX_RATE)
 		var value := sin(TAU * 3100.0 * t) * 0.34 * exp(-t * 55.0) + sin(TAU * 5270.0 * t) * 0.16 * exp(-t * 80.0)
 		out[i] = clampf(value * minf(t * 4000.0, 1.0), -1.0, 1.0)
+	return out
+
+## A heavy ball rolling up a wooden lane: low filtered noise and a slow thrum under it, swelling
+## in and out — the one D78 voice that lasts, because the roll does.
+func _rumble_samples() -> PackedFloat32Array:
+	var duration := 0.9
+	var count := int(MIX_RATE * duration)
+	var out := PackedFloat32Array()
+	out.resize(count)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 20261001
+	var low := 0.0
+	for i in count:
+		var t := float(i) / float(MIX_RATE)
+		var progress := t / duration
+		low = lerpf(low, rng.randf_range(-1.0, 1.0), 0.04)
+		var thrum := sin(TAU * 58.0 * t) * (0.6 + 0.4 * sin(TAU * 7.0 * t))
+		var envelope := minf(progress * 6.0, 1.0) * minf((1.0 - progress) * 4.0, 1.0)
+		out[i] = clampf((low * 1.6 + thrum * 0.35) * envelope, -1.0, 1.0)
+	return out
+
+## Pins going down: seven hollow wooden knocks, the first hardest, scattered over a third of a
+## second, each a little higher or lower than the last.
+func _pins_samples() -> PackedFloat32Array:
+	var duration := 0.55
+	var count := int(MIX_RATE * duration)
+	var out := PackedFloat32Array()
+	out.resize(count)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 20261002
+	var knocks: Array = []
+	for k in 7:
+		var at := 0.0 if k == 0 else rng.randf_range(0.02, 0.34)
+		knocks.append([at, rng.randf_range(700.0, 1250.0), 1.0 if k == 0 else rng.randf_range(0.35, 0.7)])
+	for i in count:
+		var t := float(i) / float(MIX_RATE)
+		var value := 0.0
+		for knock in knocks:
+			var dt: float = t - float(knock[0])
+			if dt < 0.0:
+				continue
+			var pitch: float = knock[1]
+			var gain: float = knock[2]
+			value += (sin(TAU * pitch * dt) * 0.45 * exp(-dt * 45.0) \
+				+ sin(TAU * pitch * 2.3 * dt) * 0.15 * exp(-dt * 80.0) \
+				+ rng.randf_range(-1.0, 1.0) * 0.3 * exp(-dt * 500.0)) * gain
+		out[i] = clampf(value, -1.0, 1.0)
+	return out
+
+## Feathers: soft noise beaten at forty-odd times a second, gone in a fifth of a second.
+func _flutter_samples() -> PackedFloat32Array:
+	var duration := 0.22
+	var count := int(MIX_RATE * duration)
+	var out := PackedFloat32Array()
+	out.resize(count)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 20261003
+	var low := 0.0
+	for i in count:
+		var t := float(i) / float(MIX_RATE)
+		var progress := t / duration
+		low = lerpf(low, rng.randf_range(-1.0, 1.0), 0.25)
+		var beat := 0.5 + 0.5 * sin(TAU * 44.0 * t)
+		var envelope := minf(progress * 10.0, 1.0) * (1.0 - progress)
+		out[i] = clampf(low * beat * envelope * 0.9, -1.0, 1.0)
+	return out
+
+## A drop off a sponge: the bloop, a sine that rises fast and is gone.
+func _drip_samples() -> PackedFloat32Array:
+	var duration := 0.12
+	var count := int(MIX_RATE * duration)
+	var out := PackedFloat32Array()
+	out.resize(count)
+	var phase := 0.0
+	for i in count:
+		var t := float(i) / float(MIX_RATE)
+		var pitch := lerpf(500.0, 1500.0, minf(t / 0.05, 1.0))
+		phase += TAU * pitch / float(MIX_RATE)
+		out[i] = clampf(sin(phase) * 0.5 * exp(-t * 32.0) * minf(t * 3000.0, 1.0), -1.0, 1.0)
+	return out
+
+## A charge put on the clicker: one clean electronic chirp, square-edged.
+func _beep_samples() -> PackedFloat32Array:
+	var duration := 0.07
+	var count := int(MIX_RATE * duration)
+	var out := PackedFloat32Array()
+	out.resize(count)
+	for i in count:
+		var t := float(i) / float(MIX_RATE)
+		var square := signf(sin(TAU * 2100.0 * t)) * 0.18 + sin(TAU * 2100.0 * t) * 0.12
+		var envelope := minf(t * 2000.0, 1.0) * minf((duration - t) * 400.0, 1.0)
+		out[i] = clampf(square * envelope, -1.0, 1.0)
 	return out
 
 ## Air moved by something swung: noise through a band that sweeps up and back, inside a swell.

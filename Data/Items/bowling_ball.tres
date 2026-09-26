@@ -14,3 +14,4 @@ cost = 700
 scene = ExtResource("1_bfnfu")
 icon = ExtResource("1_a7uw4")
 sort_order = 10
+controls = "Hold · Right: Strike — tap: bowled along the desk, he goes over"
