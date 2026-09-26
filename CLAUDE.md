@@ -79,7 +79,8 @@ Read `docs/README.md` first — it indexes the full spec. Design questions are a
   `1 world · 2 buddy · 3 item · 4 handle · 5 pickup · 6 sensor`.
   Handles collide with nothing. Sensors are Area2D-only.
 - **Autoload boot order** is load-bearing:
-  `EventBus → Settings → SaveManager → ItemDB → Economy → Progression → OverlayManager → AudioManager`.
+  `EventBus → Settings → SaveManager → ItemDB → Economy → Progression → OverlayManager → AudioManager
+  → Playtest` (D79; its error logger installs in `_init`, so it sees the others boot).
 
 ## UI
 
@@ -480,7 +481,17 @@ GDScript quirks already paid for once each:
   it pays Bones, but no per-act Dollar and no contract or milestone count, and unattended damage
   earns automation's Dollar trickle once a tick. A toy paying him on touch goes through
   `FriendlyBase._pay_contact`, which is a trickle during his own routine; `pay_act` is always the
-  hand's. A nail gun at an empty desk had been banking 20,000 Dollars an hour.
+  hand's. A nail gun at an empty desk had been banking 20,000 Dollars an hour. Since D76's amendment
+  the rule is **a hand behind it**: an item's hit or touch is an act only if the item or he was held,
+  let go of or aimed by a hand in the last 3 s; otherwise `HitInfo.by_itself` and it is judged as
+  the world is (the fan, the trampoline's mat, a raccoon's throw, a toy left on him).
+- **Playtests** (D79): `tools/make_playtest_build.ps1` makes the tester's zip; `BuildInfo` says which
+  build (`dev` in a checkout, `-- --playtest` to act like one); a suite that saves notes or starts a
+  session calls `Playtest.use_root()` first. `JSON.parse_string` prints an engine error on a bad
+  line — parse untrusted lines with `JSON.new().parse()`. A closed localhost port on Windows times
+  out rather than refusing, so HTTP tests set a short timeout. Keep `.ps1` files ASCII (PowerShell
+  5.1 reads them as ANSI) and read UTF-8 logs with `-Encoding UTF8`. Never commit an upload
+  endpoint: it lives only in a `playtest.cfg` beside the exe.
 - **A held ability on anything is an `AbilityTable` row** (D78): `BaseDraggable._ready` attaches it,
   not `WeaponBase`. A kind row pays with `give()` / `give_sustained()` and stays under
   `AbilityTable.KIND_CEILING` (1.5 value a second, D67's); a charge's second press is a `fuse` hook; ability_check wants a `_drive_<ability id>`.

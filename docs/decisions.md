@@ -3820,6 +3820,29 @@ models no Dollars and no contracts, and nothing it reads moved.
 toys2 205; verbs 273; brain 393; item_check 136 items, 5,014 passed, 0 failed; pacing 4/4, first
 Reincarnation 9:42:13 as before.
 
+### Amended 2026-09-27: nobody's hand behind it
+
+D76 named the unattended sources it knew — a turret, an animal, the world — and left the desk fan,
+which the owner's review turned up, and a sweep then found three more. A hit or a touch under an
+item's name is an act only with **a hand behind it**: the item held, or let go of, put down or aimed
+in the last 3 s, or him held, thrown or hit by a hand in the last 3 s. Otherwise it is judged as the
+world is (`HitInfo.by_itself`, `Economy.hand_behind_him`) and never extends the hand's clock. That
+covers the fan's claims (D65) and its body, the trampoline's mat and what it launches, what a raccoon
+throws, and a kind toy left touching him (food exempt — its servings bound it). A bounce counts on
+the board only as him, with a hand behind him or on the mat. Measured on an empty desk, Dollars an
+hour: gorilla and fan 2,325 -> 9; a raccoon with a bat and two balls 3,636 -> 9; a rubber duck left
+on him 720 -> 0 (and 1,800 "be kind" an hour -> 0); a pellet turret alone 468 -> 468, the control.
+
+**Offline pays Dollars**, as economy.md always said and the code never did: automation's trickle
+(`dollars_per_hit x dollars_idle_efficiency`) at `offline_efficiency`, through the same clamped,
+capped elapsed time, unmultiplied — $270 an hour closed against $540 open, and nothing if nothing is
+automated (`EconomyMath.offline_dollars`, pure). **His own play stays silent:** the chime is the
+till ringing for the player's act, and every trickle is already silent. Left: a prop lying still that
+a turret or animal throws him onto still bills as that prop's act, and so does a prop a blast flings.
+
+*Verified:* unit 260, loop 864, ui 638, brain 403, item_check 136 items and 0 failed; with the fixes
+stripped, 26 of the new loop checks, 4 unit checks and 1 brain check fail. Pacing 4/4, 9:20:31.
+
 ## D77 — Every ability reads: a glint, its name, a badge on him, and a bang where it lands (2026-09-26)
 
 **Decision.** Every held weapon's ability (D74) reads in the same four stages, in the same places,
@@ -4296,6 +4319,49 @@ has a right-button verb of its own. **Not plausible** says why.
 Seventy items: eleven built; eight next (the kite, the noodle bowl, the napalm and black hole
 charges, and the four critters as one design); seventeen covered; twenty-one not plausible; eight
 turrets for the owner; and five powers, which are not held.
+
+## D79 — Playtests are local-first: a stamped build, a note in two taps, one zip back (2026-09-27)
+
+*Context:* the owner, asked whether the game was ready: he meant ready to *test*, starting with
+his partner and scaling to many testers. The roadmap's two playtest gates (M2's five-minute cold
+start, M3's 30 minutes with no dead ends) are the real blocker, and nobody but him has played it.
+
+*Decision:* a playtest kit that works with nothing set up and scales without changing shape.
+
+- **A build in one command.** `tools/make_playtest_build.ps1` stamps a build id (date, short hash,
+  `-dirty`) into `res://Data/build_stamp.txt` (gitignored, deleted after), exports release, checks
+  the pack holds its art, and zips the exe with `README-PLAYTEST.txt` into
+  `Desktop\Bonehead Friend playtest\`. Each build carries an `override.cfg`, so a tester's save is
+  `%APPDATA%\Bonehead Friend Playtest` and never the developer's. `BuildInfo` reads the stamp; a
+  checkout is `dev`, and `-- --playtest` makes a dev run behave like a tester's.
+- **A note in two taps.** F1, Settings › Playtest › Leave a note, or Esc › Feedback: Good / Meh /
+  Bad, a text box and "what were you trying to do?", with the context attached — build, minutes,
+  purse, what is owned and on the desk, the page, his mood — and a screenshot taken with the card
+  hidden. One JSON and one PNG per note under `user://playtest/`.
+- **A session log**, on in a stamped playtest build with the tester's switch in Settings: purchases,
+  first use of each item and ability, pages, knockouts, idle and away gaps, a per-minute count of
+  what they could afford, and every engine error (a `Logger` installed in the `Playtest` autoload's
+  `_init`, so it sees the other autoloads boot). Buffered and flushed on a timer, capped on disk, no
+  per-frame work, no personal data.
+- **One zip back.** *Send feedback* zips `user://playtest/` to the Desktop for the tester to send any
+  way they like. An uploader exists and is off unless a `playtest.cfg` beside the exe names an
+  endpoint (a Discord webhook, an Apps Script web app, any HTTPS URL) — the endpoint never enters
+  the repo or the pack; failed sends queue and retry.
+- **One report across testers.** `tools/playtest_report.tscn -- --in=<folder> --out=report.md`: the
+  funnel with median minutes per step, a row per tester (minutes, furthest progress, first
+  purchase, abilities found, dead stretches, errors), and every note grouped by page with its
+  picture.
+- **The F-keys that move the window are off in a tester's build** (F4–F7, F9, F10): a stray one is a
+  window that jumped monitors for no reason the tester can name. F3 (the build id) and F8 (the
+  overlay's escape hatch) stay.
+
+The plan — the partner first (cold start watched, not helped; 30 minutes free; a build left
+running while she works), then 5–10 friends, then strangers on an itch.io restricted page or Steam
+Playtest — is `docs/playtest-plan.md`.
+
+*Verified:* unit 307, loop 855, ui 671; a build made headless (39.7 MB, 1,477 files in the pack)
+and its exe run headless carried its stamp and wrote a session log. *Not yet seen:* the feedback
+card and the Settings footer in a window.
 
 ## Recommendations not yet decided
 
