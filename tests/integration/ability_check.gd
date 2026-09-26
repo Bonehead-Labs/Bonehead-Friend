@@ -2774,6 +2774,19 @@ func _drive_swaddle(body: BaseDraggable, ability: SwaddleAbility) -> Dictionary:
 	# Its warmth was a puff of orange chips from under his face that rose straight up over it; the
 	# steam is the shape's, at his sides. Sampled from here: a puff lives 0.8 s.
 	var chips := _rising_chips(face)
+	# The badge's hearts (its cue's aura) rose from a box on his middle, straight up through his face,
+	# for the whole wrap. They come off his sides now.
+	await _step(2)
+	var emitters: Array[GPUParticles2D] = []
+	for holder in [_buddy, body]:
+		for child in (holder as Node).get_children():
+			if child is AbilityFX.StateMark:
+				emitters.append_array((child as AbilityFX.StateMark).auras)
+	var him := _buddy.get_interaction_rect()
+	var on_him := emitters.filter(func(e: GPUParticles2D) -> bool:
+		return absf(e.global_position.x - him.get_center().x) < him.size.x * 0.5)
+	_check("its badge's hearts come off his sides, not up through his face (%d emitters, %d on him)"
+		% [emitters.size(), on_him.size()], emitters.size() == 2 and on_him.is_empty())
 	for i in 90:
 		await _step()
 		if not ability.is_wrapped():

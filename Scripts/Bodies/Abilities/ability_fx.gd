@@ -670,7 +670,8 @@ class StateMark extends Node2D:
 	var refresh := false
 	## Drawn once, never ticked: it waits over something still for as long as it has to.
 	var still := false
-	var aura: GPUParticles2D
+	## Two emitters, one each side of him: see `add_aura`.
+	var auras: Array[GPUParticles2D] = []
 	var fraction := 1.0
 	var pips := 0
 	## True while a word or a headline is rising through where it goes: it is not drawn until the line
@@ -718,40 +719,50 @@ class StateMark extends Node2D:
 		if restart:
 			_clock = 0.0
 
+	## Chips coming off him for as long as the state lasts — **from his sides, never across his
+	## face**. One box on his middle rising straight up put the towel's hearts, and eight other
+	## badges' chips, through his face for the whole state; a side each, drifting up and out, reads
+	## as coming off him and keeps the one part of him that says how he feels clear.
 	func add_aura(texture: Texture2D, tint: Color, amount: int, rise: float) -> void:
 		if texture == null:
 			return
-		aura = GPUParticles2D.new()
-		aura.name = "Aura"
-		aura.top_level = true
-		aura.local_coords = false
-		# It rides on him, so it updates every frame rather than at 30 fps and leaving clumps.
-		aura.fixed_fps = 0
-		aura.z_index = 44
-		aura.amount = maxi(1, amount)
-		aura.lifetime = 0.7
-		aura.texture = texture
-		aura.modulate = tint
-		var mat := ParticleProcessMaterial.new()
-		mat.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
-		mat.emission_box_extents = Vector3(18.0, 26.0, 1.0)
-		mat.direction = Vector3(0, -1, 0)
-		mat.spread = 25.0
-		mat.initial_velocity_min = rise * 0.5
-		mat.initial_velocity_max = rise
-		mat.gravity = Vector3(0, -rise * 0.5, 0)
-		mat.scale_min = 0.7
-		mat.scale_max = 1.1
-		var curve := CurveTexture.new()
-		var shape := Curve.new()
-		shape.add_point(Vector2(0.0, 0.6))
-		shape.add_point(Vector2(0.25, 1.0))
-		shape.add_point(Vector2(1.0, 0.0))
-		curve.curve = shape
-		mat.scale_curve = curve
-		aura.process_material = mat
-		add_child(aura)
-		aura.emitting = true
+		for side in [-1.0, 1.0]:
+			var emitter := GPUParticles2D.new()
+			emitter.name = "AuraLeft" if side < 0.0 else "AuraRight"
+			emitter.top_level = true
+			emitter.local_coords = false
+			# It rides on him, so it updates every frame rather than at 30 fps and leaving clumps.
+			emitter.fixed_fps = 0
+			emitter.z_index = 44
+			emitter.amount = maxi(1, int(ceil(amount * 0.5)))
+			emitter.lifetime = 0.7
+			emitter.texture = texture
+			emitter.modulate = tint
+			var mat := ParticleProcessMaterial.new()
+			mat.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
+			mat.emission_box_extents = Vector3(4.0, 22.0, 1.0)
+			mat.direction = Vector3(0.45 * side, -1, 0)
+			mat.spread = 15.0
+			mat.initial_velocity_min = rise * 0.5
+			mat.initial_velocity_max = rise
+			mat.gravity = Vector3(0, -rise * 0.5, 0)
+			mat.scale_min = 0.7
+			mat.scale_max = 1.1
+			var curve := CurveTexture.new()
+			var shape := Curve.new()
+			shape.add_point(Vector2(0.0, 0.6))
+			shape.add_point(Vector2(0.25, 1.0))
+			shape.add_point(Vector2(1.0, 0.0))
+			curve.curve = shape
+			mat.scale_curve = curve
+			emitter.process_material = mat
+			add_child(emitter)
+			emitter.emitting = true
+			auras.append(emitter)
+
+	## Where each side's chips start: just outside his rect, at his middle, so they rise beside him.
+	static func aura_origin(rect: Rect2, side: float) -> Vector2:
+		return Vector2(rect.get_center().x + side * (rect.size.x * 0.5 + 6.0), rect.get_center().y).round()
 
 	func _owner() -> Object:
 		return owner_ref.get_ref() if owner_ref else null
@@ -791,8 +802,8 @@ class StateMark extends Node2D:
 			pips = int(n) if n != null else 0
 		if not alive and _leaving < 0.0:
 			_leaving = 0.0
-			if aura:
-				aura.emitting = false
+			for emitter in auras:
+				emitter.emitting = false
 		if _leaving >= 0.0:
 			_leaving += delta
 			if _leaving >= LEAVE_T:
@@ -815,8 +826,8 @@ class StateMark extends Node2D:
 		var index := marks.find(self)
 		var offset := (float(index) - float(marks.size() - 1) * 0.5) * GAP if index >= 0 else 0.0
 		global_position = Vector2(rect.get_center().x + offset, rect.position.y - ABOVE).round()
-		if aura:
-			aura.global_position = rect.get_center().round()
+		for emitter in auras:
+			emitter.global_position = aura_origin(rect, -1.0 if emitter.name == "AuraLeft" else 1.0)
 
 	func _size() -> float:
 		if still:
