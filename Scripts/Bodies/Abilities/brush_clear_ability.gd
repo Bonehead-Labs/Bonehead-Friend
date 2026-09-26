@@ -46,6 +46,10 @@ var last_swept := 0
 var last_push := 0.0
 var last_origin := Vector2.INF
 
+## Which way the last swipe cleared, for its payoff's gust (`Shapes/gust.gd`).
+func facing() -> Vector2:
+	return _facing
+
 func _on_press() -> void:
 	var him := him_world()
 	var hand := hand_world()
