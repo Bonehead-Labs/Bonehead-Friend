@@ -41,7 +41,8 @@ any error messages the game runs into. Each note you save also keeps a picture o
 game's own window at that moment (never your desktop or other windows).
 
 It records no name, no files, nothing you type anywhere except into a note, and nothing
-from other programs. Nothing leaves your computer until you send it.
+from other programs.
+{{LEAVES}}
 
 You can switch the log off in Settings > Playtest > Session log, and look at everything
 it has written with Settings > Playtest > Open folder. The files live in:

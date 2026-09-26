@@ -130,8 +130,14 @@ if ($UploadUrl) {
 		"- Settings > Playtest > Send feedback sends your notes and the play log (see below)",
 		"  straight to us. If you are offline it tries again the next time you start the game."
 	)
+	$Leaves = "Nothing leaves your computer until you press Send feedback."
 	if ($AutoUpload) {
-		$Sending += "- This build also sends the play log by itself each time you quit the game."
+		$Sending += @(
+			"- This build also packs up the play log and your notes each time you quit, and sends",
+			"  them the next time you start the game - you do not need to press anything."
+		)
+		$Leaves = "The play log and your notes are sent to us each time you start the game after`n" +
+			"quitting it; switching the log off (below) stops that. Nothing else leaves your computer."
 	}
 } else {
 	$Sending = @(
@@ -139,11 +145,12 @@ if ($UploadUrl) {
 		"  It saves ONE zip file on your Desktop. Send that file back however is easiest -",
 		"  email, chat, a drive link. It holds your notes and the play log described below."
 	)
+	$Leaves = "Nothing leaves your computer until you send it."
 }
 
 $Readme = Get-Content (Join-Path $PSScriptRoot "playtest_readme.txt") -Encoding UTF8 -Raw
 $Readme = $Readme.Replace("{{BUILD_ID}}", $BuildId).Replace("{{DATA_DIR}}", "%APPDATA%\$UserDirName")
-$Readme = $Readme.Replace("{{SENDING}}", ($Sending -join "`n"))
+$Readme = $Readme.Replace("{{SENDING}}", ($Sending -join "`n")).Replace("{{LEAVES}}", $Leaves)
 # CRLF: this file is opened by double-clicking it, and some of those Notepads are old.
 Write-Text (Join-Path $Stage "README-PLAYTEST.txt") ($Readme.TrimEnd() -split "\r?\n") "`r`n"
 

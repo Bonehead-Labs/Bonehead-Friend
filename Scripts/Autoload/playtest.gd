@@ -227,13 +227,14 @@ var _left := false
 
 ## The way out, by the window's close box or by Esc > Save and quit (which never raises a close
 ## request). With `auto_on_quit` in the uploader's config, what was logged is bundled into the
-## queue on the way, and the next launch sends it — nobody has to remember a button.
+## queue on the way, and the next launch sends it — nobody has to remember a button. Only while
+## the tester has the log switched on: switching it off is how they say "stop sending".
 func _leave(why: String) -> void:
 	if _left:
 		return
 	_left = true
 	end_session(why)
-	if _auto_bundle_on_quit():
+	if _auto_bundle_on_quit() and logging_enabled():
 		make_bundle(_outbox_dir())
 		_prune_folder("outbox", ".zip", MAX_OUTBOX, 1 << 30, "")
 
