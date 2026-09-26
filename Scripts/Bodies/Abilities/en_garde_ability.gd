@@ -147,12 +147,17 @@ func _landed(s: int) -> void:
 		thrusts += 1
 		payoffs += 1
 		if thrusts == 1:
+			fx_at = tip
 			paid_off.emit(&"thrust")
-		# Touché: a flash down the line of the blade and out through him.
+		else:
+			# Every touché is a payoff and a word (D77), not only the first.
+			fx_land(&"thrust", tip)
+		# Touché: a flash down the line of the blade and out through him — in its colour, since
+		# white through white bone is invisible.
 		var axis := blade_axis()
 		if fx:
-			fx.tracer(grip_world(), tip + axis * 60.0, Color.WHITE, 0.16, 3.0)
-			fx.ring(tip, 34.0, Color.WHITE, 0.18, 2.0)
+			fx.tracer(grip_world(), tip + axis * 60.0, accent(), 0.16, 3.0)
+			fx.ring(tip, 34.0, accent(), 0.18, 2.0)
 			fx.burst(tip, &"star", WorldFX.GOLD, 3, 200.0)
 		sound(&"tink", -3.0, 1.0, 0.04)
 	elif s == SWIPE:

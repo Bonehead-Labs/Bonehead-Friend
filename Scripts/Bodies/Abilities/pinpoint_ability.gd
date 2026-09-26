@@ -171,6 +171,8 @@ func _aim(delta: float) -> void:
 	_charge = minf(1.0, _charge + delta / maxf(num("charge_seconds", 0.8), 0.05))
 	_cock()
 	_tremble()
+	# The beak reddens as the crosshair walks on (D77), full once it has locked.
+	AbilityFX.shine(sprite(), accent(), 0.1 + 0.4 * _charge)
 	var skull := _skull()
 	if skull == Vector2.INF:
 		return
