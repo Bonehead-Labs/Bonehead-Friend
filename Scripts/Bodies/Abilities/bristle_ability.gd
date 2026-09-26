@@ -177,6 +177,8 @@ func shot_hit(shot: AbilityShot, him: Buddy, at: Vector2, heading: Vector2) -> v
 	strike(shot.force, heading, at, shot.mult, shot.shove)
 	last_hits += 1
 	paid_off.emit(&"bristle")
+	# Each spike in him counted on the badge over him (D77).
+	show_state(&"bristled")
 	var fx := fx()
 	if fx:
 		fx.chips(at, Color("f2ead8"), 3, 200.0)

@@ -110,6 +110,8 @@ func _tip_struck(impulse: float) -> void:
 	payoffs += 1
 	if tips_hit == 1:
 		paid_off.emit(&"snap")
+	# Each tip in him counted on the badge over him (D77).
+	show_state(&"snapped")
 
 func _on_dropped() -> void:
 	# Tips already in the air keep flying; the rest are not snapped.

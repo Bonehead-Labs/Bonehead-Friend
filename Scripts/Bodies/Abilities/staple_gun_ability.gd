@@ -153,6 +153,8 @@ func shot_hit(shot: AbilityShot, him: Buddy, at: Vector2, heading: Vector2) -> v
 	landed += 1
 	if landed == 1:
 		paid_off.emit(&"staple")
+	# The strip counted into him on the badge over him (D77).
+	show_state(&"stapled")
 	if not is_instance_valid(_marks):
 		_marks = StapleMarks.new()
 		_marks.name = "StapleMarks"

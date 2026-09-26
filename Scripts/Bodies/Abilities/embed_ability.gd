@@ -52,6 +52,12 @@ var came_out := &""
 func is_lodged() -> bool:
 	return _active and _phase == LODGED
 
+## 0..1 of the lodge left, for the badge over him (D77).
+func lodge_left() -> float:
+	if not is_lodged():
+		return 0.0
+	return clampf(1.0 - _t / maxf(num("lodge_seconds", 3.0), 0.01), 0.0, 1.0)
+
 func _on_press() -> void:
 	_phase = FLYING
 	_t = 0.0

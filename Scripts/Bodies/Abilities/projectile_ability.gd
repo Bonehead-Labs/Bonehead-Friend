@@ -176,6 +176,7 @@ func _drive() -> void:
 	sound(&"tock", -2.0, lerpf(1.1, 0.9, _power))
 	sound(&"whoosh", -10.0, 1.4)
 	tell(&"fore", him_world())
+	fx_go()
 	finish()
 
 func _ball_struck(impulse: float) -> void:

@@ -202,6 +202,8 @@ func _dump(him: Buddy) -> void:
 			fx.burst(at, &"star", WorldFX.GOLD, mini(3 + last_dumped, 9), 300.0)
 			fx.shake(3.0 + 1.0 * float(last_dumped))
 		sound(&"crack", -2.0, 0.8)
+		# The bill arriving is the payoff (D77): "REBOOT!", and a flash as big as what was stored.
+		fx_land(&"reboot", at)
 	finish()
 
 ## Unfrozen — unless the knockout has him, which owns his freeze until he stands (D4).

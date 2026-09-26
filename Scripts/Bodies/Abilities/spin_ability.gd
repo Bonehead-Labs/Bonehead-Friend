@@ -26,6 +26,7 @@ var _blur: Blur
 var peak_spin := 0.0
 var turns := 0.0
 var spin_hits := 0
+var _hits_shown := 0
 
 func _ready() -> void:
 	super._ready()
@@ -48,6 +49,7 @@ func _on_press() -> void:
 	peak_spin = 0.0
 	turns = 0.0
 	spin_hits = 0
+	_hits_shown = 0
 	# Whichever way it was already turning; from still, away from him first, so it comes round
 	# and through him at speed rather than starting pressed into him and grinding there.
 	_dir = signf(body.angular_velocity) if absf(body.angular_velocity) > 3.0 else -swing_sign()
@@ -84,6 +86,10 @@ func _on_tick(delta: float) -> void:
 		sound(&"whoosh", -12.0, 0.7 + spin / maxf(num("spin_rate", 20.0), 1.0) * 0.7, 0.08)
 	if _blur and _blur.visible:
 		_blur.follow(grip, tip_world(), body.angular_velocity, tier_colour())
+	# Each blow counted on the badge over him (D77); from the tick, not from his attribution step.
+	if spin_hits != _hits_shown:
+		_hits_shown = spin_hits
+		show_state(&"whirled")
 	if _t >= num("spin_seconds", 1.5):
 		finish()
 

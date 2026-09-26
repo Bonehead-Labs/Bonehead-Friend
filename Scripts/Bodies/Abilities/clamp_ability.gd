@@ -190,6 +190,9 @@ func _bite() -> void:
 		return
 	_landed += 1
 	bites_landed += 1
+	# The bite on him (D77): a badge of its own for a snip that missed his head; the punch and the
+	# wrench say it with the state they put him in.
+	show_state(&"bitten")
 	var centre := him.get_interaction_rect().get_center()
 	var into := (centre - at).normalized() if centre.distance_squared_to(at) > 1.0 else Vector2.RIGHT
 	var point := at.clamp(him.get_interaction_rect().position, him.get_interaction_rect().end)

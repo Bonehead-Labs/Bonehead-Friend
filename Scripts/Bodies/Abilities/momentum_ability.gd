@@ -148,6 +148,7 @@ func _add_links(n: int) -> void:
 		chain_hits += 1
 		payoffs += 1
 		if chain_hits == 1:
+			fx_at = tip_world()
 			paid_off.emit(&"momentum")
 		if _chain < _max_chain():
 			_chain += 1
@@ -162,6 +163,10 @@ func _add_links(n: int) -> void:
 					fx.shake(3.0)
 	if _notches:
 		_notches.show_chain(_chain, _max_chain(), tier_colour())
+	# The chain counted on the badge over him too (D77), where the eye is when the blade lands, and
+	# the blade burning brighter with every link.
+	show_state(&"momentum")
+	AbilityFX.shine(sprite(), accent(), 0.12 * float(_chain))
 
 func _break_chain() -> void:
 	_chain = 0
@@ -172,6 +177,7 @@ func _break_chain() -> void:
 	sound(&"clack", -12.0, 0.6)
 	if _notches:
 		_notches.show_chain(0, _max_chain(), tier_colour())
+	AbilityFX.shine(sprite(), accent(), 0.0)
 
 ## The notches stay by the hand, under the pip.
 func _draw_pip() -> void:

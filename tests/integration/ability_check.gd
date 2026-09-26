@@ -160,6 +160,32 @@ func _the_table_is_whole() -> void:
 		_check("and the shop carries that line", item != null and item.controls == line)
 		_check("%s's ability has a name of its own" % id, not names.has(row.get("id", &"")))
 		names[row.get("id", &"")] = true
+		_look_is_sound(StringName(row.get("id", &"")), String(row.get("name", "")))
+
+## How it reads (D77), from the data: a misspelled icon falls back to the generic one without a
+## word, and a green accent is keyed out with the chroma backdrop (D38) — so both are checked here,
+## for every ability, with or without a row of its own in `AbilityLooks`.
+func _look_is_sound(ability_id: StringName, display_name: String) -> void:
+	var look := AbilityLooks.look_for(ability_id, display_name)
+	var colours: Array[Color] = [look["colour"]]
+	var icons: Array[StringName] = []
+	var states: Dictionary = look["states"]
+	for event in states:
+		var spec: Dictionary = states[event]
+		if bool(spec.get("none", false)):
+			continue
+		icons.append(StringName(spec.get("icon", &"pow")))
+		if spec.has("colour"):
+			colours.append(AbilityLooks.colour_of(spec["colour"]))
+	var unknown := icons.filter(func(icon: StringName) -> bool: return not AbilityFX.ICONS.has(icon))
+	var burst := StringName(look["burst"])
+	var burst_known := AbilityFX.ICONS.has(burst) or burst == &"chip" \
+		or ResourceLoader.exists("%s/%s.png" % [UIStyle.GLYPH_DIR, burst])
+	_check("%s's badges and burst are drawn icons (%s)" % [ability_id, str(icons)],
+		unknown.is_empty() and burst_known)
+	var green := colours.filter(func(c: Color) -> bool: return c.h > 0.2 and c.h < 0.45 and c.s > 0.5)
+	_check("and none of its colours is a green the chroma key would eat", green.is_empty())
+	_check("and it calls out a word as it starts (\"%s\")" % look["call"], not String(look["call"]).is_empty())
 
 # --- one weapon -------------------------------------------------------------------------------
 
@@ -203,6 +229,10 @@ func _check_ability(id: StringName) -> void:
 		return
 	_check("held, right is its own and Shift+right is still the bin",
 		body.right_click_is_mine() and not body.click_would_bin(false) and body.click_would_bin(true))
+	# How it reads (D77): the ready glint, a sprite drawn once, on the weapon in the hand.
+	var glint := ability.ready_glint()
+	_check("held and ready, it wears its ready glint", glint != null and glint.visible)
+	_check("and the glint costs nothing: no tick of its own", glint == null or not glint.is_processing())
 	# An ordinary swing first, to know what an ordinary hit of this weapon is worth.
 	_buddy.health.reset_meter()
 	var ordinary := await _ordinary_hit(body)
@@ -264,6 +294,20 @@ func _check_ability(id: StringName) -> void:
 		return
 	_check("one use was counted", ability.uses == before_uses + 1)
 
+	# --- how it read (D77) -----------------------------------------------------------------
+	var look := ability.look()
+	_check("it called out \"%s\" as it began" % look["call"], ability.fx_said.has(String(look["call"])))
+	# A state is what landing did to him, so an ability that failed to land (already a failure
+	# above) is not failed twice for it.
+	_check("it put a state over his head (%s)" % str(ability.fx_states),
+		not ability.fx_states.is_empty() or ability.payoffs == 0)
+	_check("its payoff was drawn where it landed (%d drawn for %d payoffs)" % [ability.fx_landed,
+		ability.payoffs], ability.payoffs == 0 or ability.fx_landed > 0)
+	var own_words := [String(look["call"]), String(look["go"])]
+	var landing_words := ability.fx_said.filter(func(w: String) -> bool: return not own_words.has(w))
+	_check("and a word for it (%s)" % str(landing_words), ability.payoffs == 0
+		or not landing_words.is_empty())
+
 	# --- what it paid ----------------------------------------------------------------------
 	await _step(20)
 	_check("every hit was paid through the pipeline to the unit%s"
@@ -291,16 +335,23 @@ func _check_ability(id: StringName) -> void:
 	_check("and does not throw the weapon away", not _gone(body) and body.dragging)
 	var pip := ability.get_node_or_null("AbilityPip") as Node2D
 	_check("the pip is drawn by the hand while it cools", pip != null and pip.visible)
+	glint = ability.ready_glint()
+	_check("and the ready glint is gone while it cools", glint == null or not glint.visible)
+	var readied := ability.fx_readied
 	var wait := int((ability.cooldown_left() + 0.3) * 60.0)
 	await _await_cond(func() -> bool: return ability.is_ready(), wait + 60)
 	_check("it is ready again when the cooldown is up", ability.is_ready())
 	_check("and the pip is gone", pip == null or not pip.visible)
+	glint = ability.ready_glint()
+	_check("and the glint is back, with a pop", not ability.is_ready() or (glint != null and glint.visible
+		and ability.fx_readied == readied + 1))
 
 	# --- at rest, and away -----------------------------------------------------------------
 	_release(MOUSE_BUTTON_LEFT)
 	await _await_still(body, 90)
 	await _step(4)
 	_check("put down and idle, nothing of it runs", not ability.is_busy())
+	_check("and its glint is not drawn on the desk", glint == null or not glint.visible)
 	if await _grab(body):
 		_move(_grab_point(body))
 		await _step(2)
@@ -1174,7 +1225,7 @@ func _leftovers() -> String:
 	for child in _buddy.get_children():
 		if String(child.name).begins_with("SoulWisp") and not child.is_queued_for_deletion():
 			return "his soul, still out"
-		for mark in ["StapleMarks", "BlueScreenScan", "AbilitySteam"]:
+		for mark in ["StapleMarks", "BlueScreenScan", "AbilitySteam", "AbilityState", "IaidoCut"]:
 			if String(child.name).begins_with(mark) and not child.is_queued_for_deletion():
 				return "%s still on him" % mark
 	if not _buddy.get_collision_exceptions().is_empty():

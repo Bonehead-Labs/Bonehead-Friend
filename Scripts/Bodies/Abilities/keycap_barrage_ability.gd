@@ -129,6 +129,8 @@ func shot_hit(shot: AbilityShot, him: Buddy, at: Vector2, heading: Vector2) -> v
 	hits += 1
 	if hits == 1:
 		paid_off.emit(&"keycap_barrage")
+	# Each cap that found him counted on the badge over him (D77).
+	show_state(&"keyed")
 	var fx := fx()
 	if fx:
 		fx.chips(at, KEY_TOP, 2, 160.0)

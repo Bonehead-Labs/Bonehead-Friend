@@ -88,11 +88,14 @@ func _on_tick(delta: float) -> void:
 			jabs_landed += 1
 			payoffs += 1
 			if jabs_landed == 1:
+				fx_at = tip
 				paid_off.emit(&"flurry")
 			if fx:
 				fx.chips(tip, WorldFX.SPARK, 3, 220.0)
-				fx.ring(tip, 18.0 + 2.0 * float(mini(jabs_landed, 8)), Color.WHITE, 0.1, 2.0)
+				fx.ring(tip, 18.0 + 2.0 * float(mini(jabs_landed, 8)), accent(), 0.1, 2.0)
 		_landed = 0
+		# Every jab that landed, counted on the badge over him (D77).
+		show_state(&"flurry")
 	if _t >= num("fuel_seconds", 2.0):
 		finish()
 

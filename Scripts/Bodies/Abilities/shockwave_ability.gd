@@ -221,6 +221,8 @@ func _wave(at: Vector2) -> void:
 	sound(&"impact_metal", -6.0, 0.55)
 	if hit_him:
 		tell(&"quaked", at)
+	# The payoff is the wave, where the head met the desk (D77), not where it threw him.
+	fx_at = at
 	paid_off.emit(&"ground_pound")
 	# A second, wider ring a moment later: the wave going out through the desk.
 	_ring_again = 0.1

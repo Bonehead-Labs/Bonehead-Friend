@@ -90,6 +90,14 @@ const SPARK_POOL := 8
 const BONES_COLOUR := Color("ffc247")
 const HEARTS_COLOUR := Color("ff5f9e")
 
+## Found by group from anything in the world (D9): an ability calling out its name (D77).
+const GROUP := &"fx_layer"
+
+static func of(node: Node) -> FXLayer:
+	if node == null or not node.is_inside_tree():
+		return null
+	return node.get_tree().get_first_node_in_group(GROUP) as FXLayer
+
 var _pool: Array[Label] = []
 ## The tween currently animating each pool slot, so recycling one can stop it. Without this
 ## a reused label has two tweens writing its position — which the fountain made reachable
@@ -130,6 +138,7 @@ func _ready() -> void:
 	# Below the panels on purpose. An open shop is something the player is reading, and a
 	# payout number scrolling across it is worse than a payout number they missed.
 	layer = 15
+	add_to_group(GROUP)
 	_face = load(UIStyle.FONT_DISPLAY) as Font
 	for i in POOL_SIZE:
 		var label := Label.new()
@@ -599,6 +608,27 @@ func spawn_number(text: String, world_pos: Vector2, colour: Color, scale: float 
 
 	_sparkle(world_pos, colour, tier, intensity)
 	return at
+
+## An ability's word (D77): its name as it starts, its noise as it lands — "IAIDO", "BONG!", "SIX!".
+## A line like any other here, so it is placed where no number will be for the whole of its rise
+## (D63) and leaves by drawing in (D68); ranked over every payout, so the word for the moment the
+## player made happen is the one that is drawn, and keyed, so an ability's landing replaces its own
+## name instead of stacking under it. `weight` 1 is the headline-sized first few uses, 0 the small
+## everyday one, and up to 1.5 a word that has to outgrow the last (the pan's follow-ups). A long
+## name is a size smaller at every weight.
+const CALLOUT_RANK := 6
+const CALLOUT_LONG := 11
+const CALLOUT_MOST := 1.5
+
+func callout(text: String, world_pos: Vector2, colour: Color, weight: float = 1.0,
+		key: StringName = &"") -> Vector2:
+	var w := clampf(weight, 0.0, CALLOUT_MOST)
+	var base := minf(w, 1.0)
+	var tier := 2 + int(round(base * 2.0))
+	if text.length() > CALLOUT_LONG:
+		tier = maxi(1, tier - 1)
+	var scale := lerpf(0.8, 1.0, base) + 0.5 * maxf(w - 1.0, 0.0)
+	return spawn_number(text, world_pos, colour, scale, tier, CALLOUT_RANK, key, LEAN_UP)
 
 ## The ink past the label's box. The outline is drawn outside the glyphs and the shadow two
 ## pixels right of them; vertically the font's own line height already has room for both.
