@@ -2750,9 +2750,36 @@ func _automation_earns_and_toggles() -> void:
 
 	# Offline accrual, including the clamp that matters most.
 	var before := Economy.balance_of(Economy.BONES)
+	var dollars_before := Economy.balance_of(Economy.DOLLARS)
+	var lifetime_before := Economy.lifetime_of(Economy.BONES) + Economy.lifetime_of(Economy.HEARTS)
 	var earned := Economy.apply_offline_earnings(int(Time.get_unix_time_from_system()) - 600)
 	_check("ten minutes away pays Bones", float(earned.get(Economy.BONES, 0.0)) > 0.0)
 	_check("and the wallet actually received it", Economy.balance_of(Economy.BONES) > before)
+
+	# And Dollars, which D31 says offline pays at the idle fraction and which it paid none of:
+	# automation's own trickle, at the offline fraction, and not one multiplier on it.
+	var b := ItemDB.balance
+	var trickle := b.dollars_per_hit * b.dollars_idle_efficiency * b.offline_efficiency
+	_check("ten minutes away pays automation's Dollar trickle at the offline fraction (%.2f of %.2f)"
+		% [float(earned.get(Economy.DOLLARS, 0.0)), trickle * 600.0],
+		is_equal_approx(float(earned.get(Economy.DOLLARS, 0.0)), trickle * 600.0))
+	_check("into the purse", is_equal_approx(Economy.balance_of(Economy.DOLLARS) - dollars_before,
+		trickle * 600.0))
+	_check("and not as income: lifetime grew by the Bones and Hearts alone", is_equal_approx(
+		Economy.lifetime_of(Economy.BONES) + Economy.lifetime_of(Economy.HEARTS) - lifetime_before,
+		float(earned.get(Economy.BONES, 0.0)) + float(earned.get(Economy.HEARTS, 0.0))))
+	var long_away := Economy.apply_offline_earnings(int(Time.get_unix_time_from_system())
+		- int(b.offline_cap_seconds(Economy.offline_cap_level)) * 10)
+	_check("the cap bounds the Dollars as it bounds the rest",
+		is_equal_approx(float(long_away.get(Economy.DOLLARS, 0.0)),
+			trickle * b.offline_cap_seconds(Economy.offline_cap_level)))
+	Progression.set_automation_enabled(&"bat_sentry", false)
+	var idle_rate := Progression.automation_rate_per_second(Economy.BONES) \
+		+ Progression.automation_rate_per_second(Economy.HEARTS)
+	var switched_off := Economy.apply_offline_earnings(int(Time.get_unix_time_from_system()) - 600)
+	Progression.set_automation_enabled(&"bat_sentry", true)
+	_check("and with nothing automated, no Dollars (%.2f a second automated)" % idle_rate,
+		idle_rate == 0.0 and float(switched_off.get(Economy.DOLLARS, -1.0)) == 0.0)
 
 	# Offline pays the stable multipliers — prestige and the pool — and none of the
 	# volatile ones. It used to pay *nothing*, while online automation paid all four.
@@ -2764,6 +2791,7 @@ func _automation_earns_and_toggles() -> void:
 	var future := Economy.apply_offline_earnings(int(Time.get_unix_time_from_system()) + 99999)
 	_check("a clock skewed into the future pays nothing",
 		is_equal_approx(float(future.get(Economy.BONES, 0.0)), 0.0))
+	_check("not even a Dollar", float(future.get(Economy.DOLLARS, -1.0)) == 0.0)
 
 func _contracts_track_and_pay() -> void:
 	_suite("contracts")

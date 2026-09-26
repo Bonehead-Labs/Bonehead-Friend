@@ -486,7 +486,8 @@ func _process(delta: float) -> void:
 
 # --- offline ---------------------------------------------------------------
 
-## Accrual for time the game was closed. Only automation earns offline.
+## Accrual for time the game was closed. Only automation earns offline: its Bones and Hearts,
+## and its Dollar trickle (`EconomyMath.offline_dollars`).
 ##
 ## **Offline pays the stable multipliers and not the volatile ones** — prestige and the
 ## Mastery Pool, never mood, a timed boost, per-item augments or an item's own mastery
@@ -498,7 +499,8 @@ func _process(delta: float) -> void:
 ## `grant()` directly and offline income got *none* of the four, while online automation
 ## got all of them.
 ##
-## Returns {currency: amount} for what was earned, so the caller can show a summary.
+## Returns {currency: amount} for what was earned — Dollars included — so the caller can show a
+## summary.
 func apply_offline_earnings(last_played_unix: int) -> Dictionary:
 	var b := ItemDB.balance
 	var cap := b.offline_cap_seconds(offline_cap_level)
@@ -507,12 +509,22 @@ func apply_offline_earnings(last_played_unix: int) -> Dictionary:
 	var elapsed := SaveSchema.offline_seconds(last_played_unix, int(Time.get_unix_time_from_system()), cap)
 	var stable := marrow_multiplier() * Progression.mastery_pool_bonus()
 	var earned := {}
+	var automating := false
 	for currency in [BONES, HEARTS]:
 		var rate := Progression.automation_rate_per_second(currency)
+		automating = automating or rate > 0.0
 		var amount := EconomyMath.offline_earnings(rate, elapsed, b.offline_efficiency) * stable
 		earned[currency] = amount
 		if amount > 0.0:
 			grant(currency, amount)
+	# And automation's Dollar trickle, which D31 says offline pays and which it did not: the
+	# closed game was the one idle state that earned no Dollars. Unmultiplied, as every Dollar
+	# is, so none of the stable multipliers above reaches it.
+	var dollars := EconomyMath.offline_dollars(automating, b.dollars_per_hit,
+		b.dollars_idle_efficiency, elapsed, b.offline_efficiency)
+	earned[DOLLARS] = dollars
+	if dollars > 0.0:
+		grant(DOLLARS, dollars)
 	earned["seconds"] = elapsed
 	# Whether the cap was the thing that decided the number — the welcome says so once.
 	earned["capped"] = elapsed >= cap and elapsed > 0.0

@@ -450,7 +450,12 @@ unlock, every augment level, every exclusive choice and all mastery.
 ```
 elapsed  = clamp(now − last_played, 0, cap_hours × 3600)     # negative deltas → 0, always
 earnings = automation_rate_per_second × elapsed × balance.offline_efficiency
+dollars  = dollars_per_hit × dollars_idle_efficiency × elapsed × offline_efficiency   # if automating
 ```
+
+- Offline Dollars are automation's own trickle at the offline fraction (`EconomyMath.offline_dollars`):
+  $270 an hour closed at the shipped knobs, against $540 open, and nothing if nothing is automated.
+  Like every Dollar they are never multiplied — not even by the stable multipliers below.
 
 - Offline pays `rate x elapsed x efficiency x prestige x pool` — the **stable** multipliers, and
   deliberately not mood, item augments or item rank (see Automation above).

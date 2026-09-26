@@ -47,6 +47,7 @@ func _initialize() -> void:
 	_test_offline_clamps_to_cap()
 	_test_offline_normal_case()
 	_test_offline_efficiency()
+	_test_offline_dollars()
 
 	_suite("augment costs")
 	_test_augment_cost_curve()
@@ -331,6 +332,22 @@ func _test_offline_efficiency() -> void:
 	_check("offline pays at efficiency", is_equal_approx(Math.offline_earnings(10.0, 100.0, 0.5), 500.0))
 	_check("negative rate pays nothing", Math.offline_earnings(-10.0, 100.0, 0.5) == 0.0)
 	_check("efficiency clamps above 1", is_equal_approx(Math.offline_earnings(10.0, 10.0, 5.0), 100.0))
+
+## Offline pays Dollars the way automation does (D31), at the offline fraction. It paid none at
+## all: the closed game was the one idle state that earned no Dollars.
+func _test_offline_dollars() -> void:
+	# An hour closed at the shipped knobs: $1 a hit x 0.15 idle x 3,600 s x 0.5 offline.
+	_check("an hour closed pays automation's Dollar trickle at the offline fraction",
+		is_equal_approx(Math.offline_dollars(true, 1.0, 0.15, 3600.0, 0.5), 270.0))
+	_check("which is half of what the same hour open pays",
+		is_equal_approx(Math.offline_dollars(true, 1.0, 0.15, 3600.0, 0.5), 0.5 * 1.0 * 0.15 * 3600.0))
+	_check("nothing automated, no Dollars", Math.offline_dollars(false, 1.0, 0.15, 3600.0, 0.5) == 0.0)
+	_check("a clock that ran backwards pays nothing", Math.offline_dollars(true, 1.0, 0.15, -3600.0, 0.5) == 0.0)
+	_check("and the cap the caller clamps to is what it pays for",
+		is_equal_approx(Math.offline_dollars(true, 1.0, 0.15, Schema.offline_seconds(0, 100000, 7200.0), 0.5),
+			0.15 * 7200.0 * 0.5))
+	_check("an idle efficiency past 1 cannot pay more than a hand",
+		is_equal_approx(Math.offline_dollars(true, 1.0, 5.0, 100.0, 1.0), 100.0))
 
 # --- augment costs ---------------------------------------------------------
 
