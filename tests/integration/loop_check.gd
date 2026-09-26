@@ -49,6 +49,7 @@ func _ready() -> void:
 	_augments_change_the_payout(earned)
 	_being_kind_pays_hearts()
 	_dollars_count_acts_not_power()
+	_nobody_at_the_desk_is_not_an_act()
 	_streaks_are_counted()
 	_he_can_learn_to_sleep_longer()
 	_the_wardrobe_dresses_him()
@@ -835,6 +836,172 @@ func _dollars_count_acts_not_power() -> void:
 		is_equal_approx(Economy.run_earnings, run_before))
 	_check("but they are spendable, unlike the Ectoplasm they replaced",
 		Economy.spend(Economy.DOLLARS, 500.0))
+
+## Unattended income is priced like unattended income (docs/decisions.md D76). A turret, an
+## animal, the wall one of them throws him into, and his own play at a toy all earn their Bones
+## and Hearts as before, and none of them is an act: no per-act Dollar, nothing on the board, no
+## combo. Measured before the fix, a nail gun at an empty desk banked ~20,000 Dollars an hour
+## and a tennis ball he bopped by himself did 19 of a "be kind" daily a dwell, at the 3x combo.
+## Thirteen of these fail without it; the rest are the hand's own acts, which it must not touch.
+var _d76_keys := {}
+var _d76_given := 0
+var _d76_given_wrap := 0
+var _d76_sustained := 0.0
+
+func _d76_contract(key: StringName, count: int) -> void:
+	_d76_keys[String(key)] = int(_d76_keys.get(String(key), 0)) + count
+
+func _d76_act(source_id: StringName, _value: float, _at: Vector2) -> void:
+	if source_id == &"tennis_ball":
+		_d76_given += 1
+	elif source_id == &"bubble_wrap":
+		_d76_given_wrap += 1
+
+func _d76_trickle(source_id: StringName, value: float, _at: Vector2) -> void:
+	if source_id == &"tennis_ball":
+		_d76_sustained += value
+
+func _d76_board(key: String) -> int:
+	return int(_d76_keys.get(key, 0))
+
+func _nobody_at_the_desk_is_not_an_act() -> void:
+	_suite("nobody at the desk (D76)")
+	var b := ItemDB.balance
+	var trickle := b.dollars_per_hit * b.dollars_idle_efficiency * b.automation_payout_interval
+	var automating := Progression.automation_rate_per_second(Economy.BONES) \
+		+ Progression.automation_rate_per_second(Economy.HEARTS) > 0.0
+	_check("nothing is automated yet, so the till is the turrets' alone", not automating)
+	EventBus.contract_event.connect(_d76_contract)
+	Economy.flush_dollars()
+	Economy._unattended_hit = false
+	Economy._automation_timer = 0.0
+	Economy._round_hands_on = false
+	Economy._held = false
+	var at := Vector2(100, 100)
+
+	# A turret's hit: its Bones, and nothing that counts acts.
+	_d76_keys.clear()
+	var dollars := Economy.balance_of(Economy.DOLLARS)
+	var bones := Economy.balance_of(Economy.BONES)
+	EventBus.damage_dealt.emit(HitInfo.new(40.0, &"pellet_turret", at, 4000.0))
+	Economy.flush_dollars()
+	_check("a turret's hit still pays its Bones", Economy.balance_of(Economy.BONES) > bones)
+	_check("but banks no per-act Dollar", is_equal_approx(Economy.balance_of(Economy.DOLLARS), dollars))
+	_check("and counts nothing on the board (%s)" % _d76_keys,
+		_d76_board("deal_damage") == 0 and _d76_board("damage:pellet_turret") == 0)
+
+	# Five things acting on their own in one tick earn the idle trickle once.
+	for id in [&"nail_gun", &"nail_gun", &"gorilla", &"goose", &"tesla_coil"]:
+		EventBus.damage_dealt.emit(HitInfo.new(10.0, id, at, 2000.0))
+	Economy._process(b.automation_payout_interval)
+	_check("a tick in which things hurt him on their own pays the idle trickle, once (%.3f of %.3f)"
+		% [Economy.balance_of(Economy.DOLLARS) - dollars, trickle],
+		is_equal_approx(Economy.balance_of(Economy.DOLLARS) - dollars, trickle))
+	dollars = Economy.balance_of(Economy.DOLLARS)
+	Economy._process(b.automation_payout_interval)
+	_check("and a quiet tick after it pays nothing", is_equal_approx(Economy.balance_of(Economy.DOLLARS), dollars))
+
+	# The wall he is thrown into is whoever threw him.
+	_d76_keys.clear()
+	EventBus.damage_dealt.emit(HitInfo.new(20.0, &"gorilla", at, 3000.0))
+	EventBus.damage_dealt.emit(HitInfo.new(15.0, &"world", at, 2000.0))
+	EventBus.damage_dealt.emit(HitInfo.new(12.0, &"world", at, 1800.0))
+	Economy.flush_dollars()
+	_check("the wall a gorilla throws him into is the gorilla's, and so is the bounce after",
+		_d76_board("deal_damage") == 0 and is_equal_approx(Economy.balance_of(Economy.DOLLARS), dollars))
+	EventBus.damage_dealt.emit(HitInfo.new(30.0, &"baseball_bat", at, 3000.0))
+	EventBus.damage_dealt.emit(HitInfo.new(15.0, &"world", at, 2000.0))
+	Economy.flush_dollars()
+	_check("the wall a bat carries him into is the hand's (%s)" % _d76_keys,
+		_d76_board("deal_damage") == 45 and is_equal_approx(Economy.balance_of(Economy.DOLLARS) - dollars,
+		2.0 * b.dollars_per_hit))
+	dollars = Economy.balance_of(Economy.DOLLARS)
+	EventBus.damage_dealt.emit(HitInfo.new(20.0, &"pellet_turret", at, 3000.0))
+	Economy._on_buddy_state_changed(&"dragged")
+	Economy._on_buddy_state_changed(&"idle")
+	EventBus.damage_dealt.emit(HitInfo.new(15.0, &"world", at, 2000.0))
+	Economy.flush_dollars()
+	_check("and so is the floor he lands on when the player throws him",
+		is_equal_approx(Economy.balance_of(Economy.DOLLARS) - dollars, b.dollars_per_hit))
+	dollars = Economy.balance_of(Economy.DOLLARS)
+	Economy._moved_msec -= Economy.WORLD_FOLLOWS_MSEC + 1000
+	_d76_keys.clear()
+	EventBus.damage_dealt.emit(HitInfo.new(15.0, &"world", at, 2000.0))
+	Economy.flush_dollars()
+	_check("but a fall long after the last hand is nobody's",
+		_d76_board("deal_damage") == 0 and is_equal_approx(Economy.balance_of(Economy.DOLLARS), dollars))
+
+	# A round a turret finished alone is not the player's knockout; one with a hand in it is.
+	Economy._round_hands_on = false
+	_d76_keys.clear()
+	EventBus.damage_dealt.emit(HitInfo.new(40.0, &"nail_gun", at, 4000.0))
+	Economy._on_buddy_state_changed(&"knockout")
+	_check("a knockout turrets dealt alone is not on the board", _d76_board("knockout") == 0)
+	EventBus.damage_dealt.emit(HitInfo.new(40.0, &"nail_gun", at, 4000.0))
+	EventBus.damage_dealt.emit(HitInfo.new(5.0, &"baseball_bat", at, 4000.0))
+	Economy._on_buddy_state_changed(&"knockout")
+	_check("one with a hand in the round is", _d76_board("knockout") == 1)
+
+	# His own play at a toy pays as a trickle, and the same catch in the player's game is an act.
+	var buddy := _buddy()
+	var ball := _instance_of(&"tennis_ball") as FriendlyBase
+	_check("a tennis ball to play with", buddy != null and ball != null)
+	if buddy and ball:
+		ball.position = buddy.global_position + Vector2(600, -400)
+		add_child(ball)
+		ball.freeze = true
+		EventBus.kindness_given.connect(_d76_act)
+		EventBus.kindness_sustained.connect(_d76_trickle)
+		Economy.flush_dollars()
+		Economy._combo_deadline_msec = 0
+		Economy._combo_count = 0
+		_d76_keys.clear()
+		dollars = Economy.balance_of(Economy.DOLLARS)
+		buddy.begin_own_play(ball)
+		ball.pay_presence(buddy, 1.0)
+		Economy.flush_dollars()
+		_check("his own catch pays the ball's Hearts as a trickle (%.1f)" % _d76_sustained,
+			_d76_sustained > 0.0 and _d76_given == 0)
+		_check("and is no act: no combo, no Dollar, nothing on the board",
+			Economy.kindness_combo() == 0 and _d76_board("kindness") == 0
+			and is_equal_approx(Economy.balance_of(Economy.DOLLARS), dollars))
+		ball._next_contact_msec = 0
+		ball.dragging = true
+		ball.pay_presence(buddy, 1.0)
+		ball.dragging = false
+		_check("a ball in the player's hand is the player's act, at play or not", _d76_given == 1)
+		ball._next_contact_msec = 0
+		ball._end_drag()
+		ball.pay_presence(buddy, 1.0)
+		_check("and so is one they have just thrown", _d76_given == 2)
+		ball._let_go_msec = -100000
+		buddy.end_own_play(true)
+		ball._next_contact_msec = 0
+		ball.pay_presence(buddy, 1.0)
+		Economy.flush_dollars()
+		_check("and so is the same catch with him not at play: three acts, three Dollars, three on the board",
+			_d76_given == 3 and _d76_board("kindness") == 3 and is_equal_approx(
+				Economy.balance_of(Economy.DOLLARS) - dollars, 3.0 * b.dollars_per_kind_act))
+		# A fidget toy worked by hand while he is at it is the hand's (D57's `pay_act`), always.
+		var wrap := _instance_of(&"bubble_wrap") as FidgetToy
+		if wrap:
+			wrap.position = ball.position + Vector2(200, 0)
+			add_child(wrap)
+			wrap.freeze = true
+			buddy.begin_own_play(wrap)
+			wrap.pay_act(1.0, wrap.global_position, &"")
+			_check("a toy he is playing with, worked by the player's hand, is still an act",
+				_d76_given_wrap == 1)
+			buddy.end_own_play(true)
+			remove_child(wrap)
+			wrap.free()
+		EventBus.kindness_given.disconnect(_d76_act)
+		EventBus.kindness_sustained.disconnect(_d76_trickle)
+		remove_child(ball)
+		ball.free()
+	Economy._combo_deadline_msec = 0
+	Economy._round_hands_on = false
+	EventBus.contract_event.disconnect(_d76_contract)
 
 ## A round is a score: what it took, how long, what it paid, against the best ever.
 func _rounds_keep_score() -> void:

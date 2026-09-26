@@ -1232,6 +1232,10 @@ func _play_routine(id: StringName, routine: int) -> bool:
 		if not own_hits.is_empty():
 			problems.append("his own play billed %d hits (%s)" % [own_hits.size(), _list(own_hits.map(
 				func(h: HitInfo) -> String: return "%s %.1f" % [h.source_id, h.amount]))])
+		# Nor is it an act (D76): what a toy pays while he plays with it by himself is a trickle,
+		# with no combo, no board and no Dollar. A tennis ball paid 19 acts a dwell at the 3x combo.
+		if toy_given > 0.0:
+			problems.append("his own play paid %.1f as acts, not a trickle" % toy_given)
 		var brain_should := _idle._brain_pays(routine)
 		if brain_should and brain_paid <= 0.0:
 			problems.append("the brain should pay for this and paid nothing")
