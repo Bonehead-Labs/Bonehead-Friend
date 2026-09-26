@@ -132,6 +132,8 @@ func _ready() -> void:
 		await _levitation()
 	if _want("rainbow"):
 		await _rainbow()
+	if _want("focus"):
+		await _alt_tab_lets_go()
 	if _want("budget"):
 		await _nothing_runs_once_put_away()
 	_finish()
@@ -514,6 +516,76 @@ func _rainbow() -> void:
 		and _hits.size() == hits)
 	await _await(func() -> bool: return not power.is_live(), 60)
 	_check("the rainbow fades and nothing runs", not power.is_physics_processing())
+	_spawner.holster_power()
+	await _settle()
+
+## **Losing the focus is letting go** (D70). Alt-tab with the left button down and the release goes
+## to the other window: each held spell, pressed for real, is sent the focus-out the game gets, and
+## must stop doing what holding did — not at the next click, which is when it stopped before.
+func _alt_tab_lets_go() -> void:
+	_suite("D70: losing the focus is letting go")
+	await _stand_him_up(HOME)
+	var grip := await _equip(&"telekinesis") as TelekinesisPower
+	_press(HOME + Vector2(250.0, -300.0))
+	await _frames(10)
+	var gripped := grip.is_gripping()
+	grip.propagate_notification(NOTIFICATION_APPLICATION_FOCUS_OUT)
+	await _frames(2)
+	_check("telekinesis: gripping him, the focus goes and the hand lets go", gripped
+		and not grip.is_gripping() and _buddy.modulate == Color.WHITE)
+	_release(_mouse)
+	await _frames(2)
+	_spawner.holster_power()
+	await _settle()
+
+	await _stand_him_up(HOME)
+	var shower := await _equip(&"meteor_shower") as MeteorShowerPower
+	var away := HOME + Vector2(-420.0, 0.0)
+	_press(away)
+	for i in 20:
+		_move(away)
+		await _frames(1)
+	shower.propagate_notification(NOTIFICATION_APPLICATION_FOCUS_OUT)
+	var stopped := await _await(func() -> bool: return not shower.is_live(), 150)
+	_check("the meteor shower: held, the focus goes and no more rocks are called", stopped
+		and not shower.is_physics_processing())
+	_release(_mouse)
+	await _frames(2)
+	_spawner.holster_power()
+	await _settle()
+
+	await _stand_him_up(HOME)
+	var lift := await _equip(&"levitation") as LevitationPower
+	var floor_y := _centre().y
+	_press(_centre())
+	for i in 60:
+		await _frames(1)
+	var rose := floor_y - _centre().y
+	lift.propagate_notification(NOTIFICATION_APPLICATION_FOCUS_OUT)
+	var landed := await _await(func() -> bool: return not lift.is_live(), 300)
+	_check("levitation: aloft (%.0f px), the focus goes and he drifts down" % rose,
+		rose > 30.0 and landed)
+	_release(_mouse)
+	await _frames(2)
+	_spawner.holster_power()
+	await _settle()
+
+	await _stand_him_up(HOME + Vector2(-300.0, 0.0))
+	await _clear_combo()
+	var bow := await _equip(&"rainbow") as RainbowPower
+	_acts.clear()
+	var start := _centre()
+	_press(start)
+	for i in 12:
+		_move(start + Vector2(30.0 * (i + 1), -10.0 * (i + 1)))
+		await _frames(1)
+	var drawing: bool = bow._preview != null and bow._preview.visible
+	bow.propagate_notification(NOTIFICATION_APPLICATION_FOCUS_OUT)
+	await _frames(2)
+	_release(_mouse)
+	await _frames(2)
+	_check("the rainbow: half-drawn, the focus goes and it is not cast (%d acts)" % _acts.size(),
+		drawing and not bow.is_riding() and not bow._preview.visible and _acts.is_empty())
 	_spawner.holster_power()
 	await _settle()
 

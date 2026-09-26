@@ -132,9 +132,15 @@ func _middled_now() -> bool:
 			nearest = t
 	var half := num("middle_band", 0.34) * 0.5
 	if hi < lo:
-		# Nothing of the blade inside him: the nearest point of it is where it touched.
-		lo = nearest
-		hi = nearest
+		# Nothing of the blade in him now: where it touched him is where the contact was, and he
+		# says where that is while he bills it (`Buddy.hit_at`). A hit his ledger bills a step late
+		# (D64) is attributed after the bat has already swung off him, and the end of the blade that
+		# happened to be nearest him then is not where the middle met him. Read against the blade
+		# as it was at the start of the step and as it is now, whichever the point lies on.
+		var touched := _touched_t(him.hit_at, a, b)
+		var t_hit := touched if touched >= 0.0 else nearest
+		lo = t_hit
+		hi = t_hit
 	last_blade_t = (lo + hi) * 0.5
 	last_blade_from = lo
 	last_blade_to = hi
@@ -143,6 +149,26 @@ func _middled_now() -> bool:
 	# or a handle arriving first is not.
 	_frame_middled = hi >= 0.5 - half and lo <= 0.5 + half
 	return _frame_middled
+
+## Where along the blade (0 shoulder .. 1 toe) the contact point `at` lies: on the blade as it was
+## at the start of this step or as it is now, whichever the point is nearer; -1 for no point, or a
+## point nowhere near the blade (a touch with something else of the bat's).
+func _touched_t(at: Vector2, a: Vector2, b: Vector2) -> float:
+	if at == Vector2.INF:
+		return -1.0
+	var best := -1.0
+	var gap := INF
+	for axis in [[a, b], [_step_from, _step_to]]:
+		var from: Vector2 = axis[0]
+		var to: Vector2 = axis[1]
+		if from == Vector2.INF:
+			continue
+		var t := clampf((at - from).dot(to - from) / maxf((to - from).length_squared(), 1.0), 0.0, 1.0)
+		var d := at.distance_to(from.lerp(to, t))
+		if d < gap:
+			gap = d
+			best = t
+	return best if gap <= _blade_half_width + 12.0 else -1.0
 
 static func _rect_distance(rect: Rect2, p: Vector2) -> float:
 	var dx := maxf(maxf(rect.position.x - p.x, 0.0), p.x - rect.end.x)
@@ -189,8 +215,13 @@ func _on_hit() -> void:
 		_edge_pending = true
 
 var _edge_pending := false
+## The blade's axis at the start of this physics step, in the world (INF when not armed).
+var _step_from := Vector2.INF
+var _step_to := Vector2.INF
 
 func _on_tick(delta: float) -> void:
+	_step_from = body.to_global(_blade_from)
+	_step_to = body.to_global(_blade_to)
 	if _clearing >= 0.0:
 		_clearing += delta
 		if _clearing >= 0.12 and (not overlaps_him() or _clearing >= 0.6):

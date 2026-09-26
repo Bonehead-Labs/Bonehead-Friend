@@ -60,6 +60,22 @@ func _on_deactivated() -> void:
 	_spell_deactivated(was_held)
 	_update_input()
 
+## **Losing the focus is letting go** (D70). Alt-tab with the button down and its release goes to
+## the other window, so a held spell went on holding at a desk nobody was at: the meteor shower
+## kept calling rocks and paying Bones, telekinesis kept its grip and levitation kept him up,
+## all until the next click. The release lands where the cursor was last seen.
+func release_hold() -> void:
+	if not _held:
+		return
+	_held = false
+	_hold_lost()
+	_update_input()
+
+## The focus went with the button still down. A release where the cursor was last seen, unless
+## a spell's release is a cast — that one cancels, as a cancelled gesture never fires a toy.
+func _hold_lost() -> void:
+	_released(_aim)
+
 ## Whether an effect is still running — a meteor in the air, a ride down a rainbow. A live spell
 ## keeps its input and its processing until it ends, and not a frame after.
 func is_live() -> bool:

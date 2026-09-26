@@ -100,6 +100,11 @@ var _chip: Texture2D
 
 var _shake_amp := 0.0
 var _shake_until_msec := 0
+## The jolt's and the bolt's randomness, kept off the global stream. The jolt draws twice on every
+## drawn frame it runs, and how many frames that is depends on the frame rate and the load, so on
+## the global stream it moved every `randf()` the simulation made after it: a suite that seeds per
+## item replayed differently depending on how busy the machine was (D74 fixes).
+var _rng := RandomNumberGenerator.new()
 
 var _mood_band := 0
 var _grime_stage := 0
@@ -393,7 +398,7 @@ func bolt(points: PackedVector2Array, colour: Color = BOLT, width: float = 3.0, 
 		jagged.append(a)
 		for k in range(1, legs):
 			var t := float(k) / float(legs)
-			jagged.append(a.lerp(b, t) + side * randf_range(-11.0, 11.0))
+			jagged.append(a.lerp(b, t) + side * _rng.randf_range(-11.0, 11.0))
 	jagged.append(points[points.size() - 1])
 	_line(jagged, colour, 0.16, width)
 	# Forks off the trunk, for an upgraded bolt (D41): short branches from a random joint,
@@ -401,11 +406,11 @@ func bolt(points: PackedVector2Array, colour: Color = BOLT, width: float = 3.0, 
 	for _f in mini(forks, 2):
 		if jagged.size() < 3:
 			break
-		var at := 1 + randi() % (jagged.size() - 2)
+		var at := 1 + _rng.randi() % (jagged.size() - 2)
 		var root := jagged[at]
-		var heading := (jagged[at + 1] - jagged[at - 1]).normalized().rotated(randf_range(-1.1, 1.1) + (PI * 0.5 if randf() < 0.5 else -PI * 0.5))
-		var mid := root + heading * randf_range(18.0, 34.0)
-		var tip := mid + heading.rotated(randf_range(-0.6, 0.6)) * randf_range(16.0, 30.0)
+		var heading := (jagged[at + 1] - jagged[at - 1]).normalized().rotated(_rng.randf_range(-1.1, 1.1) + (PI * 0.5 if _rng.randf() < 0.5 else -PI * 0.5))
+		var mid := root + heading * _rng.randf_range(18.0, 34.0)
+		var tip := mid + heading.rotated(_rng.randf_range(-0.6, 0.6)) * _rng.randf_range(16.0, 30.0)
 		_line(PackedVector2Array([root, mid, tip]), colour, 0.12, maxf(1.0, width * 0.6))
 	# The first strike gets a small ring; the chain does not, or three rings arrive at once.
 	ring(points[1], 34.0, colour, 0.2, 2.0)
@@ -437,10 +442,23 @@ func _process(_delta: float) -> void:
 	var t := float(_shake_until_msec - now) / float(SHAKE_MSEC)
 	var amp := _shake_amp * t
 	viewport.canvas_transform = Transform2D(0.0,
-		Vector2(randf_range(-amp, amp), randf_range(-amp, amp)).round())
+		Vector2(_rng.randf_range(-amp, amp), _rng.randf_range(-amp, amp)).round())
 
 func is_shaking() -> bool:
 	return is_processing()
+
+## A jolt is an offset on the whole viewport's canvas, which outlives this node: freed mid-jolt,
+## it left the picture — and every mouse position mapped through it — up to 9 px out for good. A
+## suite frees its desk after every item, so the next item would have been aimed that far off
+## (D74 fixes). Put it back on the way out.
+func _exit_tree() -> void:
+	if is_processing():
+		var viewport := get_viewport()
+		if viewport:
+			viewport.canvas_transform = Transform2D.IDENTITY
+		_shake_amp = 0.0
+		_shake_until_msec = 0
+		set_process(false)
 
 ## A continuous emitter that rides on a node: the aura of an upgraded item, the fuse of a
 ## primed charge, the swirl of the vortex (D41). Parented to `parent` so it goes where the

@@ -225,7 +225,9 @@ func _spark_material() -> ParticleProcessMaterial:
 # --- floating numbers ------------------------------------------------------
 
 func _on_payout(currency: StringName, amount: float, world_pos: Vector2, source_id: StringName) -> void:
-	if amount < 0.01:
+	# A kind item flushes its last trickle from its own `_exit_tree`, and at a scene's teardown
+	# that can land after this layer has already left the tree.
+	if amount < 0.01 or not is_inside_tree():
 		return
 	# **Not everything that is granted is a moment.** Dollars are minted flat on every hit
 	# and every kind act (D31), and an arcade win or a contract claim is granted from a
