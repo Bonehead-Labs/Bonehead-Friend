@@ -75,6 +75,7 @@ func _ready() -> void:
 	await _the_sponge_cleans_him_and_pays()
 	await _real_physics_produces_hits()
 	await _a_hit_that_parts_is_billed()
+	await _a_thrown_gun_pays_for_its_collision()
 	await _billing_does_not_read_the_wall_clock()
 	_the_mat_gives_back_more()
 	await _he_goes_and_plays_with_his_toys()
@@ -3818,6 +3819,120 @@ func _a_hit_that_parts_is_billed() -> void:
 	buddy.angular_velocity = 0.0
 	buddy.health.reset_meter()
 	for i in 30:
+		await get_tree().physics_frame
+
+## A harm gun thrown into him is a lump of metal and is billed its contact multiplier, if the engine
+## lets it arrive. Godot's cast-ray CCD cuts a fast body's velocity, for good, to what reaches the
+## contact point the step before it gets there, so how much of a throw survived was the gap to him
+## when its last step began: the SMG met him at 82 px/s from 1,313 and billed nothing, and every
+## gun's "thrown" check was filed `~F1`. A thrown gun now solves the step it meets him in itself
+## (`HeldGun._meet_him_in_flight`) and bills it through `Buddy.take_contact`: once, at the
+## collision's impulse — and his ledger, which holds its span open from before the push when he
+## is asleep, reads it as a push rather than a second contact.
+func _a_thrown_gun_pays_for_its_collision() -> void:
+	_suite("a thrown gun pays for its collision")
+	var buddy := _buddy()
+	if buddy == null:
+		_check("buddy present", false)
+		return
+	_clear_spawned()
+	var idle_brain := get_tree().get_first_node_in_group(&"idle_brain") as IdleBrain
+	if idle_brain:
+		idle_brain._disturb()
+	Economy.grant(Economy.BONES, float(ItemDB.get_item(&"pistol").cost))
+	_check("the pistol can be bought for the throw",
+		Progression.is_unlocked(&"pistol") or Progression.purchase_item(&"pistol"))
+	EventBus.spawn_requested.emit(&"pistol", buddy.global_position + Vector2(-300, -300))
+	await get_tree().physics_frame
+	var gun: HeldGun = null
+	for node in get_tree().get_nodes_in_group(&"spawned_item"):
+		if node is HeldGun and (node as HeldGun).item_id == &"pistol":
+			gun = node
+	_check("the pistol is on the desk", gun != null)
+	if gun == null:
+		return
+	# No cooldown for the measurement, as for the ball: it would hide a second bill for the same
+	# collision, which is what this is here to catch.
+	var cooldown := ItemDB.balance.damage_cooldown
+	ItemDB.balance.damage_cooldown = 0.0
+	EventBus.damage_dealt.connect(_observe)
+	# The same throw twice, 2 px short of his side at 1,200 px/s (20 px a step) while he stands
+	# asleep: once as the engine alone would have it, once watched as a throw from the hand is.
+	var arrived := -1.0
+	for watched in [false, true]:
+		await _stand_him_asleep(buddy)
+		_check("%s: he is asleep on his feet before it arrives" % ("watched" if watched else "unwatched"),
+			buddy.sleeping)
+		var his := buddy.get_interaction_rect()
+		gun.global_rotation = 0.0
+		gun.global_position = Vector2(his.position.x - 200.0, his.get_center().y - 10.0)
+		var right := -INF
+		for child in gun.get_children():
+			var cs := child as CollisionShape2D
+			if cs == null or cs.shape == null or cs.disabled:
+				continue
+			var r := cs.shape.get_rect()
+			for corner in [r.position, r.end, Vector2(r.position.x, r.end.y), Vector2(r.end.x, r.position.y)]:
+				right = maxf(right, (cs.global_transform * corner).x)
+		gun.global_position.x += his.position.x - 2.0 - right
+		gun.linear_velocity = Vector2(1200.0, 0.0)
+		gun.angular_velocity = 0.0
+		gun.last_throw_hit = 0.0
+		gun._flight_steps = HeldGun.THROW_STEPS if watched else 0
+		_observed.clear()
+		var met := false
+		for i in 30:
+			await get_tree().physics_frame
+			if i == 0 and not watched:
+				arrived = gun.linear_velocity.length()
+			if watched and not met and gun.last_throw_hit > 0.0:
+				met = true
+		var mine := _observed.filter(func(h: HitInfo) -> bool: return h.source_id == &"pistol")
+		if not watched:
+			_check("unwatched, the CCD cuts the throw to %.0f px/s before it meets him, and it bills nothing (%d hits)"
+				% [arrived, mine.size()], arrived < HeldGun.THROW_SPEED and mine.is_empty())
+			continue
+		_check("watched, it solves the collision itself (%.0f)" % gun.last_throw_hit,
+			met and gun.last_throw_hit >= ItemDB.balance.min_damage_impulse)
+		var once := mine.filter(func(h: HitInfo) -> bool: return absf(h.raw_impulse - gun.last_throw_hit) <= 0.5)
+		_check("and it is billed once, at the collision's impulse, at the pistol's contact multiplier (%d of %d hits)"
+			% [once.size(), mine.size()], once.size() == 1
+			and is_equal_approx(once[0].amount, gun.last_throw_hit * ItemDB.balance.damage_per_impulse
+				* gun.effective_damage_mult()))
+		_check("and it comes off him, as a collision throws it", gun.linear_velocity.x < 1200.0 * 0.5)
+	# The push, measured where nothing else can touch him: asleep on his feet, a collision handed to
+	# him straight up through his centre of mass lifts him off the desk in a step with no contact to
+	# solve, so all his ledger holds of that step is what it would have mistaken for a contact. Asleep
+	# at the last read, the span it holds began before the push, which is why the push is folded in.
+	# The pistol is only the name on the bill, so it is put down well away from him first.
+	gun.global_position = buddy.global_position + Vector2(400.0, -200.0)
+	gun.linear_velocity = Vector2.ZERO
+	gun.angular_velocity = 0.0
+	gun.freeze = true
+	await _stand_him_asleep(buddy)
+	_check("he is asleep on his feet again", buddy.sleeping)
+	var lift := Vector2(0.0, -1500.0)
+	_observed.clear()
+	buddy.take_contact(gun, lift, buddy.global_transform * buddy.center_of_mass)
+	await get_tree().physics_frame
+	_check("a collision handed to him asleep is billed (%d hits)" % _observed.size(), _observed.size() == 1)
+	_check("and his ledger holds it as a push, not a contact (%.0f of %.0f held)" % [buddy._ledger_dp.length(),
+		lift.length()], buddy._ledger_dp.length() < ItemDB.balance.min_damage_impulse)
+	ItemDB.balance.damage_cooldown = cooldown
+	EventBus.damage_dealt.disconnect(_observe)
+	_clear_spawned()
+	await _stand_him_asleep(buddy)
+
+## On his feet on the scene's floor, still, and left long enough to fall asleep.
+func _stand_him_asleep(buddy: Buddy) -> void:
+	while buddy.health.down:
+		await get_tree().physics_frame
+	buddy.health.reset_meter()
+	buddy.global_position = Vector2(320, 500.0 - 62.0)
+	buddy.global_rotation = 0.0
+	buddy.linear_velocity = Vector2.ZERO
+	buddy.angular_velocity = 0.0
+	for i in 60:
 		await get_tree().physics_frame
 
 ## The trampoline's launch (D64, F6). It read his speed after the landing had been solved, so

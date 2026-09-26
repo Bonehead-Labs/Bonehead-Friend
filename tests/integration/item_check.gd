@@ -129,27 +129,9 @@ const UNAIMED: Array[StringName] = [&"Firework"]
 ## reported, not failed — and one that stops reproducing IS a failure, so this table cannot go
 ## stale: fix the item, delete its line.
 const KNOWN := {
-	"flamethrower/hits": "~F2 D54's 18 px impact inset leaves the shot under the damage floor",
-	"flamethrower/earns": "~F2 D54's 18 px impact inset leaves the shot under the damage floor",
-	"flamethrower/mastery": "~F2 D54's 18 px impact inset leaves the shot under the damage floor",
-	"flamethrower/aug_damage_mult": "~F2 D54's 18 px impact inset leaves the shot under the damage floor",
-	"flamethrower/aug_payout_mult": "~F2 D54's 18 px impact inset leaves the shot under the damage floor",
-
-	# The held guns and the fidget toys (D56, D57), added to the suite after it was written.
-	"revolver/thrown": "~F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
-	"smg/thrown": "~F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
-	"pump_shotgun/thrown": "~F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
-	"hunting_rifle/thrown": "~F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
-	"blunderbuss/thrown": "~F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
-	# D71's, the same throw and the same finding: reported when it shows, not failed when it does not.
-	"pistol/thrown": "~F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
-	"shotgun/thrown": "~F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
-	"minigun/thrown": "~F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
-	"flare_gun/thrown": "~F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
-	"tommy_gun/thrown": "~F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
-	"grenade_launcher/thrown": "~F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
-	"harpoon_gun/thrown": "~F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
-	"ray_gun/thrown": "~F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
+	# Empty. The flamethrower's `~F2` lines went when D60's whole-force check (`every_shot`) replaced
+	# them, and the thrown guns' `~F1` lines when a thrown gun began solving the step it meets him in
+	# (`HeldGun._meet_him_in_flight`).
 }
 
 var _passed := 0
@@ -174,6 +156,10 @@ var _rows: Array[Dictionary] = []
 ## `-- --trace`: every tenth frame, where he and the item are and what has been billed. For
 ## working out why an item failed, which the assertions alone cannot say.
 var _trace := false
+## How the first desk stood him up, step by step (where, how fast, how turned), and whether the
+## desk just built did exactly the same through an unshaken picture (`_build_stage`).
+var _desk_first := PackedVector2Array()
+var _desk_same := true
 
 # --- the three helpers the suite is built on --------------------------------------------
 
@@ -300,6 +286,10 @@ class Run:
 	var fuse_lit := false
 	var fuse_out := false
 	var use_frame := -1
+	## Uses of it counted while he was up to take them (a turret's shots), and whether he was ever
+	## down in the phase — a shot queued before a knockout lands is dropped, and rightly.
+	var uses_up := 0
+	var down_seen := false
 	var kick := 0.0
 	var peak_him := 0.0
 	var peak_it := 0.0
@@ -451,6 +441,7 @@ func _phase(item: ItemData, cls: StringName, driver: StringName, upgraded: bool)
 	run.cls = cls
 	run.upgraded = upgraded
 	run.authored = _authored(item)
+	_expect(run, "desk", _desk_same, "its desk stood him up step for step as the first desk did, unshaken")
 	if not _own(item.id):
 		_expect(run, "buy", false, "it can be bought through the shop (%s)" % Progression.can_purchase(item.id))
 	if upgraded:
@@ -487,6 +478,22 @@ func _phase(item: ItemData, cls: StringName, driver: StringName, upgraded: bool)
 # --- the stage --------------------------------------------------------------------------
 
 func _build_stage() -> void:
+	# Every item is measured on a desk nothing before it has touched, so it measures the same alone
+	# as it does a hundred items into the run — ability_check's rule (D74 fixes), which this suite
+	# had not taken. Two things carried over from one item's desk to the next.
+	#
+	# The physics space: one SubViewport, one World2D, every body of every item so far added to and
+	# taken out of the same broadphase, whose history orders the contacts the solver works through.
+	# A difference in the last bits that a heavy weapon on a soft joint magnifies: the sledgehammer's
+	# approach to its Ground Pound threw him 150 px alone and 270 px after the hole punch or the bat,
+	# into the wall and out of the wave's 280 px, and its plain Ground Pound failed in either order.
+	#
+	# The frame: the first desk was built from `_ready` and every later one after `_free_stage`'s
+	# last tick, so the first stood him on the desk one physics step later than the rest. It is
+	# built straight after a physics tick every time, and the check below holds each desk to the
+	# first, step for step.
+	await get_tree().physics_frame
+	_view.world_2d = World2D.new()
 	_stage = Node2D.new()
 	_stage.name = "Stage"
 	# The game's own walls, not a hand-built floor: `WorldBounds` derives them from the viewport,
@@ -511,11 +518,19 @@ func _build_stage() -> void:
 	_mouse = Vector2(40, 40)
 	_held = 0
 	_move(_mouse)
-	# On the floor and still before anything is asked of him.
+	# On the floor and still before anything is asked of him — and, step for step, exactly as the
+	# first desk stood him there, through a picture no jolt is still offsetting.
+	var settle := PackedVector2Array()
 	for i in 90:
 		await _step()
+		settle.append(_buddy.global_position)
+		settle.append(_buddy.linear_velocity)
+		settle.append(Vector2(_buddy.rotation, _buddy.angular_velocity))
 		if i > 3 and _buddy.is_grounded() and _buddy.linear_velocity.length() < 2.0:
 			break
+	if _desk_first.is_empty():
+		_desk_first = settle
+	_desk_same = settle == _desk_first and _view.canvas_transform == Transform2D.IDENTITY
 
 func _free_stage() -> void:
 	if EventBus.kindness_given.is_connected(_on_kind_act_late):
@@ -723,8 +738,12 @@ func _on_contract(key: StringName, count: int) -> void:
 	if _run == null:
 		return
 	_run.contracts[String(key)] = _run.contract(String(key)) + count
-	if String(key) == "use:%s" % _run.item.id and _run.use_frame < 0:
+	if String(key) != "use:%s" % _run.item.id:
+		return
+	if _run.use_frame < 0:
 		_run.use_frame = _frame
+	if is_instance_valid(_buddy) and not _buddy.health.down:
+		_run.uses_up += count
 
 func _on_threat(kind: StringName, _at: Vector2, level: float) -> void:
 	if _run == null or kind != &"fuse":
@@ -757,6 +776,8 @@ func _sample() -> void:
 			_frame, _buddy.global_position.round(), _buddy.linear_velocity.round(), _buddy.health.down,
 			_buddy.dragging, _run.hits.size(), _run.stray, _run.uses(), _run.acts.size(),
 			_run.sustained, it])
+	if _buddy.health.down:
+		_run.down_seen = true
 	var v := _buddy.linear_velocity
 	var speed := v.length()
 	if not is_finite(speed) or not _buddy.global_position.is_finite():
@@ -1464,6 +1485,26 @@ func _drive_turret(run: Run) -> void:
 	_expect(run, "tracer", from_muzzle, "the shot leaves from the muzzle (%d tracers)" % _fx.tracers.size())
 	_expect(run, "aimed", at_him, "and lands on him")
 	_expect(run, "hits", not run.hits.is_empty(), "and it hurts him (%d hits)" % run.hits.size())
+	# Every shot that reaches him bills the whole of its `blast_force` (D60: the damage is the
+	# pellet's). The flamethrower's 400 is 50 over the 350 floor; D54's falloff 18 px off his centre
+	# put it under, "almost always", and it was filed `~F2` — a finding that could neither fail nor
+	# go stale, so its regression would have read as known. A single pellet that cannot leave his
+	# silhouette (its spread plus the inset inside his 44 px half-width) cannot miss, so every
+	# shot fired while he stood is one hit of exactly its force. Held fire first, so no shot is
+	# still on its way to him when they are counted.
+	if body.pellets == 1 and body.spread + TurretBase.IMPACT_INSET < 40.0:
+		body._since_shot = -1.0e6
+		await _step(3)
+		var whole := 0
+		for info in run.hits:
+			if absf(info.raw_impulse - body.blast_force) <= 0.5:
+				whole += 1
+		if run.down_seen:
+			run.notes.append("knocked out while it fired: %d of %d shots billed whole" % [whole, run.uses_up])
+		else:
+			_expect(run, "every_shot", whole == run.uses_up and whole > 0,
+				"every shot that reaches him bills its whole %.0f (%d of %d)" % [body.blast_force,
+				whole, run.uses_up])
 
 func _drive_critter(run: Run) -> void:
 	var body := await _spawn(run, _centre() + Vector2(-280.0, -40.0)) as NpcBase
@@ -2667,29 +2708,39 @@ func _thrown_gun(run: Run, body: HeldGun, kind: bool) -> void:
 		return
 	var hits := run.hits.size()
 	var bones := run.bones
+	body.last_throw_hit = 0.0
 	await _throw_at(_centre(), 1400.0)
 	# Asked of his own contact list, so "it bills nothing" is never said of a throw that missed.
 	# The list reports a contact a step after the step that stopped it, so the speed it arrived
-	# at is a fading peak, as the stress ball keeps one for its catch.
+	# at is a fading peak, as the stress ball keeps one for its catch. A harm gun solves the step
+	# it meets him in itself, and moves off him inside that step, so its own record says so too.
 	var speed := 0.0
 	var touched := -1.0
 	for i in 40:
 		if _gone(body):
 			break
 		speed = maxf(body.linear_velocity.length(), speed * 0.66)
-		if touched < 0.0 and _buddy.get_colliding_bodies().has(body):
+		if touched < 0.0 and (_buddy.get_colliding_bodies().has(body) or body.last_throw_hit > 0.0):
 			touched = speed
 		await _step()
 	var landed := run.hits.size() - hits
-	run.notes.append("thrown into him at %.0f px/s: %d contact hit(s)" % [touched, landed] if touched >= 0.0
-		else "thrown, and missed him")
+	var collision := 0.0 if _gone(body) else body.last_throw_hit
+	run.notes.append("thrown into him at %.0f px/s: %d contact hit(s), a collision of %.0f" % [touched,
+		landed, collision] if touched >= 0.0 else "thrown, and missed him")
 	if kind:
 		_expect(run, "thrown", touched > 300.0 and landed == 0 and run.bones == bones,
 			"thrown into him (%.0f px/s), a kind gun bills nothing (%d hits)" % [touched, landed])
-	else:
-		_expect(run, "thrown", touched > 300.0 and landed > 0,
-			"thrown into him (%.0f px/s), a harm gun is a lump of metal and bills its contact multiplier (%d hits)"
-			% [touched, landed])
+		return
+	# The collision it solved is billed once: exactly one hit carries its impulse, so the ledger did
+	# not read the same push as a contact as well.
+	var once := 0
+	for i in range(hits, run.hits.size()):
+		if absf(run.hits[i].raw_impulse - collision) <= 0.5:
+			once += 1
+	_expect(run, "thrown", touched > 300.0 and landed > 0
+		and (collision < ItemDB.balance.min_damage_impulse or once == 1),
+		"thrown into him (%.0f px/s), a harm gun is a lump of metal and bills its contact multiplier (%d hits, its collision %d time)"
+		% [touched, landed, once])
 
 ## Shift+right in the hand bins it instead of firing it: D24's override, which no trigger may
 ## claim. Asked where the hand is, which is over its grab region.
@@ -3363,6 +3414,7 @@ func _the_bin_gesture_works(run: Run) -> void:
 	run.acts.clear()
 	run.hits.clear()
 	run.contracts.clear()
+	run.uses_up = 0
 	run.touch_seconds = 0.0
 
 func _expect_aura(run: Run, body: BaseDraggable) -> void:
