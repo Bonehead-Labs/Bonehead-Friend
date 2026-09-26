@@ -72,7 +72,8 @@ class Drawing extends PayoffSketch:
 		if grow <= 0.05:
 			return
 		var centre := Vector2(side * (_half + 18.0 + (70.0 + 40.0 * size) * ease_out(k)), _floor - 14.0 - 12.0 * k)
-		var puffs := [Vector2(0, 0), Vector2(side * 15.0, 4.0), Vector2(-side * 14.0, 5.0), Vector2(side * 4.0, -11.0)]
+		var puffs := [Vector2(0, 0), Vector2(side * 15.0, 4.0), Vector2(-side * 14.0, 5.0),
+			Vector2(side * 4.0, -11.0)]
 		var radii := [14.0, 11.0, 10.0, 10.0]
 		for i in puffs.size():
 			var p: Vector2 = centre + (puffs[i] as Vector2) * (0.6 + 0.4 * grow)

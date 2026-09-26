@@ -26,7 +26,8 @@ class Drawing extends PayoffSketch:
 			var d := Vector2.RIGHT.rotated(TAU * float(i) / 5.0 + rng.randf_range(-0.3, 0.3))
 			var reach := rng.randf_range(16.0, 28.0) * (0.8 + 0.4 * s)
 			var kink := d * reach * 0.55 + d.orthogonal() * rng.randf_range(-4.0, 4.0)
-			_cracks[i] = PackedVector2Array([d * 3.0, kink, kink + d.rotated(rng.randf_range(-0.5, 0.5)) * reach * 0.5])
+			var end := kink + d.rotated(rng.randf_range(-0.5, 0.5)) * reach * 0.5
+			_cracks[i] = PackedVector2Array([d * 3.0, kink, end])
 		fire(at, 0.56)
 
 	func _paint(_k: float) -> void:
@@ -45,8 +46,8 @@ class Drawing extends PayoffSketch:
 		for sx in [-1.0, 1.0]:
 			for sy in [-1.0, 1.0]:
 				var corner := Vector2(sx * d, sy * d)
-				strokes(PackedVector2Array([corner - Vector2(sx * arm, 0.0), corner, corner - Vector2(0.0, sy * arm)]),
-					colour, 4.0)
+				var bracket := PackedVector2Array([corner - Vector2(sx * arm, 0.0), corner, corner - Vector2(0.0, sy * arm)])
+				strokes(bracket, colour, 4.0)
 
 	## The star on the spot: hard, bright and small, closing.
 	func _star() -> void:

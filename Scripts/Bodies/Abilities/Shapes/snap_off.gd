@@ -55,7 +55,8 @@ class Drawing extends PayoffSketch:
 			var third := 9.0 * scale
 			var tall := 6.0 * scale
 			_piece(Vector2.ZERO, _dir, third * 1.5, tall, STEEL)
-			line(-_dir * third * 1.5 - across * (tall - 2.0), _dir * third * 1.5 - across * (tall - 2.0), Color.WHITE, 2.0)
+			var edge := across * (tall - 2.0)
+			line(-_dir * third * 1.5 - edge, _dir * third * 1.5 - edge, Color.WHITE, 2.0)
 			for s in [-0.5, 0.5]:
 				var c: Vector2 = _dir * third * float(s) * 2.0
 				var lean := _dir * tall * 0.6

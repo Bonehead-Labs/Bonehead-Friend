@@ -87,8 +87,8 @@ class Drawing extends PayoffSketch:
 			var foot := Vector2(x, _floor)
 			var top := foot + Vector2(0.0, -40.0 * out)
 			line(foot, top, Color("a9713f"), 3.0)
-			shape(PackedVector2Array([top, top + Vector2(18.0 * _side * out, 6.0 * out), top + Vector2(0.0, 13.0 * out)]),
-				FLAG)
+			var fly := top + Vector2(18.0 * _side * out, 6.0 * out)
+			shape(PackedVector2Array([top, fly, top + Vector2(0.0, 13.0 * out)]), FLAG)
 
 	## The ball: up off him and over the rope, a dotted trail behind it, a sparkle as it clears.
 	func _flight() -> void:
