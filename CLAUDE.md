@@ -38,7 +38,10 @@ Read `docs/README.md` first — it indexes the full spec. Design questions are a
   `config/custom_user_dir_name`. Keep worktrees under `.claude/worktrees/` (`.claude/.gdignore`
   stops the main project scanning them) and cut them from the working branch by hand — the
   Agent tool's own worktree option branched from the ancient `origin/main`. Kill a stray Godot
-  by PID, never `taskkill /IM`, which kills every other worktree's run too.
+  by PID, never `taskkill /IM`, which kills every other worktree's run too. Streams share the
+  session scratchpad, so each writes its logs under `scratchpad/<stream>/`; and a suite that
+  measures on the wall clock flakes while other suites share the machine — re-run it alone
+  before believing it.
 
 ## Hard rules
 
@@ -482,6 +485,15 @@ GDScript quirks already paid for once each:
   not `WeaponBase`. A kind row pays with `give()` / `give_sustained()` and stays under
   `AbilityTable.KIND_CEILING` (1.5 value a second, D67's); a charge's second press is a `fuse` hook; ability_check wants a `_drive_<ability id>`.
   After re-seeding an item, re-run `seed_m311_abilities` for its controls line.
+- **Every ability reads through D77's vocabulary**, and a new one gets it for nothing:
+  `AbilityFX.of(node)` (glint, activation, state badge, payoff, gong waves), an optional
+  `AbilityLooks.LOOKS[ability_id]` row for its colour, words and icons, and the name through
+  `FXLayer.callout`. A hook whose state is never `tell`ed calls `show_state`; a payoff somewhere
+  other than where it last struck sets `fx_at`. ability_check enumerates `AbilityTable` for all
+  four stages. Jolt the desk only when `WorldFX.is_shaking()` is false: the shake is the canvas
+  transform the cursor maps through, so a jolt moves a held weapon in a suite.
+- **Never give `WeaponAbility` a member a subclass already declares** (`landed` and `_glint` were
+  taken). The redeclaration is a parse error, and ability_check sits on a scene that never loads.
 - **Anything an ability or item applies to him happens in `_physics_process`, before
   `Buddy.StepStart`** (D74). From a timer or a deferred call, D64's ledger bills it a second time.
   A hit attributed in `_integrate_forces` is dealt on his next tick: a suite waits two or three
@@ -640,8 +652,10 @@ pay Bones and Hearts as before but earn Dollars like automation and count on no 
 right button reaches **eleven held things beyond the melee drawer** — a curveball, a serve, a
 strike, keepy-uppy, a tickle, a swaddle, a wring, a wish on the cake, a donut toss, an airburst and
 a sticky bomb on a remote — with a design sheet of the other 59 in D78 (eight marked next; a
-turret Overdrive waits on the owner, since right on a placed turret bins it today). D77, a
-readable effect for every ability (ready glint, callout, state on him, payoff), was in flight.
+turret Overdrive waits on the owner, since right on a placed turret bins it today); and **every
+ability reads** in four stages — a ready glint on the weapon, its name called out, a badge on him
+that drains as the state runs down, and a payoff where it lands — the frying pan's BONG first,
+because the owner could not tell it had happened (D77). D77's frames have not been looked at yet.
 
 **M3's engineering is closed. What remains of the milestone is the art pass and the two
 playtests — neither of which can be done from a keyboard.** Mood, grime, the Hearts economy, the knockout beat, mastery and the shared pool,
