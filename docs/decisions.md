@@ -3891,6 +3891,51 @@ what the code draws, not what a person has seen. The idle budget is not re-measu
 build for the same reason; by construction nothing here exists at rest until an ability is first
 used, and after that what it leaves is parked and hidden.
 
+### Amended 2026-09-26: D78's eleven, through `AbilityCues`
+
+D78 put the right button on eleven things that are not melee weapons and, rather than build a second
+vocabulary, left three static hooks at the three moments each of them has
+(`Scripts/Bodies/Abilities/ability_cues.gd`). Those three bodies now point here, and the eleven
+read in the same four stages as the thirty-four; of their own code only the towel changed, to say
+how much of its wrap is left:
+
+- `AbilityCues.activation(ability, at)` moves the press's flare to where the ability says it
+  started — the cake's wicks, a ball in the hand — and anywhere outside a press draws the flare and
+  the name there (`fx_cue_activation`).
+- `AbilityCues.state(ability, on, at)` puts up the look's `cue` badge for as long as the ability says
+  the state is on (`cue_state_on`, and never past the effect) and takes it down; over him, or with
+  `over: weapon` over the thing itself, which is where a charge on hold is (`fx_cue_state`).
+- `AbilityCues.payoff(ability, event, at, word)` draws the payoff at `at` and calls out `word` in
+  capitals — "STRIKE!", "3!", "CAUGHT!" — unless the look names a word of its own for the event
+  (`fx_word`; `AbilityLooks.pay_words`). It still emits `paid_off` and records what it heard.
+
+| Item | Ability | Ready / activation | State | Payoff |
+|---|---|---|---|---|
+| Feather duster | Tickle | pink; "TICKLE", feathers | feather badge over him draining with the tickle, a pip per giggle, hearts rising off him | 0.25 a giggle, "HEE!" |
+| Beach ball | Keepy-Uppy | orange; "KEEPY-UPPY", balls | ball badge over him for the rally, a pip per header | 0.35 and "1!", "2!", "3!", "4!" |
+| Birthday cake | Make a Wish | candle gold at the wicks; "MAKE A WISH", stars | a cake badge with stars rising off him as he wishes | 0.7, "HAPPY BIRTHDAY!" |
+| Baseball | Curveball | red; "CURVEBALL", balls | target badge as it breaks; ball badge while he holds it | 0.45, "CAUGHT!" |
+| Tennis ball | Serve | yellow; "SERVE", balls | target badge on the serve, ball badge on his volley | 0.6, "ACE!" (a fault says nothing) |
+| Warm towel | Swaddle | rose; "SWADDLE", hearts | towel badge draining over the 5 s he is wrapped, hearts rising off him | 0.4, "COSY" |
+| Bowling ball | Strike | bowling blue; "BOWL!", pins | red pin badge as it rolls at him; pin badge for his fall | 0.95, "STRIKE!" |
+| Sponge | Wring | water blue; "WRING", drops | drop badge draining while it rains; a drop badge as he shakes dry | 0.4, "RINSE!" |
+| Donut box | Donut Toss | icing pink; "DONUT TOSS", donuts | donut badge as it flies; donut badge and hearts once it is in his mouth | 0.5, "YUM!" |
+| Cluster bomb | Airburst | orange; "AIRBURST", bombs | a bomb badge over the charge itself, draining with its hold; a red bomb over him at the burst | 0.9, "BOMBS AWAY!" |
+| Sticky bomb | Remote | red; "REMOTE", remotes | a remote badge over the charge, draining with its ten seconds; a red bomb over him while it rides him | 0.6, "CLICK" |
+
+Eight icons were drawn for them: a feather, a ball, a towel, a donut, a cake, a bomb, a remote and a
+pin. Three words are the look's rather than the ability's, where the ability's would repeat the name
+just called: the wish's "make a wish!" is "HAPPY BIRTHDAY!", the airburst's is "BOMBS AWAY!", and the
+bowling ball calls "BOWL!" as it starts so that its "STRIKE!" is the payoff's alone. The towel's one
+new line is `wrap_left`, for its badge. A glint shows on an unlit charge in the hand too: its first
+right press is still its fuse, and the glint says there is more to it than that.
+
+*Tested:* `ability_check`'s held-ability suite (`_check_held_ability`) makes the same D77
+assertions as the melee one — the glint in the hand, the name, a state over him or over the thing,
+the payoff drawn with a word, the glint gone while it cools and back with a pop, not drawn on the
+desk — reading the ability's records by reference, because a charge goes with its blast and takes
+its ability with it. The eleven pass 1,100 of 1,100 on their own.
+
 
 ## D78 — The right button beyond the melee drawer: eleven more things that do something in the hand (2026-09-26)
 

@@ -236,6 +236,81 @@ const LOOKS := {
 			&"scalded": {"icon": &"drop", "colour": "ff8c1a", "while": &"is_steaming", "left": &"steam_left"}},
 		"pay": {&"hot_coffee": {"size": 0.55, "land": true}},
 	},
+
+	# --- beyond the melee drawer (D78) ------------------------------------------------------------
+	# The kind eight's states are care, not damage, and their icons say so:
+	# a feather, a ball, a towel, a donut, a candle. Their words are the ones each ability gives
+	# with its payoff (`AbilityCues.payoff`: "HEE!", "3!", "CAUGHT!"), in capitals like the rest.
+	# `cue` is the badge `AbilityCues.state` puts up; `over: weapon` puts it over the thing itself.
+	&"tickle": {
+		"colour": "ff6fae", "call": "TICKLE", "burst": &"feather", "glint": 0.9,
+		"cue": {"icon": &"feather", "left": &"pip_fill", "count": &"giggles",
+			"aura": {"glyph": &"heart", "colour": "ff5f9e", "amount": 5, "rise": 50.0}},
+		"states": {&"tickled": {"none": true}},
+		"pay": {&"tickle": {"size": 0.25}},
+	},
+	&"keepy_uppy": {
+		"colour": "ff9a2e", "call": "KEEPY-UPPY", "burst": &"ball", "glint": 0.5,
+		"cue": {"icon": &"ball", "count": &"count"},
+		"states": {&"lobbed": {"none": true}, &"header": {"none": true}},
+		"pay": {&"header": {"size": 0.35}},
+	},
+	&"make_a_wish": {
+		"colour": "ffd23a", "call": "MAKE A WISH", "burst": &"star", "glint": 0.85,
+		"states": {&"wish": {"icon": &"cake", "seconds": 1.8,
+			"aura": {"glyph": &"star", "colour": "ffd23a", "amount": 6, "rise": 40.0}}},
+		"pay": {&"wish": {"size": 0.7, "land": "HAPPY BIRTHDAY!"}},
+	},
+	&"curveball": {
+		"colour": "e04a4a", "call": "CURVEBALL", "burst": &"ball", "glint": 0.5,
+		"states": {&"pitched": {"icon": &"target", "seconds": 0.8},
+			&"caught_it": {"icon": &"ball", "seconds": 1.2}, &"threw_back": {"none": true}},
+		"pay": {&"curveball": {"size": 0.45}},
+	},
+	&"serve": {
+		"colour": "e8b83a", "call": "SERVE", "burst": &"ball", "glint": 0.5,
+		"states": {&"served": {"icon": &"target", "seconds": 0.8},
+			&"volley": {"icon": &"ball", "seconds": 0.8}},
+		"pay": {&"serve": {"size": 0.6}},
+	},
+	&"swaddle": {
+		"colour": "ff8fbb", "call": "SWADDLE", "burst": &"heart", "glint": 0.6,
+		"cue": {"icon": &"towel", "left": &"wrap_left",
+			"aura": {"glyph": &"heart", "colour": "ff8fbb", "amount": 4, "rise": 40.0}},
+		"states": {&"swaddled": {"none": true}},
+		"pay": {&"swaddle": {"size": 0.4}},
+	},
+	&"strike": {
+		"colour": "5a78ff", "call": "BOWL!", "burst": &"pin", "glint": 0.5,
+		"states": {&"incoming": {"icon": &"pin", "colour": RED, "seconds": 0.9},
+			&"bowled": {"icon": &"pin", "seconds": "claim_seconds"}},
+		"pay": {&"strike": {"size": 0.95}},
+	},
+	&"wring": {
+		"colour": "4fb8ff", "call": "WRING", "burst": &"drop", "glint": 0.5,
+		"cue": {"icon": &"drop", "left": &"pip_fill"},
+		"states": {&"showered": {"none": true}, &"shake_dry": {"icon": &"drop", "seconds": 1.0}},
+		"pay": {&"wring": {"size": 0.4}},
+	},
+	&"donut_toss": {
+		"colour": "ff6fae", "call": "DONUT TOSS", "burst": &"donut", "glint": 0.5,
+		"states": {&"donut_incoming": {"icon": &"donut", "seconds": 0.9},
+			&"fed": {"icon": &"donut", "seconds": 1.2,
+				"aura": {"glyph": &"heart", "colour": "ff5f9e", "amount": 4, "rise": 40.0}}},
+		"pay": {&"donut_toss": {"size": 0.5}},
+	},
+	&"airburst": {
+		"colour": "ff8c1a", "call": "AIRBURST", "burst": &"bomb", "glint": 0.5,
+		"cue": {"icon": &"bomb", "over": "weapon", "left": &"pip_fill"},
+		"states": {&"airburst": {"icon": &"bomb", "colour": RED, "seconds": 1.0}},
+		"pay": {&"airburst": {"size": 0.9, "land": "BOMBS AWAY!"}},
+	},
+	&"remote": {
+		"colour": "ff4d2e", "call": "REMOTE", "burst": &"remote", "glint": 0.5,
+		"cue": {"icon": &"remote", "over": "weapon", "left": &"pip_fill"},
+		"states": {&"ticking": {"icon": &"bomb", "colour": RED, "seconds": 0.8, "refresh": true}},
+		"pay": {&"remote": {"size": 0.6}},
+	},
 }
 
 static func has_look(id: StringName) -> bool:
@@ -254,8 +329,24 @@ static func look_for(id: StringName, display_name: String) -> Dictionary:
 		"glint": float(row.get("glint", 0.8)),
 		"glint_at": row.get("glint_at", Vector2.INF),
 		"states": row.get("states", {}),
+		"cue": row.get("cue", {}),
 		"pay": row.get("pay", {}),
 	}
+
+## The badge `AbilityCues.state` puts up for an ability (D78's abilities): the row's `cue`, lasting
+## while the ability says its state is on (`cue_state_on`) unless the row says otherwise, and over
+## him unless it says `over: weapon`. The generic badge for an ability with no row.
+static func cue_spec(look: Dictionary, ability_row: Dictionary) -> Dictionary:
+	var spec: Dictionary = (look.get("cue", {}) as Dictionary).duplicate()
+	if bool(spec.get("none", false)):
+		return {}
+	if not spec.has("icon"):
+		spec["icon"] = &"pow"
+	if not spec.has("while") and not spec.has("seconds"):
+		spec["while"] = &"cue_state_on"
+	var states := {&"cue": spec}
+	return state_spec({"colour": look.get("colour", DEFAULT_COLOUR), "states": states}, &"cue",
+		ability_row)
 
 ## The badge for `event`, resolved against the ability's own row: its colour a `Color`, and a
 ## `seconds` that names a row key read from the row. Empty for an event the look says shows nothing.
@@ -282,13 +373,18 @@ static func pay_spec(look: Dictionary, event: StringName) -> Dictionary:
 	var pay: Dictionary = look.get("pay", {})
 	return pay.get(event, DEFAULT_PAY)
 
-static func pay_words(look: Dictionary, spec: Dictionary, first: bool) -> String:
+## `said` is the word the ability gave with the payoff itself (D78's `AbilityCues.payoff`): it is
+## called out every time, in capitals like every other word, unless the look names one of its own
+## for the event.
+static func pay_words(look: Dictionary, spec: Dictionary, first: bool, said: String = "") -> String:
 	var land = spec.get("land", false)
+	if not (land is bool) and String(land) != "every":
+		return String(land) if first or not said.is_empty() else ""
+	if not said.is_empty():
+		return said.to_upper()
 	if land is bool:
 		return String(look.get("land", "")) if land and first else ""
-	if String(land) == "every":
-		return String(look.get("land", ""))
-	return String(land) if first else ""
+	return String(look.get("land", ""))
 
 static func colour_of(value) -> Color:
 	if value is Color:

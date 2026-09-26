@@ -178,7 +178,9 @@ func _look_is_sound(ability_id: StringName, display_name: String) -> void:
 	var look := AbilityLooks.look_for(ability_id, display_name)
 	var colours: Array[Color] = [look["colour"]]
 	var icons: Array[StringName] = []
-	var states: Dictionary = look["states"]
+	var states: Dictionary = (look["states"] as Dictionary).duplicate()
+	if not (look["cue"] as Dictionary).is_empty():
+		states[&"cue"] = look["cue"]
 	for event in states:
 		var spec: Dictionary = states[event]
 		if bool(spec.get("none", false)):
@@ -2184,6 +2186,10 @@ func _check_held_ability(id: StringName) -> void:
 		return
 	_check("held, right is its own and Shift+right is still the bin",
 		body.right_click_is_mine() and not body.click_would_bin(false) and body.click_would_bin(true))
+	# How it reads (D77), the same four stages as a melee weapon's, through `AbilityCues`.
+	var glint := ability.ready_glint()
+	_check("held and ready, it wears its ready glint", glint != null and glint.visible)
+	_check("and the glint costs nothing: no tick of its own", glint == null or not glint.is_processing())
 	if body is WeaponBase:
 		_buddy.health.reset_meter()
 		ordinary = await _ordinary_hit(body as WeaponBase)
@@ -2191,6 +2197,11 @@ func _check_held_ability(id: StringName) -> void:
 	await _settle_him()
 	_reset_probes()
 	var before_uses := ability.uses
+	# Held by reference: a charge goes with its blast and takes its ability with it.
+	var said := ability.fx_said
+	var shown := ability.fx_states
+	var paid := ability.fx_paid
+	var look := ability.look()
 
 	var driver := "_drive_%s" % row.get("id", "")
 	if not has_method(driver):
@@ -2204,6 +2215,14 @@ func _check_held_ability(id: StringName) -> void:
 	if uses < 0 and not fuse and is_instance_valid(ability):
 		uses = ability.uses
 	_check("one use was counted", uses == before_uses + 1)
+
+	# --- how it read (D77) ---------------------------------------------------------------------
+	_check("it called out \"%s\" as it began" % look["call"], said.has(String(look["call"])))
+	_check("it put a state up, over him or over itself (%s)" % str(shown), not shown.is_empty())
+	_check("its payoff was drawn where it landed (%s)" % str(paid), not paid.is_empty())
+	var own_words := [String(look["call"]), String(look["go"])]
+	var landing_words := said.filter(func(w: String) -> bool: return not own_words.has(w))
+	_check("and a word for it (%s)" % str(landing_words), not landing_words.is_empty())
 
 	# --- what it paid ----------------------------------------------------------------------
 	await _step(20)
@@ -2251,10 +2270,16 @@ func _check_held_ability(id: StringName) -> void:
 		_check("and does not throw it away", not _gone(body) and body.dragging)
 		var pip := ability.get_node_or_null("AbilityPip") as Node2D
 		_check("the pip is drawn by the hand while it cools", pip != null and pip.visible)
+		glint = ability.ready_glint()
+		_check("and the ready glint is gone while it cools", glint == null or not glint.visible)
+		var readied := ability.fx_readied
 		var wait := int((ability.cooldown_left() + 0.3) * 60.0)
 		await _await_cond(func() -> bool: return ability.is_ready(), wait + 60)
 		_check("it is ready again when the cooldown is up", ability.is_ready())
 		_check("and the pip is gone", pip == null or not pip.visible)
+		glint = ability.ready_glint()
+		_check("and the glint is back, with a pop", not ability.is_ready() or (glint != null
+			and glint.visible and ability.fx_readied == readied + 1))
 		# What an ability puts back when it is ready again, if it puts anything back: a candle.
 		var after := "_after_cooldown_%s" % row.get("id", "")
 		if has_method(after):
@@ -2265,6 +2290,7 @@ func _check_held_ability(id: StringName) -> void:
 		await _await_still(body, 90)
 		await _step(4)
 		_check("put down and idle, nothing of it runs", not ability.is_busy())
+		_check("and its glint is not drawn on the desk", glint == null or not glint.visible)
 		if await _grab(body):
 			_move(_grab_point(body))
 			await _step(2)

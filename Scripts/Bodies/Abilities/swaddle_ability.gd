@@ -44,6 +44,12 @@ var came_off := &""
 func is_wrapped() -> bool:
 	return _active and _phase == WRAPPED
 
+## 0..1 of the wrap left, for its badge over him (D77).
+func wrap_left() -> float:
+	if not is_wrapped():
+		return 0.0
+	return clampf(1.0 - wrap_time / maxf(num("wrap_seconds", 5.0), 0.01), 0.0, 1.0)
+
 func _can_start() -> bool:
 	var him := buddy()
 	return him != null and com_world().distance_to(_shoulders(him)) <= num("reach", 300.0)
