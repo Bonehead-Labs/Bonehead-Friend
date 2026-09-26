@@ -705,15 +705,27 @@ const COOLDOWN_SWEEP_AT := 64
 
 ## A weapon left leaning against him produces a contact impulse every tick. The cooldown
 ## is what stops that farming Bones while the player is away from the desk.
+##
+## **Counted in physics steps, not on the wall clock** (D74 fixes). Contacts happen in steps, and
+## the engine runs steps in bursts — two to a drawn frame at the 30 fps idle cap, more in Low Power
+## or after a hitch — so a wall-clock cooldown lasted a different number of steps from one frame to
+## the next, and which of a sweep's contacts it let through depended on the frame rate and the
+## load: the cleaver's ordinary hit measured 17.3 at 30 fps and 20.7 at 15, and its lodged blade
+## drifted past the suite's limit only at 15. `damage_cooldown` seconds of steps, rounded up.
 func _cooldown_ready(src: Object, cooldown: float) -> bool:
 	var key := src.get_instance_id() if src != null else 0
-	var now := Time.get_ticks_msec()
+	var now := Engine.get_physics_frames()
 	if now < int(_cooldowns.get(key, 0)):
 		return false
 	if _cooldowns.size() >= COOLDOWN_SWEEP_AT:
 		_sweep_cooldowns(now)
-	_cooldowns[key] = now + int(cooldown * 1000.0)
+	_cooldowns[key] = now + cooldown_steps(cooldown)
 	return true
+
+## Seconds of cooldown as physics steps: 0.15 s is 9 at 60 Hz. Zero stays zero, so a suite that
+## turns the cooldown off still sees a second bill in the same step.
+static func cooldown_steps(seconds: float) -> int:
+	return ceili(seconds * float(Engine.physics_ticks_per_second) - 0.001) if seconds > 0.0 else 0
 
 func _sweep_cooldowns(now: int) -> void:
 	for key in _cooldowns.keys():
