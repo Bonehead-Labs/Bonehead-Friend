@@ -20,6 +20,11 @@ const Augment := preload("res://Scripts/Data/augment_node.gd")
 const Blast := preload("res://Scripts/Combat/explosion_util.gd")
 const Mood := preload("res://Scripts/Buddy/mood_math.gd")
 const Mastery := preload("res://Scripts/Progression/mastery_math.gd")
+# The playtest kit (docs/playtest-plan.md): what the game writes, and the arithmetic of the
+# report that reads it. Both pure, which is why they are separate from the Playtest autoload.
+const PlayFmt := preload("res://Scripts/Playtest/playtest_format.gd")
+const Build := preload("res://Scripts/Playtest/build_info.gd")
+const Report := preload("res://tools/playtest_report_math.gd")
 # Referenced by global class name rather than a preload alias: an enum reached through a
 # preloaded script is treated as a DIFFERENT type from the same enum on the class itself,
 # so `Alias.Corner.TOP_LEFT` will not satisfy a `Corner` parameter.
@@ -127,6 +132,22 @@ func _initialize() -> void:
 
 	_suite("window layout across screens")
 	_test_the_desktop_is_more_than_one_monitor()
+
+	_suite("playtest log format")
+	_test_a_row_reads_left_to_right_and_back()
+	_test_a_torn_line_is_skipped()
+	_test_personal_paths_are_scrubbed()
+	_test_the_disk_cap_prunes_oldest_first()
+	_test_a_build_stamp_parses()
+	_test_a_multipart_body_carries_the_file()
+
+	_suite("playtest report")
+	_test_a_session_reads_as_numbers()
+	_test_a_crashed_session_still_counts()
+	_test_a_tester_is_one_story_in_minutes()
+	_test_the_funnel_counts_testers_and_times()
+	_test_errors_and_notes_are_grouped()
+	_test_the_report_says_it_in_markdown()
 
 
 	print("")
@@ -901,3 +922,180 @@ func _test_juice_tier_ladders() -> void:
 	_check("the two ladders have one entry per tier",
 		Mastery.JUICE_RANKS.size() == Mastery.JUICE_TIERS
 		and Mastery.JUICE_LEVELS.size() == Mastery.JUICE_TIERS)
+
+# --- the playtest kit ------------------------------------------------------------------------
+
+func _test_a_row_reads_left_to_right_and_back() -> void:
+	var line := PlayFmt.row(12.34, "buy", {"id": "tennis_ball", "cur": "bones", "p": 40})
+	_check("a row starts with its time and its event, in that order",
+		line.begins_with("{\"t\":12.3,\"e\":\"buy\""))
+	var back := PlayFmt.parse_row(line)
+	_check("and reads back to the same fields", String(back["id"]) == "tennis_ball"
+		and int(back["p"]) == 40 and is_equal_approx(float(back["t"]), 12.3))
+	_check("a time before the session is clamped to its start",
+		is_equal_approx(float(PlayFmt.parse_row(PlayFmt.row(-3.0, "x"))["t"]), 0.0))
+
+## A crash can stop a flush halfway through a line. Everything before it must still read.
+func _test_a_torn_line_is_skipped() -> void:
+	var text := PlayFmt.row(0.0, "start") + "\n" + PlayFmt.row(1.0, "tick") + "\n{\"t\":2.0,\"e\":\"to"
+	var rows := PlayFmt.parse_rows(text)
+	_check("a torn last line is dropped and the rest kept (%d rows)" % rows.size(), rows.size() == 2)
+	_check("a line that is not an object is not a row", PlayFmt.parse_row("[1,2]").is_empty()
+		and PlayFmt.parse_row("{\"t\":1}").is_empty() and PlayFmt.parse_row("").is_empty())
+
+## No usernames in anything a tester sends back. An engine message that names a file names the
+## folder it lives in, and on Windows that folder is under their name.
+func _test_personal_paths_are_scrubbed() -> void:
+	var map := {"C:/Users/Alice/AppData/Roaming/Bonehead Friend Playtest": "user:/"}
+	_check("the user folder reads as user://, in either slash direction",
+		PlayFmt.scrub("cannot open C:\\Users\\Alice\\AppData\\Roaming\\Bonehead Friend Playtest\\playtest\\x.json", map)
+			== "cannot open user:/\\playtest\\x.json"
+		and PlayFmt.scrub("at C:/Users/Alice/AppData/Roaming/Bonehead Friend Playtest/save/slot_1.json", map)
+			== "at user://save/slot_1.json")
+	_check("any other home folder is cut to ~",
+		PlayFmt.scrub("D:/games and c:\\users\\bob.smith\\Desktop\\Bonehead Friend.exe")
+			== "D:/games and ~\\Desktop\\Bonehead Friend.exe")
+	_check("a message with no path is untouched",
+		PlayFmt.scrub("Invalid call. Nonexistent function 'pop'.") == "Invalid call. Nonexistent function 'pop'.")
+
+func _test_the_disk_cap_prunes_oldest_first() -> void:
+	var entries := []
+	for i in 5:
+		entries.append({"name": "2026090%d-100000_x.jsonl" % (i + 1), "size": 100})
+	var by_count := PlayFmt.prune_plan(entries, 3, 1_000_000)
+	_check("over the count, the two oldest go (%s)" % ", ".join(by_count),
+		by_count.size() == 2 and by_count[0].begins_with("20260901") and by_count[1].begins_with("20260902"))
+	var by_bytes := PlayFmt.prune_plan(entries, 100, 250)
+	_check("over the size, the oldest go until it fits (%d)" % by_bytes.size(), by_bytes.size() == 3)
+	var kept := PlayFmt.prune_plan(entries, 1, 1_000_000, "20260901-100000_x.jsonl")
+	_check("the file being written is never deleted, even when it is the oldest",
+		not kept.has("20260901-100000_x.jsonl") and kept.size() == 4)
+	_check("under both caps, nothing goes", PlayFmt.prune_plan(entries, 5, 500).is_empty())
+	_check("a file stamp sorts as it reads", PlayFmt.file_stamp({"year": 2026, "month": 9, "day": 7,
+		"hour": 4, "minute": 5, "second": 6}) == "20260907-040506")
+
+func _test_a_build_stamp_parses() -> void:
+	var fields := Build.parse("# a comment\nbuild_id=2026-09-27-e76d64f-dirty\n\nchannel = playtest\nbroken line\n")
+	_check("a stamp reads as key=value, ignoring comments and junk",
+		String(fields.get("build_id", "")) == "2026-09-27-e76d64f-dirty"
+		and String(fields.get("channel", "")) == "playtest" and fields.size() == 2)
+	# The checkout this runs in has no stamp (it is gitignored and deleted after every build).
+	_check("a checkout is a dev build", Build.id() == "dev" and not Build.is_stamped())
+
+func _test_a_multipart_body_carries_the_file() -> void:
+	var body := PlayFmt.multipart("XyZ", {"content": "hello"}, "file", "a.zip", "application/zip",
+		PackedByteArray([1, 2, 3])).get_string_from_ascii()
+	_check("a form has its text field, its file part and its closing boundary",
+		body.contains("name=\"content\"\r\n\r\nhello\r\n") and body.contains("name=\"file\"; filename=\"a.zip\"")
+		and body.contains("Content-Type: application/zip") and body.ends_with("\r\n--XyZ--\r\n"))
+
+## The three fixture sessions: tester A's two (the first ends in a torn line), tester B's one,
+## which crashed — it never wrote an end row.
+func _fixture_session(stem: String) -> Dictionary:
+	var text := FileAccess.get_file_as_string("res://tests/fixtures/playtest/%s.jsonl" % stem)
+	return Report.summarize_session(stem, text)
+
+func _fixture_testers() -> Array:
+	var a1 := _fixture_session("20260901-100000_b1_0001")
+	var a2 := _fixture_session("20260902-100000_b2_0002")
+	var b1 := _fixture_session("20260903-100000_b2_0003")
+	var notes_a := [
+		{"id": "n1", "mood": "good", "text": "the bat | is great", "tester": "A", "saved_at": "2026-09-01T10:05:00",
+			"context": {"page": "shop", "desk": ["baseball_bat"], "power": ""}},
+		{"id": "n2", "mood": "bad", "text": "lost", "tester": "A", "saved_at": "2026-09-02T10:10:00",
+			"context": {"page": "", "desk": [], "power": "telekinesis"}},
+	]
+	var notes_b := [
+		{"id": "n3", "mood": "", "text": "", "tester": "B", "saved_at": "2026-09-03T10:01:00",
+			"context": {"page": "feedback", "desk": ["baseball_bat"], "power": ""}},
+	]
+	# Given out of order on purpose: a tester's sessions are ordered by name, not by arrival.
+	return [Report.summarize_tester("A", [a2, a1], notes_a, 5.0),
+		Report.summarize_tester("B", [b1], notes_b, 5.0)]
+
+func _test_a_session_reads_as_numbers() -> void:
+	var s := _fixture_session("20260901-100000_b1_0001")
+	_check("a session lasts from its first row to its last (%.2f min)" % float(s["minutes"]),
+		is_equal_approx(float(s["minutes"]), 10.0))
+	_check("it ended, and said why", bool(s["ended"]) and String(s["why"]) == "quit")
+	_check("a free grant is not a purchase", (s["buys"] as Array).size() == 1)
+	_check("the first purchase is timed from the session's start",
+		is_equal_approx(float(s["first_t"]["first_buy"]), 180.0))
+	_check("the error total is the larger of what it counted and what it met",
+		int(s["err_total"]) == 3 and (s["errors"] as Dictionary).size() == 1)
+	_check("the furthest it got is read off the minute rows", int(s["max_own"]) == 5 and int(s["max_lb"]) == 500)
+	var dry := Report.dry_stretches(s["ticks"], 2.0)
+	_check("two minutes with nothing affordable while clicking is a dry run of 2",
+		int(dry["longest"]) == 2 and int(dry["count"]) == 1)
+
+func _test_a_crashed_session_still_counts() -> void:
+	var s := _fixture_session("20260903-100000_b2_0003")
+	_check("a session with no end row is a crash, and lasts to its last flush",
+		not bool(s["ended"]) and is_equal_approx(float(s["minutes"]), 8.0))
+	_check("its errors are counted from its rows", int(s["err_total"]) == 2)
+	var dry := Report.dry_stretches(s["ticks"], 5.0)
+	_check("a minute without a click ends a dry run (5, not 6)",
+		int(dry["longest"]) == 5 and int(dry["count"]) == 1)
+
+func _test_a_tester_is_one_story_in_minutes() -> void:
+	var testers := _fixture_testers()
+	var a: Dictionary = testers[0]
+	var b: Dictionary = testers[1]
+	_check("two sessions, 32 minutes of play (%.2f)" % float(a["minutes"]),
+		int(a["sessions"]) == 2 and is_equal_approx(float(a["minutes"]), 32.0))
+	var reach: Dictionary = a["reach"]
+	_check("a later session's firsts are offset by the play before it",
+		is_equal_approx(float(reach["first_aug"]), 11.0) and is_equal_approx(float(reach["first_ko"]), 12.0))
+	_check("the first purchase is 3 minutes in", is_equal_approx(float(reach["first_buy"]), 3.0))
+	_check("coming back is the minute the second session began",
+		is_equal_approx(float(reach["came_back"]), 10.0))
+	_check("thirty minutes played is reached", reach.has("played_30"))
+	_check("abilities are counted across sessions", (a["abilities"] as Array).size() == 2
+		and (a["powers"] as Array).has("telekinesis"))
+	_check("a focused gap of 6.7 minutes is a dead stretch; a gap spent in another window is not",
+		(a["dead"] as Array).size() == 1 and is_equal_approx(float(a["dead"][0]["at_min"]), 4.0))
+	_check("the furthest progress is a rebirth", int(a["max_pc"]) == 1)
+	_check("both builds are named", (a["builds"] as Array).size() == 2)
+	_check("the crashed tester has one crash and a 5-minute dry stretch",
+		int(b["crashes"]) == 1 and int(b["dry_longest"]) == 5 and int(b["dry_count"]) == 1)
+	_check("and no purchase", not (b["reach"] as Dictionary).has("first_buy"))
+
+func _test_the_funnel_counts_testers_and_times() -> void:
+	var rows := Report.funnel(_fixture_testers())
+	var by_key := {}
+	for row in rows:
+		by_key[row["key"]] = row
+	_check("the funnel has every step", rows.size() == Report.FUNNEL.size())
+	_check("both started and both hit him",
+		int(by_key["launched"]["reached"]) == 2 and int(by_key["first_hit"]["reached"]) == 2)
+	_check("the median time to the first hit is the middle of 10 s and 30 s (%.3f)"
+		% float(by_key["first_hit"]["median"]), is_equal_approx(float(by_key["first_hit"]["median"]), 20.0 / 60.0))
+	_check("one of two bought something", int(by_key["first_buy"]["reached"]) == 1
+		and int(by_key["first_buy"]["of"]) == 2)
+	_check("nobody claimed a job, and it says so", int(by_key["first_job"]["reached"]) == 0)
+	_check("a median of nothing is not zero", float(by_key["first_job"]["median"]) < 0.0)
+	_check("the median of an even count is the middle two",
+		is_equal_approx(Report.median([4.0, 1.0, 3.0, 2.0]), 2.5))
+
+func _test_errors_and_notes_are_grouped() -> void:
+	var testers := _fixture_testers()
+	var errors := Report.common_errors(testers)
+	_check("the error both testers met comes first",
+		errors.size() == 2 and String(errors[0]["message"]) == "boom" and int(errors[0]["testers"]) == 2)
+	var groups := Report.group_notes(testers)
+	_check("notes are grouped by the page they were written on; none and the card itself are the desk",
+		groups.size() == 2 and (groups["desk"]["notes"] as Array).size() == 2
+		and (groups["shop"]["notes"] as Array).size() == 1)
+	_check("a group counts its moods, unrated included",
+		int(groups["desk"]["moods"].get("bad", 0)) == 1 and int(groups["desk"]["moods"].get("", 0)) == 1)
+	var items := Report.notes_by_item(testers)
+	_check("an item on the desk or in hand is counted once per note",
+		int(items["baseball_bat"]["notes"]) == 2 and int(items["telekinesis"]["notes"]) == 1)
+
+func _test_the_report_says_it_in_markdown() -> void:
+	var text := Report.render(_fixture_testers(), {"dead_minutes": 5.0, "shots": {"n1": "shots/n1.png"}})
+	_check("it counts testers, sessions and notes", text.contains("2 testers · 3 sessions"))
+	_check("the funnel is a table", text.contains("| Bought something | 1 / 2 | 50% | 3.0 min |"))
+	_check("a note's own pipe cannot break its table", text.contains("the bat \\| is great"))
+	_check("a note links its picture", text.contains("[picture](shots/n1.png)"))
+	_check("a group of one is one note", text.contains("### shop — 1 note (1 good)"))

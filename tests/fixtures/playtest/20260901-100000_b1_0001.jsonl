@@ -1,0 +1,15 @@
+{"t":0.5,"e":"start","build":"b1","mode":"play","window":[1180,760],"own":4,"pc":0,"lb":0}
+{"t":10.5,"e":"first","what":"hit","id":"fist","ever":true}
+{"t":40.5,"e":"first","what":"kind","id":"open_hand","ever":true}
+{"t":60.5,"e":"tick","aff":0,"acts":5,"own":4,"lb":30}
+{"t":120.5,"e":"tick","aff":0,"acts":7,"own":4,"lb":60}
+{"t":180.5,"e":"buy","id":"tennis_ball","cur":"bones","p":40}
+{"t":180.5,"e":"buy","id":"free_thing","cur":"bones","p":0}
+{"t":200.5,"e":"first","what":"ability","id":"baseball_bat","ev":"home_run","ever":true}
+{"t":240.5,"e":"gap","s":400,"away":false}
+{"t":300.5,"e":"gap","s":900,"away":true}
+{"t":360.5,"e":"err","k":"error","m":"boom","at":"x.gd:1"}
+{"t":400.5,"e":"page","id":"shop"}
+{"t":420.5,"e":"tick","aff":2,"acts":3,"own":5,"lb":500}
+{"t":600.5,"e":"end","why":"quit","errs":3}
+{"t":601.0,"e":"to
