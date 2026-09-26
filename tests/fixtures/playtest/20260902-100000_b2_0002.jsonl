@@ -1,0 +1,7 @@
+{"t":0.0,"e":"start","build":"b2","mode":"overlay","window":[2560,1400],"own":5,"pc":0,"lb":500}
+{"t":60.0,"e":"aug","id":"bat_damage","lvl":1,"cur":"bones","p":60}
+{"t":120.0,"e":"ko","bonus":100,"n":1,"s":50}
+{"t":150.0,"e":"first","what":"ability","id":"katana","ev":"sliced","ever":true}
+{"t":150.0,"e":"first","what":"power","id":"telekinesis","ever":true}
+{"t":1320.0,"e":"rebirth","m":1.5,"pc":1,"pers":"grumpy"}
+{"t":1320.0,"e":"end","why":"quit","errs":0}

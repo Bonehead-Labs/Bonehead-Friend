@@ -1,0 +1,10 @@
+{"t":0.0,"e":"start","build":"b2","mode":"play","window":[960,640],"own":4}
+{"t":30.0,"e":"first","what":"hit","id":"fist","ever":true}
+{"t":60.0,"e":"tick","aff":0,"acts":4}
+{"t":120.0,"e":"tick","aff":0,"acts":4}
+{"t":180.0,"e":"tick","aff":0,"acts":4}
+{"t":240.0,"e":"tick","aff":0,"acts":4}
+{"t":300.0,"e":"tick","aff":0,"acts":4}
+{"t":360.0,"e":"tick","aff":0,"acts":0}
+{"t":420.0,"e":"err","k":"error","m":"boom","at":"x.gd:1"}
+{"t":480.0,"e":"err","k":"warning","m":"quiet","at":"y.gd:2"}

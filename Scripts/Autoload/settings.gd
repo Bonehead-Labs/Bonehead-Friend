@@ -99,6 +99,12 @@ var first_run: bool = true
 ## keeps it out of `SAVE_VERSION`, which is a migration and a committed fixture per hint.
 var hints_seen: PackedStringArray = PackedStringArray()
 
+# --- playtest ---
+## The tester's switch for the session log (docs/playtest-plan.md). On by default, and it only
+## matters in a playtest build: a checkout or a release never writes one. Here rather than in
+## the playtest folder because it is a preference the person at the keyboard set.
+var playtest_log: bool = true
+
 func _ready() -> void:
 	load_settings()
 
@@ -143,6 +149,8 @@ func load_settings() -> void:
 	first_run = cfg.get_value("meta", "first_run", first_run)
 	hints_seen = cfg.get_value("meta", "hints_seen", hints_seen)
 
+	playtest_log = cfg.get_value("playtest", "session_log", playtest_log)
+
 func save_settings() -> void:
 	var cfg := ConfigFile.new()
 	cfg.set_value("overlay", "overlay_enabled", overlay_enabled)
@@ -177,6 +185,8 @@ func save_settings() -> void:
 
 	cfg.set_value("meta", "first_run", first_run)
 	cfg.set_value("meta", "hints_seen", hints_seen)
+
+	cfg.set_value("playtest", "session_log", playtest_log)
 
 	var err := cfg.save(config_path)
 	if err != OK:

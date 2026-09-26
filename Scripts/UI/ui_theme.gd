@@ -33,6 +33,9 @@ extends RefCounted
 ##   NameLabel    an item or node's own name
 ##   Numeral      a figure meant to be read in a column
 ##
+## And two base types that are styled rather than varied, because each is the only one of its
+## kind: `LineEdit` and `TextEdit`, the feedback card's boxes (`_fields`).
+##
 ## The Arcade's cabinets (D58), one frame divided by rules:
 ##
 ##   Cabinet      the frame — the only box a room draws
@@ -227,6 +230,7 @@ static func _build() -> Theme:
 	_buttons(theme, display)
 	_meters(theme)
 	_scrolling(theme)
+	_fields(theme, body)
 	return theme
 
 static func _labels(theme: Theme, display: Font, display_light: Font,
@@ -584,6 +588,42 @@ static func _meters(theme: Theme) -> void:
 	theme.set_font("font", "ProgressBar", _font(UIStyle.FONT_DISPLAY))
 	theme.set_font_size("font_size", "ProgressBar", UIStyle.MICRO)
 	theme.set_color("font_color", "ProgressBar", UIStyle.TEXT)
+
+## Somewhere to type: the feedback card's note and its one-line question (docs/playtest-plan.md).
+##
+## Base `LineEdit` and `TextEdit`, not variations, because there is no other kind of text box
+## in the shell — and a base type the theme leaves undefined is drawn in Godot's stock dark
+## box, the same fall-through that made every hovered tab unreadable. A well sunk into the card
+## with the card's own rule; focused, the rule doubles, so the box you are typing in is a shape
+## and not only a blinking caret. The placeholder is `TEXT_DIM`, opaque: the stock placeholder
+## is the font colour at 60% alpha, which is exactly the dimmed-by-alpha text the contrast
+## suite forbids.
+static func _fields(theme: Theme, body: Font) -> void:
+	var rule := UIStyle.rule_width()
+	for type_name in ["LineEdit", "TextEdit"]:
+		var well := _box(UIStyle.SUNK, 8, 6)
+		theme.set_stylebox("normal", type_name, well)
+		theme.set_stylebox("read_only", type_name, well)
+		var focus := _box(UIStyle.SUNK, 8, 6)
+		focus.draw_center = false
+		focus.set_border_width_all(rule * 2)
+		theme.set_stylebox("focus", type_name, focus)
+		theme.set_font("font", type_name, body)
+		theme.set_font_size("font_size", type_name, UIStyle.BODY)
+		theme.set_color("font_color", type_name, UIStyle.TEXT)
+		theme.set_color("font_readonly_color", type_name, UIStyle.TEXT_DIM)
+		theme.set_color("font_placeholder_color", type_name, UIStyle.TEXT_DIM)
+		theme.set_color("font_selected_color", type_name, UIStyle.TEXT)
+		theme.set_color("selection_color", type_name, UIStyle.PANEL)
+		theme.set_color("caret_color", type_name, UIStyle.TEXT)
+		theme.set_color("font_outline_color", type_name, UIStyle.EDGE)
+		theme.set_constant("outline_size", type_name, 0)
+		theme.set_constant("caret_width", type_name, 2)
+	theme.set_constant("line_spacing", "TextEdit", 2)
+	theme.set_color("current_line_color", "TextEdit", Color(UIStyle.SUNK, 0.0))
+	theme.set_color("background_color", "TextEdit", Color(UIStyle.SUNK, 0.0))
+	theme.set_color("clear_button_color", "LineEdit", UIStyle.TEXT)
+	theme.set_color("clear_button_color_pressed", "LineEdit", UIStyle.TEXT_DIM)
 
 static func _scrolling(theme: Theme) -> void:
 	theme.set_stylebox("panel", "ScrollContainer", StyleBoxEmpty.new())

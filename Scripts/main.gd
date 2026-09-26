@@ -218,6 +218,12 @@ func _build_ui() -> void:
 	_esc.world = world
 	add_child(_esc)
 
+	# A note from whoever is playing, from anywhere: F1, Settings or the Esc menu (the
+	# playtest kit, docs/playtest-plan.md). In main.tscn for the same reason as the grip.
+	var feedback := FeedbackCard.new()
+	feedback.name = "FeedbackCard"
+	add_child(feedback)
+
 ## What is behind him when it is not the desktop (D38): a layer under the world, painting one
 ## of a fixed menu of flat colours and drawn scenes to the window's own rect.
 func _build_backdrop() -> void:

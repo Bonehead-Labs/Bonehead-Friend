@@ -31,3 +31,9 @@ override.cfg
 # this project (a second copy of every class_name would shadow the real ones).
 .claude/worktrees/
 .claude/.gdignore
+
+# Playtest kit (docs/playtest-plan.md). The build stamp is written by
+# tools/make_playtest_build.ps1 for one export and deleted after it; an uploader config holds
+# an endpoint and possibly a key, and never belongs in the repository.
+Data/build_stamp.txt
+playtest.cfg

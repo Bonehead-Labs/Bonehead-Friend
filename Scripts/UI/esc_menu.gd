@@ -59,6 +59,7 @@ func _build() -> void:
 
 	for entry in [["Resume", &"spawn", close], ["Save now", &"check",
 			func() -> void: EventBus.save_requested.emit()],
+			["Feedback (F1)", &"scroll", _on_feedback],
 			["Save and quit", &"close", _on_quit]]:
 		var button := UIStyle.button(entry[0], UIStyle.LABEL)
 		UIStyle.set_icon(button, UIStyle.glyph(entry[1]))
@@ -113,6 +114,12 @@ func close() -> void:
 	if world:
 		world.process_mode = Node.PROCESS_MODE_INHERIT
 	EventBus.ui_panel_changed.emit(&"")
+
+## The menu goes first, so the picture the note takes is of the game rather than of this —
+## and the card is asked for once the roll-up has finished (0.12 s), not in the middle of it.
+func _on_feedback() -> void:
+	close()
+	get_tree().create_timer(0.2).timeout.connect(Playtest.request_feedback)
 
 func _on_quit() -> void:
 	EventBus.save_requested.emit()

@@ -90,6 +90,7 @@ func _ready() -> void:
 	await _every_visible_button_is_reachable()
 	await _the_capstone_levels_and_switches()
 	await _the_settings_page_works()
+	await _feedback_is_two_taps_away()
 	await _the_rebirth_page_refuses_an_empty_reset()
 	await _the_tabs_are_one_width()
 	await _every_page_is_readable()
@@ -520,6 +521,195 @@ func _the_settings_page_works() -> void:
 
 	panels.call("close")
 	await _settle()
+
+const FEEDBACK_ROOT := "user://playtest_ui_check"
+const FEEDBACK_SEND := "user://playtest_ui_check_send"
+
+## The playtest kit's card (docs/playtest-plan.md): two taps from anywhere, the keyboard reaches
+## it, Esc backs out of it before the Esc menu hears, and what it saves carries what it promises.
+##
+## The window is transparent and has no click-through, so the one thing that could stop a note
+## being typed is focus — which is why this types into it, rather than setting its text.
+func _feedback_is_two_taps_away() -> void:
+	_suite("feedback")
+	var card := _find(_main, "FeedbackCard")
+	var panels := _find(_main, "PanelLayer")
+	var esc := _find(_main, "EscMenu")
+	_check("the feedback card exists", card != null and panels != null and esc != null)
+	if card == null or panels == null or esc == null:
+		return
+	var log_before := Settings.playtest_log
+	# Its own folders, before anything is written — the same rule as the settings file (D51).
+	for dir in [FEEDBACK_ROOT, FEEDBACK_SEND]:
+		_remove_tree(dir)
+	Playtest.use_root(FEEDBACK_ROOT)
+	Playtest.send_dir = FEEDBACK_SEND
+	Playtest.upload_config_path = "user://playtest_ui_check_no_such.cfg"
+	var blocker := _find(card, "FeedbackBlocker") as Control
+	_check("it is shut on boot, and its full-window blocker lets every click through",
+		not bool(card.call("is_open")) and blocker != null
+		and blocker.mouse_filter == Control.MOUSE_FILTER_IGNORE)
+
+	# Tap one, the Settings tab; tap two, the key.
+	panels.call("show_panel", &"settings")
+	await _settle()
+	var settings_page := _find(_main, "SettingsPanel")
+	var key := _button_labelled("Leave a note", settings_page)
+	_check("Settings offers 'Leave a note'", key != null)
+	if key == null:
+		return
+	await _scroll_into_view(key)
+	_check("and it is the control under the cursor", _hovered_at(_centre_of(key)) == key,
+		_describe(_hovered_at(_centre_of(key))))
+	await _click(_centre_of(key))
+	_check("clicking it opens the card", bool(card.call("is_open")))
+	var text := _find(card, "FeedbackText") as TextEdit
+	var trying := _find(card, "FeedbackTrying") as LineEdit
+	_check("the note box has the keyboard", text != null and text.has_focus(),
+		_describe(_view.gui_get_focus_owner()))
+	_type("hi")
+	await _settle()
+	_check("typing reaches it", text != null and text.text == "hi", text.text if text else "")
+	for control_name in ["Mood_good", "Mood_meh", "Mood_bad", "FeedbackText", "FeedbackTrying",
+			"FeedbackSave", "FeedbackCancel"]:
+		var control := _find(card, control_name) as Control
+		_check("%s is the control under the cursor" % control_name,
+			control != null and _hovered_at(_centre_of(control)) == control,
+			_describe(_hovered_at(_centre_of(control))) if control else "missing")
+	await _click(_centre_of(_find(card, "Mood_good") as Control))
+	_check("one tap picks a mood", String(card.get("_mood")) == "good")
+	await _click(_centre_of(trying))
+	_type("x")
+	await _settle()
+	_check("a click moves the keyboard to the second line, and typing follows it",
+		trying.has_focus() and trying.text == "x", trying.text)
+	await _click(_centre_of(_find(card, "FeedbackSave") as Control))
+	_check("saving closes the card and lets go of the keyboard",
+		not bool(card.call("is_open")) and _view.gui_get_focus_owner() == null,
+		_describe(_view.gui_get_focus_owner()))
+	var notes := Array(DirAccess.get_files_at("%s/feedback" % FEEDBACK_ROOT)).filter(
+		func(n: String) -> bool: return n.ends_with(".json"))
+	var note = JSON.parse_string(FileAccess.get_file_as_string("%s/feedback/%s" % [FEEDBACK_ROOT, notes[0]])) \
+		if notes.size() == 1 else null
+	_check("one note is written", typeof(note) == TYPE_DICTIONARY, str(notes))
+	if typeof(note) == TYPE_DICTIONARY:
+		var context: Dictionary = note.get("context", {})
+		_check("with what was chosen and typed", note["mood"] == "good" and note["text"] == "hi"
+			and note["trying"] == "x", str([note["mood"], note["text"], note["trying"]]))
+		_check("and the page it was written on, the purse and the build",
+			context.get("page", "") == "settings" and (context.get("currencies", {}) as Dictionary).has("bones")
+			and String(note["build"]) == BuildInfo.id(), str(context.get("page", "")))
+
+	# Anywhere: F1 with the card shut, and Esc backs out of the card, not into the pause menu.
+	panels.call("close")
+	await _settle()
+	await _key(KEY_F1)
+	_check("F1 opens it from anywhere", bool(card.call("is_open")))
+	await _key(KEY_ESCAPE)
+	_check("Esc closes the card, and the Esc menu does not also open",
+		not bool(card.call("is_open")) and not bool(esc.get("_open")))
+	esc.call("open")
+	await _settle()
+	var from_menu := _button_labelled("Feedback (F1)", esc)
+	_check("the Esc menu offers it too, under the cursor",
+		from_menu != null and _hovered_at(_centre_of(from_menu)) == from_menu)
+	if from_menu:
+		await _click(_centre_of(from_menu))
+		await get_tree().create_timer(0.35).timeout
+		await _settle()
+		_check("and it opens the card once the menu has gone",
+			bool(card.call("is_open")) and not bool(esc.get("_open")))
+		await _click(_centre_of(_find(card, "FeedbackCancel") as Control))
+		_check("Cancel closes it without a note", not bool(card.call("is_open"))
+			and Array(DirAccess.get_files_at("%s/feedback" % FEEDBACK_ROOT)).filter(
+				func(n: String) -> bool: return n.ends_with(".json")).size() == 1)
+
+	# The other keys: Send writes one zip where it was asked to (there is no uploader), and the
+	# log's switch is the tester's to flip.
+	panels.call("show_panel", &"settings")
+	await _settle()
+	var send := _button_labelled("Send feedback", settings_page)
+	if send:
+		await _scroll_into_view(send)
+		await _click(_centre_of(send))
+	var zips := Array(DirAccess.get_files_at(FEEDBACK_SEND)) if DirAccess.dir_exists_absolute(FEEDBACK_SEND) else []
+	_check("Send feedback writes one zip, with no uploader configured", send != null and zips.size() == 1,
+		str(zips))
+	var toggle := _stepper_beside("Session log", settings_page)
+	if toggle:
+		await _scroll_into_view(toggle)
+		await _click(_centre_of(toggle))
+	_check("the session log's switch flips the setting", toggle != null and Settings.playtest_log != log_before)
+	panels.call("close")
+	await _settle()
+
+	Settings.playtest_log = log_before
+	Settings.save_settings()
+	Playtest.use_root(Playtest.ROOT_DIR)
+	Playtest.send_dir = ""
+	Playtest.upload_config_path = ""
+	for dir in [FEEDBACK_ROOT, FEEDBACK_SEND]:
+		_remove_tree(dir)
+
+## The feedback card at one Menu size: open, measured against the window, shut. "" if it fits.
+func _feedback_card_fits() -> String:
+	var card := _find(_main, "FeedbackCard")
+	if card == null:
+		return "no card"
+	card.call("open_card")
+	await _settle()
+	var view := Rect2(Vector2.ZERO, Vector2(_view.size))
+	var problems: Array[String] = []
+	for control_name in ["FeedbackPanel", "FeedbackText", "FeedbackTrying", "FeedbackSave"]:
+		var control := _find(card, control_name) as Control
+		if control == null:
+			problems.append("%s missing" % control_name)
+			continue
+		var rect := UIScale.screen_rect(control)
+		if not view.grow(0.5).encloses(rect):
+			problems.append("%s %s" % [control_name, rect])
+	card.call("close_card")
+	await _settle()
+	return ", ".join(problems)
+
+## The key a row puts after its readout, found by the readout's caption.
+func _stepper_beside(caption: String, root: Node) -> Button:
+	var label := _label_containing(caption, root)
+	if label == null:
+		return null
+	for sibling in label.get_parent().get_children():
+		if sibling is Button:
+			return sibling
+	return null
+
+## Typing, one character at a time, the way a keyboard does it: a press carrying the character,
+## then a release.
+func _type(text: String) -> void:
+	for character in text:
+		for pressed in [true, false]:
+			var event := InputEventKey.new()
+			event.keycode = OS.find_keycode_from_string(character.to_upper())
+			event.unicode = character.unicode_at(0)
+			event.pressed = pressed
+			_view.push_input(event)
+
+func _key(keycode: Key) -> void:
+	for pressed in [true, false]:
+		var event := InputEventKey.new()
+		event.keycode = keycode
+		event.physical_keycode = keycode
+		event.pressed = pressed
+		_view.push_input(event)
+	await _settle()
+
+func _remove_tree(dir: String) -> void:
+	if not DirAccess.dir_exists_absolute(dir):
+		return
+	for sub in DirAccess.get_directories_at(dir):
+		_remove_tree(dir.path_join(sub))
+	for file_name in DirAccess.get_files_at(dir):
+		DirAccess.remove_absolute(dir.path_join(file_name))
+	DirAccess.remove_absolute(dir)
 
 ## Reincarnation throws away the entire run, so the one thing worth asserting in a click
 ## test is that it cannot be triggered by accident: disabled with nothing to gain, and two
@@ -2100,6 +2290,10 @@ func _the_shell_at_every_menu_size() -> void:
 		_check("%s: and it never steps down off the bottom of the window" % at,
 			taller_than_window or status.end.y <= float(_view.size.y) + 0.5,
 			"status %s in %s" % [status, _view.size])
+		# The feedback card (the playtest kit) is a modal of its own, sized to the window it is in.
+		var fits: String = await _feedback_card_fits()
+		_check("%s: the feedback card fits the window, its boxes and its Save key on it" % at,
+			fits == "", fits)
 
 	# Rebuilding the theme is paid when the rule width changes and at no other time: the steps
 	# above crossed between whole and fractional factors, and a resize at the same factor

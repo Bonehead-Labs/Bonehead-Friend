@@ -41,6 +41,7 @@ func _build_text() -> String:
 
 	return "\n".join([
 		"BONEHEAD FRIEND — debug",
+		"build        %s%s" % [BuildInfo.id(), "  (logging)" if Playtest.is_logging() else ""],
 		"",
 		"fps          %d  (cap %d)" % [Engine.get_frames_per_second(), Engine.max_fps],
 		"process      %.2f ms" % (Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0),
