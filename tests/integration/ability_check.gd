@@ -312,6 +312,7 @@ func _check_ability(id: StringName) -> void:
 	var glint := ability.ready_glint()
 	_check("held and ready, it wears its ready glint", glint != null and glint.visible)
 	_check("and the glint costs nothing: no tick of its own", glint == null or not glint.is_processing())
+	_check_glint_reads(glint)
 	# An ordinary swing first, to know what an ordinary hit of this weapon is worth.
 	_buddy.health.reset_meter()
 	var ordinary := await _ordinary_hit(body)
@@ -2192,6 +2193,19 @@ func _ink_rect(sprite: Sprite2D) -> Rect2:
 	out = out.expand(xf * Vector2(used.end.x, used.position.y))
 	return out.expand(xf * Vector2(used.position.x, used.end.y))
 
+## The ready glint (D77 amended) is big enough to catch the eye at 1x and has a twinkle of its own:
+## the first pass had a 7-pixel cross in the tier colour, a gold cross on a gold bat.
+func _check_glint_reads(glint: AbilityFX.ReadyGlint) -> void:
+	if glint == null or glint.texture == null:
+		return
+	var cell := int(glint.texture.get_width() / maxi(glint.hframes, 1))
+	var ink := glint.texture.get_image().get_region(Rect2i(0, 0, cell, glint.texture.get_height())).get_used_rect()
+	# At its resting size, not mid-pop: it pops in at 2.5x when it is picked up.
+	var parent := glint.get_parent() as Node2D
+	var px := float(ink.size.x) * absf(glint.base.x * (parent.global_scale.x if parent else 1.0))
+	_check("the glint rests at %.0f px across and twinkles with a picture of its own" % px,
+		px >= 20.0 and glint.hframes == 2)
+
 func _sum(values: Array[float]) -> float:
 	var total := 0.0
 	for v in values:
@@ -2297,6 +2311,7 @@ func _check_held_ability(id: StringName) -> void:
 	var glint := ability.ready_glint()
 	_check("held and ready, it wears its ready glint", glint != null and glint.visible)
 	_check("and the glint costs nothing: no tick of its own", glint == null or not glint.is_processing())
+	_check_glint_reads(glint)
 	if body is WeaponBase:
 		_buddy.health.reset_meter()
 		ordinary = await _ordinary_hit(body as WeaponBase)

@@ -437,19 +437,91 @@ func glint_material(still: bool) -> ShaderMaterial:
 		_glint_still.set_shader_parameter(&"pulse", 0.0)
 	return _glint_still if still else _glint_material
 
-## The twinkle: every so often the whole star goes white for a tenth of a second. On `TIME`, so it
-## costs the CPU nothing; `pulse` 0 at Focus Off holds it still. Colour only — a vertex scale would
-## resample the pixels.
+## The twinkle: every so often, for a tenth of a second, the star throws out long white rays. On
+## `TIME`, so it costs the CPU nothing; `pulse` 0 at Focus Off holds it still. The glint's texture is
+## two cells side by side (`GLINT_CELLS`), the sprite shows the first, and the twinkle samples the
+## second in its place — a second picture, not a vertex scale, which would resample the pixels.
 const GLINT_SHADER := """
 shader_type canvas_item;
 uniform float pulse = 1.0;
 void fragment() {
 	float t = fract(TIME * 0.55);
-	float flash = pulse * step(t, 0.07);
-	float ink = step(0.3, dot(COLOR.rgb, vec3(0.333)));
-	COLOR.rgb = mix(COLOR.rgb, vec3(1.0), flash * ink);
+	if (pulse * step(t, 0.1) > 0.5) {
+		COLOR = texture(TEXTURE, UV + vec2(0.5, 0.0));
+	}
 }
 """
+
+## The ready glint at rest and at its twinkle, 13 art pixels a cell (`W` is pure white). The first
+## capture pass had it as a 7-pixel cross in the tier colour: on a gold bat, a gold cross on gold
+## wood, and a white flash too small to catch the eye (D77 amended). At rest it is now a star with a
+## white heart and a dark rim, 22 px across at 1x; every 1.8 s, for a tenth of a second, it throws
+## out rays half as long again, and that is the moment the eye goes to it.
+const GLINT_CELLS := [
+	[
+		".............",
+		".............",
+		"......x......",
+		"......x......",
+		".....xWx.....",
+		"....xWWWx....",
+		"..xxWWWWWxx..",
+		"....xWWWx....",
+		".....xWx.....",
+		"......x......",
+		"......x......",
+		".............",
+		".............",
+	],
+	[
+		"......x......",
+		"......x......",
+		"......x......",
+		".....xWx.....",
+		"..x..xWx..x..",
+		"...xxWWWxx...",
+		"xxxWWWWWWWxxx",
+		"...xxWWWxx...",
+		"..x..xWx..x..",
+		".....xWx.....",
+		"......x......",
+		"......x......",
+		"......x......",
+	],
+]
+
+## The glint's two cells in `colour`, side by side, each with its dark rim: plotted once per colour.
+static func plot_glint(colour: Color) -> Texture2D:
+	var cells: Array = GLINT_CELLS
+	var size := String(cells[0][0]).length()
+	var cell := size + 2
+	var sheet := Image.create_empty(cell * cells.size(), cell, false, Image.FORMAT_RGBA8)
+	sheet.fill(Color(0, 0, 0, 0))
+	for c in cells.size():
+		var grid: Array = cells[c]
+		var ox := c * cell
+		for y in size:
+			for x in size:
+				if String(grid[y])[x] == ".":
+					continue
+				for dy in [-1, 0, 1]:
+					for dx in [-1, 0, 1]:
+						var px := ox + x + 1 + int(dx)
+						var py := y + 1 + int(dy)
+						if sheet.get_pixel(px, py).a < 0.5:
+							sheet.set_pixel(px, py, OUTLINE)
+		for y in size:
+			for x in size:
+				match String(grid[y])[x]:
+					"x": sheet.set_pixel(ox + x + 1, y + 1, colour)
+					"W": sheet.set_pixel(ox + x + 1, y + 1, Color.WHITE)
+	return ImageTexture.create_from_image(sheet)
+
+func glint_texture(colour: Color) -> Texture2D:
+	var key := "glint_sheet|%s" % colour.to_html()
+	if not _icons.has(key):
+		_icons[key] = AbilityFX.plot_glint(colour)
+	return _icons[key]
 
 ## A four-point sparkle on the held weapon while its ability is ready (D77). Drawn once: no
 ## `_process`, and a tween only for the pop when it comes back.
@@ -462,7 +534,10 @@ class ReadyGlint extends Sprite2D:
 		if value == colour and texture != null:
 			return
 		colour = value
-		texture = afx.icon(&"glint", value) if afx else AbilityFX.plot(&"glint", value)
+		texture = afx.glint_texture(value) if afx else AbilityFX.plot_glint(value)
+		# The sheet is the resting star and its twinkle; the sprite shows the first, the shader swaps.
+		hframes = AbilityFX.GLINT_CELLS.size()
+		frame = 0
 		if afx:
 			material = afx.glint_material(not AbilityFX.moving())
 
