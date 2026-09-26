@@ -1009,6 +1009,13 @@ func _nobody_at_the_desk_is_not_an_act() -> void:
 		_check("and is no act: no combo, no Dollar, nothing on the board",
 			Economy.kindness_combo() == 0 and _d76_board("kindness") == 0
 			and is_equal_approx(Economy.balance_of(Economy.DOLLARS), dollars))
+		# And silent, deliberately (D76 amended): the chime is the sound of an act and no trickle
+		# in the game rings one. Pinned by its wiring, since this suite runs at Focus Off, where
+		# nothing plays at all.
+		var chimes_on_trickle := EventBus.kindness_sustained.get_connections().any(
+			func(c: Dictionary) -> bool: return (c["callable"] as Callable).get_object() == AudioManager)
+		_check("and rings no chime: the chime answers acts, and no trickle has one",
+			EventBus.kindness_given.is_connected(AudioManager._on_kindness_given) and not chimes_on_trickle)
 		ball._next_contact_msec = 0
 		ball.dragging = true
 		ball.pay_presence(buddy, 1.0)
