@@ -1948,6 +1948,7 @@ func _the_expression_brain_arbitrates() -> void:
 	_check("every row's voice is synthesised (%d missing)" % missing_voices, missing_voices == 0)
 	for voice in [&"oof", &"greet", &"yawn", &"gasp"]:
 		_check("he can say '%s'" % voice, AudioManager._streams.has(voice))
+	_every_tag_he_can_wear_is_whole(body, brain)
 	# Escalation (plan §6.6): a light hit is strictly shorter than a heavy one, both real.
 	var light := brain._duration(brain.ROWS[&"hit_light"], brain._resolve_tag(brain.ROWS[&"hit_light"]))
 	var heavy := brain._duration(brain.ROWS[&"hit_heavy"], brain._resolve_tag(brain.ROWS[&"hit_heavy"]))
@@ -2453,6 +2454,120 @@ func _the_expression_brain_arbitrates() -> void:
 
 	Settings.focus_intensity = focus_before
 	_check("state never changed: beats are not states", buddy.state == &"idle")
+
+## Every body tag he can be wearing while he is on his feet is whole, frame by frame (D77 amended):
+## what every row resolves to (its tag, or the fallback while the tag is undrawn), his three mood
+## idles and his walk. The Swaddle's capture showed the top of him as a hole with his headphones
+## floating over it, which could as well have been a generated frame with his skull missing — and
+## five families (relax, dance, eat, catch, sleep) are still to come from a generator. That frame
+## was whole: the towel lay across his face and `idle_happy`'s headphones hop off his skull. But the
+## next generated tag gets asked, against the idle he is drawn in, whether:
+##
+## - it has at least 70% of the idle's ink, and stands at least 70% of its height (a slump is 79%);
+## - it has a head: bone in the top third of him, and his headphones;
+## - the transparent pixels inside his silhouette are no more than twice the idle's (the notch under
+##   his headband, the one gap he is drawn with), so the desk never shows through a skull.
+func _every_tag_he_can_wear_is_whole(body: SpriteFrames, brain: ExpressionBrain) -> void:
+	var tags := {}
+	for id in brain.ROWS:
+		var tag := brain._resolve_tag(brain.ROWS[id])
+		if tag != &"":
+			tags[tag] = true
+	for idle in BuddyArt.MOOD_IDLES:
+		tags[idle[1]] = true
+	tags[BuddyArt.WALK] = true
+	var idle := _frame_measure(body.get_frame_texture(&"idle", 0))
+	var broken: Array[String] = []
+	var frames := 0
+	for tag in tags:
+		if not body.has_animation(tag):
+			broken.append("%s is not drawn" % tag)
+			continue
+		for i in body.get_frame_count(tag):
+			frames += 1
+			var m := _frame_measure(body.get_frame_texture(tag, i))
+			var why: Array[String] = []
+			if m["ink"] < idle["ink"] * 0.7:
+				why.append("ink %d of %d" % [m["ink"], idle["ink"]])
+			if m["height"] < idle["height"] * 0.7:
+				why.append("%d px tall of %d" % [m["height"], idle["height"]])
+			if not m["head"]:
+				why.append("no skull in his top third")
+			if not m["phones"]:
+				why.append("no headphones")
+			if m["hole"] > maxi(idle["hole"], 1) * 2:
+				why.append("a %d px hole in him (the idle's is %d)" % [m["hole"], idle["hole"]])
+			if not why.is_empty():
+				broken.append("%s[%d]: %s" % [tag, i, ", ".join(why)])
+	_check("every body tag he can wear on his feet is whole (%d tags, %d frames)%s" % [tags.size(),
+		frames, "" if broken.is_empty() else ": " + "; ".join(broken)], broken.is_empty())
+
+## A body frame, measured: opaque pixels, how tall his ink stands, whether there is bone in the top
+## third of it (a head) and teal anywhere (his headphones), and how many transparent pixels are
+## inside him — the ones a flood from the frame's edge cannot reach.
+func _frame_measure(texture: Texture2D) -> Dictionary:
+	var image: Image
+	var atlas := texture as AtlasTexture
+	if atlas:
+		var sheet := atlas.atlas.get_image()
+		if sheet.is_compressed():
+			sheet.decompress()
+		image = Image.create_empty(int(atlas.region.size.x + atlas.margin.size.x),
+			int(atlas.region.size.y + atlas.margin.size.y), false, Image.FORMAT_RGBA8)
+		image.fill(Color(0, 0, 0, 0))
+		var part := sheet.get_region(Rect2i(atlas.region))
+		part.convert(Image.FORMAT_RGBA8)
+		image.blit_rect(part, Rect2i(Vector2i.ZERO, part.get_size()), Vector2i(atlas.margin.position))
+	else:
+		image = texture.get_image()
+		if image.is_compressed():
+			image.decompress()
+		image.convert(Image.FORMAT_RGBA8)
+	var w := image.get_width()
+	var h := image.get_height()
+	var used := image.get_used_rect()
+	var ink := 0
+	var head := false
+	var phones := false
+	var outside := PackedByteArray()
+	outside.resize(w * h)
+	for y in h:
+		for x in w:
+			var c := image.get_pixel(x, y)
+			if c.a <= 0.5:
+				continue
+			ink += 1
+			var luma := c.r * 0.299 + c.g * 0.587 + c.b * 0.114
+			var sat := maxf(c.r, maxf(c.g, c.b)) - minf(c.r, minf(c.g, c.b))
+			if luma > 0.5 and sat < 0.15 and y < used.position.y + used.size.y / 3:
+				head = true
+			if sat > 0.25 and c.r < minf(c.g, c.b) * 0.8:
+				phones = true
+	# Flood the transparent pixels from the frame's edge; whatever it cannot reach is inside him.
+	var stack: Array[Vector2i] = []
+	for x in w:
+		stack.append(Vector2i(x, 0))
+		stack.append(Vector2i(x, h - 1))
+	for y in h:
+		stack.append(Vector2i(0, y))
+		stack.append(Vector2i(w - 1, y))
+	while not stack.is_empty():
+		var p: Vector2i = stack.pop_back()
+		if p.x < 0 or p.y < 0 or p.x >= w or p.y >= h or outside[p.y * w + p.x] == 1:
+			continue
+		if image.get_pixel(p.x, p.y).a > 0.5:
+			continue
+		outside[p.y * w + p.x] = 1
+		stack.append(p + Vector2i(1, 0))
+		stack.append(p + Vector2i(-1, 0))
+		stack.append(p + Vector2i(0, 1))
+		stack.append(p + Vector2i(0, -1))
+	var hole := 0
+	for y in h:
+		for x in w:
+			if outside[y * w + x] == 0 and image.get_pixel(x, y).a <= 0.5:
+				hole += 1
+	return {"ink": ink, "height": used.size.y, "head": head, "phones": phones, "hole": hole}
 
 ## Where the face should be from the offsets alone: home plus the current frame's offset,
 ## mirrored for facing — the position with no beat, no gaze and no travel in it.

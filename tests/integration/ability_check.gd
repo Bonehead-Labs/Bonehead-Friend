@@ -2179,6 +2179,19 @@ func _check_clutter(drawn: Array, words: Array) -> void:
 	_check("and a repeat folds: no payoff or word twice inside %d steps%s" % [WeaponAbility.FOLD_STEPS,
 		"" if close.is_empty() else " (" + ", ".join(close) + ")"], close.is_empty())
 
+## Where a sprite's ink is in the world: its texture's opaque pixels, through its transform.
+func _ink_rect(sprite: Sprite2D) -> Rect2:
+	if sprite == null or sprite.texture == null:
+		return Rect2()
+	var used := Rect2(sprite.texture.get_image().get_used_rect())
+	if sprite.centered:
+		used.position -= sprite.texture.get_size() * 0.5
+	used.position += sprite.offset
+	var xf := sprite.global_transform
+	var out := Rect2(xf * used.position, Vector2.ZERO).expand(xf * used.end)
+	out = out.expand(xf * Vector2(used.end.x, used.position.y))
+	return out.expand(xf * Vector2(used.position.x, used.end.y))
+
 func _sum(values: Array[float]) -> float:
 	var total := 0.0
 	for v in values:
@@ -2657,6 +2670,12 @@ func _drive_swaddle(body: BaseDraggable, ability: SwaddleAbility) -> Dictionary:
 	await _await_cond(func() -> bool: return ability.is_wrapped() or not ability.is_active(), 120)
 	_check("round his shoulders", ability.is_wrapped())
 	await _step(5)
+	# Under his face, not across it (D77 amended): laid at his shoulders' height it covered his eyes,
+	# and the capture read the top of him as a hollow where his head should be.
+	var towel := _ink_rect(body.sprite as Sprite2D)
+	var face := _buddy.art.face_rect() if _buddy.art else Rect2()
+	_check("it lies under his face, not across it (towel %s, face %s)" % [towel, face],
+		face.has_area() and towel.has_area() and not towel.grow(-1.0).intersects(face))
 	var local0 := _buddy.to_local(body.global_position)
 	_buddy.apply_central_impulse(Vector2(220.0, -120.0) * _buddy.mass)
 	await _step(20)

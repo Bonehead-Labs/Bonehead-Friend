@@ -58,6 +58,20 @@ func _shoulders(him: Buddy) -> Vector2:
 	var rect := him.get_interaction_rect()
 	return Vector2(rect.get_center().x, rect.position.y + rect.size.y * 0.36)
 
+## Where it lies once it is round him: under his face at the lowest his breathing takes it, in his
+## own frame, so it rides there whatever he does. Laid at `_shoulders` it went straight across his
+## eyes — the one thing on the top of him that says "head" — and what showed above it was his
+## headphones and the notch of his skull, which the first capture pass read as his head gone
+## transparent (D77 amended). Only where it is drawn: the throw still aims at, and wraps at, his
+## shoulders. `DRAPE_BELOW_FACE` is half the folded band's height and a pixel of air.
+const DRAPE_BELOW_FACE := 13.0
+
+func _drape(him: Buddy) -> Vector2:
+	if him.art == null or him.art.face == null:
+		var rect := him.get_interaction_rect()
+		return Vector2(rect.get_center().x, rect.position.y + rect.size.y * 0.6)
+	return him.to_global(Vector2(0.0, him.art.face_floor_local() + DRAPE_BELOW_FACE))
+
 func _on_press() -> void:
 	_phase = FLYING
 	_t = 0.0
@@ -167,7 +181,7 @@ func _wrap(him: Buddy) -> void:
 	_next_tell = 0.0
 	_banked = 0.0
 	_since_flush = 0.0
-	var at := _shoulders(him)
+	var at := _drape(him)
 	var xf := Transform2D(0.0, at)
 	_wrap_local = him.global_transform.affine_inverse() * xf
 	_layer = body.collision_layer

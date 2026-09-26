@@ -661,6 +661,26 @@ func face_rect() -> Rect2:
 	out = out.expand(xf * Vector2(local.end.x, local.position.y))
 	return out.expand(xf * Vector2(local.position.x, local.end.y))
 
+## The lowest the bottom of his face comes, in his own frame, while he stands up in a beat or a
+## breath (`UPRIGHT`), with no code motion on it: what a towel lies under so that no frame puts his
+## chin behind it. His face rides up to 11 art pixels over a breath, so the frame he happens to be
+## on is not enough (D77 amended). Not the slump: `idle_sad` hangs his head 5 art pixels lower, and
+## that is his posture while miserable, which a held beat (a swaddle) keeps off him.
+const UPRIGHT: Array[StringName] = [&"idle", &"idle_happy", &"happy", &"hurt", &"walk"]
+
+func face_floor_local() -> float:
+	if face == null:
+		return 0.0
+	var lowest := 0.0
+	for tag in UPRIGHT:
+		var positions: PackedVector2Array = _offset_positions.get(tag, PackedVector2Array())
+		var shown: PackedByteArray = _offset_visible.get(tag, PackedByteArray())
+		for i in positions.size():
+			if i < shown.size() and shown[i] == 1:
+				lowest = maxf(lowest, positions[i].y)
+	return _face_home.y + lowest * _base_scale.y \
+		+ (FACE_INK.end.y - FACE_CELL * 0.5 + face.offset.y) * absf(_face_base_scale.y)
+
 ## Face -> face, from the personality's tell (`PersonalityData.face_swaps`). Applied to every
 ## expression he pulls, mood faces included: the Goth's `sad` is his contented face. Set by
 ## `ExpressionBrain`; empty is the honest baseline.
