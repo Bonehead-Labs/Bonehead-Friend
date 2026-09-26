@@ -129,11 +129,9 @@ const UNAIMED: Array[StringName] = [&"Firework"]
 ## reported, not failed — and one that stops reproducing IS a failure, so this table cannot go
 ## stale: fix the item, delete its line.
 const KNOWN := {
-	"flamethrower/hits": "~F2 D54's 18 px impact inset leaves the shot under the damage floor",
-	"flamethrower/earns": "~F2 D54's 18 px impact inset leaves the shot under the damage floor",
-	"flamethrower/mastery": "~F2 D54's 18 px impact inset leaves the shot under the damage floor",
-	"flamethrower/aug_damage_mult": "~F2 D54's 18 px impact inset leaves the shot under the damage floor",
-	"flamethrower/aug_payout_mult": "~F2 D54's 18 px impact inset leaves the shot under the damage floor",
+	# Empty. The flamethrower's `~F2` lines went when D60's whole-force check (`every_shot`) replaced
+	# them, and the thrown guns' `~F1` lines when a thrown gun began solving the step it meets him in
+	# (`HeldGun._meet_him_in_flight`).
 }
 
 var _passed := 0
@@ -288,6 +286,10 @@ class Run:
 	var fuse_lit := false
 	var fuse_out := false
 	var use_frame := -1
+	## Uses of it counted while he was up to take them (a turret's shots), and whether he was ever
+	## down in the phase — a shot queued before a knockout lands is dropped, and rightly.
+	var uses_up := 0
+	var down_seen := false
 	var kick := 0.0
 	var peak_him := 0.0
 	var peak_it := 0.0
@@ -736,8 +738,12 @@ func _on_contract(key: StringName, count: int) -> void:
 	if _run == null:
 		return
 	_run.contracts[String(key)] = _run.contract(String(key)) + count
-	if String(key) == "use:%s" % _run.item.id and _run.use_frame < 0:
+	if String(key) != "use:%s" % _run.item.id:
+		return
+	if _run.use_frame < 0:
 		_run.use_frame = _frame
+	if is_instance_valid(_buddy) and not _buddy.health.down:
+		_run.uses_up += count
 
 func _on_threat(kind: StringName, _at: Vector2, level: float) -> void:
 	if _run == null or kind != &"fuse":
@@ -770,6 +776,8 @@ func _sample() -> void:
 			_frame, _buddy.global_position.round(), _buddy.linear_velocity.round(), _buddy.health.down,
 			_buddy.dragging, _run.hits.size(), _run.stray, _run.uses(), _run.acts.size(),
 			_run.sustained, it])
+	if _buddy.health.down:
+		_run.down_seen = true
 	var v := _buddy.linear_velocity
 	var speed := v.length()
 	if not is_finite(speed) or not _buddy.global_position.is_finite():
@@ -1477,6 +1485,26 @@ func _drive_turret(run: Run) -> void:
 	_expect(run, "tracer", from_muzzle, "the shot leaves from the muzzle (%d tracers)" % _fx.tracers.size())
 	_expect(run, "aimed", at_him, "and lands on him")
 	_expect(run, "hits", not run.hits.is_empty(), "and it hurts him (%d hits)" % run.hits.size())
+	# Every shot that reaches him bills the whole of its `blast_force` (D60: the damage is the
+	# pellet's). The flamethrower's 400 is 50 over the 350 floor; D54's falloff 18 px off his centre
+	# put it under, "almost always", and it was filed `~F2` — a finding that could neither fail nor
+	# go stale, so its regression would have read as known. A single pellet that cannot leave his
+	# silhouette (its spread plus the inset inside his 44 px half-width) cannot miss, so every
+	# shot fired while he stood is one hit of exactly its force. Held fire first, so no shot is
+	# still on its way to him when they are counted.
+	if body.pellets == 1 and body.spread + TurretBase.IMPACT_INSET < 40.0:
+		body._since_shot = -1.0e6
+		await _step(3)
+		var whole := 0
+		for info in run.hits:
+			if absf(info.raw_impulse - body.blast_force) <= 0.5:
+				whole += 1
+		if run.down_seen:
+			run.notes.append("knocked out while it fired: %d of %d shots billed whole" % [whole, run.uses_up])
+		else:
+			_expect(run, "every_shot", whole == run.uses_up and whole > 0,
+				"every shot that reaches him bills its whole %.0f (%d of %d)" % [body.blast_force,
+				whole, run.uses_up])
 
 func _drive_critter(run: Run) -> void:
 	var body := await _spawn(run, _centre() + Vector2(-280.0, -40.0)) as NpcBase
@@ -3386,6 +3414,7 @@ func _the_bin_gesture_works(run: Run) -> void:
 	run.acts.clear()
 	run.hits.clear()
 	run.contracts.clear()
+	run.uses_up = 0
 	run.touch_seconds = 0.0
 
 func _expect_aura(run: Run, body: BaseDraggable) -> void:

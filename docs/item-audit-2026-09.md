@@ -99,6 +99,12 @@ the target the undiminished `blast_force` along the shot and keep the falloff fo
 The nail gun and the flamethrower (420 and 400) sit barely over the floor even at zero distance,
 so they need their numbers raised under either model.
 
+**Fixed in D60** (the damage is the pellet's: a pellet on his silhouette bills its whole
+`blast_force`). The flamethrower's lines were filed `~`, so they could neither fail nor go stale and
+outlived the fix. They went on 2026-09-27 for item_check's `every_shot`: every shot fired while he
+stands bills its whole force, for the six single-pellet turrets. Flamethrower 7 of 7 at 400 plain, 9
+of 9 upgraded.
+
 ### F3. The gorilla cannot walk, and the raccoon crawls
 
 **Affects:** gorilla (45,000 Bones), raccoon (14,000). Put down across the desk from him, the
