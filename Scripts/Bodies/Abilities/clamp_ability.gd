@@ -200,7 +200,8 @@ func _bite() -> void:
 	strike(last_bite, into, point, num("bite_mult", 1.0), num("shove", 0.3))
 	var fx := fx()
 	if fx:
-		fx.ring(point, 30.0, Color.WHITE, 0.15, 2.0)
+		# In its colour, not white: a white ring on white bone is invisible (D77).
+		fx.ring(point, 30.0, accent(), 0.15, 2.0)
 		fx.chips(point, Color("f2ead8"), 3, 200.0)
 		fx.shake(3.0)
 	if bool(row.get("confetti", false)):
