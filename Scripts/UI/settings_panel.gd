@@ -111,6 +111,41 @@ func _build_page() -> void:
 	_volume_row("Master", &"volume_master")
 	_volume_row("Effects", &"volume_sfx")
 
+	_build_playtest()
+
+## The page's footer: which build this is, and the playtest kit (docs/playtest-plan.md). Last on
+## the page because it is the least often wanted and the one a tester is told where to find.
+func _build_playtest() -> void:
+	_section("PLAYTEST")
+	var keys := _choices()
+	_action(keys, "Leave a note", &"feedback_note", func() -> void: Playtest.request_feedback())
+	_action(keys, "Send feedback", &"feedback_send", func() -> void: Playtest.send_feedback())
+	_action(keys, "Open folder", &"feedback_folder", func() -> void: Playtest.open_folder())
+	var notes_row := _row()
+	_rows[&"notes"] = _stat(notes_row, "Notes saved", "—")
+	var log_row := _row()
+	_rows[&"session_log"] = _stat(log_row, "Session log", "—")
+	_stepper(log_row, "Toggle", func() -> void: Playtest.set_session_log(not Settings.playtest_log))
+	_column.add_child(_note("F1 leaves a note from anywhere. The session log records what you "
+		+ "buy, use and open, and when — no names, no files, nothing from other windows. It all "
+		+ "stays on this computer until you press Send feedback."))
+	var build_row := _row()
+	_rows[&"build"] = _stat(build_row, "Build", BuildInfo.id())
+	Playtest.notes_changed.connect(request_refresh)
+
+## A plain key in a row of them: an action, not a choice, so it never stays pressed.
+func _action(row: Container, caption: String, key: StringName, action: Callable) -> void:
+	var button := UIStyle.button(caption, UIStyle.MICRO)
+	button.name = "Playtest_%s" % key
+	button.theme_type_variation = &"GhostButton"
+	button.custom_minimum_size = Vector2(84, 30)
+	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	button.pressed.connect(func() -> void:
+		action.call()
+		_refresh())
+	row.add_child(button)
+	_rows[key] = button
+
 func _volume_row(caption: String, key: StringName) -> void:
 	var row := _row()
 	_rows[key] = _stat(row, caption, "—")
@@ -162,6 +197,11 @@ func _refresh() -> void:
 	_set_stat(&"ui_scale", "%sx%s" % [shown, "" if Settings.ui_scale > 0.0 else "  auto"])
 	_set_stat(&"volume_master", "%d%%" % roundi(Settings.volume_master * 100.0))
 	_set_stat(&"volume_sfx", "%d%%" % roundi(Settings.volume_sfx * 100.0))
+	_set_stat(&"notes", str(Playtest.notes_count()))
+	var logging := "on" if Settings.playtest_log else "off"
+	if not BuildInfo.is_playtest():
+		logging += " (not a playtest build)"
+	_set_stat(&"session_log", logging)
 
 func _set_choice(key: StringName, active: bool) -> void:
 	var button := _rows.get(key) as Button

@@ -85,6 +85,7 @@ func _ready() -> void:
 	_every_colour_can_be_read()
 	await _the_desk_can_be_cleared()
 	await _explosives_still_explode()
+	await _the_playtest_kit_writes_what_it_says()
 
 	# Here, and nowhere else. This block spent three edits living inside
 	# `_the_shell_has_its_look`, where it printed a total that was missing every suite after
@@ -191,6 +192,23 @@ func _every_colour_can_be_read() -> void:
 			gaps.append(type_name)
 	_check("every toggleable variation defines its own hover_pressed%s"
 		% ("" if gaps.is_empty() else ": " + ", ".join(gaps)), gaps.is_empty())
+
+	# The text boxes (the feedback card): what is typed, the placeholder and a selection, each
+	# graded against the box it is drawn in, read off the Theme like the keys above. The stock
+	# placeholder is the font colour at 60% alpha, which is dimmed-by-alpha text by definition.
+	for type_name in ["LineEdit", "TextEdit"]:
+		var well := theme.get_stylebox("normal", type_name) as StyleBoxFlat
+		if well == null:
+			_check("%s has a box of its own to grade against" % type_name, false)
+			continue
+		for ink_name in ["font_color", "font_placeholder_color"]:
+			var ink := theme.get_color(ink_name, type_name)
+			var ratio := UIStyle.contrast(ink, well.bg_color)
+			_check("%s %s is %.2f:1, and opaque" % [type_name, ink_name, ratio],
+				ratio >= FLOOR and is_equal_approx(ink.a, 1.0))
+		var selected := UIStyle.contrast(theme.get_color("font_selected_color", type_name),
+			theme.get_color("selection_color", type_name))
+		_check("%s selected text is %.2f:1 on its selection" % [type_name, selected], selected >= FLOOR)
 
 	# Marks, not text: a pip, a meter fill, a track. WCAG's floor for a non-text element
 	# that carries meaning is 3:1, not 4.5:1 — but it is not zero, and a grid that graded
@@ -387,6 +405,13 @@ func _the_shell_has_its_look() -> void:
 			theme.has_stylebox("normal", variation))
 	for variation in ["BodyLabel", "NameLabel", "Eyebrow", "Numeral"]:
 		_check("label variation %s is defined" % variation, theme.has_font("font", variation))
+	# The feedback card's two boxes (the playtest kit). Base types rather than variations, and
+	# just as silent when missing: an unstyled text box is Godot's stock dark one on cream stock.
+	for type_name in ["LineEdit", "TextEdit"]:
+		_check("%s is styled at rest, focused and read-only" % type_name,
+			theme.has_stylebox("normal", type_name) and theme.has_stylebox("focus", type_name)
+			and theme.has_stylebox("read_only", type_name))
+		_check("%s types in the reading face" % type_name, theme.has_font("font", type_name))
 
 	# The Arcade's cabinets (D58): the frame, its four sections, the display, the reel glass,
 	# the rule between cells, the deck's key — and one marquee panel and one room key per
@@ -3637,6 +3662,207 @@ func _save_survives_a_restart() -> void:
 	_check("his mood survived the restart", buddy == null or is_equal_approx(buddy.mood.value, -42.0))
 	_check("his grime survived the restart", buddy == null or is_equal_approx(buddy.grime.value, 0.3))
 	_check("and Economy's mirrors followed", is_equal_approx(Economy.mood, buddy.mood.value if buddy else 0.0))
+
+# --- the playtest kit ---------------------------------------------------------
+
+const PLAYTEST_ROOT := "user://playtest_loop_check"
+const PLAYTEST_SEND := "user://playtest_loop_check_send"
+const PLAYTEST_UPLOAD_CFG := "user://playtest_loop_check_upload.cfg"
+
+## What a playtest leaves behind (docs/playtest-plan.md), against the real autoload: a session log
+## that flushes and stays under its cap, an engine error caught on the way, a note written with
+## everything it says it attaches, a bundle that carries both, a report that can read the bundle —
+## and an uploader that sends nothing without a config and keeps what it could not send.
+##
+## On folders of its own, like the save slot: `use_root` first, before anything is written.
+func _the_playtest_kit_writes_what_it_says() -> void:
+	_suite("playtest kit")
+	for dir in [PLAYTEST_ROOT, PLAYTEST_SEND]:
+		_remove_tree(dir)
+	Playtest.use_root(PLAYTEST_ROOT)
+	Playtest.send_dir = PLAYTEST_SEND
+	Playtest.upload_config_path = "user://playtest_loop_check_no_such.cfg"
+	_check("a checkout is not a playtest build, so nothing logs on its own",
+		not BuildInfo.is_playtest() and not Playtest.logging_enabled())
+	_check("with no config the uploader is off", not Playtest.uploads_enabled())
+
+	Playtest.begin_session()
+	var path := Playtest.session_path()
+	_check("a session log is created as the session begins, with its start row on disk",
+		path != "" and FileAccess.file_exists(path)
+		and PlaytestFormat.parse_row(FileAccess.get_file_as_string(path).split("\n")[0]).get("e", "") == "start")
+
+	# A deliberate error, the way the engine raises one. The logger is installed in the
+	# autoload's `_init`, so it has been listening since before the first `_ready` of the boot.
+	var before := Playtest.error_total()
+	push_error("loop_check: deliberate - the playtest logger must catch this")
+	_check("the logger caught a push_error (%d -> %d)" % [before, Playtest.error_total()],
+		Playtest.error_total() == before + 1
+		and Playtest.error_counts().has("loop_check: deliberate - the playtest logger must catch this"))
+
+	EventBus.ability_event.emit(&"baseball_bat", &"home_run", Vector2.ZERO)
+	EventBus.ability_event.emit(&"baseball_bat", &"home_run", Vector2.ZERO)
+	Playtest.record("buy", {"id": "tennis_ball", "cur": "bones", "p": 40})
+	Playtest.note_act()
+	Playtest.flush()
+	var rows := PlaytestFormat.parse_rows(FileAccess.get_file_as_string(path))
+	var kinds := {}
+	for row in rows:
+		kinds[String(row["e"])] = int(kinds.get(String(row["e"]), 0)) + 1
+	_check("a flush appends what was recorded (%s)" % str(kinds),
+		kinds.has("buy") and kinds.has("err"))
+	_check("a first use is written once, however often it happens", int(kinds.get("first", 0)) == 1)
+
+	# The rolling cap: five old sessions and the live one, cut to three. Oldest go first and the
+	# session being written is never among them.
+	for i in 5:
+		var old := FileAccess.open("%s/sessions/2020010%d-000000_dev_0000.jsonl" % [PLAYTEST_ROOT, i + 1],
+			FileAccess.WRITE)
+		old.store_string(PlaytestFormat.row(0.0, "start") + "\n")
+		old.close()
+	var pruned := Playtest.prune_sessions(3, 1 << 30)
+	var left := DirAccess.get_files_at("%s/sessions" % PLAYTEST_ROOT)
+	_check("the session folder is capped, oldest first (%d pruned, %d left)" % [pruned.size(), left.size()],
+		pruned.size() == 3 and left.size() == 3 and pruned[0].begins_with("20200101")
+		and FileAccess.file_exists(path))
+
+	# A note, with its picture: everything the card promises it attaches.
+	var picture := Image.create_empty(8, 8, false, Image.FORMAT_RGBA8)
+	picture.fill(Color.WHITE)
+	var note_path := Playtest.save_note({"mood": "good", "text": "loop check note", "trying": "test it",
+		"context": Playtest.snapshot_context()}, picture)
+	var note = JSON.parse_string(FileAccess.get_file_as_string(note_path)) if note_path != "" else null
+	_check("a note is one file of its own", note_path != "" and typeof(note) == TYPE_DICTIONARY)
+	if typeof(note) == TYPE_DICTIONARY:
+		var context: Dictionary = note.get("context", {})
+		_check("it names its build, tester and session",
+			String(note["build"]) == "dev" and String(note["tester"]).length() == 8
+			and String(note["session"]) == Playtest.session_name())
+		_check("it carries the purse, what is owned, the desk, his mood and the window",
+			(context.get("currencies", {}) as Dictionary).has("bones")
+			and not (context.get("owned", []) as Array).is_empty() and context.has("desk")
+			and (context.get("him", {}) as Dictionary).has("mood") and context.has("window"))
+		_check("and the last few minutes, and the errors met",
+			not (context.get("recent", []) as Array).is_empty()
+			and int((context.get("errors", {}) as Dictionary).get("total", 0)) >= 1)
+		_check("its picture is beside it",
+			FileAccess.file_exists("%s/feedback/%s" % [PLAYTEST_ROOT, String(note["screenshot"])]))
+
+	# Local-first: with no uploader, Send is one zip where it was asked for, and nothing queued.
+	var sent := Playtest.send_feedback()
+	_check("Send makes one zip, and queues nothing to upload",
+		bool(sent["ok"]) and FileAccess.file_exists(String(sent["path"])) and Playtest.pending_uploads() == 0)
+	var zip := ZIPReader.new()
+	var files := PackedStringArray()
+	if zip.open(String(sent["path"])) == OK:
+		files = zip.get_files()
+		zip.close()
+	var has_note := false
+	for name in files:
+		has_note = has_note or (name.begins_with("feedback/") and name.ends_with(".png"))
+	_check("the zip carries the manifest, the live session and the note with its picture",
+		files.has("manifest.json") and files.has("sessions/%s" % path.get_file()) and has_note)
+
+	# And the report tool can read what the game wrote.
+	var report := load("res://tools/playtest_report.gd").new() as Node
+	var read: Dictionary = report.call("build_report", PLAYTEST_SEND, "%s/report.md" % PLAYTEST_SEND, 5.0)
+	report.free()
+	_check("the report tool reads the bundle back (%d tester, %d notes)" % [int(read["testers"]), int(read["notes"])],
+		bool(read["ok"]) and int(read["testers"]) == 1 and int(read["notes"]) == 1
+		and String(read["text"]).contains("loop check note"))
+
+	# With a config, Send queues the zip and tries; a failure stays queued for the next launch.
+	# A closed port on Windows is silent rather than refused, so the attempt is cut short.
+	var cfg := ConfigFile.new()
+	cfg.set_value("upload", "url", "http://127.0.0.1:9/nothing-listens-here")
+	cfg.save(PLAYTEST_UPLOAD_CFG)
+	Playtest.upload_config_path = PLAYTEST_UPLOAD_CFG
+	Playtest.upload_timeout = 2.0
+	_check("a config naming an endpoint turns the uploader on", Playtest.uploads_enabled())
+	var finished: Array = [false, false]
+	var on_done := func(ok: bool) -> void:
+		finished[0] = true
+		finished[1] = ok
+	Playtest.upload_finished.connect(on_done)
+	var queued := Playtest.send_feedback()
+	var started := Time.get_ticks_msec()
+	while not bool(finished[0]) and Time.get_ticks_msec() - started < 15000:
+		await get_tree().process_frame
+	_check("an upload to nowhere fails", bool(queued["ok"]) and bool(finished[0]) and not bool(finished[1]))
+	_check("and the bundle stays queued to retry next launch", Playtest.pending_uploads() == 1)
+
+	# And to somewhere: a one-request server on this machine, which is what a webhook is to the
+	# uploader. The queued bundle arrives as a form with the zip in it, and the queue empties.
+	var server := TCPServer.new()
+	var listening := server.listen(0, "127.0.0.1") == OK
+	cfg.set_value("upload", "url", "http://127.0.0.1:%d/upload" % server.get_local_port())
+	cfg.save(PLAYTEST_UPLOAD_CFG)
+	finished[0] = false
+	Playtest.retry_uploads()
+	var got := await _serve_once(server, 10.0)
+	started = Time.get_ticks_msec()
+	while not bool(finished[0]) and Time.get_ticks_msec() - started < 10000:
+		await get_tree().process_frame
+	server.stop()
+	_served = null
+	Playtest.upload_finished.disconnect(on_done)
+	_check("a server that answers 200 receives the bundle as a form with the zip in it (%s)"
+		% got.get_slice("\r\n", 0),
+		listening and got.contains("multipart/form-data") and got.contains("name=\"content\"")
+		and got.contains("filename=\"BoneheadFriend-feedback-"))
+	_check("and the queue empties", bool(finished[0]) and bool(finished[1]) and Playtest.pending_uploads() == 0)
+	Playtest.upload_timeout = 60.0
+
+	Playtest.end_session("loop_check")
+	var last := PlaytestFormat.parse_rows(FileAccess.get_file_as_string(path)).back() as Dictionary
+	_check("the session ends with an end row", String(last.get("e", "")) == "end")
+
+	Playtest.use_root(Playtest.ROOT_DIR)
+	Playtest.send_dir = ""
+	Playtest.upload_config_path = ""
+	for dir in [PLAYTEST_ROOT, PLAYTEST_SEND]:
+		_remove_tree(dir)
+	DirAccess.remove_absolute(PLAYTEST_UPLOAD_CFG)
+
+## The connection `_serve_once` answered, held until the uploader has read the answer.
+var _served: StreamPeerTCP = null
+
+## Takes one HTTP request, answers `200 OK`, and returns the request's head (the first 4 KB,
+## as text — the zip after it is binary). "" if nothing complete arrived in `seconds`.
+func _serve_once(server: TCPServer, seconds: float) -> String:
+	var received := PackedByteArray()
+	var started := Time.get_ticks_msec()
+	while Time.get_ticks_msec() - started < int(seconds * 1000.0):
+		if _served == null and server.is_connection_available():
+			_served = server.take_connection()
+		if _served:
+			_served.poll()
+			var available := _served.get_available_bytes()
+			if available > 0:
+				var chunk: Array = _served.get_data(available)
+				if int(chunk[0]) == OK:
+					received.append_array(chunk[1])
+			var head := received.slice(0, mini(received.size(), 4096)).get_string_from_ascii()
+			var end := head.find("\r\n\r\n")
+			if end >= 0:
+				var length := 0
+				for line in head.substr(0, end).split("\r\n"):
+					if line.to_lower().begins_with("content-length:"):
+						length = int(line.get_slice(":", 1).strip_edges())
+				if received.size() >= end + 4 + length:
+					_served.put_data("HTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\n\r\nok".to_ascii_buffer())
+					return head
+		await get_tree().process_frame
+	return ""
+
+func _remove_tree(dir: String) -> void:
+	if not DirAccess.dir_exists_absolute(dir):
+		return
+	for sub in DirAccess.get_directories_at(dir):
+		_remove_tree(dir.path_join(sub))
+	for name in DirAccess.get_files_at(dir):
+		DirAccess.remove_absolute(dir.path_join(name))
+	DirAccess.remove_absolute(dir)
 
 # --- harness ---------------------------------------------------------------
 
