@@ -1338,6 +1338,25 @@ func _abilities_read_clear_of_him() -> void:
 	await _clear_of(fx, [], true, "a word aimed at his face")
 	await _quiet_numbers(fx)
 
+	# The chainsaw's frame (D77 amended): its badge went up over its own grind's numbers, already rising
+	# where the badge goes, and waited up to a line's life for them. A badge is what is happening to him
+	# now; a payout under it gives way.
+	var head_rect := buddy.get_interaction_rect()
+	var over := Vector2(head_rect.get_center().x, head_rect.position.y)
+	for i in 3:
+		EventBus.payout.emit(Economy.BONES, 20.0 + float(i), over + Vector2(0.0, 10.0 + 14.0 * float(i)),
+			&"chainsaw")
+	await get_tree().process_frame
+	var saw := AbilityFX.state(buddy, &"ui_revving", slash, self, afx)
+	var under := fx.crosses(saw.fx_keep_out())
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_check("a badge put up over rising payouts is drawn at once", under and not saw.waiting
+		and saw.drawn_rect().has_area(), "numbers under it %s, waiting %s" % [under, saw.waiting])
+	await _clear_of(fx, [saw], false, "payouts and a badge put up over them")
+	AbilityFX.clear_states(buddy, self)
+	await _quiet_numbers(fx)
+
 	# The word for the moment and the rank-up it earned, on one frame: both print.
 	var head := buddy.get_interaction_rect()
 	fx.callout("SLASH!", Vector2(head.get_center().x, head.position.y - 58.0), Color("6fa8ff"), 1.0,

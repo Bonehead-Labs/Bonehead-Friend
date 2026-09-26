@@ -484,28 +484,54 @@ func _on_a_keep_out(at: Vector2, peak: Vector2, rise: float) -> bool:
 			return true
 	return false
 
-## Whether any line on screen will pass through `rect` between now and the end of its life. A
-## badge put up where a line is already rising (a rank-up on the frame the state began) waits for
-## it rather than being drawn under it: the words are the moment, and the badge lasts.
-func crosses(rect: Rect2) -> bool:
+## Whether any line ranked `min_rank` or over will pass through `rect` between now and the end of
+## its life. A badge put up where a word or a headline is already rising (a rank-up on the frame the
+## state began) waits for it rather than being drawn under it: the words are the moment, and the
+## badge lasts.
+func crosses(rect: Rect2, min_rank: int = 0) -> bool:
 	for slot in _pool.size():
-		if _held_on[slot] == 0 or not _pool[slot].visible:
-			continue
-		var running := _tweens[slot]
-		if running == null or not running.is_valid():
-			continue
-		var age := running.get_total_elapsed_time()
-		if age >= LIFETIME:
-			continue
-		var from := _held_from[slot]
-		var half := _held_half[slot] * (_held_punch[slot] if age < PUNCH_TIME else 1.0) + _held_pad[slot]
-		var k := age / LIFETIME
-		var now_y := from.y - _held_rise[slot] * (2.0 * k - k * k)
-		var end_y := from.y - _held_rise[slot]
-		var swept := Rect2(from.x - half.x, end_y - half.y, half.x * 2.0, now_y - end_y + half.y * 2.0)
-		if swept.intersects(rect):
+		if _held_rank[slot] >= min_rank and _sweeps(slot, rect):
 			return true
 	return false
+
+## **A badge does not wait for a payout** (D77 amended, the chainsaw's): puts away every line ranked
+## under `below` — a payout, a streak tag — that will pass through `rect`, and says how many. A badge
+## says what is happening to him now and lasts the state; a payout is the least of the lines, which
+## D63 already puts away for anything that matters more, and which the purse and the rate row have
+## counted. Waiting for them, a badge put up mid-grind sat hidden for up to a whole line's life (0.9 s)
+## under numbers that were already rising where it goes, and a stream of them could hold it off
+## longer. Moving the badge instead would put it where the player has not learned to look, and it
+## would either stay there for the whole state or jump back when the number had gone.
+func make_way(rect: Rect2, below: int = CALLOUT_RANK) -> int:
+	var cleared := 0
+	for slot in _pool.size():
+		if _held_rank[slot] < below and _sweeps(slot, rect):
+			_retire(slot)
+			cleared += 1
+	return cleared
+
+## Whether the live line in `slot` passes through `rect` from now to the end of its life. Placement
+## lays a line flush against a keep-out, and what it held is kept in 32-bit floats: flush comes back
+## as a few hundredths of a pixel over, which put away a trickle placed correctly beside a badge. So
+## a line has to be in by more than `SWEEP_SLACK` to count.
+const SWEEP_SLACK := 0.5
+
+func _sweeps(slot: int, rect: Rect2) -> bool:
+	if _held_on[slot] == 0 or not _pool[slot].visible:
+		return false
+	var running := _tweens[slot]
+	if running == null or not running.is_valid():
+		return false
+	var age := running.get_total_elapsed_time()
+	if age >= LIFETIME:
+		return false
+	var from := _held_from[slot]
+	var half := _held_half[slot] * (_held_punch[slot] if age < PUNCH_TIME else 1.0) + _held_pad[slot]
+	var k := age / LIFETIME
+	var now_y := from.y - _held_rise[slot] * (2.0 * k - k * k)
+	var end_y := from.y - _held_rise[slot]
+	var swept := Rect2(from.x - half.x, end_y - half.y, half.x * 2.0, now_y - end_y + half.y * 2.0)
+	return swept.intersects(rect.grow(-SWEEP_SLACK))
 
 func _hud_keep_out() -> Rect2:
 	# Numbers can be asked for during teardown — a kind item banks its sustained kindness in
