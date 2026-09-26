@@ -16,9 +16,11 @@ extends Node2D
 ##               first few times this session, smaller once it has been learned.
 ##   STATE       a badge over his head for as long as the state lasts: the state's icon on a dark
 ##               disc, inside a ring in the ability's colour that drains as it counts down, with pips
-##               for anything it is counting (hits stored, staples in him).
+##               for anything it is counting (hits stored, staples in him). No floating line is
+##               ever drawn over it: FXLayer steers round it, and it waits for one already rising.
 ##   PAYOFF      where it lands: a flash, impact lines, two rings and a burst in the ability's
 ##               colour, and a jolt, all scaled by `size` 0..1 — and its word ("BONG!", "SIX!").
+##               On him it is drawn round him, never over him; a repeat inside half a second folds.
 ##
 ## ## Using it from anything held
 ##
@@ -425,6 +427,8 @@ static func state(him: Node2D, kind: StringName, spec: Dictionary, owner: Object
 	mark.kind = kind
 	mark.top_level = true
 	mark.z_index = 45
+	# The floating lines steer around it from the moment it is put up (FXLayer, D77 amended).
+	mark.add_to_group(FXLayer.KEEP_OUT_GROUP)
 	mark.target = him
 	mark.owner_ref = weakref(owner) if owner else null
 	var colour: Color = spec.get("colour", Color.WHITE)
@@ -499,10 +503,40 @@ class StateMark extends Node2D:
 	var aura: GPUParticles2D
 	var fraction := 1.0
 	var pips := 0
+	## True while a floating line is rising through where it goes: it is not drawn until the line has
+	## passed, and pops in then. A word is the moment and lasts a second; the badge lasts the state.
+	var waiting := false
 	var _age := 0.0
 	var _clock := 0.0
 	var _leaving := -1.0
 	var _bump := 0.0
+	var _layer: WeakRef
+
+	## Its ink at its biggest (the bump) and the pips under it, in world coordinates: what a line
+	## placed while it is up steers around (`FXLayer.KEEP_OUT_GROUP`).
+	func fx_keep_out() -> Rect2:
+		if not is_inside_tree() or is_leaving():
+			return Rect2()
+		var r := (RADIUS + WIDTH * 0.5 + 2.0) * 1.22
+		return Rect2(global_position - Vector2(r, r), Vector2(r * 2.0, r + RADIUS + 13.0))
+
+	## Where its ink is this frame, rim and pips included, or an empty rect while nothing is drawn:
+	## for the suites.
+	func drawn_rect() -> Rect2:
+		var s := _size()
+		if s <= 0.01 or not is_visible_in_tree():
+			return Rect2()
+		var r := (RADIUS + WIDTH * 0.5 + 2.0) * s
+		var bottom := r if pips <= 0 else (RADIUS + 12.0) * s
+		return Rect2(global_position - Vector2(r, r), Vector2(r * 2.0, r + bottom))
+
+	func _fx_layer() -> FXLayer:
+		if _layer == null:
+			var found := FXLayer.of(self)
+			if found == null:
+				return null
+			_layer = weakref(found)
+		return _layer.get_ref() as FXLayer
 
 	func is_leaving() -> bool:
 		return _leaving >= 0.0 or is_queued_for_deletion()
@@ -555,7 +589,12 @@ class StateMark extends Node2D:
 		if not is_instance_valid(target) or not target.is_inside_tree():
 			queue_free()
 			return
-		_age += delta
+		place()
+		var layer := _fx_layer()
+		waiting = layer != null and layer.crosses(fx_keep_out())
+		# The pop plays when it is first drawn, not while it waits.
+		if not waiting:
+			_age += delta
 		_clock += delta
 		_bump = maxf(0.0, _bump - delta * 5.0)
 		var owner := _owner()
@@ -606,6 +645,8 @@ class StateMark extends Node2D:
 	func _size() -> float:
 		if still:
 			return 1.0
+		if waiting:
+			return 0.0
 		if not AbilityFX.moving():
 			return 0.0 if _leaving >= 0.0 else 1.0
 		if _leaving >= 0.0:

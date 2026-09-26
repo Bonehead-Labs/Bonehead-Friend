@@ -432,6 +432,81 @@ func _clear_of_hud(centre: Vector2, half: Vector2, rise: float = RISE_PIXELS) ->
 		return Vector2(beside, centre.y)
 	return Vector2(centre.x, keep.end.y + HUD_MARGIN + half.y)
 
+# --- keeping the lines off what is over him (D77 amended) ------------------------------------
+
+## Anything in the world a rising line must never touch, as the HUD's corner is (D48): an ability's
+## state badge over his head. A node in this group answers `fx_keep_out() -> Rect2`, in world
+## coordinates — which are this layer's: it has no transform of its own, and the lines are aimed at
+## world positions as they are. Read once per line placed, never per frame.
+##
+## D77's captures found three kinds of line printed straight through a badge: the mastery rank-up
+## on every weapon's first use ("KATANA RANK 1" through the slash badge), a trickle risen over his
+## head as D75 asks, which is exactly where a badge sits (the towel's "+2.0" on the Swaddle badge),
+## and the word for the moment itself. A line now steps around every badge the way it steps around
+## another line; a badge that appears where a line is already rising waits for it (`crosses`).
+const KEEP_OUT_GROUP := &"fx_keep_out"
+
+## What the line being placed steps around, gathered as it is placed: every badge, and for a word
+## (an ability's name or landing, a headline) his face too. An ability's name is called out over
+## the weapon, and with the weapon at him that was across his eyes ("PRY", "BRUSH CLEAR"). Payout
+## numbers keep their spot as they always have (D75): a hit's number is about where it landed.
+var _keep_outs: Array[Rect2] = []
+
+func _gather_keep_outs(words: bool) -> void:
+	_keep_outs.clear()
+	if not is_inside_tree():
+		return
+	for node in get_tree().get_nodes_in_group(KEEP_OUT_GROUP):
+		if node.has_method("fx_keep_out"):
+			var rect: Rect2 = node.call("fx_keep_out")
+			if rect.has_area():
+				_keep_outs.append(rect)
+	if words:
+		var face := face_rect()
+		if face.has_area():
+			_keep_outs.append(face)
+
+## Where his face is drawn, in world coordinates, or an empty rect with nobody here or his face
+## hidden (`BuddyArt.face_rect`).
+func face_rect() -> Rect2:
+	var him := get_tree().get_first_node_in_group(&"buddy") as Node2D if is_inside_tree() else null
+	if him == null or not him.is_visible_in_tree():
+		return Rect2()
+	var art := him.get(&"art") as BuddyArt
+	return art.face_rect() if art else Rect2()
+
+## Whether a line aimed at `at` would touch a keep-out at any point of its rise.
+func _on_a_keep_out(at: Vector2, peak: Vector2, rise: float) -> bool:
+	for rect in _keep_outs:
+		if absf(at.x - rect.get_center().x) >= rect.size.x * 0.5 + peak.x:
+			continue
+		if at.y > rect.position.y - peak.y and at.y < rect.end.y + peak.y + rise:
+			return true
+	return false
+
+## Whether any line on screen will pass through `rect` between now and the end of its life. A
+## badge put up where a line is already rising (a rank-up on the frame the state began) waits for
+## it rather than being drawn under it: the words are the moment, and the badge lasts.
+func crosses(rect: Rect2) -> bool:
+	for slot in _pool.size():
+		if _held_on[slot] == 0 or not _pool[slot].visible:
+			continue
+		var running := _tweens[slot]
+		if running == null or not running.is_valid():
+			continue
+		var age := running.get_total_elapsed_time()
+		if age >= LIFETIME:
+			continue
+		var from := _held_from[slot]
+		var half := _held_half[slot] * (_held_punch[slot] if age < PUNCH_TIME else 1.0) + _held_pad[slot]
+		var k := age / LIFETIME
+		var now_y := from.y - _held_rise[slot] * (2.0 * k - k * k)
+		var end_y := from.y - _held_rise[slot]
+		var swept := Rect2(from.x - half.x, end_y - half.y, half.x * 2.0, now_y - end_y + half.y * 2.0)
+		if swept.intersects(rect):
+			return true
+	return false
+
 func _hud_keep_out() -> Rect2:
 	# Numbers can be asked for during teardown — a kind item banks its sustained kindness in
 	# `_exit_tree`, which pays out — and by then this layer may have left the tree, where
@@ -483,7 +558,7 @@ func _hud_keep_out() -> Rect2:
 const NOWHERE := Vector2(INF, INF)
 
 ## Progression lines — a rank, a clean, a knockout, a rebirth. Always drawn: they search the
-## whole play area for room, and past that put away anything lesser that is in the way. Payout
+## whole play area for room, and past that put away any payout that is in the way. Payout
 ## numbers rank by their tier, 0..4, and a streak tag by its own (one hotter than its number).
 const RANK_HEADLINE := 10
 
@@ -632,24 +707,34 @@ func callout(text: String, world_pos: Vector2, colour: Color, weight: float = 1.
 	var scale := lerpf(0.8, 1.0, base) + 0.5 * maxf(w - 1.0, 0.0)
 	return spawn_number(text, world_pos, colour, scale, tier, CALLOUT_RANK, key, LEAN_UP)
 
-## The ink past the label's box. The outline is drawn outside the glyphs and the shadow two
-## pixels right of them; vertically the font's own line height already has room for both.
+## The ink past the label's box, and a hair of air. The outline is drawn outside the glyphs and
+## the shadow two pixels right of them; vertically the font's own line height has room for both.
+## The air is `LINE_AIR` on every side: two lines placed flush met outline to shadow, and a stream
+## of them read as one pile even though no two overlapped (the chainsaw's grind, D77's captures).
+const LINE_AIR := 3.0
+
 func _pad(tier: int, scale: float) -> Vector2:
-	return Vector2(float(TIER_OUTLINE[tier]) * 0.5 + 2.0, 0.0) * scale
+	return Vector2(float(TIER_OUTLINE[tier]) * 0.5 + 2.0 + LINE_AIR, LINE_AIR) * scale
 
 ## Where a new number goes: where it was aimed if nothing will be there, otherwise the nearest
 ## place within reach that nothing will be, otherwise over lesser numbers, otherwise nowhere.
 ##
-## A headline only steps around other headlines. Anything lesser where it lands is put away:
-## a knockout's second line used to travel two hundred pixels to get round the payout of the
-## very hit that knocked him out, which read as two unrelated messages.
+## A headline only steps around other headlines and an ability's words (D77 amended). Any payout
+## where it lands is put away: a knockout's second line used to travel two hundred pixels to get
+## round the payout of the very hit that knocked him out, which read as two unrelated messages.
+## Every line steps around a badge on him, and a word around his face (`_keep_outs`).
 func _place(want: Vector2, half: Vector2, pad: Vector2, punch: float, rise: float,
 		rank: int, lean: int) -> Vector2:
 	var at := _clear_of_hud(want, half, rise)
 	var down_cost := LEAN_COST if lean < 0 else (1.0 / LEAN_COST if lean > 0 else 1.0)
+	_gather_keep_outs(rank >= CALLOUT_RANK)
+	var peak := half * punch + pad
 	if rank >= RANK_HEADLINE:
-		_constrain(at, INF, half, pad, punch, rise, RANK_HEADLINE)
-		var line_at := _nearest_free(at, half, pad, rise, INF, down_cost)
+		# A headline steps around the other headlines and around an ability's words: a rank-up on
+		# an ability's first use (which it always is, the first time) used to put away the very
+		# word it was ranking for — "KATANA RANK 1" and no "SLASH!" (D77's captures).
+		_constrain(at, INF, half, pad, punch, rise, CALLOUT_RANK)
+		var line_at := _nearest_free(at, half, pad, rise, INF, down_cost, peak)
 		if not line_at.is_finite():
 			line_at = at
 		_constrain(line_at, 0.0, half, pad, punch, rise, 0)
@@ -657,11 +742,14 @@ func _place(want: Vector2, half: Vector2, pad: Vector2, punch: float, rise: floa
 		return line_at
 	var reach := maxf((half.y + pad.y) * 2.0 * REACH_LINES, REACH_MIN)
 	_constrain(at, reach, half, pad, punch, rise, 0)
-	var spot := _nearest_free(at, half, pad, rise, reach, down_cost)
+	var spot := _nearest_free(at, half, pad, rise, reach, down_cost, peak)
 	if spot.is_finite():
 		return spot
 	# No room. Whatever is in the way at the aimed spot gives way to a number that outranks all
-	# of it; otherwise this one is not drawn.
+	# of it; otherwise this one is not drawn. A badge never gives way to a line: a spot on one is
+	# no spot at all.
+	if _on_a_keep_out(at, peak, rise):
+		return NOWHERE
 	for row in _c_slot.size():
 		var band := _band(row, at.x)
 		if band.x < at.y and at.y < band.y and _held_rank[_c_slot[row]] >= rank:
@@ -774,11 +862,13 @@ func _band(row: int, x: float) -> Vector2:
 ## Columns tried: straight up and down from the aimed spot, and flush beside each number that
 ## is in the way there — close enough to read as one burst, far enough to miss its punch.
 func _nearest_free(at: Vector2, half: Vector2, pad: Vector2, rise: float, reach: float,
-		down_cost: float) -> Vector2:
+		down_cost: float, peak: Vector2 = Vector2.ZERO) -> Vector2:
 	var view := get_viewport().get_visible_rect().size
 	var keep := _hud_keep_out()
+	if peak == Vector2.ZERO:
+		peak = half + pad
 	var best_cost := reach + 0.001
-	var y := _open_row(at.x, at.y, half, pad, rise, keep, view, best_cost, down_cost)
+	var y := _open_row(at.x, at.y, half, pad, rise, keep, view, best_cost, down_cost, peak)
 	var best := NOWHERE
 	if is_finite(y):
 		best = Vector2(at.x, y)
@@ -787,25 +877,32 @@ func _nearest_free(at: Vector2, half: Vector2, pad: Vector2, rise: float, reach:
 			return best
 		best_cost = _lift_cost(y - at.y, down_cost)
 	var side := half.x + pad.x
+	# Columns flush beside each number in the way, and beside each badge in the way.
+	var columns := PackedFloat32Array()
 	for row in _c_slot.size():
 		var band := _band(row, at.x)
 		if band.x >= band.y:
 			continue
-		for dir in [1.0, -1.0]:
-			var x: float = _c_x[row] + float(dir) * _c_wide[row]
-			var sideways := absf(x - at.x)
-			if sideways >= best_cost:
-				continue
-			# A column of its own making must be on screen; the aimed one is taken as it comes.
-			if x - side < 0.0 or x + side > view.x:
-				continue
-			y = _open_row(x, at.y, half, pad, rise, keep, view, best_cost - sideways, down_cost)
-			if not is_finite(y):
-				continue
-			var cost := sideways + _lift_cost(y - at.y, down_cost)
-			if cost < best_cost:
-				best_cost = cost
-				best = Vector2(x, y)
+		columns.append(_c_x[row] + _c_wide[row])
+		columns.append(_c_x[row] - _c_wide[row])
+	for rect in _keep_outs:
+		if absf(at.x - rect.get_center().x) < rect.size.x * 0.5 + peak.x:
+			columns.append(rect.end.x + peak.x + 0.5)
+			columns.append(rect.position.x - peak.x - 0.5)
+	for x in columns:
+		var sideways := absf(x - at.x)
+		if sideways >= best_cost:
+			continue
+		# A column of its own making must be on screen; the aimed one is taken as it comes.
+		if x - side < 0.0 or x + side > view.x:
+			continue
+		y = _open_row(x, at.y, half, pad, rise, keep, view, best_cost - sideways, down_cost, peak)
+		if not is_finite(y):
+			continue
+		var cost := sideways + _lift_cost(y - at.y, down_cost)
+		if cost < best_cost:
+			best_cost = cost
+			best = Vector2(x, y)
 	return best
 
 ## What moving a number `by` pixels vertically costs: its distance, with a move down weighted.
@@ -815,7 +912,7 @@ func _lift_cost(by: float, down_cost: float) -> float:
 ## The free centre height in column `x` cheapest to move to from `y0` and costing less than
 ## `limit`, or INF. `y0` itself if nothing is in the way. Ties go up: numbers rise anyway.
 func _open_row(x: float, y0: float, half: Vector2, pad: Vector2, rise: float, keep: Rect2,
-		view: Vector2, limit: float, down_cost: float) -> float:
+		view: Vector2, limit: float, down_cost: float, peak: Vector2 = Vector2.ZERO) -> float:
 	var bands := PackedVector2Array()
 	var clear := true
 	for row in _c_slot.size():
@@ -836,6 +933,17 @@ func _open_row(x: float, y0: float, half: Vector2, pad: Vector2, rise: float, ke
 		var hud := Vector2(keep.position.y - half.y, keep.end.y + half.y + rise)
 		bands.append(hud)
 		if y0 > hud.x + 0.01 and y0 < hud.y - 0.01:
+			clear = false
+	# So is every badge on him, and his face for a word: against the peak of the punch, not the
+	# settled size, because a line is never allowed to touch one (the HUD only minds the settled).
+	if peak == Vector2.ZERO:
+		peak = half + pad
+	for rect in _keep_outs:
+		if absf(x - rect.get_center().x) >= rect.size.x * 0.5 + peak.x:
+			continue
+		var band := Vector2(rect.position.y - peak.y, rect.end.y + peak.y + rise)
+		bands.append(band)
+		if y0 > band.x + 0.01 and y0 < band.y - 0.01:
 			clear = false
 	if clear:
 		return y0

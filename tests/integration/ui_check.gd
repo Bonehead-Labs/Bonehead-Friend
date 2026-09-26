@@ -104,6 +104,7 @@ func _ready() -> void:
 	await _the_payouts_are_visible()
 	await _the_big_numbers_dodge_the_hud()
 	await _the_numbers_keep_apart()
+	await _abilities_read_clear_of_him()
 	await _numbers_leave_without_a_ghost()
 	await _the_hud_reads_on_any_desk()
 	await _the_power_leaves_your_hands_free()
@@ -1256,6 +1257,125 @@ func _the_numbers_keep_apart() -> void:
 
 	Settings.focus_intensity = saved
 	await _quiet_numbers(fx)
+
+## Nothing an ability says is printed over the badge on him or across his face (D77 amended).
+##
+## The first capture pass of D77, frame by frame: "KATANA RANK 1" straight through the slash badge
+## (every first use is also the first rank-up), the towel's trickles risen onto the Swaddle badge
+## where D75 sends them, an ability's name across his eyes with the weapon at him, and the rank-up
+## putting away the very word it was ranking for. FXLayer placed lines apart from lines and knew
+## nothing of the badges; now a badge is something a line steps around, a badge put up under a line
+## waits for it, a word steps around his face, and a headline steps around a word.
+##
+## Asserted as each failed, on the real layer and the real badge, at five points through the rise:
+## nothing drawn from a line ever meets anything drawn by a badge or his face. He is held still for
+## it, so the checks are about the placement and not about him walking into a word.
+func _abilities_read_clear_of_him() -> void:
+	_suite("ability words and badges")
+	var fx := _find(_main, "FXLayer") as FXLayer
+	var buddy := get_tree().get_first_node_in_group(&"buddy") as Buddy
+	var afx := AbilityFX.of(buddy) if buddy else null
+	if fx == null or buddy == null or afx == null:
+		_check("the FX layer, him and the ability effects are present to test", false)
+		return
+	var saved := Settings.focus_intensity
+	Settings.focus_intensity = Settings.Intensity.NORMAL
+	var was_frozen := buddy.freeze
+	buddy.freeze = true
+	await _quiet_numbers(fx)
+	var slash := {"icon": &"slash", "colour": Color("6fa8ff"), "seconds": 3.0}
+
+	# The katana's frame: the badge is up when its first use ranks the katana up.
+	var badge := AbilityFX.state(buddy, &"ui_sliced", slash, self, afx)
+	await get_tree().process_frame
+	EventBus.mastery_rank_up.emit(&"katana", 1)
+	await get_tree().process_frame
+	_check("with a badge up, the rank-up still prints", _visible_label(fx, "KATANA") != null, "")
+	await _clear_of(fx, [badge], false, "a rank-up and the badge up before it")
+	AbilityFX.clear_states(buddy, self)
+	await _quiet_numbers(fx)
+
+	# The other order, on one frame: the rank-up first, then the state it ranked for.
+	EventBus.mastery_rank_up.emit(&"katana", 2)
+	badge = AbilityFX.state(buddy, &"ui_sliced", slash, self, afx)
+	# Two frames: `process_frame` resumes this before the badge's own `_process` has run.
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_check("a badge put up under a rising line waits for it", badge.waiting,
+		"badge %s, line %s" % [badge.drawn_rect(), _drawn_rect(_visible_label(fx, "KATANA"))
+			if _visible_label(fx, "KATANA") else Rect2()])
+	await _clear_of(fx, [badge], false, "a rank-up and the badge put up after it")
+	var shown := false
+	for i in 90:
+		await get_tree().process_frame
+		if not badge.waiting and badge.drawn_rect().has_area():
+			shown = true
+			break
+	_check("and is drawn once the line has passed", shown, "")
+	await _quiet_numbers(fx)
+
+	# The towel's frame: a trickle risen over his head, where the badge is (D75).
+	Economy.paying_kind_act = false
+	var centre := buddy.get_interaction_rect().get_center()
+	for i in 3:
+		EventBus.payout.emit(Economy.HEARTS, 2.0 + float(i) * 0.1, centre, &"warm_towel")
+		await get_tree().process_frame
+	var trickles := 0
+	for child in fx.get_children():
+		if child is Label and (child as Label).visible and (child as Label).text.begins_with("+2"):
+			trickles += 1
+	_check("trickles over his head still print beside a badge (%d of 3)" % trickles, trickles >= 2, "")
+	await _clear_of(fx, [badge], false, "trickles risen over his head and the badge there")
+	AbilityFX.clear_states(buddy, self)
+	await _quiet_numbers(fx)
+
+	# A word called out with the weapon at him: aimed at his face, drawn clear of it.
+	var face := fx.face_rect()
+	_check("his face is found to keep words off it", face.has_area(), str(face))
+	fx.callout("BRUSH CLEAR", face.get_center(), Color("e0c060"), 1.0, &"ability:ui_brush")
+	await get_tree().process_frame
+	_check("a word aimed at his face is still drawn", _visible_label(fx, "BRUSH CLEAR") != null, "")
+	await _clear_of(fx, [], true, "a word aimed at his face")
+	await _quiet_numbers(fx)
+
+	# The word for the moment and the rank-up it earned, on one frame: both print.
+	var head := buddy.get_interaction_rect()
+	fx.callout("SLASH!", Vector2(head.get_center().x, head.position.y - 58.0), Color("6fa8ff"), 1.0,
+		&"ability:ui_iaido")
+	EventBus.mastery_rank_up.emit(&"katana", 3)
+	await get_tree().process_frame
+	_check("a rank-up does not put away the ability's word it lands beside",
+		_visible_label(fx, "SLASH!") != null and _visible_label(fx, "KATANA") != null, "")
+	await _apart_for_life(fx, "an ability's word and its rank-up")
+
+	buddy.freeze = was_frozen
+	Settings.focus_intensity = saved
+	await _quiet_numbers(fx)
+
+## Samples five points through the lines' rise: no visible line's ink meets a badge's drawn ink,
+## nor, with `face`, his face.
+func _clear_of(fx: FXLayer, badges: Array, face: bool, what: String) -> void:
+	var clashes: Array[String] = []
+	var elapsed := 0.0
+	for at in [0.0, 0.12, 0.3, 0.55, 0.8]:
+		if at > elapsed:
+			await get_tree().create_timer(at - elapsed).timeout
+			elapsed = at
+		var keep: Array[Rect2] = []
+		for badge in badges:
+			if is_instance_valid(badge):
+				keep.append((badge as AbilityFX.StateMark).drawn_rect())
+		if face:
+			keep.append(fx.face_rect())
+		for child in fx.get_children():
+			var label := child as Label
+			if label == null or not label.visible or label.z_index == FXLayer.Z_COIN:
+				continue
+			var ink := _drawn_rect(label)
+			for rect in keep:
+				if rect.has_area() and ink.intersects(rect):
+					clashes.append("t+%.2f: \"%s\" %s over %s" % [at, label.text, ink, rect])
+	_check("%s never meet, at any point in the rise" % what, clashes.is_empty(), "; ".join(clashes))
 
 ## Nothing on the FX layer is ever drawn part-transparent (D68). A number used to fade out over
 ## the second half of its life, and over a flat backdrop — the chroma green a streamer keys out —
