@@ -907,9 +907,11 @@ func _on_kindness_sustained(source_id: StringName, _value: float, world_pos: Vec
 ## trickles. For those only the verb's own act is the hand's, and the verb says so while it
 ## pays.
 func _worked_by_hand(source_id: StringName) -> bool:
-	if ItemVerbs.paying:
+	if ItemVerbs.paying or WeaponAbility.paying:
 		return true
-	if ItemVerbs.carried_by(source_id):
+	# An ability's line is a `controls` line too (D78), and the sponge is still a sponge: only the
+	# ability's own payments are the hand's, and they say so while they pay.
+	if ItemVerbs.carried_by(source_id) or AbilityTable.is_kind(source_id):
 		return false
 	var item := ItemDB.get_item(source_id)
 	return item != null and item.is_kind() and not item.controls.is_empty()

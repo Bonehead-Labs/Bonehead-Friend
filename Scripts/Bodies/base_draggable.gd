@@ -45,6 +45,14 @@ const GROUP_INTERACTIVE := &"interactive"
 ## the buddy is draggable too, and no gesture may ever delete him.
 const GROUP_SPAWNED := &"spawned_item"
 
+## What right does while it is in your hand, if `AbilityTable` has a row for it (D74 for the melee
+## weapons, D78 for everything else it is plausible for): a child built on `_ready`, or null. It
+## sees every event first and claims a right press only while the thing is held (or its ability is
+## still at work out of the hand) and never with Shift, so the bin and every subclass's own
+## right-click are exactly as they were. Here rather than on `WeaponBase`, where D74 put it, so a
+## ball, a sponge or a sticky bomb carries one by the same route a bat does.
+var ability: WeaponAbility
+
 func _ready() -> void:
 	custom_integrator = false
 	continuous_cd = RigidBody2D.CCD_MODE_CAST_RAY
@@ -52,6 +60,7 @@ func _ready() -> void:
 	_spawn_mass = mass
 	apply_augments()
 	apply_juice()
+	ability = AbilityTable.attach(self)
 
 ## The mass the scene was authored with, before any Weight augment.
 var _spawn_mass: float = 0.0
@@ -89,6 +98,11 @@ var gesture_zones: GestureZones
 ## Unhandled, not _input: UI must be able to consume a click before the world sees it,
 ## otherwise every panel the player opens also grabs whatever is behind it.
 func _unhandled_input(event: InputEvent) -> void:
+	# The ability sees every event before anything else, and claims only a right press while the
+	# thing is held (or its effect is still out of the hand), never with Shift (D74, D78).
+	if ability and ability.take(event):
+		get_viewport().set_input_as_handled()
+		return
 	# The zones see every event first and may claim a press — a bubble pops instead of the
 	# sheet lifting. Shift+right is never theirs, so the bin below still works on everything.
 	if gesture_zones and gesture_zones.take(event):
@@ -151,8 +165,12 @@ func bin_myself() -> void:
 ## because it lives in the base class and the subclass calls `super` — so right-clicking a
 ## grenade deleted it instead of arming it, and explosives silently stopped working
 ## altogether.
+##
+## Right while holding something with an ability is the ability, and so is right on it while
+## the ability is still at work out of the hand — an axe in the air, a towel round him (D74, D78).
+## Right on it lying idle on the desk is still the bin.
 func right_click_is_mine() -> bool:
-	return false
+	return ability != null and (dragging or ability.is_active())
 
 func _start_drag() -> void:
 	if not handle:
@@ -170,12 +188,16 @@ func _start_drag() -> void:
 	mouse_joint.softness = joint_softness
 	mouse_joint.bias = joint_bias
 	add_child(mouse_joint)
+	if ability:
+		ability.on_picked_up()
 
 func _end_drag() -> void:
 	dragging = false
 	if mouse_joint:
 		mouse_joint.queue_free()
 		mouse_joint = null
+	if ability:
+		ability.on_dropped()
 
 ## Maximum speed and spin a dragged body may be given by the joint (D54). Not a leash — at a
 ## fast 1200 px/s hand the bat peaks around 1,600 px/s, so this never fires in normal play. It

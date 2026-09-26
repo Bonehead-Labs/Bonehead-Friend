@@ -1,11 +1,13 @@
 class_name AbilityTable
 extends RefCounted
 
-## Every held weapon's ability, one row per item (docs/decisions.md D74). The sibling of
-## `tools/verb_table.gd` (D67): a row, not a script, for everything the archetype already does.
+## Every held weapon's ability, one row per item (docs/decisions.md D74) — and since D78 every
+## other held thing's it is plausible for: the balls, the care items, a box of donuts, two charges.
+## The sibling of `tools/verb_table.gd` (D67): a row, not a script, for everything the archetype
+## already does.
 ##
-## **Read at runtime, not seeded into scenes.** `WeaponBase._ready` asks `attach()` for its row and
-## adds the archetype as a child. The verbs are seeded because their zones are geometry that sits
+## **Read at runtime, not seeded into scenes.** `BaseDraggable._ready` asks `attach()` for its row
+## and adds the archetype as a child. The verbs are seeded because their zones are geometry that sits
 ## beside the art; an ability is behaviour and tuning, and seeding it would mean re-running four
 ## seeders that own the weapons' scenes — one of which (`seed_bodies`) has no `--only` and would
 ## rewrite the grenade, the dynamite, the mine and the firework to reach the bat — for every number
@@ -17,7 +19,9 @@ extends RefCounted
 ##   id         the ability's own name, `snake_case` — the key its sounds and his rows use
 ##   name       what the shop calls it
 ##   archetype  `charge`, `dash`, `stun`, `sustain`, `shockwave`, `projectile`, `spin`, `throw`,
-##              `transform`, `tether`, `clamp`
+##              `transform`, `tether`, `clamp`, `fuse` (D78: a lit charge's second press)
+##   kind       optional, true for an act of kindness (D78): it pays with `give`, never bills him,
+##              and its `worth` is kindness value in pets, priced by `kindness_uplift`
 ##   script     optional: a subclass of the archetype, for a weapon whose ability needs a hook
 ##              its archetype lacks. The row still names the archetype it builds on
 ##   controls   the line `ItemData.controls` carries — written onto the item by
@@ -50,6 +54,8 @@ const ARCHETYPES := {
 	&"transform": "res://Scripts/Bodies/Abilities/transform_ability.gd",
 	&"tether": "res://Scripts/Bodies/Abilities/tether_ability.gd",
 	&"clamp": "res://Scripts/Bodies/Abilities/clamp_ability.gd",
+	# D78: a lit charge's second right press takes its fuse over.
+	&"fuse": "res://Scripts/Bodies/Abilities/fuse_ability.gd",
 }
 
 const ABILITIES := {
@@ -450,8 +456,9 @@ static func item_ids() -> Array[StringName]:
 		out.append(id)
 	return out
 
-## Gives a weapon its ability, if this table has one for it. Called by every `WeaponBase` on
-## `_ready`; does nothing to the rest. Returns the ability, or null.
+## Gives a held thing its ability, if this table has one for it. Called by every `BaseDraggable` on
+## `_ready` (a weapon since D74, anything since D78); does nothing to the rest. Returns the ability,
+## or null.
 static func attach(weapon: Node) -> WeaponAbility:
 	var item_id: StringName = weapon.get(&"item_id")
 	if item_id == &"" or not ABILITIES.has(item_id):
@@ -468,7 +475,7 @@ static func attach(weapon: Node) -> WeaponAbility:
 		return null
 	ability.name = "Ability"
 	ability.row = row
-	ability.body = weapon as WeaponBase
+	ability.body = weapon as BaseDraggable
 	weapon.add_child(ability)
 	return ability
 
@@ -484,10 +491,42 @@ static func _script_for(row: Dictionary) -> Script:
 
 ## How much a player's damage with this weapon goes up if they use its ability every time it is
 ## ready, given how many ordinary hits a second they land. `pacing_sim` multiplies the weapon's
-## share of damage by it. One for a weapon with no ability.
+## share of damage by it. One for a weapon with no ability, and for a kind row, which deals none.
 static func damage_uplift(item_id: StringName, hits_per_second: float) -> float:
 	var row := row_for(item_id)
-	if row.is_empty() or hits_per_second <= 0.0:
+	if row.is_empty() or hits_per_second <= 0.0 or bool(row.get("kind", false)):
 		return 1.0
-	var cycle := maxf(float(row.get("cooldown", 3.0)) + float(row.get("busy", 1.0)), 0.5)
-	return 1.0 + float(row.get("worth", 0.0)) / (hits_per_second * cycle)
+	# A charge is used once a throw, and its ability rides every throw it is used on: its `worth`
+	# is in ordinary blasts of itself, so each throw deals `1 + worth` of one (D78).
+	if StringName(row.get("archetype", &"")) == &"fuse":
+		return 1.0 + float(row.get("worth", 0.0))
+	return 1.0 + float(row.get("worth", 0.0)) / (hits_per_second * cycle_seconds(item_id))
+
+## Whether an item's ability is an act of kindness (D78): it pays Hearts on the bus and bills
+## nothing.
+static func is_kind(item_id: StringName) -> bool:
+	return bool(row_for(item_id).get("kind", false))
+
+## One use and the wait after it: what a player who uses it every time it is ready spends per use.
+static func cycle_seconds(item_id: StringName) -> float:
+	var row := row_for(item_id)
+	return maxf(float(row.get("cooldown", 3.0)) + float(row.get("busy", 1.0)), 0.5)
+
+## D67's ceiling for anything worked by hand on the kind side, which D78 holds every kind row to:
+## no faster than this much kindness value a second, however fast it is used.
+const KIND_CEILING := 1.5
+
+## Kindness value a second a kind row adds when it is used every time it is ready (D78).
+static func kindness_rate(item_id: StringName) -> float:
+	if not is_kind(item_id):
+		return 0.0
+	return float(row_for(item_id).get("worth", 0.0)) / cycle_seconds(item_id)
+
+## How much a player's kindness with this item goes up if they use its ability every time it is
+## ready, given how many pets a second the model credits the hand with: the kind side's
+## `damage_uplift`, the row's `worth` being kindness value in pets. `pacing_sim` multiplies the
+## item's share of kindness by it. One for anything with no kind row.
+static func kindness_uplift(item_id: StringName, pets_per_second: float) -> float:
+	if not is_kind(item_id) or pets_per_second <= 0.0:
+		return 1.0
+	return 1.0 + kindness_rate(item_id) / pets_per_second
