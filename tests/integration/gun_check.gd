@@ -521,19 +521,25 @@ func _a_burst_climbs_and_stops_on_any_release() -> void:
 	await _steps(2)
 	await _a_held_power_lets_go_with_the_focus()
 
-## The four held cursor powers (D70): each ends its hold when the game loses focus, because the
-## release it waits for goes to whichever window has the focus. Their hold flags, by id.
+## The held cursor powers of D70: each ends its hold when the game loses focus, because the
+## release it waits for goes to whichever window has the focus. Their hold flags, by id. (The
+## minigun was one until D71 put it in your hand; its trigger is the check just above. D72's
+## held spells are driven with real presses in powers_check.)
 func _a_held_power_lets_go_with_the_focus() -> void:
 	const HOLDS := {
-		&"minigun": "_holding", &"magnifying_glass": "_burning",
-		&"open_hand": "_stroking", &"gravity_vortex": "_pulling",
+		&"magnifying_glass": "_burning", &"open_hand": "_stroking", &"gravity_vortex": "_pulling",
 	}
 	for id in HOLDS:
 		var item := ItemDB.get_item(id)
 		if item == null or item.scene == null:
 			_check("'%s' is a power" % id, false)
 			continue
-		var power := item.scene.instantiate() as CursorPowerBase
+		var node := item.scene.instantiate()
+		var power := node as CursorPowerBase
+		if power == null:
+			_check("'%s' is a cursor power" % id, false)
+			node.free()
+			continue
 		_world.add_child(power)
 		power.set(HOLDS[id], true)
 		power.propagate_notification(NOTIFICATION_APPLICATION_FOCUS_OUT)

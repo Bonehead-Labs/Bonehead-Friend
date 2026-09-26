@@ -3081,6 +3081,23 @@ brain 330 with its two known failures (car, cradle); pacing 4/4 at 9:50:48. wind
 one line — the card at 1440x960, pinned 3x, ends 8 px below the window — identically with the
 seven items and this branch's HUD change taken back out, so it is not this decision's.
 
+### Fixed 2026-09-26: a held spell went on holding after alt-tab
+
+D70 made every held power let go when the game loses the focus, because the release it waits for
+goes to whichever window has it. The seven spells arrived the same night on a base, `SpellPower`,
+that keeps its own `_held` and never answered `release_hold()`, so four of them reopened the bug
+D70 closed: alt-tab with the left button down and the meteor shower kept calling rocks, and paying
+Bones, at a desk nobody was at; telekinesis kept its grip; levitation kept him up; and the rainbow
+was cast by the next left release anywhere. Losing the focus is a release now, where the cursor
+was last seen — except the rainbow's, whose release is a cast, and which cancels the half-drawn
+arc instead, as a cancelled gesture never fires a toy.
+
+It went unseen because the check for it had gone dead: gun_check's list of held powers still named
+the minigun, which D71 put in your hand, and `instantiate() as CursorPowerBase` came back null and
+stopped the loop at its first line with a script error and no failure. The list is the three held
+powers left, a wrong type fails by name, and powers_check drives the four held spells with real
+presses and the focus-out the game receives (all four fail with the fix taken out).
+
 
 ## D73 — Idle did not double: one run measured a busy machine, and the stage now says what it held (2026-09-26)
 
