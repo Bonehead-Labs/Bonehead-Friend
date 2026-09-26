@@ -25,6 +25,10 @@ const SPIKE := &"spike"
 const STAPLE := &"staple"
 const KEYCAP := &"keycap"
 const COFFEE := &"coffee"
+## D78's kind shots: a drop wrung out of the sponge, a donut flipped out of its box. The same rules —
+## the ability that threw it decides what landing on him means, and for these it is never a hit.
+const WATER := &"water"
+const DONUT := &"donut"
 
 const STEEL := Color("c9ced8")
 const IRON := Color("2a2e38")
@@ -34,6 +38,11 @@ const KEY_BODY := Color("a9713f")
 const COFFEE_DARK := Color("4a2a14")
 const COFFEE_LIGHT := Color("8a5a2b")
 const OUTLINE := Color("141210")
+const WATER_DEEP := Color("2e8fd8")
+const WATER_LIGHT := Color("9fdcff")
+const DOUGH := Color("c98a4b")
+const ICING := Color("ff7fb8")
+const SPRINKLES: Array[Color] = [Color("fff1b8"), Color("46c48f"), Color("5fb8ff")]
 
 var ability: WeakRef
 var look: StringName = SPIKE
@@ -75,18 +84,18 @@ func _ready() -> void:
 	var shape := CollisionShape2D.new()
 	shape.name = "CollisionShape2D"
 	var circle := CircleShape2D.new()
-	circle.radius = 5.0 if look == KEYCAP or look == COFFEE else 3.0
+	circle.radius = 6.0 if look == DONUT else (5.0 if look == KEYCAP or look == COFFEE else 3.0)
 	shape.shape = circle
 	add_child(shape)
 	z_index = 31
-	if look != KEYCAP:
+	if look != KEYCAP and look != DONUT:
 		_trail = Line2D.new()
 		_trail.name = "Trail"
 		_trail.top_level = true
 		_trail.show_behind_parent = true
 		_trail.antialiased = false
 		_trail.width = 4.0 if look == COFFEE else 3.0
-		_trail.default_color = COFFEE_LIGHT if look == COFFEE else STEEL
+		_trail.default_color = COFFEE_LIGHT if look == COFFEE else (WATER_LIGHT if look == WATER else STEEL)
 		var taper := Curve.new()
 		taper.add_point(Vector2(0.0, 0.1))
 		taper.add_point(Vector2(1.0, 1.0))
@@ -257,3 +266,19 @@ func _draw() -> void:
 			draw_circle(Vector2(-1, -1), 4.0, COFFEE_LIGHT)
 			draw_rect(Rect2(-7, -2, 3, 3), COFFEE_DARK)
 			draw_rect(Rect2(4, 1, 3, 3), COFFEE_DARK)
+		WATER:
+			# A drop, point up, on a dark rim: a light drop on a pale skeleton is invisible.
+			draw_colored_polygon(PackedVector2Array([Vector2(0, -8), Vector2(-5, 0), Vector2(5, 0)]), OUTLINE)
+			draw_circle(Vector2(0, 1), 5.0, OUTLINE)
+			draw_colored_polygon(PackedVector2Array([Vector2(0, -6), Vector2(-3, 0), Vector2(3, 0)]), WATER_DEEP)
+			draw_circle(Vector2(0, 1), 3.5, WATER_DEEP)
+			draw_rect(Rect2(-2, -1, 2, 2), WATER_LIGHT)
+		DONUT:
+			# A ring of dough under pink icing, a dark hole and three sprinkles: seven art pixels.
+			draw_circle(Vector2.ZERO, 8.0, OUTLINE)
+			draw_circle(Vector2.ZERO, 7.0, DOUGH)
+			draw_circle(Vector2(0, -1), 5.5, ICING)
+			draw_circle(Vector2.ZERO, 2.5, OUTLINE)
+			draw_rect(Rect2(-5, -3, 2, 1), SPRINKLES[0])
+			draw_rect(Rect2(2, -5, 1, 2), SPRINKLES[1])
+			draw_rect(Rect2(3, 1, 2, 1), SPRINKLES[2])

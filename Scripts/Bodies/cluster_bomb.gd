@@ -34,8 +34,12 @@ extends ThrowableBase
 
 var _burst := false
 
+## Where the submunitions go, when something chose (D78's Airburst: a ring round his feet): one
+## point each, in order. Empty, they scatter round the casing as they always did.
+var scatter_points: Array[Vector2] = []
+
 func explode() -> void:
-	if _burst:
+	if _burst or fuse_held():
 		return
 	_burst = true
 	# The two things every charge says as it goes, which `ThrowableBase.explode` says and this
@@ -96,6 +100,8 @@ func _submunition(i: int) -> void:
 		# sqrt on the radius, or the scatter piles up in the middle: drawing r uniformly
 		# over [0, spread] is not drawing uniformly over the disc.
 		var at := _scatter_origin + Vector2.RIGHT.rotated(randf() * TAU) * (spread * sqrt(randf()))
+		if i < scatter_points.size():
+			at = scatter_points[i]
 		_report(ExplosionUtil.point_blast(get_world_2d().direct_space_state, at,
 			submunition_radius, submunition_force), at)
 		if Effects_Player:

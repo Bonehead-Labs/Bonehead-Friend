@@ -1,11 +1,13 @@
 class_name AbilityTable
 extends RefCounted
 
-## Every held weapon's ability, one row per item (docs/decisions.md D74). The sibling of
-## `tools/verb_table.gd` (D67): a row, not a script, for everything the archetype already does.
+## Every held weapon's ability, one row per item (docs/decisions.md D74) — and since D78 every
+## other held thing's it is plausible for: the balls, the care items, a box of donuts, two charges.
+## The sibling of `tools/verb_table.gd` (D67): a row, not a script, for everything the archetype
+## already does.
 ##
-## **Read at runtime, not seeded into scenes.** `WeaponBase._ready` asks `attach()` for its row and
-## adds the archetype as a child. The verbs are seeded because their zones are geometry that sits
+## **Read at runtime, not seeded into scenes.** `BaseDraggable._ready` asks `attach()` for its row
+## and adds the archetype as a child. The verbs are seeded because their zones are geometry that sits
 ## beside the art; an ability is behaviour and tuning, and seeding it would mean re-running four
 ## seeders that own the weapons' scenes — one of which (`seed_bodies`) has no `--only` and would
 ## rewrite the grenade, the dynamite, the mine and the firework to reach the bat — for every number
@@ -17,7 +19,9 @@ extends RefCounted
 ##   id         the ability's own name, `snake_case` — the key its sounds and his rows use
 ##   name       what the shop calls it
 ##   archetype  `charge`, `dash`, `stun`, `sustain`, `shockwave`, `projectile`, `spin`, `throw`,
-##              `transform`, `tether`, `clamp`
+##              `transform`, `tether`, `clamp`, `fuse` (D78: a lit charge's second press)
+##   kind       optional, true for an act of kindness (D78): it pays with `give`, never bills him,
+##              and its `worth` is kindness value in pets, priced by `kindness_uplift`
 ##   script     optional: a subclass of the archetype, for a weapon whose ability needs a hook
 ##              its archetype lacks. The row still names the archetype it builds on
 ##   controls   the line `ItemData.controls` carries — written onto the item by
@@ -50,6 +54,8 @@ const ARCHETYPES := {
 	&"transform": "res://Scripts/Bodies/Abilities/transform_ability.gd",
 	&"tether": "res://Scripts/Bodies/Abilities/tether_ability.gd",
 	&"clamp": "res://Scripts/Bodies/Abilities/clamp_ability.gd",
+	# D78: a lit charge's second right press takes its fuse over.
+	&"fuse": "res://Scripts/Bodies/Abilities/fuse_ability.gd",
 }
 
 const ABILITIES := {
@@ -431,6 +437,124 @@ const ABILITIES := {
 		"drops": 7, "splash_speed": 620.0, "whip": 9.0, "scald_force": 900.0, "scald_mult": 1.0,
 		"shove": 0.2, "grime": 0.04, "steam_seconds": 1.2, "steam_ticks": 2, "steam_force": 450.0,
 	},
+
+	# --- D78: beyond the melee drawer ---
+	#
+	# The same button on everything else it is plausible for (the design sheet is in D78). A row
+	# marked `kind` pays Hearts through the bus (`WeaponAbility.give`) and never bills him, and its
+	# `worth` is kindness value, in pets, that one use adds on top of what the item pays anyway —
+	# `pacing_sim` prices it against petting (`kindness_uplift`), and no kind row may pay faster
+	# than D67's ceiling for a hand-worked act, 1.5 value a second over its cycle. The rest are
+	# harm, billed by him, their `worth` in ordinary hits (a charge's in ordinary blasts).
+	#
+	# Bowled, not thrown: down onto the desk and rolling at him with its topspin; the strike is billed
+	# once at x1.5 and he goes over like a pin, his landing the ball's.
+	&"bowling_ball": {
+		"id": &"strike", "name": "Strike", "archetype": &"throw",
+		"script": "res://Scripts/Bodies/Abilities/strike_ability.gd",
+		"controls": "Hold · Right: Strike — tap: bowled along the desk, he goes over",
+		"cooldown": 5.0, "busy": 1.5, "worth": 1.5,
+		"roll_speed": 900.0, "hit_force": 8000.0, "strike_mult": 1.5, "shove": 0.1, "topple": 11.0,
+		"lift": 260.0, "claim_seconds": 2.0, "out_seconds": 2.5,
+	},
+	# Pitched high over his glove, it breaks late and hard down into his hands; he holds it a moment
+	# and throws it back to you. A caught curveball is two ordinary catches.
+	&"baseball": {
+		"id": &"curveball", "name": "Curveball", "archetype": &"throw", "kind": true,
+		"script": "res://Scripts/Bodies/Abilities/curveball_ability.gd",
+		"controls": "Hold · Right: Curveball — tap: it breaks late into his hands",
+		"cooldown": 3.0, "busy": 1.6, "worth": 6.0,
+		"throw_speed": 820.0, "break_height": 70.0, "break_distance": 150.0, "break_accel": 5200.0,
+		"spin": 26.0, "curve_mult": 2.0, "hold_seconds": 0.6, "out_seconds": 1.4,
+		"return_speed": 900.0, "return_accel": 5000.0, "catch_radius": 48.0, "give_up_seconds": 3.0,
+	},
+	# Tossed up by the press, struck by the release: at the top of the toss it goes flat and fast,
+	# an ace; he volleys it back to the hand. A good serve is his catch and a share of an ace.
+	&"tennis_ball": {
+		"id": &"serve", "name": "Serve", "archetype": &"throw", "kind": true,
+		"script": "res://Scripts/Bodies/Abilities/serve_ability.gd",
+		"controls": "Hold · Right: Serve — hold to toss it up, let go at the top: an ace",
+		"cooldown": 2.5, "busy": 1.8, "worth": 6.0,
+		"toss_speed": 520.0, "window": 0.25, "min_speed": 500.0, "max_speed": 1150.0, "ace": 0.8,
+		"ace_value": 6.0, "out_seconds": 1.2, "return_speed": 1000.0, "return_accel": 5000.0,
+		"catch_radius": 48.0, "give_up_seconds": 3.0,
+	},
+	# Lobbed onto his head; he heads it back up four times, a count over his head, and the last one
+	# home to the hand. Each header is an act.
+	&"beach_ball": {
+		"id": &"keepy_uppy", "name": "Keepy-Uppy", "archetype": &"throw", "kind": true,
+		"script": "res://Scripts/Bodies/Abilities/keepy_uppy_ability.gd",
+		"controls": "Hold · Right: Keepy-Uppy — tap: lobbed onto his head, he heads it up",
+		"cooldown": 5.0, "busy": 4.5, "worth": 12.0,
+		"lob_height": 200.0, "bounce_height": 150.0, "window": 46.0, "headers": 4, "header_value": 3.0,
+		"hop": 170.0, "out_seconds": 2.5, "return_speed": 900.0, "return_accel": 5000.0,
+		"catch_radius": 56.0, "give_up_seconds": 3.0,
+	},
+	# Squeezed over him, it rains; every drop on him takes grime off, paid as the sponge pays for
+	# it, and the first is a rinse. Quicker than scrubbing, never richer.
+	&"sponge": {
+		"id": &"wring", "name": "Wring", "archetype": &"sustain", "kind": true,
+		"script": "res://Scripts/Bodies/Abilities/wring_ability.gd",
+		"controls": "Hold · Right: Wring — hold it over him: it rains, grime runs off",
+		"cooldown": 4.0, "busy": 2.5, "worth": 2.0,
+		"fuel_seconds": 2.0, "spin_up": 0.2, "tick_seconds": 0.08, "clean": 0.03, "rinse_value": 2.0,
+		"squeeze": 0.25,
+	},
+	# It flutters on him and he giggles, an act every 0.3 s, for 2.4 s of fluttering.
+	&"feather_duster": {
+		"id": &"tickle", "name": "Tickle", "archetype": &"sustain", "kind": true,
+		"script": "res://Scripts/Bodies/Abilities/tickle_ability.gd",
+		"controls": "Hold · Right: Tickle — hold it on him: he can't stop giggling",
+		"cooldown": 3.5, "busy": 2.4, "worth": 6.4,
+		"fuel_seconds": 2.4, "spin_up": 0.25, "tick_seconds": 0.3, "giggle_value": 0.8, "reach": 14.0,
+		"flutter": 0.3,
+	},
+	# Thrown round his shoulders, it stays there five seconds keeping him warm, with the hand free.
+	&"warm_towel": {
+		"id": &"swaddle", "name": "Swaddle", "archetype": &"throw", "kind": true,
+		"script": "res://Scripts/Bodies/Abilities/swaddle_ability.gd",
+		"controls": "Hold · Right: Swaddle — tap near him: it wraps round him, warm",
+		"cooldown": 8.0, "busy": 5.5, "worth": 18.0,
+		"reach": 300.0, "throw_speed": 650.0, "wrap_seconds": 5.0, "wrap_value": 3.0, "warm_rate": 3.0,
+		"drape": 1.25, "out_seconds": 1.2,
+	},
+	# One donut flipped out of the box into his mouth: a helping the box would have paid anyway, and
+	# a little for being hand-fed.
+	&"donut_box": {
+		"id": &"donut_toss", "name": "Donut Toss", "archetype": &"projectile", "kind": true,
+		"script": "res://Scripts/Bodies/Abilities/donut_toss_ability.gd",
+		"controls": "Hold · Right: Donut Toss — tap: one flips out into his mouth",
+		"cooldown": 1.2, "busy": 0.9, "worth": 1.0,
+		"toss_speed": 480.0, "reach": 380.0, "fed_bonus": 1.0, "spin": 5.0,
+	},
+	# Held up to him, the candles burn brighter as the wish gathers; let go, and he shuts his eyes,
+	# takes a breath and blows them out. The wish is an act; the cake is still his to eat.
+	&"birthday_cake": {
+		"id": &"make_a_wish", "name": "Make a Wish", "archetype": &"charge", "kind": true,
+		"script": "res://Scripts/Bodies/Abilities/make_a_wish_ability.gd",
+		"controls": "Hold · Right: Make a Wish — hold it near him, let go: he blows them out",
+		"cooldown": 6.0, "busy": 1.7, "worth": 8.0,
+		"reach": 260.0, "charge_seconds": 1.2, "min_charge": 0.6, "blow_delay": 0.45, "wish_value": 8.0,
+		"flame_rows": Vector2i(16, 19), "wicks": [Vector2(27, 18), Vector2(32, 18), Vector2(37, 18)],
+	},
+	# Lit, right again: on the clicker. It goes when it is clicked, wherever it is — stuck to him,
+	# most likely — or after ten seconds.
+	&"sticky_bomb": {
+		"id": &"remote", "name": "Remote", "archetype": &"fuse",
+		"script": "res://Scripts/Bodies/Abilities/remote_fuse.gd",
+		"controls": "Hold · Right: Remote — lit, right again: it goes when you click it",
+		"cooldown": 0.0, "busy": 3.0, "worth": 0.2,
+		"wait_seconds": 10.0, "blink": 0.2,
+	},
+	# Lit, right again: set to burst over him. Thrown over him, it opens overhead and its bomblets
+	# land in a ring round his feet.
+	&"cluster_bomb": {
+		"id": &"airburst", "name": "Airburst", "archetype": &"fuse",
+		"script": "res://Scripts/Bodies/Abilities/airburst_fuse.gd",
+		"controls": "Hold · Right: Airburst — lit, right again, throw over him: it opens",
+		"cooldown": 0.0, "busy": 2.0, "worth": 0.5,
+		"wait_seconds": 4.0, "window": 90.0, "height": 60.0, "ring": 90.0,
+	},
 }
 
 static func has(item_id: StringName) -> bool:
@@ -450,8 +574,9 @@ static func item_ids() -> Array[StringName]:
 		out.append(id)
 	return out
 
-## Gives a weapon its ability, if this table has one for it. Called by every `WeaponBase` on
-## `_ready`; does nothing to the rest. Returns the ability, or null.
+## Gives a held thing its ability, if this table has one for it. Called by every `BaseDraggable` on
+## `_ready` (a weapon since D74, anything since D78); does nothing to the rest. Returns the ability,
+## or null.
 static func attach(weapon: Node) -> WeaponAbility:
 	var item_id: StringName = weapon.get(&"item_id")
 	if item_id == &"" or not ABILITIES.has(item_id):
@@ -468,7 +593,7 @@ static func attach(weapon: Node) -> WeaponAbility:
 		return null
 	ability.name = "Ability"
 	ability.row = row
-	ability.body = weapon as WeaponBase
+	ability.body = weapon as BaseDraggable
 	weapon.add_child(ability)
 	return ability
 
@@ -484,10 +609,42 @@ static func _script_for(row: Dictionary) -> Script:
 
 ## How much a player's damage with this weapon goes up if they use its ability every time it is
 ## ready, given how many ordinary hits a second they land. `pacing_sim` multiplies the weapon's
-## share of damage by it. One for a weapon with no ability.
+## share of damage by it. One for a weapon with no ability, and for a kind row, which deals none.
 static func damage_uplift(item_id: StringName, hits_per_second: float) -> float:
 	var row := row_for(item_id)
-	if row.is_empty() or hits_per_second <= 0.0:
+	if row.is_empty() or hits_per_second <= 0.0 or bool(row.get("kind", false)):
 		return 1.0
-	var cycle := maxf(float(row.get("cooldown", 3.0)) + float(row.get("busy", 1.0)), 0.5)
-	return 1.0 + float(row.get("worth", 0.0)) / (hits_per_second * cycle)
+	# A charge is used once a throw, and its ability rides every throw it is used on: its `worth`
+	# is in ordinary blasts of itself, so each throw deals `1 + worth` of one (D78).
+	if StringName(row.get("archetype", &"")) == &"fuse":
+		return 1.0 + float(row.get("worth", 0.0))
+	return 1.0 + float(row.get("worth", 0.0)) / (hits_per_second * cycle_seconds(item_id))
+
+## Whether an item's ability is an act of kindness (D78): it pays Hearts on the bus and bills
+## nothing.
+static func is_kind(item_id: StringName) -> bool:
+	return bool(row_for(item_id).get("kind", false))
+
+## One use and the wait after it: what a player who uses it every time it is ready spends per use.
+static func cycle_seconds(item_id: StringName) -> float:
+	var row := row_for(item_id)
+	return maxf(float(row.get("cooldown", 3.0)) + float(row.get("busy", 1.0)), 0.5)
+
+## D67's ceiling for anything worked by hand on the kind side, which D78 holds every kind row to:
+## no faster than this much kindness value a second, however fast it is used.
+const KIND_CEILING := 1.5
+
+## Kindness value a second a kind row adds when it is used every time it is ready (D78).
+static func kindness_rate(item_id: StringName) -> float:
+	if not is_kind(item_id):
+		return 0.0
+	return float(row_for(item_id).get("worth", 0.0)) / cycle_seconds(item_id)
+
+## How much a player's kindness with this item goes up if they use its ability every time it is
+## ready, given how many pets a second the model credits the hand with: the kind side's
+## `damage_uplift`, the row's `worth` being kindness value in pets. `pacing_sim` multiplies the
+## item's share of kindness by it. One for anything with no kind row.
+static func kindness_uplift(item_id: StringName, pets_per_second: float) -> float:
+	if not is_kind(item_id) or pets_per_second <= 0.0:
+		return 1.0
+	return 1.0 + kindness_rate(item_id) / pets_per_second

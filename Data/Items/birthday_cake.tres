@@ -15,3 +15,4 @@ currency = 1
 scene = ExtResource("1_nhoqg")
 icon = ExtResource("1_mipgv")
 sort_order = 50
+controls = "Hold · Right: Make a Wish — hold it near him, let go: he blows them out"
