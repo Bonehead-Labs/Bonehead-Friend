@@ -303,13 +303,13 @@ const LOOKS := {
 		"colour": "ff8c1a", "call": "AIRBURST", "burst": &"bomb", "glint": 0.5,
 		"cue": {"icon": &"bomb", "over": "weapon", "left": &"pip_fill"},
 		"states": {&"airburst": {"icon": &"bomb", "colour": RED, "seconds": 1.0}},
-		"pay": {&"airburst": {"size": 0.9, "land": "BOMBS AWAY!"}},
+		"pay": {&"airburst": {"size": 0.9, "land": "BOMBS AWAY!", "shape": &"flak_burst"}},
 	},
 	&"remote": {
 		"colour": "ff4d2e", "call": "REMOTE", "burst": &"remote", "glint": 0.5,
 		"cue": {"icon": &"remote", "over": "weapon", "left": &"pip_fill"},
 		"states": {&"ticking": {"icon": &"bomb", "colour": RED, "seconds": 0.8, "refresh": true}},
-		"pay": {&"remote": {"size": 0.6}},
+		"pay": {&"remote": {"size": 0.6, "shape": &"remote_click"}},
 	},
 }
 
