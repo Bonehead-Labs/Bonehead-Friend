@@ -1338,6 +1338,26 @@ func _abilities_read_clear_of_him() -> void:
 	await _clear_of(fx, [], true, "a word aimed at his face")
 	await _quiet_numbers(fx)
 
+	# An act with the hand at his face (D75 amended): the feather duster's "+1.0" and the towel's wrap
+	# printed on white bone across his eyes. Beside his face, on the side the hand was, at the hand's
+	# height — not over his head, where it would read as a trickle and not as the hand's.
+	for side in [1.0, -1.0]:
+		face = fx.face_rect()
+		var hand := face.get_center() + Vector2(float(side) * face.size.x * 0.2, 0.0)
+		Economy.paying_kind_act = true
+		EventBus.payout.emit(Economy.HEARTS, 1.0, hand, &"feather_duster")
+		Economy.paying_kind_act = false
+		await get_tree().process_frame
+		var act := _visible_label(fx, "+1.0")
+		var ink := _drawn_rect(act) if act else Rect2()
+		var beside := ink.position.x >= face.end.x - 0.5 if side > 0.0 else ink.end.x <= face.position.x + 0.5
+		_check("an act at his face is drawn beside it, on the hand's side (%s)" % ("right" if side > 0.0
+			else "left"), act != null and beside, "number %s, face %s" % [ink, face])
+		_check("at the hand's height, not over his head", act != null
+			and absf(ink.get_center().y - (hand.y + 14.0)) <= 8.0, "number %s, hand %s" % [ink, hand])
+		await _clear_of(fx, [], true, "an act aimed at his face")
+		await _quiet_numbers(fx)
+
 	# The chainsaw's frame (D77 amended): its badge went up over its own grind's numbers, already rising
 	# where the badge goes, and waited up to a line's life for them. A badge is what is happening to him
 	# now; a payout under it gives way.

@@ -243,9 +243,10 @@ func _on_payout(currency: StringName, amount: float, world_pos: Vector2, source_
 	# when a kind item and a weapon are both in play.
 	var offset := Vector2(0, 0) if currency == &"bones" else Vector2(0, 14)
 	var aim := world_pos + offset
-	if currency == Economy.HEARTS and not Economy.paying_kind_act:
+	var act := currency == Economy.HEARTS and Economy.paying_kind_act
+	if currency == Economy.HEARTS and not act:
 		aim = _over_his_head(aim)
-	var placed := spawn_number("+%s" % _format(amount), aim, ramp[tier], 1.0, tier)
+	var placed := spawn_number("+%s" % _format(amount), aim, ramp[tier], 1.0, tier, -1, &"", 0, act)
 	# The tag rides the number where it was actually put, not where it was aimed: a number
 	# stepped aside to make room would otherwise leave its tag hanging over somebody else's.
 	if placed.is_finite():
@@ -258,7 +259,8 @@ const HEAD_CLEARANCE := 16.0
 ## **A trickle never sits on his face** (D75). A soak and his own play bank their Hearts at his
 ## centre, so for as long as he sat in the hot tub a pale number printed on white bone arrived
 ## over his face twice a second, and read as neither. A trickle aimed anywhere on him now rises
-## from over his head. An act keeps its spot, as a hit does: a pet lands where the hand was.
+## from over his head. An act stays where the hand was, beside his face if it would cross it
+## (`_beside_face`); a hit keeps its spot.
 func _over_his_head(aim: Vector2) -> Vector2:
 	var him := get_tree().get_first_node_in_group(&"buddy")
 	if him == null or not him.has_method("get_interaction_rect"):
@@ -303,7 +305,12 @@ func _tag_streak(currency: StringName, source_id: StringName, at: Vector2, ramp:
 		if combo >= COMBO_SHOW_FROM:
 			var b := ItemDB.balance
 			var mult := EconomyMath.kindness_combo(combo, b.kindness_combo_step, b.kindness_combo_max)
-			spawn_number("x%.1f" % mult, at + TAG_OFFSET, ramp[hot], 0.8, hot, hot, &"combo")
+			# Out to the side its number went, so a number put beside his face keeps its tag off it.
+			var offset := TAG_OFFSET
+			var face := face_rect()
+			if face.has_area() and at.x < face.get_center().x:
+				offset.x = -offset.x
+			spawn_number("x%.1f" % mult, at + offset, ramp[hot], 0.8, hot, hot, &"combo", 0, true)
 
 ## How big a number *feels* is how many digits it has, so that is what drives the treatment.
 ## `log10` rather than a table of thresholds: it keeps escalating for as long as the player
@@ -478,11 +485,35 @@ func face_rect() -> Rect2:
 ## Whether a line aimed at `at` would touch a keep-out at any point of its rise.
 func _on_a_keep_out(at: Vector2, peak: Vector2, rise: float) -> bool:
 	for rect in _keep_outs:
-		if absf(at.x - rect.get_center().x) >= rect.size.x * 0.5 + peak.x:
-			continue
-		if at.y > rect.position.y - peak.y and at.y < rect.end.y + peak.y + rise:
+		if _meets(at, peak, rise, rect):
 			return true
 	return false
+
+## Whether a line aimed at `at`, `peak` its half-size at the top of its punch, touches `rect` at any
+## point of its rise.
+func _meets(at: Vector2, peak: Vector2, rise: float, rect: Rect2) -> bool:
+	if absf(at.x - rect.get_center().x) >= rect.size.x * 0.5 + peak.x:
+		return false
+	return at.y > rect.position.y - peak.y and at.y < rect.end.y + peak.y + rise
+
+## **An act's number beside his face, not on it** (D75 amended). A pet lands where the hand was, and
+## the hand is at his head as often as not: the feather duster's "+1.0" and the towel's wrap printed
+## a pale number on white bone, over his eyes. It keeps the hand's height and moves only sideways, to
+## the nearer side of his face — the side the hand was on — so the hand still reads as the cause;
+## over his head would read as a trickle (`_over_his_head`) and belong to nobody. Unmoved if its rise
+## never reaches his face. Where that column is crowded, placement goes on from it as for any line,
+## with his face kept out.
+func _beside_face(at: Vector2, peak: Vector2, rise: float) -> Vector2:
+	var face := face_rect()
+	if not face.has_area() or not _meets(at, peak, rise, face):
+		return at
+	var view := get_viewport().get_visible_rect().size
+	var left := face.position.x - peak.x - 0.5
+	var right := face.end.x + peak.x + 0.5
+	var x := right if at.x >= face.get_center().x else left
+	if x - peak.x < 0.0 or x + peak.x > view.x:
+		x = left if x == right else right
+	return Vector2(x, at.y)
 
 ## Whether any line ranked `min_rank` or over will pass through `rect` between now and the end of
 ## its life. A badge put up where a word or a headline is already rising (a rank-up on the frame the
@@ -629,8 +660,10 @@ var _c_narrow := PackedFloat32Array()    ## horizontal clearance once both have 
 var _c_punch := PackedVector2Array()     ## forbidden centre-y band if they overlap only then
 var _c_whole := PackedVector2Array()     ## and if they overlap for the rest of their lives too
 
+## `beside` is an act's: it goes beside his face rather than across it (`_beside_face`).
 func spawn_number(text: String, world_pos: Vector2, colour: Color, scale: float = 1.0,
-		tier: int = 0, rank: int = -1, key: StringName = &"", lean: int = 0) -> Vector2:
+		tier: int = 0, rank: int = -1, key: StringName = &"", lean: int = 0,
+		beside: bool = false) -> Vector2:
 	var intensity := Settings.intensity_scale()
 	# Out of the tree during teardown — a kind item banks its sustained kindness in its own
 	# `_exit_tree`, which pays out — where there is no viewport to place anything in.
@@ -663,7 +696,7 @@ func spawn_number(text: String, world_pos: Vector2, colour: Color, scale: float 
 	var target := 1.0 + 0.12 * float(tier + 1)
 	var punch := PUNCH_FROM + BACK_OVERSHOOT * (target - PUNCH_FROM)
 	var rise := RISE_PIXELS * scale * (1.0 + float(tier) * 0.25)
-	var at := _place(world_pos, half, pad, punch, rise, rank, lean)
+	var at := _place(world_pos, half, pad, punch, rise, rank, lean, beside)
 	if not at.is_finite():
 		label.visible = false
 		return NOWHERE
@@ -748,13 +781,16 @@ func _pad(tier: int, scale: float) -> Vector2:
 ## A headline only steps around other headlines and an ability's words (D77 amended). Any payout
 ## where it lands is put away: a knockout's second line used to travel two hundred pixels to get
 ## round the payout of the very hit that knocked him out, which read as two unrelated messages.
-## Every line steps around a badge on him, and a word around his face (`_keep_outs`).
+## Every line steps around a badge on him, and a word around his face (`_keep_outs`); an act starts
+## beside his face (`beside`) and keeps off it from there.
 func _place(want: Vector2, half: Vector2, pad: Vector2, punch: float, rise: float,
-		rank: int, lean: int) -> Vector2:
+		rank: int, lean: int, beside: bool = false) -> Vector2:
 	var at := _clear_of_hud(want, half, rise)
 	var down_cost := LEAN_COST if lean < 0 else (1.0 / LEAN_COST if lean > 0 else 1.0)
-	_gather_keep_outs(rank >= CALLOUT_RANK)
+	_gather_keep_outs(rank >= CALLOUT_RANK or beside)
 	var peak := half * punch + pad
+	if beside:
+		at = _beside_face(at, peak, rise)
 	if rank >= RANK_HEADLINE:
 		# A headline steps around the other headlines and around an ability's words: a rank-up on
 		# an ability's first use (which it always is, the first time) used to put away the very
