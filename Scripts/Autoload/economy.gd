@@ -152,6 +152,7 @@ const WORLD_FOLLOWS_MSEC := 3000
 var _moved_by_hand := false
 var _moved_msec := -100000
 var _held := false
+var _down := false
 
 ## Whether a hit from `source_id` was dealt by something acting on its own. Asked of the data,
 ## so a turret added next month is covered by the seeder that writes it.
@@ -400,6 +401,12 @@ func _on_buddy_state_changed(state: StringName) -> void:
 	if held or _held:
 		_moved_by(false)
 	_held = held
+	# A knockout stops the hand's clock: he is down for about three seconds, and the bat that
+	# floored him is still what carries him into the wall as he gets up.
+	var down := state == &"knockout" or state == &"pile" or state == &"reassemble"
+	if _down and not down and _moved_by_hand:
+		_moved_msec = Time.get_ticks_msec()
+	_down = down
 	if state != &"knockout":
 		return
 	var b := ItemDB.balance

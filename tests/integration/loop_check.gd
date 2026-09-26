@@ -930,6 +930,18 @@ func _nobody_at_the_desk_is_not_an_act() -> void:
 	Economy.flush_dollars()
 	_check("but a fall long after the last hand is nobody's",
 		_d76_board("deal_damage") == 0 and is_equal_approx(Economy.balance_of(Economy.DOLLARS), dollars))
+	EventBus.damage_dealt.emit(HitInfo.new(30.0, &"baseball_bat", at, 3000.0))
+	Economy._on_buddy_state_changed(&"pile")
+	Economy._moved_msec -= Economy.WORLD_FOLLOWS_MSEC + 1000
+	Economy._on_buddy_state_changed(&"idle")
+	Economy.flush_dollars()
+	dollars = Economy.balance_of(Economy.DOLLARS)
+	_d76_keys.clear()
+	EventBus.damage_dealt.emit(HitInfo.new(15.0, &"world", at, 2000.0))
+	Economy.flush_dollars()
+	_check("and a knockout stops the hand's clock: the wall he gets up into is still the bat's",
+		_d76_board("deal_damage") == 15 and is_equal_approx(Economy.balance_of(Economy.DOLLARS) - dollars,
+		b.dollars_per_hit))
 
 	# A round a turret finished alone is not the player's knockout; one with a hand in it is.
 	Economy._round_hands_on = false
