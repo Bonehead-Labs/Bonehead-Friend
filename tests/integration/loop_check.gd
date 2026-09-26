@@ -73,6 +73,7 @@ func _ready() -> void:
 	await _the_sponge_cleans_him_and_pays()
 	await _real_physics_produces_hits()
 	await _a_hit_that_parts_is_billed()
+	await _billing_does_not_read_the_wall_clock()
 	_the_mat_gives_back_more()
 	await _he_goes_and_plays_with_his_toys()
 	await _save_survives_a_restart()
@@ -3086,6 +3087,59 @@ func _real_physics_produces_hits() -> void:
 	_check("resting contact does not farm damage (%d hits)" % _observed.size(), _observed.is_empty())
 
 	EventBus.damage_dealt.disconnect(_observe)
+
+## What he bills, and anything the simulation draws a random number for, must not depend on how
+## busy the machine is (D74 fixes). His per-source cooldown ran on the wall clock while the engine
+## runs physics steps in bursts of two or more to a drawn frame, so which of a sweep's contacts it
+## let through changed with the frame rate — the cleaver's ordinary hit measured 17.3 at 30 fps
+## and 20.7 at 15. The desk's jolt drew its offsets from the global random stream once per drawn
+## frame, so a suite that seeds per item replayed differently at a different frame rate, and freed
+## mid-jolt it left the picture offset. And a weapon that bills by where it touched was told where
+## it is, not where it touched, when the ledger bills a step late.
+func _billing_does_not_read_the_wall_clock() -> void:
+	_suite("billing is the same however busy the machine is")
+	var buddy := _buddy()
+	if buddy == null:
+		_check("buddy present", false)
+		return
+	var cooldown := ItemDB.balance.damage_cooldown
+	var steps := Buddy.cooldown_steps(cooldown)
+	_check("the per-source cooldown is %.2f s of physics steps (%d)" % [cooldown, steps],
+		steps == ceili(cooldown * float(Engine.physics_ticks_per_second) - 0.001) and Buddy.cooldown_steps(0.0) == 0)
+	var source := Node.new()
+	_check("a source's first contact bills", buddy._cooldown_ready(source, cooldown))
+	# Wall-clock time passes and no physics step does: the machine was busy.
+	OS.delay_msec(int(cooldown * 1000.0) + 60)
+	_check("a busy machine does not end the cooldown early", not buddy._cooldown_ready(source, cooldown))
+	for i in steps - 1:
+		await get_tree().physics_frame
+	_check("one step short of it, still cooling", not buddy._cooldown_ready(source, cooldown))
+	await get_tree().physics_frame
+	_check("and its steps later it bills again", buddy._cooldown_ready(source, cooldown))
+	buddy._cooldowns.erase(source.get_instance_id())
+	source.free()
+	_check("where a hit touched him is only told while it is being billed", buddy.hit_at == Vector2.INF)
+	var focus := Settings.focus_intensity
+	Settings.focus_intensity = Settings.Intensity.NORMAL
+	var fx := WorldFX.new()
+	fx.name = "JoltProbe"
+	add_child(fx)
+	seed(74)
+	var expected := randf()
+	seed(74)
+	fx.shake(6.0)
+	for i in 4:
+		fx._process(0.016)
+	var drawn := randf()
+	_check("the desk's jolt draws on a stream of its own, not the simulation's",
+		fx.is_shaking() and is_equal_approx(drawn, expected))
+	# Taken off the desk mid-jolt, it puts the picture back: the offset is on the viewport, which
+	# outlives it, and a suite frees its desk after every item.
+	remove_child(fx)
+	_check("a jolt cut short by its desk going leaves the picture where it was",
+		get_viewport().canvas_transform == Transform2D.IDENTITY)
+	fx.free()
+	Settings.focus_intensity = focus
 
 ## The half of D7 the engine never reports (D64). A contact carries the previous step's impulse,
 ## and only if the solver recognised it as the same contact, so a hit that throws the two apart
