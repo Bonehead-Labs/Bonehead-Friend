@@ -44,6 +44,7 @@ func _ready() -> void:
 
 	_content_loaded()
 	_every_melee_weapon_has_an_ability()
+	_every_voice_named_is_heard()
 	_starters_are_owned()
 	var earned := _hitting_him_pays()
 	_augments_change_the_payout(earned)
@@ -523,6 +524,36 @@ func _every_melee_weapon_has_an_ability() -> void:
 			item != null and item.category == ItemData.CATEGORY_WEAPON)
 	_check("%d of %d melee weapons have one, %d to go" % [armed, melee, ABILITY_STILL_TO_DO.size()],
 		armed + ABILITY_STILL_TO_DO.size() == melee and melee >= 35)
+
+## Every voice the code names by literal is one `AudioManager` built (D78). Eighteen of D72's and
+## D74's were registered after the `return` of two sample generators, where they never ran, so the
+## applause for a six, the stapler, the blue screen, the smite and the rainbow were silent and
+## nothing said so: `play` on an unknown id is a quiet no-op, and every suite mutes the audio. So
+## the source is read — `sound(&"…")`, `AudioManager.play(&"…")` and a row's `"sound": &"…"` —
+## and each id is asked of the streams the autoload actually holds.
+func _every_voice_named_is_heard() -> void:
+	_suite("every voice the code names is one AudioManager has")
+	var named := {}
+	var pattern := RegEx.new()
+	pattern.compile("(?:\\bsound\\(|AudioManager\\.play\\(|\"sound\": )&\"([a-z_0-9]+)\"")
+	var dirs: Array[String] = ["res://Scripts"]
+	while not dirs.is_empty():
+		var dir := dirs.pop_back() as String
+		for sub in DirAccess.get_directories_at(dir):
+			dirs.append("%s/%s" % [dir, sub])
+		for file in DirAccess.get_files_at(dir):
+			if not file.ends_with(".gd"):
+				continue
+			var text := FileAccess.get_file_as_string("%s/%s" % [dir, file])
+			for m in pattern.search_all(text):
+				named[m.get_string(1)] = "%s/%s" % [dir.trim_prefix("res://"), file]
+	var missing: Array[String] = []
+	for id in named:
+		if not AudioManager._streams.has(StringName(id)) and not AudioManager._variants.has(StringName(id)):
+			missing.append("%s (%s)" % [id, named[id]])
+	_check("%d voices named in the source, every one built%s" % [named.size(),
+		"" if missing.is_empty() else ": missing " + ", ".join(missing)],
+		named.size() >= 60 and missing.is_empty())
 
 ## A right-while-holding action the weapon had before D74: a `GestureZones` with its action on.
 func _has_own_action(item: ItemData) -> bool:

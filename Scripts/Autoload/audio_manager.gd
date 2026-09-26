@@ -337,6 +337,37 @@ func _build_streams() -> void:
 	_streams[&"snap"] = _wav(_snap_samples())
 	_streams[&"wail"] = _wav(_wail_samples())
 	_streams[&"tink"] = _wav(_tink_samples())
+	# The two blocks below sat after the `return` of `_tink_samples` and `_rev_samples`, where they
+	# never ran: eighteen voices of D72 and D74 were silent until D78 moved them here.
+	# --- the blunt and desk nine (D74, second pass) ---
+	#
+	# A crowd for a six, a pancake, a stapler's chunk, the ricochet's falling ping, a machine that
+	# has stopped and one starting again, and coffee on bone. Everything else these nine say is
+	# already a voice above: the twang, the pop, the whirr, the key, the clack, the slosh.
+	_streams[&"applause"] = _wav(_applause_samples())
+	_streams[&"squish"] = _wav(_squish_samples())
+	_streams[&"staple"] = _wav(_staple_samples())
+	_streams[&"ricochet"] = _wav(_ricochet_samples())
+	_streams[&"bsod"] = _wav(_bsod_samples())
+	_streams[&"reboot"] = _wav(_chime_samples([392.0, 587.0, 784.0, 1175.0], 0.9))
+	_streams[&"sizzle"] = _wav(_sizzle_samples())
+	# --- the supernatural powers (D72) ---
+	#
+	# Each spell has one voice for the moment it happens, and none of them repeats fast: a crunch
+	# is his bones clattering short; time stopping is a tape running down, and starting again the
+	# same tape run up; the charge before a smite is a rising shimmer and the strike a chord over
+	# the big blast; the kind three are chimes, and the rainbow is a scale.
+	_streams[&"psychic"] = _wav(_warble_samples(0.38, 180.0, 420.0, 9.0, 0.06))
+	_streams[&"crunch"] = _wav(_clatter_samples(0.16, -1.0))
+	_streams[&"gust"] = _wav(_gust_samples(0.28))
+	_streams[&"time_stop"] = _wav(_sweep_samples(0.45, 1100.0, 110.0))
+	_streams[&"time_resume"] = _wav(_sweep_samples(0.30, 110.0, 1200.0))
+	_streams[&"meteor"] = _wav(_sweep_samples(0.50, 1500.0, 480.0))
+	_streams[&"charge"] = _wav(_warble_samples(0.60, 300.0, 900.0, 14.0, 0.04))
+	_streams[&"smite"] = _wav(_chime_samples([523.0, 659.0, 784.0, 1046.0], 1.0))
+	_streams[&"bless"] = _wav(_chime_samples([784.0, 988.0, 1175.0, 1568.0], 0.8))
+	_streams[&"float"] = _wav(_warble_samples(0.70, 330.0, 495.0, 5.0, 0.02))
+	_streams[&"rainbow"] = _wav(_chime_samples([523.0, 587.0, 659.0, 784.0, 880.0, 1046.0], 0.9))
 
 ## A wide cut through leaves: bright noise whose band falls fast, with a rustle riding it —
 ## broader and higher than a whoosh, which is one thing passing the ear rather than many.
@@ -422,18 +453,6 @@ func _tink_samples() -> PackedFloat32Array:
 		var value := sin(TAU * 3100.0 * t) * 0.34 * exp(-t * 55.0) + sin(TAU * 5270.0 * t) * 0.16 * exp(-t * 80.0)
 		out[i] = clampf(value * minf(t * 4000.0, 1.0), -1.0, 1.0)
 	return out
-	# --- the blunt and desk nine (D74, second pass) ---
-	#
-	# A crowd for a six, a pancake, a stapler's chunk, the ricochet's falling ping, a machine that
-	# has stopped and one starting again, and coffee on bone. Everything else these nine say is
-	# already a voice above: the twang, the pop, the whirr, the key, the clack, the slosh.
-	_streams[&"applause"] = _wav(_applause_samples())
-	_streams[&"squish"] = _wav(_squish_samples())
-	_streams[&"staple"] = _wav(_staple_samples())
-	_streams[&"ricochet"] = _wav(_ricochet_samples())
-	_streams[&"bsod"] = _wav(_bsod_samples())
-	_streams[&"reboot"] = _wav(_chime_samples([392.0, 587.0, 784.0, 1175.0], 0.9))
-	_streams[&"sizzle"] = _wav(_sizzle_samples())
 
 ## Air moved by something swung: noise through a band that sweeps up and back, inside a swell.
 func _whoosh_samples() -> PackedFloat32Array:
@@ -526,24 +545,6 @@ func _rev_samples() -> PackedFloat32Array:
 		var envelope := minf(t * 100.0, 1.0) * minf((duration - t) * 100.0, 1.0)
 		out[i] = clampf(growl * envelope, -1.0, 1.0)
 	return out
-
-	# --- the supernatural powers (D72) ---
-	#
-	# Each spell has one voice for the moment it happens, and none of them repeats fast: a crunch
-	# is his bones clattering short; time stopping is a tape running down, and starting again the
-	# same tape run up; the charge before a smite is a rising shimmer and the strike a chord over
-	# the big blast; the kind three are chimes, and the rainbow is a scale.
-	_streams[&"psychic"] = _wav(_warble_samples(0.38, 180.0, 420.0, 9.0, 0.06))
-	_streams[&"crunch"] = _wav(_clatter_samples(0.16, -1.0))
-	_streams[&"gust"] = _wav(_gust_samples(0.28))
-	_streams[&"time_stop"] = _wav(_sweep_samples(0.45, 1100.0, 110.0))
-	_streams[&"time_resume"] = _wav(_sweep_samples(0.30, 110.0, 1200.0))
-	_streams[&"meteor"] = _wav(_sweep_samples(0.50, 1500.0, 480.0))
-	_streams[&"charge"] = _wav(_warble_samples(0.60, 300.0, 900.0, 14.0, 0.04))
-	_streams[&"smite"] = _wav(_chime_samples([523.0, 659.0, 784.0, 1046.0], 1.0))
-	_streams[&"bless"] = _wav(_chime_samples([784.0, 988.0, 1175.0, 1568.0], 0.8))
-	_streams[&"float"] = _wav(_warble_samples(0.70, 330.0, 495.0, 5.0, 0.02))
-	_streams[&"rainbow"] = _wav(_chime_samples([523.0, 587.0, 659.0, 784.0, 880.0, 1046.0], 0.9))
 
 ## A tone that bends as it goes: a sine swept from one pitch to another with a vibrato riding on
 ## it, in one soft envelope. `depth` is the vibrato as a fraction of the pitch — a mind straining
