@@ -151,6 +151,20 @@ func _ready() -> void:
 	await _shot("09-paused")
 	esc.call("close")
 
+	# The playtest kit's note card (docs/playtest-plan.md), a mood picked and a line in each box.
+	# Shut without saving: a saved note would land in the player's own playtest folder.
+	var feedback := _find(_main, "FeedbackCard")
+	if feedback:
+		await _idle(20)
+		feedback.call("open_card")
+		await _idle(5)
+		feedback.call("_pick_mood", "meh")
+		(_find(feedback, "FeedbackText") as TextEdit).text = "The shop scrolled off the card at 2x and I lost the buy key."
+		(_find(feedback, "FeedbackTrying") as LineEdit).text = "buy the mace"
+		feedback.call("_refresh_save")
+		await _shot("09b-feedback")
+		feedback.call("close_card")
+
 	# The same window at 2x, which is what a 1440p overlay gets automatically. Shot by
 	# pinning the setting rather than by resizing the window, because the point is the
 	# ratio of UI to play area and not the number of pixels.
