@@ -183,6 +183,11 @@ func payoff_shaped(shape: StringName, at: Vector2, size: float, colour: Color,
 		payoff(at, size, colour)
 		return
 	(load(path) as GDScript).call("play", self, at, clampf(size, 0.0, 1.0), colour, ability)
+	shape_plays[shape] = int(shape_plays.get(shape, 0)) + 1
+
+## Times each named shape has played this session, for the suites: a look that names a shape which
+## never plays is drawing the generic ring after all. Plain data, so a static is safe.
+static var shape_plays := {}
 
 ## Concentric waves out of a point, `gap` seconds apart: a gong struck, a bell, a pulse.
 func waves(at: Vector2, colour: Color, count: int, radius: float, gap: float = 0.07,

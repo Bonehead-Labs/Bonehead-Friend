@@ -271,6 +271,7 @@ func _check_ability(id: StringName) -> void:
 	_faces.clear()
 	_pipeline_bad.clear()
 	var before_uses := ability.uses
+	var shapes_before := AbilityFX.shape_plays.duplicate()
 
 	var measured := {}
 	# A hooked row that is used differently from its archetype brings a driver of its own, because
@@ -332,6 +333,7 @@ func _check_ability(id: StringName) -> void:
 	var landing_words := ability.fx_said.filter(func(w: String) -> bool: return not own_words.has(w))
 	_check("and a word for it (%s)" % str(landing_words), ability.payoffs == 0
 		or not landing_words.is_empty())
+	_shapes_played(look, ability.fx_paid, shapes_before)
 
 	# --- what it paid ----------------------------------------------------------------------
 	await _step(20)
@@ -394,6 +396,19 @@ func _check_ability(id: StringName) -> void:
 	measured["worth"] = worth
 	_report.append("%-14s %s" % [id, _format(measured)])
 	await _free_stage()
+
+## Every payoff whose look names a shape played that shape, not the generic ring: by enumeration over
+## the events it paid, so a shape is covered the day a look names it. A shape whose script loads but
+## never reaches `play` — a misspelled method, a parse error — is caught here, by name.
+func _shapes_played(look: Dictionary, paid: Array[StringName], before: Dictionary) -> void:
+	var named := {}
+	for event in paid:
+		var spec := AbilityLooks.pay_spec(look, event)
+		if spec.has("shape"):
+			named[StringName(spec["shape"])] = event
+	for shape in named:
+		var played := int(AbilityFX.shape_plays.get(shape, 0)) - int(before.get(shape, 0))
+		_check("its %s payoff played its own shape, %s (%d)" % [named[shape], shape, played], played > 0)
 
 func _format(m: Dictionary) -> String:
 	var parts: Array[String] = []
@@ -2210,6 +2225,7 @@ func _check_held_ability(id: StringName) -> void:
 	var shown := ability.fx_states
 	var paid := ability.fx_paid
 	var look := ability.look()
+	var shapes_before := AbilityFX.shape_plays.duplicate()
 
 	var driver := "_drive_%s" % row.get("id", "")
 	if not has_method(driver):
@@ -2231,6 +2247,7 @@ func _check_held_ability(id: StringName) -> void:
 	var own_words := [String(look["call"]), String(look["go"])]
 	var landing_words := said.filter(func(w: String) -> bool: return not own_words.has(w))
 	_check("and a word for it (%s)" % str(landing_words), not landing_words.is_empty())
+	_shapes_played(look, paid, shapes_before)
 
 	# --- what it paid ----------------------------------------------------------------------
 	await _step(20)
