@@ -59,6 +59,8 @@ func _on_tick(delta: float) -> void:
 	_rev = minf(1.0, _rev + delta / maxf(num("spin_up", 0.3), 0.01))
 	peak_rev = maxf(peak_rev, _rev)
 	_shake_sprite()
+	# The bar runs hot with the revs (D77): an engine you can see climbing.
+	AbilityFX.shine(sprite(), accent(), 0.45 * _rev * (0.8 + 0.2 * sin(_t * 40.0)))
 	_next_tick -= delta
 	if _next_tick <= 0.0:
 		_next_tick = num("tick_seconds", 0.12)
@@ -125,3 +127,4 @@ func _on_stop() -> void:
 		s.position = _sprite_rest
 	_sprite_rest = Vector2.INF
 	_rev = 0.0
+	AbilityFX.shine(s, accent(), 0.0)

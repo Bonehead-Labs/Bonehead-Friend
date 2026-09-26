@@ -229,6 +229,18 @@ func _stick() -> void:
 		fx.chips(tip_world(), WorldFX.DUST, 3, 120.0)
 	sound(&"thunk", -2.0, 1.25)
 	sound(&"twang", -10.0, 1.4)
+	_show_fetch()
+
+## Stuck, a badge over its handle points at it (D77): the next use is a walk to go and get it, and
+## a player who has never been told so would wait for a cooldown that has not started. Drawn once,
+## because it may wait for hours and nothing runs while it does.
+func _show_fetch() -> void:
+	var mark := show_weapon_state(&"fetch")
+	if mark:
+		mark.global_position = (grip_world() + Vector2(0.0, -34.0)).round()
+
+func is_waiting_to_be_fetched() -> bool:
+	return is_stuck() and body.get_node_or_null("AbilityStateFetch") != null
 
 func _release_him() -> void:
 	_throwing = false
@@ -271,6 +283,7 @@ func on_picked_up() -> void:
 	super.on_picked_up()
 
 func _on_stop() -> void:
+	AbilityFX.clear_states(body, self)
 	_unstick()
 	if _throwing and body:
 		body.gravity_scale = _gravity_before

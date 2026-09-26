@@ -144,6 +144,10 @@ func _stage(id: StringName) -> void:
 	await _carry(start, 20)
 	var ability := _weapon.ability
 	print("  %s — %s" % [id, ability_row.get("name", "")])
+	# The capture's hold is not a pickup, so tell the ability it is in the hand: its glint comes on
+	# (D77), and this is the frame that shows it before anything is used.
+	ability.on_picked_up()
+	await _shot("%s-ready" % id, 24)
 	# A hooked row that is used differently from its archetype brings a staging of its own: named
 	# for the ability (`_stage_<ability id>`, the blades) or for the weapon (`_stage_<item id>`,
 	# the blunt and desk nine). Its frames are not its archetype's.

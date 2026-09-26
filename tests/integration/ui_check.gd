@@ -1215,6 +1215,24 @@ func _the_numbers_keep_apart() -> void:
 	_check("with one streak tag, not one per hit (%d)" % tags, tags == 1)
 	await _apart_for_life(fx, "a burst of twelve hits")
 
+	# An ability's words (D77): its name, then its landing replacing it (keyed), a big one and the
+	# payout of the very hit it names, all at one point. Found by group, as the abilities find it.
+	await _quiet_numbers(fx)
+	_check("the FX layer is found by group, as an ability finds it", FXLayer.of(self) == fx, "")
+	var word_at := spot + Vector2(0, 30)
+	fx.call("callout", "IAIDO", word_at, Color("6fa8ff"), 1.0, &"ability:iaido")
+	fx.call("callout", "SLASH!", word_at, Color("6fa8ff"), 1.0, &"ability:iaido")
+	EventBus.payout.emit(Economy.BONES, 480.0, word_at, &"katana")
+	await get_tree().process_frame
+	_check("an ability's landing word replaces its name rather than stacking on it",
+		_visible_tag(fx, "SLASH!") and not _visible_tag(fx, "IAIDO"), "")
+	_check("and the payout it names still prints beside it",
+		_visible_tag(fx, "+%s" % fx.call("_format", 480.0)), "")
+	var word := _visible_label(fx, "SLASH!")
+	_check("in the display face", word != null and word.get_theme_font("font") != null
+		and word.get_theme_font("font").resource_path == UIStyle.FONT_DISPLAY, "")
+	await _apart_for_life(fx, "an ability's word and its payout")
+
 	# The knockout: a record round's banner over the headline, and a fountain of coins that is a
 	# spray by design and so passes *behind* the words rather than through them.
 	await _quiet_numbers(fx)

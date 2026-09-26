@@ -164,6 +164,9 @@ func _clear(origin: Vector2) -> void:
 	if hit_him:
 		tell(&"swept", him.get_interaction_rect().get_center())
 		sound(&"impact_metal", -8.0, 1.2)
+	else:
+		# A swipe with nobody in it pays off in the swathe it cut (D77), not on him.
+		fx_at = origin + _facing * radius * 0.45
 	paid_off.emit(&"brush_clear")
 
 ## The swathe the blade cut: a crescent across the cone, fading, and leaves flying out of it.

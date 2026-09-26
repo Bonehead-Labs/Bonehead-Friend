@@ -190,6 +190,9 @@ func _bite() -> void:
 		return
 	_landed += 1
 	bites_landed += 1
+	# The bite on him (D77): a badge of its own for a snip that missed his head; the punch and the
+	# wrench say it with the state they put him in.
+	show_state(&"bitten")
 	var centre := him.get_interaction_rect().get_center()
 	var into := (centre - at).normalized() if centre.distance_squared_to(at) > 1.0 else Vector2.RIGHT
 	var point := at.clamp(him.get_interaction_rect().position, him.get_interaction_rect().end)
@@ -197,7 +200,8 @@ func _bite() -> void:
 	strike(last_bite, into, point, num("bite_mult", 1.0), num("shove", 0.3))
 	var fx := fx()
 	if fx:
-		fx.ring(point, 30.0, Color.WHITE, 0.15, 2.0)
+		# In its colour, not white: a white ring on white bone is invisible (D77).
+		fx.ring(point, 30.0, accent(), 0.15, 2.0)
 		fx.chips(point, Color("f2ead8"), 3, 200.0)
 		fx.shake(3.0)
 	if bool(row.get("confetti", false)):

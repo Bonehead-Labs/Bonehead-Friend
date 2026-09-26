@@ -157,6 +157,8 @@ func _sweep() -> void:
 			var fx := fx()
 			if fx:
 				fx.tracer(_cut_at - _cut_dir * 44.0, _cut_at + _cut_dir * 44.0, Color.WHITE, 0.1, 1.0)
+			# And it stays drawn on him for the held beat (D77), so the wait reads as a wait.
+			_mark_cut(_cut_at, _cut_dir)
 			tell(&"sliced", _cut_at)
 	_last_tip = tip
 
@@ -172,10 +174,13 @@ func _cut() -> void:
 	var share := clampf(_cut_speed / maxf(num("cut_speed", 1500.0), 1.0), 0.6, 1.4)
 	last_cut = num("cut_force", 2600.0) * share
 	strike(last_cut, _cut_dir, at, num("cut_mult", 1.0), num("shove", 0.6))
+	if is_instance_valid(_cut_line):
+		_cut_line.split()
 	var fx := fx()
 	if fx:
-		fx.tracer(at - _cut_dir * 70.0, at + _cut_dir * 70.0, Color.WHITE, 0.22, 4.0)
-		fx.chips(at, Color.WHITE, 8, 300.0)
+		# In its colour: a white cut across white bone is a cut only off the edges of him (D77).
+		fx.tracer(at - _cut_dir * 70.0, at + _cut_dir * 70.0, accent(), 0.22, 4.0)
+		fx.chips(at, accent(), 8, 300.0)
 		fx.burst(at, &"bone", Color("f2ead8"), 3, 240.0)
 		fx.shake(4.0)
 	sound(&"shing", -4.0, 1.6)
@@ -212,3 +217,85 @@ func _on_stop() -> void:
 	if is_instance_valid(_excepted) and body:
 		body.remove_collision_exception_with(_excepted)
 	_excepted = null
+	if is_instance_valid(_cut_line) and not _cut_line.is_splitting():
+		_cut_line.queue_free()
+	_cut_line = null
+
+var _cut_line: CutLine
+
+## The line the blade drew across him, held on him through the beat before the cut lands (D77).
+## His child, in his own frame, so it stays where it went through him however he moves.
+func _mark_cut(at: Vector2, dir: Vector2) -> void:
+	var him := buddy()
+	if him == null:
+		return
+	if not is_instance_valid(_cut_line):
+		_cut_line = CutLine.new()
+		_cut_line.name = "IaidoCut"
+		_cut_line.z_index = 3
+		him.add_child(_cut_line)
+	_cut_line.show_cut(him.to_local(at - dir * 46.0), him.to_local(at + dir * 46.0), accent())
+
+## A thin cut in the ability's colour on a dark rim, a bright nick running along it while it waits;
+## when the cut lands it flares wide and its two halves slide apart and shrink away. Never fades.
+class CutLine extends Node2D:
+	const WAIT_MAX := 0.8
+	const FLARE := 0.06
+	const PART := 0.22
+	var from := Vector2.ZERO
+	var to := Vector2.ZERO
+	var colour := Color.WHITE
+	var _t := 0.0
+	var _split := -1.0
+
+	func show_cut(a: Vector2, b: Vector2, tint: Color) -> void:
+		from = a.round()
+		to = b.round()
+		colour = tint
+		_t = 0.0
+		_split = -1.0
+		set_process(true)
+		queue_redraw()
+
+	func split() -> void:
+		_split = 0.0
+
+	func is_splitting() -> bool:
+		return _split >= 0.0
+
+	func _process(delta: float) -> void:
+		_t += delta
+		if _split >= 0.0:
+			_split += delta
+			if _split >= FLARE + PART:
+				queue_free()
+				return
+		elif _t >= WAIT_MAX:
+			queue_free()
+			return
+		queue_redraw()
+
+	func _draw() -> void:
+		var d := (to - from).normalized()
+		if _split < 0.0:
+			draw_line(from, to, AbilityFX.OUTLINE, 5.0)
+			draw_line(from, to, colour, 3.0)
+			# The nick of light running along it: the blade's path, still bright.
+			var k := fmod(_t * 3.0, 1.0)
+			var p := from.lerp(to, k)
+			draw_line(p - d * 5.0, p + d * 5.0, colour.lightened(0.7), 3.0)
+			return
+		if _split < FLARE:
+			draw_line(from, to, AbilityFX.OUTLINE, 9.0)
+			draw_line(from, to, colour.lightened(0.4), 7.0)
+			return
+		var k := (_split - FLARE) / PART
+		var mid := from.lerp(to, 0.5)
+		var half := (to - from).length() * 0.5 * (1.0 - k)
+		var apart := d * 30.0 * k
+		for side in [-1.0, 1.0]:
+			var centre: Vector2 = mid + apart * float(side) + d * half * 0.5 * float(side)
+			var a := (centre - d * half * 0.5).round()
+			var b := (centre + d * half * 0.5).round()
+			draw_line(a, b, AbilityFX.OUTLINE, 5.0)
+			draw_line(a, b, colour, 3.0)

@@ -169,6 +169,34 @@ func _the_table_is_whole() -> void:
 		_check("and the shop carries that line", item != null and item.controls == line)
 		_check("%s's ability has a name of its own" % id, not names.has(row.get("id", &"")))
 		names[row.get("id", &"")] = true
+		_look_is_sound(StringName(row.get("id", &"")), String(row.get("name", "")))
+
+## How it reads (D77), from the data: a misspelled icon falls back to the generic one without a
+## word, and a green accent is keyed out with the chroma backdrop (D38) — so both are checked here,
+## for every ability, with or without a row of its own in `AbilityLooks`.
+func _look_is_sound(ability_id: StringName, display_name: String) -> void:
+	var look := AbilityLooks.look_for(ability_id, display_name)
+	var colours: Array[Color] = [look["colour"]]
+	var icons: Array[StringName] = []
+	var states: Dictionary = (look["states"] as Dictionary).duplicate()
+	if not (look["cue"] as Dictionary).is_empty():
+		states[&"cue"] = look["cue"]
+	for event in states:
+		var spec: Dictionary = states[event]
+		if bool(spec.get("none", false)):
+			continue
+		icons.append(StringName(spec.get("icon", &"pow")))
+		if spec.has("colour"):
+			colours.append(AbilityLooks.colour_of(spec["colour"]))
+	var unknown := icons.filter(func(icon: StringName) -> bool: return not AbilityFX.ICONS.has(icon))
+	var burst := StringName(look["burst"])
+	var burst_known := AbilityFX.ICONS.has(burst) or burst == &"chip" \
+		or ResourceLoader.exists("%s/%s.png" % [UIStyle.GLYPH_DIR, burst])
+	_check("%s's badges and burst are drawn icons (%s)" % [ability_id, str(icons)],
+		unknown.is_empty() and burst_known)
+	var green := colours.filter(func(c: Color) -> bool: return c.h > 0.2 and c.h < 0.45 and c.s > 0.5)
+	_check("and none of its colours is a green the chroma key would eat", green.is_empty())
+	_check("and it calls out a word as it starts (\"%s\")" % look["call"], not String(look["call"]).is_empty())
 
 # --- one weapon -------------------------------------------------------------------------------
 
@@ -218,6 +246,10 @@ func _check_ability(id: StringName) -> void:
 		return
 	_check("held, right is its own and Shift+right is still the bin",
 		body.right_click_is_mine() and not body.click_would_bin(false) and body.click_would_bin(true))
+	# How it reads (D77): the ready glint, a sprite drawn once, on the weapon in the hand.
+	var glint := ability.ready_glint()
+	_check("held and ready, it wears its ready glint", glint != null and glint.visible)
+	_check("and the glint costs nothing: no tick of its own", glint == null or not glint.is_processing())
 	# An ordinary swing first, to know what an ordinary hit of this weapon is worth.
 	_buddy.health.reset_meter()
 	var ordinary := await _ordinary_hit(body)
@@ -279,6 +311,20 @@ func _check_ability(id: StringName) -> void:
 		return
 	_check("one use was counted", ability.uses == before_uses + 1)
 
+	# --- how it read (D77) -----------------------------------------------------------------
+	var look := ability.look()
+	_check("it called out \"%s\" as it began" % look["call"], ability.fx_said.has(String(look["call"])))
+	# A state is what landing did to him, so an ability that failed to land (already a failure
+	# above) is not failed twice for it.
+	_check("it put a state over his head (%s)" % str(ability.fx_states),
+		not ability.fx_states.is_empty() or ability.payoffs == 0)
+	_check("its payoff was drawn where it landed (%d drawn for %d payoffs)" % [ability.fx_landed,
+		ability.payoffs], ability.payoffs == 0 or ability.fx_landed > 0)
+	var own_words := [String(look["call"]), String(look["go"])]
+	var landing_words := ability.fx_said.filter(func(w: String) -> bool: return not own_words.has(w))
+	_check("and a word for it (%s)" % str(landing_words), ability.payoffs == 0
+		or not landing_words.is_empty())
+
 	# --- what it paid ----------------------------------------------------------------------
 	await _step(20)
 	_check("every hit was paid through the pipeline to the unit%s"
@@ -306,16 +352,23 @@ func _check_ability(id: StringName) -> void:
 	_check("and does not throw the weapon away", not _gone(body) and body.dragging)
 	var pip := ability.get_node_or_null("AbilityPip") as Node2D
 	_check("the pip is drawn by the hand while it cools", pip != null and pip.visible)
+	glint = ability.ready_glint()
+	_check("and the ready glint is gone while it cools", glint == null or not glint.visible)
+	var readied := ability.fx_readied
 	var wait := int((ability.cooldown_left() + 0.3) * 60.0)
 	await _await_cond(func() -> bool: return ability.is_ready(), wait + 60)
 	_check("it is ready again when the cooldown is up", ability.is_ready())
 	_check("and the pip is gone", pip == null or not pip.visible)
+	glint = ability.ready_glint()
+	_check("and the glint is back, with a pop", not ability.is_ready() or (glint != null and glint.visible
+		and ability.fx_readied == readied + 1))
 
 	# --- at rest, and away -----------------------------------------------------------------
 	_release(MOUSE_BUTTON_LEFT)
 	await _await_still(body, 90)
 	await _step(4)
 	_check("put down and idle, nothing of it runs", not ability.is_busy())
+	_check("and its glint is not drawn on the desk", glint == null or not glint.visible)
 	if await _grab(body):
 		_move(_grab_point(body))
 		await _step(2)
@@ -428,13 +481,30 @@ func _drive_stun(body: WeaponBase, ability: StunAbility) -> Dictionary:
 		_boosted_hits(body, ability.num("bong_mult", 1.5)) >= 1)
 	var stars := _buddy.get_node_or_null("DazeStars")
 	_check("stars circle his head", stars is Node2D and (stars as Node2D).is_visible_in_tree())
+	# How it reads (D77): the owner's own example of an ability that was not obvious.
+	var halo := stars as StunAbility.Halo
+	var all_out := halo.shown() if halo else 0
+	_check("five of them, all out as the daze begins (%d)" % all_out, all_out == StunAbility.Halo.STARS)
+	_check("under a badge over his head that counts the daze down",
+		AbilityFX.states_on(_buddy).has(&"dazed"))
 	await _expect_face(&"dazed", &"dazed")
 	var follow := 0
+	var fewest := all_out
 	while ability.is_dazed() and follow < 4:
 		await _sweep_through(900.0, 1300.0)
 		follow += 1
+		if is_instance_valid(halo) and ability.is_dazed():
+			fewest = mini(fewest, halo.shown())
+	_check("the stars go out one by one as it wears off (%d of %d left at the fewest)" % [fewest, all_out],
+		fewest < all_out)
 	_check("the follow-ups while he is dazed are x%.2f (%d)" % [ability.num("bonus_mult", 1.4),
 		ability.dazed_hits], ability.dazed_hits == 0 or _boosted_hits(body, ability.num("bonus_mult", 1.4)) >= 1)
+	var growing := true
+	for i in range(1, ability.follow_weights.size()):
+		var bigger := ability.follow_weights[i] > ability.follow_weights[i - 1]
+		growing = growing and (bigger or i >= StunAbility.FOLLOW_MOST)
+	_check("each follow-up is called out bigger than the last (%s)" % str(ability.follow_weights),
+		ability.follow_weights.size() == ability.dazed_hits and growing)
 	await _await_cond(func() -> bool: return not ability.is_active(), 240)
 	await _step(60)
 	_check("and when it wears off the stars go", not is_instance_valid(stars) or stars.is_queued_for_deletion())
@@ -791,8 +861,13 @@ func _drive_special_delivery(body: WeaponBase, ability: DeliveryAbility) -> Dict
 	await _step(60)
 	_check("and waits there: nothing runs, and no cooldown yet", body.freeze and not ability.is_busy()
 		and not ability.is_cooling() and ability.is_active())
+	var fetch := body.get_node_or_null("AbilityStateFetch") as Node2D
+	_check("a badge over its handle says to fetch it (D77), drawn once and never ticked",
+		ability.is_waiting_to_be_fetched() and fetch != null and fetch.visible and not fetch.is_processing())
 	await _grab(body)
 	await _step(2)
+	_check("fetched, the badge is gone", fetch == null or not is_instance_valid(fetch)
+		or fetch.is_queued_for_deletion())
 	_check("fetched, the cooldown starts", ability.fetched and ability.is_cooling() and body.dragging
 		and not body.freeze)
 	return {"speed": ability.last_throw_speed, "point": ability.last_hit, "hits": _hits.size()}
@@ -1219,7 +1294,7 @@ func _leftovers() -> String:
 	for child in _buddy.get_children():
 		if String(child.name).begins_with("SoulWisp") and not child.is_queued_for_deletion():
 			return "his soul, still out"
-		for mark in ["StapleMarks", "BlueScreenScan", "AbilitySteam"]:
+		for mark in ["StapleMarks", "BlueScreenScan", "AbilitySteam", "AbilityState", "IaidoCut"]:
 			if String(child.name).begins_with(mark) and not child.is_queued_for_deletion():
 				return "%s still on him" % mark
 	if not _buddy.get_collision_exceptions().is_empty():
@@ -2111,6 +2186,10 @@ func _check_held_ability(id: StringName) -> void:
 		return
 	_check("held, right is its own and Shift+right is still the bin",
 		body.right_click_is_mine() and not body.click_would_bin(false) and body.click_would_bin(true))
+	# How it reads (D77), the same four stages as a melee weapon's, through `AbilityCues`.
+	var glint := ability.ready_glint()
+	_check("held and ready, it wears its ready glint", glint != null and glint.visible)
+	_check("and the glint costs nothing: no tick of its own", glint == null or not glint.is_processing())
 	if body is WeaponBase:
 		_buddy.health.reset_meter()
 		ordinary = await _ordinary_hit(body as WeaponBase)
@@ -2118,6 +2197,11 @@ func _check_held_ability(id: StringName) -> void:
 	await _settle_him()
 	_reset_probes()
 	var before_uses := ability.uses
+	# Held by reference: a charge goes with its blast and takes its ability with it.
+	var said := ability.fx_said
+	var shown := ability.fx_states
+	var paid := ability.fx_paid
+	var look := ability.look()
 
 	var driver := "_drive_%s" % row.get("id", "")
 	if not has_method(driver):
@@ -2131,6 +2215,14 @@ func _check_held_ability(id: StringName) -> void:
 	if uses < 0 and not fuse and is_instance_valid(ability):
 		uses = ability.uses
 	_check("one use was counted", uses == before_uses + 1)
+
+	# --- how it read (D77) ---------------------------------------------------------------------
+	_check("it called out \"%s\" as it began" % look["call"], said.has(String(look["call"])))
+	_check("it put a state up, over him or over itself (%s)" % str(shown), not shown.is_empty())
+	_check("its payoff was drawn where it landed (%s)" % str(paid), not paid.is_empty())
+	var own_words := [String(look["call"]), String(look["go"])]
+	var landing_words := said.filter(func(w: String) -> bool: return not own_words.has(w))
+	_check("and a word for it (%s)" % str(landing_words), not landing_words.is_empty())
 
 	# --- what it paid ----------------------------------------------------------------------
 	await _step(20)
@@ -2178,10 +2270,16 @@ func _check_held_ability(id: StringName) -> void:
 		_check("and does not throw it away", not _gone(body) and body.dragging)
 		var pip := ability.get_node_or_null("AbilityPip") as Node2D
 		_check("the pip is drawn by the hand while it cools", pip != null and pip.visible)
+		glint = ability.ready_glint()
+		_check("and the ready glint is gone while it cools", glint == null or not glint.visible)
+		var readied := ability.fx_readied
 		var wait := int((ability.cooldown_left() + 0.3) * 60.0)
 		await _await_cond(func() -> bool: return ability.is_ready(), wait + 60)
 		_check("it is ready again when the cooldown is up", ability.is_ready())
 		_check("and the pip is gone", pip == null or not pip.visible)
+		glint = ability.ready_glint()
+		_check("and the glint is back, with a pop", not ability.is_ready() or (glint != null
+			and glint.visible and ability.fx_readied == readied + 1))
 		# What an ability puts back when it is ready again, if it puts anything back: a candle.
 		var after := "_after_cooldown_%s" % row.get("id", "")
 		if has_method(after):
@@ -2192,6 +2290,7 @@ func _check_held_ability(id: StringName) -> void:
 		await _await_still(body, 90)
 		await _step(4)
 		_check("put down and idle, nothing of it runs", not ability.is_busy())
+		_check("and its glint is not drawn on the desk", glint == null or not glint.visible)
 		if await _grab(body):
 			_move(_grab_point(body))
 			await _step(2)

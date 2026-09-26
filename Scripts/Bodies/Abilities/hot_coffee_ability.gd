@@ -48,6 +48,10 @@ func pip_fill() -> float:
 func is_steaming() -> bool:
 	return _active and _steam_left > 0.0
 
+## 0..1 of the steam left, for the badge over him (D77).
+func steam_left() -> float:
+	return clampf(_steam_left / maxf(num("steam_seconds", 1.2), 0.01), 0.0, 1.0) if is_steaming() else 0.0
+
 ## The rim: the top of the mug's biggest box, at its middle.
 func _rim() -> Vector2:
 	if body.collider and body.collider.shape:

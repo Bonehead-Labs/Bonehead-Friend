@@ -98,12 +98,15 @@ func _ready() -> void:
 	_ready_timer.one_shot = true
 	_ready_timer.timeout.connect(_on_cooled)
 	add_child(_ready_timer)
+	paid_off.connect(_on_paid_off_fx)
 
 func _exit_tree() -> void:
 	if _active:
 		_on_stop()
 	_active = false
 	_threaten(false)
+	# Nothing of it stays on him once the weapon has gone (D77).
+	AbilityFX.clear_states(buddy(), self)
 
 # --- reading it -------------------------------------------------------------------
 
@@ -213,7 +216,10 @@ func press() -> void:
 	_active = true
 	uses += 1
 	used.emit(ability_id())
+	_in_press = true
 	_on_press()
+	_in_press = false
+	_fx_activated()
 
 func release() -> void:
 	if not _right_held:
@@ -233,6 +239,7 @@ func on_dropped() -> void:
 	if _active:
 		_on_dropped()
 	_update_pip()
+	_fx_glint(false)
 
 ## The weapon landed a hit he billed (`WeaponBase.register_use`, from his attribution step).
 ## Inside his `_integrate_forces`: record it here, act on it in `_physics_process`.
@@ -242,12 +249,19 @@ func note_hit() -> void:
 	billed.append(hit_multiplier())
 	if billed.size() > 16:
 		billed.pop_front()
+	# Where the contact touched him, while he still knows (`Buddy.hit_at`, set only for the length of
+	# his attribution): a payoff for this hit a tick later is drawn there, not at his middle (D77).
+	var him := buddy()
+	if him and him.hit_at != Vector2.INF:
+		_strike_at = him.hit_at
+		_strike_frame = Engine.get_physics_frames()
 	if _active:
 		_on_hit()
 
-## The weapon was picked up: the pip comes back if it is still cooling.
+## The weapon was picked up: the pip comes back if it is still cooling, and the glint if it is not.
 func on_picked_up() -> void:
 	_update_pip()
+	_fx_glint(true)
 
 # --- the archetype's hooks --------------------------------------------------------------
 
@@ -321,6 +335,7 @@ func finish(seconds: float = -1.0) -> void:
 	if not _active:
 		return
 	_active = false
+	_cue_state = false
 	run(false)
 	_threaten(false)
 	_on_stop()
@@ -330,9 +345,13 @@ func finish(seconds: float = -1.0) -> void:
 	_cooldown_seconds = maxf(gap, 0.05)
 	_ready_timer.start(_cooldown_seconds)
 	_update_pip()
+	_fx_glint(false)
 
 func _on_cooled() -> void:
 	_update_pip()
+	if body and body.dragging:
+		fx_readied += 1
+	_fx_glint(true)
 	if body and body.dragging:
 		# Ready again: a small ring off the hand and a tick, so the player need not watch the pip.
 		var fx := fx()
@@ -499,6 +518,7 @@ func whip(omega: float) -> void:
 ## row would otherwise overwrite a daze or a launch the instant it began.
 func tell(event: StringName, at: Vector2) -> void:
 	_tell_now.call_deferred(event, at)
+	show_state(event)
 
 func _tell_now(event: StringName, at: Vector2) -> void:
 	if is_inside_tree() and body:
@@ -635,6 +655,8 @@ func strike(impulse: float, direction: Vector2, at: Vector2, mult: float = 1.0,
 		return
 	him.apply_central_impulse(direction.normalized() * impulse * shove)
 	him.take_impulse(impulse, body.item_id, base_mult() * mult, at)
+	_strike_at = at
+	_strike_frame = Engine.get_physics_frames()
 	struck.append(impulse)
 	if struck.size() > 32:
 		struck.pop_front()
@@ -649,6 +671,229 @@ func strike(impulse: float, direction: Vector2, at: Vector2, mult: float = 1.0,
 func base_mult() -> float:
 	var own = body.get(&"damage_mult")
 	return Progression.damage_mult_for(body.item_id, float(own) if own != null else 1.0)
+
+# --- how it reads (D77) ---------------------------------------------------------------------
+#
+# Four stages, the same for every ability, drawn by `AbilityFX` from the ability's row in
+# `AbilityLooks` (or its defaults): the READY glint on the held weapon, the ACTIVATION flare and
+# its name called out, a STATE badge on him for as long as each thing it `tell`s him lasts, and
+# the PAYOFF where each `paid_off` lands. An archetype or a hook calls nothing here to get them.
+# One with a moment the four do not cover calls `callout`, `show_state` or `fx_land` itself, and
+# D78's abilities speak it through `AbilityCues` (their three moments, pointed here).
+
+## For the suites and the capture tool; nothing in the simulation reads them. The words it asked
+## to be called out (drawn or not — the suites' desks have no FX layer), the states it put on him,
+## the payoffs it drew, and the times its glint came back in the hand.
+var fx_said: Array[String] = []
+var fx_states: Array[StringName] = []
+var fx_landed := 0
+var fx_readied := 0
+## Where the next payoff is, if not where the ability last struck him: set by a hook just before its
+## `paid_off` (a slam's wave on the desk, not him).
+var fx_at := Vector2.INF
+## The word for the next payoff, if the ability says it itself (`AbilityCues.payoff`, D78).
+var fx_word := ""
+## Every payoff drawn, by event: an array, so a suite that holds it can still read it after a charge
+## has gone with its blast and taken the ability with it.
+var fx_paid: Array[StringName] = []
+
+var _look: Dictionary = {}
+var _ready_glint: AbilityFX.ReadyGlint
+var _strike_at := Vector2.INF
+var _strike_frame := -100
+var _paid_this_use := {}
+var _paid_msec := {}
+var _in_press := false
+var _cue_at := Vector2.INF
+var _cue_state := false
+
+## How it reads, from `AbilityLooks`: every field filled.
+func look() -> Dictionary:
+	if _look.is_empty():
+		_look = AbilityLooks.look_for(ability_id(), ability_name())
+	return _look
+
+## Its accent colour: the flare, the rings, the badge and the words.
+func accent() -> Color:
+	return look()["colour"]
+
+func ready_glint() -> AbilityFX.ReadyGlint:
+	return _ready_glint
+
+## Where its glint sits, in the body's frame: along the weapon from the hand to the far end.
+func glint_local() -> Vector2:
+	var at: Vector2 = look()["glint_at"]
+	if at != Vector2.INF:
+		return at
+	return body.grip_offset.lerp(body._find_tip(), clampf(float(look()["glint"]), 0.0, 1.0))
+
+func glint_world() -> Vector2:
+	return body.to_global(glint_local()) if body else Vector2.ZERO
+
+## Over his skull, where a payoff's word and a badge go. The weapon's glint with nobody there.
+func head_world() -> Vector2:
+	var him := buddy()
+	if him == null:
+		return glint_world()
+	var rect := him.get_interaction_rect()
+	return Vector2(rect.get_center().x, rect.position.y)
+
+## READY: the glint is on while it is held and can be used, and pops when it has just become so.
+func _fx_glint(pop: bool) -> void:
+	if body == null or not is_inside_tree():
+		return
+	var on := body.dragging and is_ready()
+	if _ready_glint == null or not is_instance_valid(_ready_glint):
+		if not on:
+			return
+		_ready_glint = AbilityFX.glint(sprite(), glint_local(), tier_colour(), AbilityFX.of(body))
+		if _ready_glint == null:
+			return
+	elif on:
+		_ready_glint.tint(tier_colour(), AbilityFX.of(body))
+	_ready_glint.show_ready(on, pop)
+
+## ACTIVATION: the glint flares off the weapon, its burst, and its name.
+func _fx_activated() -> void:
+	AbilityFX.note_use(ability_id())
+	_paid_this_use.clear()
+	_fx_glint(false)
+	if body == null or not body.is_inside_tree():
+		return
+	# Where the ability said it started (`AbilityCues.activation` inside the press: a cake's wicks),
+	# or the glint.
+	var at := _cue_at if _cue_at.is_finite() else glint_world()
+	_cue_at = Vector2.INF
+	var afx := AbilityFX.of(body)
+	if afx:
+		afx.activate(at, accent(), StringName(look()["burst"]))
+	callout(String(look()["call"]), at + Vector2(0.0, -34.0), false)
+
+## `AbilityCues.activation` (D78): inside the press, only where the flare goes; anywhere else, the
+## flare and the name there.
+func fx_cue_activation(at: Vector2) -> void:
+	if _in_press:
+		_cue_at = at
+		return
+	if body == null or not body.is_inside_tree() or not at.is_finite():
+		return
+	var afx := AbilityFX.of(body)
+	if afx:
+		afx.activate(at, accent(), StringName(look()["burst"]))
+	callout(String(look()["call"]), at + Vector2(0.0, -34.0), false)
+
+## `AbilityCues.state` (D78): the ability's badge for its own id, up while it says so. Over him, or
+## over the thing itself if the look says `over: weapon` (a charge on the clicker).
+func fx_cue_state(on: bool) -> void:
+	_cue_state = on
+	if not on or body == null or not body.is_inside_tree():
+		return
+	var spec := AbilityLooks.cue_spec(look(), row)
+	if spec.is_empty():
+		return
+	var over_it := String(spec.get("over", "")) == "weapon"
+	var target: Node2D = body if over_it else buddy()
+	if target == null:
+		return
+	var kind := StringName("%s_on" % ability_id())
+	if not fx_states.has(kind):
+		fx_states.append(kind)
+	AbilityFX.state(target, kind, spec, self, AbilityFX.of(body))
+
+## Whether the state `AbilityCues` last put up is still on: what a cue state's badge lasts for.
+func cue_state_on() -> bool:
+	return _cue_state and _active
+
+## The moment it is let go, for an ability that has one (a drive's "FORE!"): its word and a flare.
+func fx_go() -> void:
+	var words := String(look()["go"])
+	if words.is_empty() or body == null or not body.is_inside_tree():
+		return
+	var at := glint_world()
+	var afx := AbilityFX.of(body)
+	if afx:
+		afx.activate(at, accent(), StringName(look()["burst"]), 3)
+	callout(words, at + Vector2(0.0, -34.0), false, AbilityFX.weight_for(ability_id(), true))
+
+## Calls out `text` at `at` in its colour, through FXLayer. `weight` <0 picks it by how new the
+## ability still is (`AbilityFX.weight_for`).
+func callout(text: String, at: Vector2, landing: bool, weight: float = -1.0) -> void:
+	if text.is_empty() or body == null:
+		return
+	fx_said.append(text)
+	if fx_said.size() > 16:
+		fx_said.pop_front()
+	var w := weight if weight >= 0.0 else AbilityFX.weight_for(ability_id(), landing)
+	AbilityFX.callout(body, text, at, accent(), StringName("ability:%s" % ability_id()), w)
+
+## STATE: the badge for `event` over his head, or a bump of the one there. Every `tell` shows one;
+## an ability with a state it does not tell him about calls this itself.
+func show_state(event: StringName) -> void:
+	var him := buddy()
+	if him == null or body == null:
+		return
+	var spec := AbilityLooks.state_spec(look(), event, row)
+	if spec.is_empty():
+		return
+	if not fx_states.has(event):
+		fx_states.append(event)
+	AbilityFX.state(him, event, spec, self, AbilityFX.of(body))
+
+## A badge over the weapon itself rather than him: something the player has to do with it (a
+## letter opener waiting to be fetched). Its owner takes it off (`AbilityFX.clear_states(body, self)`).
+func show_weapon_state(event: StringName) -> AbilityFX.StateMark:
+	if body == null or not body.is_inside_tree():
+		return null
+	var spec := AbilityLooks.state_spec(look(), event, row)
+	if spec.is_empty():
+		return null
+	if not fx_states.has(event):
+		fx_states.append(event)
+	return AbilityFX.state(body, event, spec, self, AbilityFX.of(body))
+
+## PAYOFF: every `paid_off` is drawn where it landed, sized by the look. A repeated event (a grind,
+## a burn, a staple) is drawn no more than five times a second, half size after its first.
+func _on_paid_off_fx(event: StringName) -> void:
+	fx_land(event)
+
+## Draws a payoff for `event` at `at` (by default where the ability last struck him, or his middle),
+## and calls out its word. For a moment that is not a `paid_off` (the monitor's reboot).
+func fx_land(event: StringName, at: Vector2 = Vector2.INF) -> void:
+	if body == null or not body.is_inside_tree():
+		return
+	var spec := AbilityLooks.pay_spec(look(), event)
+	var where := at if at != Vector2.INF else fx_at
+	fx_at = Vector2.INF
+	if where == Vector2.INF:
+		if Engine.get_physics_frames() - _strike_frame <= 2 and _strike_at != Vector2.INF:
+			where = _strike_at
+		else:
+			var him := buddy()
+			where = him.get_interaction_rect().get_center() if him else glint_world()
+	var first := not _paid_this_use.has(event)
+	_paid_this_use[event] = int(_paid_this_use.get(event, 0)) + 1
+	var size := float(spec.get("size", 0.35))
+	var now := Time.get_ticks_msec()
+	if not first:
+		size *= 0.5
+		if now - int(_paid_msec.get(event, -1000)) < 200:
+			size = 0.0
+	fx_landed += 1
+	fx_paid.append(event)
+	if fx_paid.size() > 32:
+		fx_paid.pop_front()
+	if size > 0.0:
+		_paid_msec[event] = now
+		var afx := AbilityFX.of(body)
+		if afx:
+			afx.payoff(where, size, accent())
+	# The word: the look's own for this event if it names one, else what the ability said with it
+	# (`AbilityCues.payoff`), else the look's landing word.
+	var said := fx_word
+	fx_word = ""
+	var words := AbilityLooks.pay_words(look(), spec, first, said)
+	if not words.is_empty():
+		callout(words, head_world() + Vector2(0.0, -58.0), true)
 
 # --- the kind side (D78) ----------------------------------------------------------------------
 #

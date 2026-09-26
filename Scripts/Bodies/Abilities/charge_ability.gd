@@ -72,6 +72,8 @@ func _on_tick(delta: float) -> void:
 		_charge = minf(1.0, _charge + delta / maxf(num("charge_seconds", 0.9), 0.05))
 		_cock()
 		_tremble()
+		# The bat heats up as it winds (D77): the charge on the weapon itself, not only on the pip.
+		AbilityFX.shine(sprite(), accent(), 0.1 + 0.5 * _charge)
 		_next_click -= delta
 		if _next_click <= 0.0 and not _full:
 			# A ratchet that climbs with the charge, so the ear can time the release.
@@ -102,6 +104,8 @@ func _on_release(_seconds: float) -> void:
 	_phase = ARMED
 	_armed_left = num("window", 0.8)
 	_rest_sprite()
+	# Armed, it stays lit at what it was wound to, until the hit or the window runs out.
+	AbilityFX.shine(sprite(), accent(), 0.2 + 0.4 * _charge)
 	emit_from(_sparks, false)
 	threaten(false)
 	whip(swing_sign() * num("whip", 12.0) * _charge)
@@ -121,6 +125,7 @@ func _on_dropped() -> void:
 func _on_stop() -> void:
 	_rest_sprite()
 	emit_from(_sparks, false)
+	AbilityFX.shine(sprite(), accent(), 0.0)
 
 ## The hit landed on the tick before this one: throw him, claim where he comes down, and make it
 ## look and sound like it.
@@ -143,7 +148,8 @@ func _land() -> void:
 	if fx:
 		fx.ring(at, 70.0 + 50.0 * _charge, WorldFX.GOLD, 0.35, 4.0)
 		fx.burst(at, &"star", WorldFX.GOLD, 4 + int(5.0 * _charge), 320.0)
-		fx.chips(at, Color.WHITE, 6, 260.0)
+		# Not white: white on him is invisible (D77).
+		fx.chips(at, accent(), 6, 260.0)
 		fx.shake(4.0 + 5.0 * _charge)
 	sound(&"crack", -2.0, lerpf(1.15, 0.9, _charge))
 	tell(&"home_run", at)
