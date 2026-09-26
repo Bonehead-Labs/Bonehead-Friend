@@ -3086,7 +3086,8 @@ func _real_physics_produces_hits() -> void:
 ## let through changed with the frame rate — the cleaver's ordinary hit measured 17.3 at 30 fps
 ## and 20.7 at 15. The desk's jolt drew its offsets from the global random stream once per drawn
 ## frame, so a suite that seeds per item replayed differently at a different frame rate, and freed
-## mid-jolt it left the picture offset.
+## mid-jolt it left the picture offset. And a weapon that bills by where it touched was told where
+## it is, not where it touched, when the ledger bills a step late.
 func _billing_does_not_read_the_wall_clock() -> void:
 	_suite("billing is the same however busy the machine is")
 	var buddy := _buddy()
@@ -3109,6 +3110,7 @@ func _billing_does_not_read_the_wall_clock() -> void:
 	_check("and its steps later it bills again", buddy._cooldown_ready(source, cooldown))
 	buddy._cooldowns.erase(source.get_instance_id())
 	source.free()
+	_check("where a hit touched him is only told while it is being billed", buddy.hit_at == Vector2.INF)
 	var focus := Settings.focus_intensity
 	Settings.focus_intensity = Settings.Intensity.NORMAL
 	var fx := WorldFX.new()

@@ -426,9 +426,11 @@ func _integrate_forces(state_: PhysicsDirectBodyState2D) -> void:
 			continue
 		if not _cooldown_ready(src, b.damage_cooldown):
 			continue
-		var attribution := _attribute(src)
 		# get_contact_local_position is global despite the name: "local" distinguishes
 		# this body's contact point from the collider's, not the coordinate space.
+		hit_at = state_.get_contact_local_position(i)
+		var attribution := _attribute(src)
+		hit_at = Vector2.INF
 		_queue_hit(impulse, attribution[0], attribution[1], state_.get_contact_local_position(i))
 	# The step before this one, now that the engine has said all it will about it; then this
 	# step, held for the same question next time. After a sleep the one still held is from
@@ -589,7 +591,9 @@ func _settle_ledger(state_: PhysicsDirectBodyState2D, b: BalanceData) -> void:
 			continue
 		if not _cooldown_ready(src, b.damage_cooldown):
 			continue
+		hit_at = _ledger_at[s]
 		var attribution := _attribute(src)
+		hit_at = Vector2.INF
 		_queue_hit(share, attribution[0], attribution[1], _ledger_at[s])
 
 ## Damage from a source that is not a contact — an explosion's blast, a gunshot. Fed the
@@ -697,6 +701,13 @@ func _attribute(src: Object) -> Array:
 	if impacts_claimed_by() != &"":
 		return [_claim_id, _claim_mult]
 	return [&"world", 1.0]
+
+## Where the contact being billed touched him, while `_attribute` asks its weapon for a
+## multiplier; INF the rest of the time. For a weapon whose multiplier depends on *where* on it the
+## hit landed — the cricket bat's middle (D74) — because by the time a hit the ledger bills is
+## attributed, a step late (D64), the weapon has already moved off him, and where it is then says
+## nothing about where it touched.
+var hit_at := Vector2.INF
 
 ## Above this many tracked sources, expired entries are swept. Items are spawned and binned
 ## all session; without a sweep this dictionary grows for every object that ever touched him,
