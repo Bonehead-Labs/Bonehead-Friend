@@ -158,10 +158,11 @@ var _down := false
 ## so a turret added next month is covered by the seeder that writes it.
 ##
 ## `by_itself` is a hit under an item's name with nobody's hand behind it (`HitInfo.by_itself`,
-## D76 amended): the wall a desk fan left blowing throws him into. It is judged exactly as the
-## world is — the hand's while he is held or a hand moved him in the last three seconds, nobody's
-## otherwise. Before this, a fan beside a gorilla or a mortar billed the landings D76 had made
-## nobody's as acts again, under the fan's name.
+## D76 amended): the wall a desk fan left blowing throws him into, a bat a raccoon threw at him.
+## It is judged exactly as the world is — the hand's while he is held or a hand moved him in the
+## last three seconds, nobody's otherwise. Before this, a fan beside a gorilla or a mortar billed
+## the landings D76 had made nobody's as acts again, under the fan's name, and a raccoon's throws
+## were acts of the bat and the bowling ball.
 func is_unattended(source_id: StringName, by_itself: bool = false) -> bool:
 	if source_id == &"world" or by_itself:
 		return not hand_behind_him()
@@ -345,8 +346,8 @@ func _on_damage_dealt(info: HitInfo) -> void:
 		_moved_by(true)
 		return
 	# A hit nobody's hand is behind can fall inside the hand's three seconds but never extends
-	# them: the world only gives back what a hand put in, and a fan puts in its own, so a chain of
-	# its landings would otherwise stay the hand's for as long as it kept blowing.
+	# them: the world only gives back what a hand put in, and a fan or a raccoon puts in its own,
+	# so a chain of their hits would otherwise stay the hand's for as long as they kept at it.
 	if not info.by_itself:
 		_moved_by(false)
 	_round_hands_on = true

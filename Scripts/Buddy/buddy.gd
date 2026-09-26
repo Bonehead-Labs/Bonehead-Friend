@@ -692,23 +692,28 @@ func get_interaction_rect() -> Rect2:
 ## Who to bill the hit to, and by how much. Anything without a script is still a weapon —
 ## it just has no multiplier and no mastery.
 func _attribute(src: Object) -> Array:
+	# A prop a raccoon threw, or a fan left blowing pushed, is billed under its own name and as
+	# nobody's act (D76 amended). The third element is `HitInfo.by_itself`.
+	var flung := src is BaseDraggable and (src as BaseDraggable).acts_by_itself()
 	if src is WeaponBase:
 		var w := src as WeaponBase
 		# Both gates have already run by the time attribution does, so this is the honest
 		# count of swings that landed — the contract board's "land 120 hits with the mace".
-		w.register_use()
-		return [w.item_id, w.effective_damage_mult()]
+		# A bat a raccoon threw is not a swing anybody landed.
+		if not flung:
+			w.register_use()
+		return [w.item_id, w.effective_damage_mult(), flung]
 	if src is ThrowableBase:
 		var t := src as ThrowableBase
-		return [t.item_id, t.effective_damage_mult()]
+		return [t.item_id, t.effective_damage_mult(), flung]
 	# An animal or a turret that runs into him is billed at its own multiplier, the same one
 	# its blows and shots already carry. It was a flat 1.0, so a hornet's body-check ignored the
 	# "Sharper Sting" the player had bought for it, measured by item_check (D59). Duck-typed:
 	# the method is the contract, and the classes that have one are not a list kept here.
 	if src is BaseDraggable and src.has_method(&"effective_damage_mult"):
-		return [(src as BaseDraggable).item_id, float(src.call(&"effective_damage_mult"))]
+		return [(src as BaseDraggable).item_id, float(src.call(&"effective_damage_mult")), flung]
 	if src is BaseDraggable:
-		return [(src as BaseDraggable).item_id, 1.0]
+		return [(src as BaseDraggable).item_id, 1.0, flung]
 	# The world, unless a field is throwing him into it (D65) — and whether that field is one
 	# nobody is holding, which Economy then judges as it judges the world (D76 amended).
 	if impacts_claimed_by() != &"":

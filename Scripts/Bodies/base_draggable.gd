@@ -172,9 +172,25 @@ func bin_myself() -> void:
 func right_click_is_mine() -> bool:
 	return ability != null and (dragging or ability.is_active())
 
+## **Thrown or blown by something nobody is holding** (D76 amended): a raccoon hurling what the
+## player left on the desk, a fan left blowing. Until this runs out, a hit this lands on him keeps
+## this item's name — a hurled bowling ball still pays as a bowling ball — but is nobody's act:
+## `HitInfo.by_itself`, judged as the world is. The player taking it in hand ends it.
+var _flung_until_msec := 0
+
+func fling_by_itself(seconds: float) -> void:
+	_flung_until_msec = maxi(_flung_until_msec, Time.get_ticks_msec() + int(seconds * 1000.0))
+
+## Whether what this does to him right now has nobody's hand behind it, so that `Buddy` bills it
+## as `HitInfo.by_itself`. Something a raccoon threw or a fan blew; a thing that is a floor when
+## nobody holds it overrides this (the trampoline).
+func acts_by_itself() -> bool:
+	return not dragging and Time.get_ticks_msec() < _flung_until_msec
+
 func _start_drag() -> void:
 	if not handle:
 		return
+	_flung_until_msec = 0
 	dragging = true
 	# Global space throughout. The old code mixed event.position (viewport space) here
 	# with get_global_mouse_position() in _physics_process, which disagree the moment

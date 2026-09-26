@@ -789,7 +789,8 @@ func _on_damage_dealt(info: HitInfo) -> void:
 	# desk meant the idle timer was reset every couple of seconds for the rest of the
 	# session** and he never reached the twenty-five seconds a routine needs to start. The
 	# player who bought automation to watch him potter about got the opposite.
-	# A fan nobody holds claiming the floor it blew him into is the floor too (D76 amended).
+	# A fan nobody holds claiming the floor it blew him into is the floor too, and a bat a raccoon
+	# threw is the raccoon's (D76 amended).
 	if info.source_id == &"world" or info.by_itself or _is_current_toy(info.source_id) \
 			or _is_offer(info.source_id):
 		return

@@ -52,6 +52,9 @@ func _physics_process(delta: float) -> void:
 		if rigid is Buddy:
 			(rigid as Buddy).claim_impacts(item_id, Progression.damage_mult_for(item_id, 1.0),
 				CLAIM_SECONDS, by_itself)
+		elif by_itself and rigid is BaseDraggable:
+			# A prop it blows into him is still the prop's, and nobody's act.
+			(rigid as BaseDraggable).fling_by_itself(CLAIM_SECONDS)
 
 ## **A fan nobody is holding is nobody's hand** (D76 amended). It blows whether or not anyone is
 ## at the desk, so the wall it blows him into is the world he was blown into: it is billed to the
@@ -61,6 +64,11 @@ func _physics_process(delta: float) -> void:
 ## acts: 2,325 Dollars an hour, and two knockouts and 370 damage a minute on the board.
 func blowing_by_itself() -> bool:
 	return not dragging and Time.get_ticks_msec() - _handled_msec > Economy.WORLD_FOLLOWS_MSEC
+
+## And its body, when he is thrown into it: a fan nobody holds is furniture, and a mortar that
+## lands him on it is not a hand (measured: four such hits a minute beside a mortar).
+func acts_by_itself() -> bool:
+	return super.acts_by_itself() or blowing_by_itself()
 
 ## When the player last had it: let go of, or aimed.
 var _handled_msec := -100000

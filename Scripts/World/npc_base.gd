@@ -203,7 +203,8 @@ const SPRITE_PATH := "res://Assets/sprites/items/%s.png"
 
 ## Picks up whatever the player left lying about and throws that instead of striking. The
 ## damage then belongs to the thing thrown — a hurled bowling ball pays as a bowling ball,
-## which is correct, and is why this needs no damage model of its own.
+## which is correct, and is why this needs no damage model of its own. It is nobody's act,
+## though, like every blow of the animal's own (D76 amended, `BaseDraggable.fling_by_itself`).
 @export var throws_loose_items: bool = false
 @export var throw_reach: float = 320.0
 @export var throw_speed: float = 900.0
@@ -545,6 +546,11 @@ func _hurl_loose_item(buddy: Buddy) -> bool:
 	# dropped at its feet (D60). The two ignore each other for the moment of the throw.
 	add_collision_exception_with(best)
 	get_tree().create_timer(THROW_RELEASE_SECONDS).timeout.connect(_release_thrown.bind(best))
+	# Its throw, not the player's (D76 amended). The prop keeps its name, but what it lands is
+	# nobody's act: at an empty desk a raccoon with a bat and a bowling ball to hand banked 3,636
+	# Dollars an hour and put 1,201 damage, three knockouts and 50 "use" on the board a minute.
+	if best is BaseDraggable:
+		(best as BaseDraggable).fling_by_itself(FLUNG_SECONDS)
 	best.linear_velocity = to_him.normalized() * throw_speed + Vector2.UP * throw_lift
 	best.angular_velocity = randf_range(-8.0, 8.0)
 	_face(to_him.x)
@@ -552,6 +558,9 @@ func _hurl_loose_item(buddy: Buddy) -> bool:
 
 ## How long a thrown thing passes through the animal that threw it.
 const THROW_RELEASE_SECONDS := 0.4
+## How long what it threw stays its throw: the flight and the bounces after, the same three
+## seconds a player's throw stays theirs.
+const FLUNG_SECONDS := 3.0
 
 func _release_thrown(body: PhysicsBody2D) -> void:
 	if is_instance_valid(body):

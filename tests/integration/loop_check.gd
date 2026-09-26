@@ -1125,6 +1125,103 @@ func _nobody_at_the_desk_is_not_an_act() -> void:
 		remove_child(fan)
 		fan.free()
 
+	# What a raccoon throws is its throw, not the player's (D76 amended): the prop keeps its name
+	# and its Bones, and lands as nobody's act. Measured before the fix, a raccoon with a bat, a
+	# bowling ball and a tennis ball to hand banked 3,636 Dollars an hour at an empty desk and put
+	# 1,201 damage, three knockouts, nine kind acts and fifty "use" on the board in a minute.
+	var raccoon := _instance_of(&"raccoon") as NpcBase
+	var bat := _instance_of(&"baseball_bat") as WeaponBase
+	_check("a raccoon and a bat it can reach", buddy != null and raccoon != null and bat != null)
+	if buddy and raccoon and bat:
+		raccoon.position = buddy.global_position + Vector2(-800, -400)
+		add_child(raccoon)
+		raccoon.freeze = true
+		bat.position = raccoon.position + Vector2(40, 0)
+		bat.add_to_group(BaseDraggable.GROUP_SPAWNED)
+		add_child(bat)
+		_check("a bat left on the desk is nobody's throw yet", not bat.acts_by_itself())
+		_check("the raccoon throws it at him", raccoon._hurl_loose_item(buddy))
+		_check("and it is the raccoon's throw", bat.acts_by_itself())
+		_d76_keys.clear()
+		var hurled: Array = buddy._attribute(bat)
+		_check("which lands billed as the bat, and as nobody's (%s)" % [hurled],
+			hurled[0] == &"baseball_bat" and hurled.size() > 2 and bool(hurled[2]))
+		_check("and is no swing anybody landed: no use of the bat on the board",
+			_d76_board("use:baseball_bat") == 0)
+		Economy.flush_dollars()
+		Economy._held = false
+		Economy._moved_msec -= Economy.WORLD_FOLLOWS_MSEC + 1000
+		dollars = Economy.balance_of(Economy.DOLLARS)
+		bones = Economy.balance_of(Economy.BONES)
+		var thrown := HitInfo.new(30.0, hurled[0], at, 3000.0)
+		thrown.by_itself = bool(hurled[2])
+		EventBus.damage_dealt.emit(thrown)
+		Economy.flush_dollars()
+		_check("it pays the bat's Bones, and no Dollar and nothing on the board (%s)" % _d76_keys,
+			Economy.balance_of(Economy.BONES) > bones
+			and is_equal_approx(Economy.balance_of(Economy.DOLLARS), dollars)
+			and _d76_board("deal_damage") == 0)
+		Economy._unattended_hit = false
+		bat.dragging = true
+		_check("and in the player's hand it is theirs again", not bat.acts_by_itself())
+		bat.dragging = false
+		remove_child(bat)
+		bat.free()
+		remove_child(raccoon)
+		raccoon.free()
+
+	# The mat is a floor when nobody holds it (D76 amended). Measured before the fix, a ball left
+	# bouncing on it put 27 "bounce him" on the board in a minute at an empty desk, and a gorilla
+	# beside it 18 bounces, 117 damage and a knockout.
+	var mat := _instance_of(&"trampoline") as Trampoline
+	_check("a trampoline", buddy != null and mat != null)
+	if buddy and mat:
+		mat.position = buddy.global_position + Vector2(-800, -400)
+		add_child(mat)
+		mat.freeze = true
+		Economy._held = false
+		Economy._moved_msec -= Economy.WORLD_FOLLOWS_MSEC + 1000
+		_check("left on the desk, the mat is a floor", mat.acts_by_itself())
+		var landed: Array = buddy._attribute(mat)
+		_check("so his landing on it is billed to the mat, as nobody's (%s)" % [landed],
+			landed[0] == &"trampoline" and landed.size() > 2 and bool(landed[2]))
+		_check("and with nobody's hand behind him it is no bounce for the board",
+			not mat.counts_as_bounce(buddy))
+		var prop := RigidBody2D.new()
+		_check("nor is a ball bouncing on it: the board says him", not mat.counts_as_bounce(prop))
+		prop.free()
+		var launched := _instance_of(&"bowling_ball")
+		if launched:
+			mat._mark_launched(launched)
+			_check("and a ball it launches at him is its throw, not a hand's", launched.acts_by_itself())
+			launched.free()
+		Economy._on_buddy_state_changed(&"dragged")
+		Economy._on_buddy_state_changed(&"idle")
+		_check("thrown onto it by the player, he bounces for the board", mat.counts_as_bounce(buddy))
+		Economy._moved_msec -= Economy.WORLD_FOLLOWS_MSEC + 1000
+		mat.dragging = true
+		_check("and the mat in the player's hand is theirs", not mat.acts_by_itself()
+			and mat.counts_as_bounce(buddy))
+		mat.dragging = false
+		remove_child(mat)
+		mat.free()
+
+	# A fan nobody holds is furniture, its body as well as its wind: four hits a minute landed a
+	# mortar's target on it as acts, before the fix.
+	var furniture := _instance_of(&"desk_fan") as WindSource
+	if buddy and furniture:
+		furniture.position = buddy.global_position + Vector2(-800, -400)
+		add_child(furniture)
+		furniture.freeze = true
+		var into: Array = buddy._attribute(furniture)
+		_check("thrown into a fan nobody holds, the hit is the fan's and nobody's (%s)" % [into],
+			into[0] == &"desk_fan" and into.size() > 2 and bool(into[2]))
+		furniture.dragging = true
+		_check("and swung in the hand, the player's", not bool(buddy._attribute(furniture)[2]))
+		furniture.dragging = false
+		remove_child(furniture)
+		furniture.free()
+
 	Economy._combo_deadline_msec = 0
 	Economy._round_hands_on = false
 	EventBus.contract_event.disconnect(_d76_contract)
