@@ -702,7 +702,8 @@ var _ready_glint: AbilityFX.ReadyGlint
 var _strike_at := Vector2.INF
 var _strike_frame := -100
 var _paid_this_use := {}
-var _paid_msec := {}
+var _paid_step := {}
+var _word_step := {}
 var _in_press := false
 var _cue_at := Vector2.INF
 var _cue_state := false
@@ -852,9 +853,22 @@ func show_weapon_state(event: StringName) -> AbilityFX.StateMark:
 	return AbilityFX.state(body, event, spec, self, AbilityFX.of(body))
 
 ## PAYOFF: every `paid_off` is drawn where it landed, sized by the look. A repeated event (a grind,
-## a burn, a staple) is drawn no more than five times a second, half size after its first.
+## a burn, a staple) is drawn half size after its first in a use, and **folds**: inside `FOLD_STEPS`
+## of the last one drawn it draws nothing, so one sustained ability shows one payoff at a time. Its
+## word folds the same way. The chainsaw's grind used to put a payoff down five times a second, each
+## living 0.46 s, and stacked "VRRRM!", a rank-up, five numbers and three rings on him (D77 amended).
 func _on_paid_off_fx(event: StringName) -> void:
 	fx_land(event)
+
+## Half a second of physics steps: a payoff's rings live 0.46 s, so one folded this long after the
+## last has never shared the screen with it. Steps, not the wall clock (CLAUDE.md: a gap counts
+## steps), so a suite on a busy machine sees what a player sees.
+const FOLD_STEPS := 30
+
+## For the suites: the physics step each payoff and each landing word was drawn on, by event and
+## by word — the clutter budget's record.
+var fx_drawn: Array = []
+var fx_words: Array = []
 
 ## Draws a payoff for `event` at `at` (by default where the ability last struck him, or his middle),
 ## and calls out its word. For a moment that is not a `paid_off` (the monitor's reboot).
@@ -873,29 +887,41 @@ func fx_land(event: StringName, at: Vector2 = Vector2.INF) -> void:
 	var first := not _paid_this_use.has(event)
 	_paid_this_use[event] = int(_paid_this_use.get(event, 0)) + 1
 	var size := float(spec.get("size", 0.35))
-	var now := Time.get_ticks_msec()
+	var step := Engine.get_physics_frames()
 	if not first:
 		size *= 0.5
-		if now - int(_paid_msec.get(event, -1000)) < 200:
+		if step - int(_paid_step.get(event, -FOLD_STEPS)) < FOLD_STEPS:
 			size = 0.0
 	fx_landed += 1
 	fx_paid.append(event)
 	if fx_paid.size() > 32:
 		fx_paid.pop_front()
 	if size > 0.0:
-		_paid_msec[event] = now
+		_paid_step[event] = step
+		fx_drawn.append([event, step])
+		if fx_drawn.size() > 32:
+			fx_drawn.pop_front()
 		var afx := AbilityFX.of(body)
 		if afx and spec.has("shape"):
 			afx.payoff_shaped(StringName(spec["shape"]), where, size, accent(), self)
 		elif afx:
 			afx.payoff(where, size, accent())
 	# The word: the look's own for this event if it names one, else what the ability said with it
-	# (`AbilityCues.payoff`), else the look's landing word.
+	# (`AbilityCues.payoff`), else the look's landing word — once per fold, like the payoff: the same
+	# word called again while the last is still rising was the same word jumping about.
 	var said := fx_word
 	fx_word = ""
 	var words := AbilityLooks.pay_words(look(), spec, first, said)
-	if not words.is_empty():
-		callout(words, head_world() + Vector2(0.0, -58.0), true)
+	if words.is_empty():
+		return
+	var last := int(_word_step.get(words, -FOLD_STEPS))
+	if not first and step - last < FOLD_STEPS:
+		return
+	_word_step[words] = step
+	fx_words.append([words, step])
+	if fx_words.size() > 32:
+		fx_words.pop_front()
+	callout(words, head_world() + Vector2(0.0, -58.0), true)
 
 # --- the kind side (D78) ----------------------------------------------------------------------
 #

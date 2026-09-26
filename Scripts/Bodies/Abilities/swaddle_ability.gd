@@ -7,7 +7,7 @@ extends ThrowAbility
 ## The Tomahawk's archetype, landing soft. Within `reach` of him, the towel leaves the hand on the
 ## low arc at his shoulders; for the flight the two do not collide and it is swept for him (D74).
 ## Arriving, it **wraps him**: frozen, laid level across his shoulders a little wider than it
-## folds, drawn over him — its picture round his middle, under his face (`LOWER`) — and riding him
+## folds, drawn over him — round his middle, under his face (`_drape`) — and riding him
 ## wherever he goes for `wrap_seconds`, the cleaver's way of staying in him (D74) with nothing sharp
 ## about it. Its ends hang down his sides and steam rises off them (the payoff's shape,
 ## `towel_wrap`). The wrap itself is one act (`wrap_value`); while it is on him it pays `warm_rate` a
@@ -24,10 +24,6 @@ const FLYING := 60
 const WRAPPED := 61
 
 const WARMTH := Color("ffb37a")
-## Its picture is laid lower than where it holds him, `LOWER` of his height: round his middle, under
-## his face, never over it. Only the picture: the body the hand takes back stays where it wrapped.
-const LOWER := 0.24
-
 var _wrap_local := Transform2D.IDENTITY
 var _wrapped: Buddy
 var _layer := 0
@@ -36,7 +32,6 @@ var _freeze_mode := RigidBody2D.FREEZE_MODE_STATIC
 var _frozen := false
 var _z := 0
 var _sprite_scale := Vector2.INF
-var _sprite_pos := Vector2.INF
 var _next_tell := 0.0
 var _banked := 0.0
 var _since_flush := 0.0
@@ -62,6 +57,20 @@ func _can_start() -> bool:
 func _shoulders(him: Buddy) -> Vector2:
 	var rect := him.get_interaction_rect()
 	return Vector2(rect.get_center().x, rect.position.y + rect.size.y * 0.36)
+
+## Where it lies once it is round him: under his face at the lowest his breathing takes it, in his
+## own frame, so it rides there whatever he does. Laid at `_shoulders` it went straight across his
+## eyes — the one thing on the top of him that says "head" — and what showed above it was his
+## headphones and the notch of his skull, which the first capture pass read as his head gone
+## transparent (D77 amended). Only where it is drawn: the throw still aims at, and wraps at, his
+## shoulders. `DRAPE_BELOW_FACE` is half the folded band's height and a pixel of air.
+const DRAPE_BELOW_FACE := 13.0
+
+func _drape(him: Buddy) -> Vector2:
+	if him.art == null or him.art.face == null:
+		var rect := him.get_interaction_rect()
+		return Vector2(rect.get_center().x, rect.position.y + rect.size.y * 0.6)
+	return him.to_global(Vector2(0.0, him.art.face_floor_local() + DRAPE_BELOW_FACE))
 
 func _on_press() -> void:
 	_phase = FLYING
@@ -172,7 +181,7 @@ func _wrap(him: Buddy) -> void:
 	_next_tell = 0.0
 	_banked = 0.0
 	_since_flush = 0.0
-	var at := _shoulders(him)
+	var at := _drape(him)
 	var xf := Transform2D(0.0, at)
 	_wrap_local = him.global_transform.affine_inverse() * xf
 	_layer = body.collision_layer
@@ -190,8 +199,6 @@ func _wrap(him: Buddy) -> void:
 	if s:
 		_sprite_scale = s.scale
 		s.scale = _sprite_scale * Vector2(num("drape", 1.25), 0.85)
-		_sprite_pos = s.position
-		s.position = _sprite_pos + Vector2(0.0, roundf(him.get_interaction_rect().size.y * LOWER))
 	give(num("wrap_value", 3.0), at)
 	notice_player()
 	# The warmth rising off it is steam: the wrap's shape draws it for as long as it is on him.
@@ -223,9 +230,6 @@ func _unwrap() -> void:
 	if s and _sprite_scale != Vector2.INF:
 		s.scale = _sprite_scale
 	_sprite_scale = Vector2.INF
-	if s and _sprite_pos != Vector2.INF:
-		s.position = _sprite_pos
-	_sprite_pos = Vector2.INF
 	_wrapped = null
 	AbilityCues.state(self, false, com_world())
 

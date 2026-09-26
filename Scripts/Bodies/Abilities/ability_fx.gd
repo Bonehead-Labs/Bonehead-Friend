@@ -16,9 +16,11 @@ extends Node2D
 ##               first few times this session, smaller once it has been learned.
 ##   STATE       a badge over his head for as long as the state lasts: the state's icon on a dark
 ##               disc, inside a ring in the ability's colour that drains as it counts down, with pips
-##               for anything it is counting (hits stored, staples in him).
+##               for anything it is counting (hits stored, staples in him). No floating line is
+##               ever drawn over it: FXLayer steers round it, and it waits for one already rising.
 ##   PAYOFF      where it lands: a flash, impact lines, two rings and a burst in the ability's
 ##               colour, and a jolt, all scaled by `size` 0..1 — and its word ("BONG!", "SIX!").
+##               On him it is drawn round him, never over him; a repeat inside half a second folds.
 ##
 ## ## Using it from anything held
 ##
@@ -60,7 +62,7 @@ const BIG_USES := 3
 ## One art pixel is two world pixels, the scale every sprite is drawn at.
 const ART_SCALE := 2.0
 
-const BURST_POOL := 8
+const BURST_POOL := 12
 const SPRAY_POOL := 8
 
 ## A burst's parts, in seconds: the flash, the impact lines, one ring's expansion, the flare.
@@ -68,6 +70,23 @@ const FLASH_T := 0.12
 const LINES_T := 0.2
 const RING_T := 0.38
 const FLARE_T := 0.24
+
+## A payoff's flash on him: three frames, where it struck. It was an eight-point star the size of
+## his chest for a tenth of a second, under two rings and a dozen spokes all centred on him, and in
+## the katana, bowling and chainsaw captures he was a white blob under it (D77 amended).
+const PAYOFF_FLASH_T := 0.05
+
+## Air between his outline and the first thing a payoff draws round him.
+const CORE_AIR := 4.0
+
+## What a burst is drawing, for the clutter budget and the suites: a payoff's rings and lines, its
+## flash, or anything else (a flare, a gong's waves).
+const TAG_PAYOFF := &"payoff"
+const TAG_FLASH := &"flash"
+
+## Behind him: an absolute z under everything on the desk (he and the items draw at 0), and still
+## over the backdrop, which is a canvas layer of its own.
+const BEHIND_Z := -1
 
 ## Uses of each ability this session, by ability id: plain data, so a static is safe (a static
 ## holding a texture reads as a leak at exit — ExplosionUtil's note — so those live on the node).
@@ -144,23 +163,93 @@ func activate(at: Vector2, colour: Color, glyph: StringName = &"star", count: in
 	_take().fire(at, colour, {"flare": 30.0, "rings": [[0.0, 46.0, 4.0, colour]]})
 	spray(at, texture_for(glyph, colour), tint_for(glyph, colour), count, 230.0, 0.55, 500.0)
 
-## The moment it lands, scaled by `size` 0..1: a flash, impact lines, two rings, stars and a jolt.
+## The moment it lands, scaled by `size` 0..1: a flash, impact lines, two rings, stars and a jolt —
+## drawn **around him**, never over him (D77 amended). The first capture pass had every payoff
+## centred on him: a chest-sized star, two rings growing out of his middle and a dozen spokes
+## through him, so the one thing the moment was about was a white blob under it. Now, when it lands
+## on him:
+##
+## - the flash is small and is where it struck, for three frames;
+## - the rings and the impact lines start outside his outline (the rect's half-diagonal, so at any
+##   angle he tumbles at) and run outward from his middle, and are drawn behind him;
+## - the stars are thrown from behind him, so they come out of him rather than across him.
+##
+## Anywhere else — the desk a hammer hit, the swathe a machete missed him in — it is the burst it
+## always was, at that point. A shape of the ability's own (`payoff_shaped`) draws what it likes.
 func payoff(at: Vector2, size: float, colour: Color) -> void:
 	if not moving():
 		return
 	var s := clampf(size, 0.0, 1.0)
-	_take().fire(at, colour, {
-		"flash": 12.0 + 22.0 * s,
-		"lines": 6 + int(round(6.0 * s)), "line_from": 16.0 + 16.0 * s, "line_to": 42.0 + 96.0 * s,
-		"rings": [[0.0, 56.0 + 160.0 * s, 3.0 + 3.0 * s, colour],
-			[0.08, 36.0 + 110.0 * s, 2.0 + 2.0 * s, colour.lightened(0.45)]],
+	var him := buddy_at(self, at)
+	var centre := at
+	var core := 0.0
+	if him:
+		var rect := him.get_interaction_rect()
+		centre = rect.get_center()
+		core = rect.size.length() * 0.5 + CORE_AIR
+	_take().fire(at, colour, {"flash": 8.0 + 10.0 * s, "flash_t": PAYOFF_FLASH_T, "tag": TAG_FLASH}
+		if him else {"flash": 12.0 + 22.0 * s, "tag": TAG_FLASH})
+	_take_payoff().fire(centre, colour, {
+		"behind": him != null, "tag": TAG_PAYOFF,
+		"lines": 6 + int(round(6.0 * s)), "line_from": core + (6.0 + 10.0 * s if him else 16.0 + 16.0 * s),
+		"line_to": core + (30.0 + 80.0 * s if him else 42.0 + 96.0 * s),
+		"rings": [[0.0, core + 40.0 + 140.0 * s if him else 56.0 + 160.0 * s, 3.0 + 3.0 * s, colour, core],
+			[0.08, core + 24.0 + 96.0 * s if him else 36.0 + 110.0 * s, 2.0 + 2.0 * s,
+				colour.lightened(0.45), core]],
 	})
-	spray(at, texture_for(&"star", GOLD), Color.WHITE, 3 + int(round(9.0 * s)), 180.0 + 220.0 * s, 0.7, 800.0)
+	spray(at, texture_for(&"star", GOLD), Color.WHITE, 3 + int(round(9.0 * s)), 180.0 + 220.0 * s, 0.7,
+		800.0, him != null)
 	# A jolt for a big one, unless the ability has already jolted the desk for this moment: the shake
 	# moves where the cursor maps to (D39), so a second, bigger one on top would move the hand too.
 	var world := WorldFX.of(self)
 	if world and s >= 0.5 and not world.is_shaking():
 		world.shake(2.0 + 6.0 * s)
+
+## Him, if `at` is on him or just off him (a strike lands on his outline), else null. Found by group
+## (D9), and only while he is in the tree.
+static func buddy_at(node: Node, at: Vector2) -> Buddy:
+	if node == null or not node.is_inside_tree():
+		return null
+	var him := node.get_tree().get_first_node_in_group(Buddy.GROUP_BUDDY) as Buddy
+	if him == null or not him.is_inside_tree():
+		return null
+	return him if him.get_interaction_rect().grow(40.0).has_point(at) else null
+
+## The clutter budget's backstop (D77 amended): with `PAYOFF_CAP` payoffs already on screen, the
+## oldest is folded into the new one — fired again as it — rather than a third drawn beside them. A
+## hook that pays off faster than a payoff lives (the pan's follow-ups, a payoff a hook draws itself)
+## shows two at most; `WeaponAbility` folds an ability's own repeats before they get here.
+const PAYOFF_CAP := 2
+
+func _take_payoff() -> Burst:
+	var busy: Array[Burst] = []
+	for burst in _bursts:
+		if burst.is_busy() and burst.tag == TAG_PAYOFF:
+			busy.append(burst)
+	if busy.size() < PAYOFF_CAP:
+		return _take()
+	var oldest := busy[0]
+	for burst in busy:
+		if burst.age() > oldest.age():
+			oldest = burst
+	oldest.turn_from = _rng.randf() * TAU
+	return oldest
+
+## How many payoffs are on screen now: the clutter budget's measure, for the suites.
+func payoffs_showing() -> int:
+	var n := 0
+	for burst in _bursts:
+		if burst.is_busy() and burst.tag == TAG_PAYOFF:
+			n += 1
+	return n
+
+## Whether anything a burst is drawing now covers `rect` (world coordinates): for the suites, which
+## cannot look at a headless frame, to ask whether he can be seen.
+func covers(rect: Rect2) -> bool:
+	for burst in _bursts:
+		if burst.is_busy() and burst.covers(rect):
+			return true
+	return false
 
 ## Where a payoff of an ability's own lives: one script per shape, named by the look's pay spec
 ## (`"shape": &"pins"` plays `Shapes/pins.gd`). One file each so an ability can grow a payoff of its
@@ -201,8 +290,9 @@ func waves(at: Vector2, colour: Color, count: int, radius: float, gap: float = 0
 	_take().fire(at, colour, {"rings": rings})
 
 ## A one-shot burst of `texture` thrown from a point and falling: stars, flames, envelopes, keys.
+## `behind` throws it from behind him — out of him rather than across him.
 func spray(at: Vector2, texture: Texture2D, colour: Color, count: int, speed: float,
-		lifetime: float = 0.6, gravity: float = 700.0) -> void:
+		lifetime: float = 0.6, gravity: float = 700.0, behind: bool = false) -> void:
 	if not moving() or texture == null or _sprays.is_empty():
 		return
 	if Settings.focus_intensity == Settings.Intensity.SUBTLE:
@@ -210,6 +300,8 @@ func spray(at: Vector2, texture: Texture2D, colour: Color, count: int, speed: fl
 	var em := _sprays[_next_spray]
 	_next_spray = (_next_spray + 1) % _sprays.size()
 	em.emitting = false
+	em.z_as_relative = not behind
+	em.z_index = BEHIND_Z if behind else -1
 	em.global_position = at
 	em.texture = texture
 	em.modulate = colour
@@ -350,19 +442,91 @@ func glint_material(still: bool) -> ShaderMaterial:
 		_glint_still.set_shader_parameter(&"pulse", 0.0)
 	return _glint_still if still else _glint_material
 
-## The twinkle: every so often the whole star goes white for a tenth of a second. On `TIME`, so it
-## costs the CPU nothing; `pulse` 0 at Focus Off holds it still. Colour only — a vertex scale would
-## resample the pixels.
+## The twinkle: every so often, for a tenth of a second, the star throws out long white rays. On
+## `TIME`, so it costs the CPU nothing; `pulse` 0 at Focus Off holds it still. The glint's texture is
+## two cells side by side (`GLINT_CELLS`), the sprite shows the first, and the twinkle samples the
+## second in its place — a second picture, not a vertex scale, which would resample the pixels.
 const GLINT_SHADER := """
 shader_type canvas_item;
 uniform float pulse = 1.0;
 void fragment() {
 	float t = fract(TIME * 0.55);
-	float flash = pulse * step(t, 0.07);
-	float ink = step(0.3, dot(COLOR.rgb, vec3(0.333)));
-	COLOR.rgb = mix(COLOR.rgb, vec3(1.0), flash * ink);
+	if (pulse * step(t, 0.1) > 0.5) {
+		COLOR = texture(TEXTURE, UV + vec2(0.5, 0.0));
+	}
 }
 """
+
+## The ready glint at rest and at its twinkle, 13 art pixels a cell (`W` is pure white). The first
+## capture pass had it as a 7-pixel cross in the tier colour: on a gold bat, a gold cross on gold
+## wood, and a white flash too small to catch the eye (D77 amended). At rest it is now a star with a
+## white heart and a dark rim, 22 px across at 1x; every 1.8 s, for a tenth of a second, it throws
+## out rays half as long again, and that is the moment the eye goes to it.
+const GLINT_CELLS := [
+	[
+		".............",
+		".............",
+		"......x......",
+		"......x......",
+		".....xWx.....",
+		"....xWWWx....",
+		"..xxWWWWWxx..",
+		"....xWWWx....",
+		".....xWx.....",
+		"......x......",
+		"......x......",
+		".............",
+		".............",
+	],
+	[
+		"......x......",
+		"......x......",
+		"......x......",
+		".....xWx.....",
+		"..x..xWx..x..",
+		"...xxWWWxx...",
+		"xxxWWWWWWWxxx",
+		"...xxWWWxx...",
+		"..x..xWx..x..",
+		".....xWx.....",
+		"......x......",
+		"......x......",
+		"......x......",
+	],
+]
+
+## The glint's two cells in `colour`, side by side, each with its dark rim: plotted once per colour.
+static func plot_glint(colour: Color) -> Texture2D:
+	var cells: Array = GLINT_CELLS
+	var size := String(cells[0][0]).length()
+	var cell := size + 2
+	var sheet := Image.create_empty(cell * cells.size(), cell, false, Image.FORMAT_RGBA8)
+	sheet.fill(Color(0, 0, 0, 0))
+	for c in cells.size():
+		var grid: Array = cells[c]
+		var ox := c * cell
+		for y in size:
+			for x in size:
+				if String(grid[y])[x] == ".":
+					continue
+				for dy in [-1, 0, 1]:
+					for dx in [-1, 0, 1]:
+						var px := ox + x + 1 + int(dx)
+						var py := y + 1 + int(dy)
+						if sheet.get_pixel(px, py).a < 0.5:
+							sheet.set_pixel(px, py, OUTLINE)
+		for y in size:
+			for x in size:
+				match String(grid[y])[x]:
+					"x": sheet.set_pixel(ox + x + 1, y + 1, colour)
+					"W": sheet.set_pixel(ox + x + 1, y + 1, Color.WHITE)
+	return ImageTexture.create_from_image(sheet)
+
+func glint_texture(colour: Color) -> Texture2D:
+	var key := "glint_sheet|%s" % colour.to_html()
+	if not _icons.has(key):
+		_icons[key] = AbilityFX.plot_glint(colour)
+	return _icons[key]
 
 ## A four-point sparkle on the held weapon while its ability is ready (D77). Drawn once: no
 ## `_process`, and a tween only for the pop when it comes back.
@@ -375,7 +539,10 @@ class ReadyGlint extends Sprite2D:
 		if value == colour and texture != null:
 			return
 		colour = value
-		texture = afx.icon(&"glint", value) if afx else AbilityFX.plot(&"glint", value)
+		texture = afx.glint_texture(value) if afx else AbilityFX.plot_glint(value)
+		# The sheet is the resting star and its twinkle; the sprite shows the first, the shader swaps.
+		hframes = AbilityFX.GLINT_CELLS.size()
+		frame = 0
 		if afx:
 			material = afx.glint_material(not AbilityFX.moving())
 
@@ -430,6 +597,8 @@ static func state(him: Node2D, kind: StringName, spec: Dictionary, owner: Object
 	mark.kind = kind
 	mark.top_level = true
 	mark.z_index = 45
+	# The floating lines steer around it from the moment it is put up (FXLayer, D77 amended).
+	mark.add_to_group(FXLayer.KEEP_OUT_GROUP)
 	mark.target = him
 	mark.owner_ref = weakref(owner) if owner else null
 	var colour: Color = spec.get("colour", Color.WHITE)
@@ -504,10 +673,40 @@ class StateMark extends Node2D:
 	var aura: GPUParticles2D
 	var fraction := 1.0
 	var pips := 0
+	## True while a floating line is rising through where it goes: it is not drawn until the line has
+	## passed, and pops in then. A word is the moment and lasts a second; the badge lasts the state.
+	var waiting := false
 	var _age := 0.0
 	var _clock := 0.0
 	var _leaving := -1.0
 	var _bump := 0.0
+	var _layer: WeakRef
+
+	## Its ink at its biggest (the bump) and the pips under it, in world coordinates: what a line
+	## placed while it is up steers around (`FXLayer.KEEP_OUT_GROUP`).
+	func fx_keep_out() -> Rect2:
+		if not is_inside_tree() or is_leaving():
+			return Rect2()
+		var r := (RADIUS + WIDTH * 0.5 + 2.0) * 1.22
+		return Rect2(global_position - Vector2(r, r), Vector2(r * 2.0, r + RADIUS + 13.0))
+
+	## Where its ink is this frame, rim and pips included, or an empty rect while nothing is drawn:
+	## for the suites.
+	func drawn_rect() -> Rect2:
+		var s := _size()
+		if s <= 0.01 or not is_visible_in_tree():
+			return Rect2()
+		var r := (RADIUS + WIDTH * 0.5 + 2.0) * s
+		var bottom := r if pips <= 0 else (RADIUS + 12.0) * s
+		return Rect2(global_position - Vector2(r, r), Vector2(r * 2.0, r + bottom))
+
+	func _fx_layer() -> FXLayer:
+		if _layer == null:
+			var found := FXLayer.of(self)
+			if found == null:
+				return null
+			_layer = weakref(found)
+		return _layer.get_ref() as FXLayer
 
 	func is_leaving() -> bool:
 		return _leaving >= 0.0 or is_queued_for_deletion()
@@ -560,7 +759,12 @@ class StateMark extends Node2D:
 		if not is_instance_valid(target) or not target.is_inside_tree():
 			queue_free()
 			return
-		_age += delta
+		place()
+		var layer := _fx_layer()
+		waiting = layer != null and layer.crosses(fx_keep_out())
+		# The pop plays when it is first drawn, not while it waits.
+		if not waiting:
+			_age += delta
 		_clock += delta
 		_bump = maxf(0.0, _bump - delta * 5.0)
 		var owner := _owner()
@@ -611,6 +815,8 @@ class StateMark extends Node2D:
 	func _size() -> float:
 		if still:
 			return 1.0
+		if waiting:
+			return 0.0
 		if not AbilityFX.moving():
 			return 0.0 if _leaving >= 0.0 else 1.0
 		if _leaving >= 0.0:
@@ -656,10 +862,14 @@ class Burst extends Node2D:
 	var colour := Color.WHITE
 	var flare := 0.0
 	var flash := 0.0
+	var flash_t := AbilityFX.FLASH_T
 	var lines := 0
 	var line_from := 0.0
 	var line_to := 0.0
+	## [delay, radius, width, colour] or [delay, radius, width, colour, from]: a ring grows from
+	## `from` (an eighth of its radius when not given) out to `radius`.
 	var rings: Array = []
+	var tag: StringName = &""
 	var _t := 0.0
 	var _life := 0.0
 	var _turn := 0.0
@@ -669,17 +879,23 @@ class Burst extends Node2D:
 		colour = tint
 		flare = float(spec.get("flare", 0.0))
 		flash = float(spec.get("flash", 0.0))
+		flash_t = float(spec.get("flash_t", AbilityFX.FLASH_T))
 		lines = int(spec.get("lines", 0))
 		line_from = float(spec.get("line_from", 0.0))
 		line_to = float(spec.get("line_to", 0.0))
 		rings = spec.get("rings", [])
+		tag = StringName(spec.get("tag", &""))
+		# Behind him, or over everything on the desk as a flare is.
+		var behind := bool(spec.get("behind", false))
+		z_as_relative = not behind
+		z_index = AbilityFX.BEHIND_Z if behind else 0
 		_turn = turn_from
 		_t = 0.0
 		_life = 0.0
 		if flare > 0.0:
 			_life = maxf(_life, AbilityFX.FLARE_T)
 		if flash > 0.0:
-			_life = maxf(_life, AbilityFX.FLASH_T)
+			_life = maxf(_life, flash_t)
 		if lines > 0:
 			_life = maxf(_life, AbilityFX.LINES_T)
 		for ring in rings:
@@ -691,6 +907,9 @@ class Burst extends Node2D:
 	func is_busy() -> bool:
 		return is_processing()
 
+	func age() -> float:
+		return _t
+
 	func _process(delta: float) -> void:
 		_t += delta
 		if _t >= _life:
@@ -699,31 +918,81 @@ class Burst extends Node2D:
 			return
 		queue_redraw()
 
-	func _draw() -> void:
+	## A ring's radius and width now, or a negative radius while it is not drawn.
+	func _ring_now(ring: Array) -> Vector2:
+		var k := (_t - float(ring[0])) / AbilityFX.RING_T
+		if k < 0.0 or k > 1.0:
+			return Vector2(-1.0, 0.0)
+		var e := 1.0 - (1.0 - k) * (1.0 - k)
+		var from := float(ring[4]) if ring.size() > 4 and float(ring[4]) > 0.0 else float(ring[1]) * 0.12
+		return Vector2(lerpf(from, float(ring[1]), e), lerpf(float(ring[2]), 1.0, k))
+
+	## The impact lines now: from, to and width, or a zero width while they are not drawn.
+	func _lines_now() -> Vector3:
+		if lines <= 0 or _t >= AbilityFX.LINES_T:
+			return Vector3.ZERO
+		var k := _t / AbilityFX.LINES_T
+		# From their start, never back inside it: the start is his outline when it lands on him.
+		var from := lerpf(line_from, line_to, k * 0.7)
+		var to := lerpf(minf(line_from * 1.6, line_to), line_to, 0.55 + 0.45 * k)
+		return Vector3(from, maxf(to, from), lerpf(5.0, 1.0, k))
+
+	func _flash_now() -> float:
+		if flash <= 0.0 or _t >= flash_t:
+			return 0.0
+		return flash * (1.0 - _t / flash_t * 0.8)
+
+	## Whether anything it draws now touches `rect` (world coordinates): rings as annuli, lines as
+	## their segments, the flash and the flare as their outer circle — each with its dark rim.
+	func covers(rect: Rect2) -> bool:
+		var c := global_position
+		var near := Vector2(clampf(c.x, rect.position.x, rect.end.x), clampf(c.y, rect.position.y, rect.end.y))
+		var nearest := c.distance_to(near)
+		var farthest := 0.0
+		for corner in [rect.position, Vector2(rect.end.x, rect.position.y), rect.end,
+				Vector2(rect.position.x, rect.end.y)]:
+			farthest = maxf(farthest, c.distance_to(corner))
 		for ring in rings:
-			var k := (_t - float(ring[0])) / AbilityFX.RING_T
-			if k < 0.0 or k > 1.0:
+			var now := _ring_now(ring)
+			if now.x < 0.0:
 				continue
-			var e := 1.0 - (1.0 - k) * (1.0 - k)
-			var r := lerpf(float(ring[1]) * 0.12, float(ring[1]), e)
-			var w := lerpf(float(ring[2]), 1.0, k)
-			var steps := maxi(18, int(r / 3.0))
-			draw_arc(Vector2.ZERO, r, 0.0, TAU, steps, AbilityFX.OUTLINE, w + 2.0, false)
-			draw_arc(Vector2.ZERO, r, 0.0, TAU, steps, ring[3], w, false)
-		if lines > 0 and _t < AbilityFX.LINES_T:
-			var k := _t / AbilityFX.LINES_T
-			var from := lerpf(line_from, line_to, k * 0.7)
-			var to := lerpf(line_from * 1.6, line_to, 0.55 + 0.45 * k)
-			var w := lerpf(5.0, 1.0, k)
+			var rim := now.y * 0.5 + 1.0
+			if nearest <= now.x + rim and farthest >= now.x - rim:
+				return true
+		var l := _lines_now()
+		if l.z > 0.0:
+			var grown := rect.grow(l.z * 0.5 + 1.0)
 			for i in lines:
 				var d := Vector2.RIGHT.rotated(_turn + TAU * float(i) / float(lines))
-				draw_line((d * from).round(), (d * to).round(), AbilityFX.OUTLINE, w + 2.0)
-				draw_line((d * from).round(), (d * to).round(), colour, w)
-		if flash > 0.0 and _t < AbilityFX.FLASH_T:
-			var r := flash * (1.0 - _t / AbilityFX.FLASH_T * 0.8)
-			_star(8, r + 3.0, r * 0.45 + 3.0, AbilityFX.OUTLINE, _turn)
-			_star(8, r, r * 0.45, colour, _turn)
-			_star(8, r * 0.45, r * 0.2, colour.lightened(0.6), _turn)
+				for j in 9:
+					if grown.has_point(c + d * lerpf(l.x, l.y, float(j) / 8.0)):
+						return true
+		var f := _flash_now()
+		if f > 0.0 and nearest <= f + 3.0:
+			return true
+		if flare > 0.0 and _t < AbilityFX.FLARE_T and nearest <= flare * (1.0 - _t / AbilityFX.FLARE_T) + 3.0:
+			return true
+		return false
+
+	func _draw() -> void:
+		for ring in rings:
+			var now := _ring_now(ring)
+			if now.x < 0.0:
+				continue
+			var steps := maxi(18, int(now.x / 3.0))
+			draw_arc(Vector2.ZERO, now.x, 0.0, TAU, steps, AbilityFX.OUTLINE, now.y + 2.0, false)
+			draw_arc(Vector2.ZERO, now.x, 0.0, TAU, steps, ring[3], now.y, false)
+		var l := _lines_now()
+		if l.z > 0.0:
+			for i in lines:
+				var d := Vector2.RIGHT.rotated(_turn + TAU * float(i) / float(lines))
+				draw_line((d * l.x).round(), (d * l.y).round(), AbilityFX.OUTLINE, l.z + 2.0)
+				draw_line((d * l.x).round(), (d * l.y).round(), colour, l.z)
+		var f := _flash_now()
+		if f > 0.0:
+			_star(8, f + 3.0, f * 0.45 + 3.0, AbilityFX.OUTLINE, _turn)
+			_star(8, f, f * 0.45, colour, _turn)
+			_star(8, f * 0.45, f * 0.2, colour.lightened(0.6), _turn)
 		if flare > 0.0 and _t < AbilityFX.FLARE_T:
 			var k := _t / AbilityFX.FLARE_T
 			var r := flare * (1.0 - k)

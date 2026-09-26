@@ -116,6 +116,7 @@ func _ready() -> void:
 	_the_table_is_whole()
 	await _the_d78_rows()
 	await _d78_focus_lost()
+	await _the_default_payoff_reads_around_him()
 
 	var only := _only()
 	for id in AbilityTable.item_ids():
@@ -133,6 +134,59 @@ func _ready() -> void:
 	OS.remove_logger(_catch)
 	_clear_slot()
 	get_tree().quit(1 if _failed > 0 else 0)
+
+## The payoff every ability without a shape of its own draws where it lands (D77 amended) leaves him
+## to be seen. The first capture pass had it centred on him: a chest-sized star, two rings out of his
+## middle and a dozen spokes through him, and in the katana, bowling and chainsaw frames he was a
+## white blob under it. Aimed straight at his face — the worst place it can land — at three sizes:
+## past its three-frame flash nothing it draws covers his face, the rest is behind him, and its
+## stars come out from behind him. Off him, it is the burst it was.
+func _the_default_payoff_reads_around_him() -> void:
+	_suite("the default payoff reads around him")
+	_clear_slot()
+	SaveManager.load_game()
+	await _build_stage()
+	await _settle_him()
+	var afx := AbilityFX.of(_buddy)
+	var face := _buddy.art.face_rect() if _buddy.art else Rect2()
+	if afx == null or not face.has_area():
+		_check("the desk has ability effects and his face to test against", false)
+		await _free_stage()
+		return
+	for size in [0.2, 0.6, 1.0]:
+		face = _buddy.art.face_rect()
+		afx.payoff(face.get_center(), size, Color("6fa8ff"))
+		await get_tree().process_frame
+		var behind := true
+		for child in afx.get_children():
+			var burst := child as AbilityFX.Burst
+			if burst and burst.is_busy() and burst.tag == AbilityFX.TAG_PAYOFF:
+				behind = behind and not burst.z_as_relative and burst.z_index < _buddy.z_index
+		var sprayed_behind := false
+		for child in afx.get_children():
+			var em := child as GPUParticles2D
+			if em and em.emitting and not em.z_as_relative and em.z_index < _buddy.z_index:
+				sprayed_behind = true
+		_check("size %.1f: its rings and lines are drawn behind him" % size, behind)
+		_check("and its stars are thrown from behind him", sprayed_behind)
+		var covered: Array[String] = []
+		var elapsed := 0.0
+		for at in [AbilityFX.PAYOFF_FLASH_T + 0.02, 0.1, 0.18, 0.3, 0.45]:
+			await get_tree().create_timer(at - elapsed).timeout
+			elapsed = at
+			if afx.covers(_buddy.art.face_rect()):
+				covered.append("t+%.2f" % at)
+		_check("and past its flash nothing it draws covers his face%s" % (
+			"" if covered.is_empty() else " (covered at " + ", ".join(covered) + ")"), covered.is_empty())
+		await get_tree().create_timer(0.5).timeout
+	# Off him, the desk a hammer hit: the burst it always was, over everything, where it landed.
+	var desk := Vector2(160.0, 600.0)
+	afx.payoff(desk, 1.0, Color("d98a3a"))
+	await get_tree().process_frame
+	_check("off him it is drawn where it landed, over the desk",
+		afx.covers(Rect2(desk - Vector2(4, 4), Vector2(8, 8))))
+	await get_tree().create_timer(0.6).timeout
+	await _free_stage()
 
 func _only() -> PackedStringArray:
 	for arg in OS.get_cmdline_user_args():
@@ -258,6 +312,7 @@ func _check_ability(id: StringName) -> void:
 	var glint := ability.ready_glint()
 	_check("held and ready, it wears its ready glint", glint != null and glint.visible)
 	_check("and the glint costs nothing: no tick of its own", glint == null or not glint.is_processing())
+	_check_glint_reads(glint)
 	# An ordinary swing first, to know what an ordinary hit of this weapon is worth.
 	_buddy.health.reset_meter()
 	var ordinary := await _ordinary_hit(body)
@@ -270,6 +325,8 @@ func _check_ability(id: StringName) -> void:
 	_claimed.clear()
 	_faces.clear()
 	_pipeline_bad.clear()
+	_afx_probe = AbilityFX.of(_buddy)
+	_payoff_peak = 0
 	var before_uses := ability.uses
 	var plays_before: Dictionary = AbilityFX.shape_plays.duplicate()
 
@@ -334,6 +391,7 @@ func _check_ability(id: StringName) -> void:
 	_check("and a word for it (%s)" % str(landing_words), ability.payoffs == 0
 		or not landing_words.is_empty())
 	_shapes_played(look, ability.fx_paid, plays_before)
+	_check_clutter(ability.fx_drawn, ability.fx_words)
 
 	# --- what it paid ----------------------------------------------------------------------
 	await _step(20)
@@ -1158,6 +1216,14 @@ func _centre() -> Vector2:
 func _step(frames: int = 1) -> void:
 	for i in frames:
 		await get_tree().physics_frame
+		# The clutter budget (D77 amended), sampled every step an ability is driven.
+		if is_instance_valid(_afx_probe):
+			_payoff_peak = maxi(_payoff_peak, _afx_probe.payoffs_showing())
+
+## The desk's ability effects, and the most payoffs they had on screen at once since the probes
+## were last reset.
+var _afx_probe: AbilityFX
+var _payoff_peak := 0
 
 func _await_cond(condition: Callable, frames: int) -> bool:
 	for i in frames:
@@ -2107,6 +2173,53 @@ func _reset_probes() -> void:
 	_kind_acts.clear()
 	_kind_rates.clear()
 	_kind_hearts = 0
+	_afx_probe = AbilityFX.of(_buddy) if is_instance_valid(_buddy) else null
+	_payoff_peak = 0
+
+## The clutter budget (D77 amended), for any ability: its payoffs and its words fold. A sustained one
+## (the chainsaw's grind, a flurry, a crank) used to put a payoff down five times a second, each alive
+## for half a second, with its word called again on top of the last.
+const PAYOFF_CAP := AbilityFX.PAYOFF_CAP
+
+func _check_clutter(drawn: Array, words: Array) -> void:
+	_check("never more than %d of its payoffs on screen at once (%d at most)" % [PAYOFF_CAP, _payoff_peak],
+		_payoff_peak <= PAYOFF_CAP)
+	var close: Array[String] = []
+	for record in [drawn, words]:
+		var last := {}
+		for entry in record:
+			var key = entry[0]
+			if last.has(key) and int(entry[1]) - int(last[key]) < WeaponAbility.FOLD_STEPS:
+				close.append("%s twice in %d steps" % [key, int(entry[1]) - int(last[key])])
+			last[key] = entry[1]
+	_check("and a repeat folds: no payoff or word twice inside %d steps%s" % [WeaponAbility.FOLD_STEPS,
+		"" if close.is_empty() else " (" + ", ".join(close) + ")"], close.is_empty())
+
+## Where a sprite's ink is in the world: its texture's opaque pixels, through its transform.
+func _ink_rect(sprite: Sprite2D) -> Rect2:
+	if sprite == null or sprite.texture == null:
+		return Rect2()
+	var used := Rect2(sprite.texture.get_image().get_used_rect())
+	if sprite.centered:
+		used.position -= sprite.texture.get_size() * 0.5
+	used.position += sprite.offset
+	var xf := sprite.global_transform
+	var out := Rect2(xf * used.position, Vector2.ZERO).expand(xf * used.end)
+	out = out.expand(xf * Vector2(used.end.x, used.position.y))
+	return out.expand(xf * Vector2(used.position.x, used.end.y))
+
+## The ready glint (D77 amended) is big enough to catch the eye at 1x and has a twinkle of its own:
+## the first pass had a 7-pixel cross in the tier colour, a gold cross on a gold bat.
+func _check_glint_reads(glint: AbilityFX.ReadyGlint) -> void:
+	if glint == null or glint.texture == null:
+		return
+	var cell := int(glint.texture.get_width() / maxi(glint.hframes, 1))
+	var ink := glint.texture.get_image().get_region(Rect2i(0, 0, cell, glint.texture.get_height())).get_used_rect()
+	# At its resting size, not mid-pop: it pops in at 2.5x when it is picked up.
+	var parent := glint.get_parent() as Node2D
+	var px := float(ink.size.x) * absf(glint.base.x * (parent.global_scale.x if parent else 1.0))
+	_check("the glint rests at %.0f px across and twinkles with a picture of its own" % px,
+		px >= 20.0 and glint.hframes == 2)
 
 func _sum(values: Array[float]) -> float:
 	var total := 0.0
@@ -2213,6 +2326,7 @@ func _check_held_ability(id: StringName) -> void:
 	var glint := ability.ready_glint()
 	_check("held and ready, it wears its ready glint", glint != null and glint.visible)
 	_check("and the glint costs nothing: no tick of its own", glint == null or not glint.is_processing())
+	_check_glint_reads(glint)
 	if body is WeaponBase:
 		_buddy.health.reset_meter()
 		ordinary = await _ordinary_hit(body as WeaponBase)
@@ -2224,6 +2338,8 @@ func _check_held_ability(id: StringName) -> void:
 	var said := ability.fx_said
 	var shown := ability.fx_states
 	var paid := ability.fx_paid
+	var drawn := ability.fx_drawn
+	var words := ability.fx_words
 	var look := ability.look()
 	var plays_before: Dictionary = AbilityFX.shape_plays.duplicate()
 
@@ -2248,6 +2364,7 @@ func _check_held_ability(id: StringName) -> void:
 	var landing_words := said.filter(func(w: String) -> bool: return not own_words.has(w))
 	_check("and a word for it (%s)" % str(landing_words), not landing_words.is_empty())
 	_shapes_played(look, paid, plays_before)
+	_check_clutter(drawn, words)
 
 	# --- what it paid ----------------------------------------------------------------------
 	await _step(20)
@@ -2585,6 +2702,12 @@ func _drive_swaddle(body: BaseDraggable, ability: SwaddleAbility) -> Dictionary:
 	await _await_cond(func() -> bool: return ability.is_wrapped() or not ability.is_active(), 120)
 	_check("round his shoulders", ability.is_wrapped())
 	await _step(5)
+	# Under his face, not across it (D77 amended): laid at his shoulders' height it covered his eyes,
+	# and the capture read the top of him as a hollow where his head should be.
+	var towel := _ink_rect(body.sprite as Sprite2D)
+	var face := _buddy.art.face_rect() if _buddy.art else Rect2()
+	_check("it lies under his face, not across it (towel %s, face %s)" % [towel, face],
+		face.has_area() and towel.has_area() and not towel.grow(-1.0).intersects(face))
 	var local0 := _buddy.to_local(body.global_position)
 	_buddy.apply_central_impulse(Vector2(220.0, -120.0) * _buddy.mass)
 	await _step(20)

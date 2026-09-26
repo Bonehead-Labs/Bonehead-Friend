@@ -643,6 +643,44 @@ func apply_wardrobe() -> void:
 		material.set_shader_parameter(&"phone_tint", phones)
 		material.set_shader_parameter(&"phone_dye", dye)
 
+## Where his expression is inked inside a face frame: measured over all ten expressions, x 39..57
+## and y 45..63 of the 96-px cell (crying's tears are the tallest). The frame itself is the whole
+## cell, so its rect is four times his face.
+const FACE_INK := Rect2(39, 45, 18, 18)
+const FACE_CELL := 96.0
+
+## His face on screen, in world coordinates, where it is drawn this frame; empty while it is hidden
+## (mid-collapse). What a word and a payoff must not cover, and what a towel sits under (D77 amended).
+func face_rect() -> Rect2:
+	if face == null or not face.is_visible_in_tree():
+		return Rect2()
+	var local := Rect2(FACE_INK.position - Vector2(FACE_CELL, FACE_CELL) * 0.5 + face.offset, FACE_INK.size)
+	var xf := face.global_transform
+	var out := Rect2(xf * local.position, Vector2.ZERO)
+	out = out.expand(xf * local.end)
+	out = out.expand(xf * Vector2(local.end.x, local.position.y))
+	return out.expand(xf * Vector2(local.position.x, local.end.y))
+
+## The lowest the bottom of his face comes, in his own frame, while he stands up in a beat or a
+## breath (`UPRIGHT`), with no code motion on it: what a towel lies under so that no frame puts his
+## chin behind it. His face rides up to 11 art pixels over a breath, so the frame he happens to be
+## on is not enough (D77 amended). Not the slump: `idle_sad` hangs his head 5 art pixels lower, and
+## that is his posture while miserable, which a held beat (a swaddle) keeps off him.
+const UPRIGHT: Array[StringName] = [&"idle", &"idle_happy", &"happy", &"hurt", &"walk"]
+
+func face_floor_local() -> float:
+	if face == null:
+		return 0.0
+	var lowest := 0.0
+	for tag in UPRIGHT:
+		var positions: PackedVector2Array = _offset_positions.get(tag, PackedVector2Array())
+		var shown: PackedByteArray = _offset_visible.get(tag, PackedByteArray())
+		for i in positions.size():
+			if i < shown.size() and shown[i] == 1:
+				lowest = maxf(lowest, positions[i].y)
+	return _face_home.y + lowest * _base_scale.y \
+		+ (FACE_INK.end.y - FACE_CELL * 0.5 + face.offset.y) * absf(_face_base_scale.y)
+
 ## Face -> face, from the personality's tell (`PersonalityData.face_swaps`). Applied to every
 ## expression he pulls, mood faces included: the Goth's `sad` is his contented face. Set by
 ## `ExpressionBrain`; empty is the honest baseline.
