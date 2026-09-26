@@ -37,6 +37,7 @@ Progression="*res://Scripts/Autoload/progression.gd"
 Milestones="*res://Scripts/Autoload/milestones.gd"
 OverlayManager="*res://Scripts/Autoload/overlay_manager.gd"
 AudioManager="*res://Scripts/Autoload/audio_manager.gd"
+Playtest="*res://Scripts/Autoload/playtest.gd"
 
 [display]
 
