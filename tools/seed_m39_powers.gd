@@ -67,13 +67,13 @@ const CAPSTONE_GROWTH := 1.10
 ## glass 4,000 · **telekinesis 6,000** · **time stop 12,000** · vortex 15,000 · **meteor shower
 ## 25,000** · lightning 40,000 · **smite 60,000**.
 ##
-## **The kind three are the top of the Hearts side** — 500,000, 750,000 and 1,000,000, above the
-## recliner (120,000) — and the pacing simulator is why (D72). Priced anywhere from 900 to 400,000
-## they put the first Reincarnation at 10:09 to 11:05 against a ten-hour ceiling: run one's Hearts
-## side turns on the massage chair reaching rank 25 inside the hour-nine play window, with 69
-## seconds to spare, and any Hearts item bought before that — or after it, while its capstone is
-## still being levelled — costs it the window and the run an hour. Above 500,000 they arrive at
-## 9:39 and 9:48 of run one and early in every run after, and the run stays at 9:50.
+## **The kind three cost in Hearts what their harm-side twins cost in Bones** — blessing 6,000
+## (telekinesis), levitation 12,000 (time stop), rainbow 25,000 (meteor shower) — the top of the
+## Care drawer above the bubble blaster's 2,400 (D76, amended). D72 had to put them at 500,000 to
+## 1,000,000: run one's Hearts side turned on the massage chair reaching rank 25 inside the
+## hour-nine play window, and any Hearts item bought before it cost the run an hour. With the
+## first Reincarnation at eight hours (`marrow_divisor` 5e6) the chair no longer decides run one,
+## and every ladder from 900 to 400,000 lands it between 8:00:08 and 8:01:28.
 const POWERS := {
 	&"telekinesis": {
 		"node": "TelekinesisPower", "script": TelekinesisScript, "side": &"harm",
@@ -134,7 +134,7 @@ const POWERS := {
 		"name": "Blessing",
 		"description": "A halo that rains hearts on him. He has never felt so forgiven.",
 		"controls": "Click him to crown him with a halo · It rains hearts on him while it lasts",
-		"cost": 500000, "sort": 60, "requires": [&"soft_brush"],
+		"cost": 6000, "sort": 60, "requires": [&"soft_brush"],
 		"properties": {"bless_value": 12.0, "halo_seconds": 8.0, "halo_rate": 2.0,
 			"flush_seconds": 0.5, "recast_seconds": 2.5},
 		"textures": {"halo_texture": "blessing_halo"},
@@ -147,7 +147,7 @@ const POWERS := {
 		"name": "Levitation",
 		"description": "He floats up, gets comfortable, and falls asleep on nothing at all.",
 		"controls": "Hold the button on him and he floats up and dozes off · Let go and he drifts down",
-		"cost": 750000, "sort": 65, "requires": [&"blessing"],
+		"cost": 12000, "sort": 65, "requires": [&"blessing"],
 		"properties": {"lift_value": 4.0, "float_rate": 3.0, "flush_seconds": 0.5,
 			"lift_height": 130.0, "rise_speed": 120.0, "sink_speed": 120.0},
 		"textures": {"z_texture": "levitation_z"},
@@ -160,7 +160,7 @@ const POWERS := {
 		"name": "Rainbow",
 		"description": "Draw him a rainbow and he slides down it. Every single time.",
 		"controls": "Press on him, drag to where he should land and let go · He slides down the rainbow",
-		"cost": 1000000, "sort": 70, "requires": [&"levitation"],
+		"cost": 25000, "sort": 70, "requires": [&"levitation"],
 		"properties": {"ride_value": 14.0, "min_span": 90.0, "max_span": 900.0,
 			"ride_speed": 520.0, "recast_seconds": 1.5},
 		"textures": {},

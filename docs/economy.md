@@ -486,7 +486,7 @@ A human playtest remains the ground truth for whether the game is *fun*. This is
 instrument for whether it is *reachable*, and when the two disagree the session wins and the
 model gets fixed.
 
-Four numbers it set, none of which were arrived at by eye:
+Five numbers it set, none of which were arrived at by eye:
 
 | Knob | Was | Is | Because |
 |---|---|---|---|
@@ -494,6 +494,7 @@ Four numbers it set, none of which were arrived at by eye:
 | `prestige_income_per_point` | +1% additive, hard-coded | **compounding**, in `BalanceData` | a linear multiplier cannot keep up with a threshold that grows as a cube |
 | `mastery_xp_per_damage` | 1.0 | **4.0** | weapons never reached rank 25, so twelve hours ended with 1,095 Hearts/s of idle income and **zero Bones/s** |
 | the global tree | four nodes stacking to x169 | x3.2 (x15 after a reset) | the whole 28-item catalog was bought out in sixty-six minutes |
+| `marrow_divisor` | 1e7 | **5e6** | the first Reincarnation back to 8:00 from the 9:42 a hundred more items had pushed it to, taken before any one capstone can decide it (D76) |
 
 ## Balance targets
 

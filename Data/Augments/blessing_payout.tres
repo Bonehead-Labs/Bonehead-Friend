@@ -9,6 +9,6 @@ item_id = &"blessing"
 display_name = "Offerings"
 effect_key = &"payout_mult"
 effect_per_level = 1.12
-cost_base = 17589
+cost_base = 250
 currency = 1
 sort_order = 1

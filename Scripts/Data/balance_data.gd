@@ -136,8 +136,10 @@ extends Resource
 ## Set by `tests/integration/pacing_sim.tscn`, not by eye. The divisor is roughly what a
 ## first long run earns, so the first Reincarnation is worth about a doubling; the exponent
 ## is below 1 so that pushing a run further always pays, and never pays enough to be worth
-## waiting all day for.
-@export var marrow_divisor: float = 1e7
+## waiting all day for. 5e6 puts the first at eight hours, the middle of the 6-10 h target
+## (D76, amended): at 1e7 a hundred more items had pushed it to 9:42, its last half-hour
+## waiting on one capstone, and every Hearts item added to run one cost it an hour.
+@export var marrow_divisor: float = 5e6
 @export var marrow_exponent: float = 0.5
 
 # --- Dollars ---------------------------------------------------------------

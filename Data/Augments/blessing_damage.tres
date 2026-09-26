@@ -9,6 +9,6 @@ item_id = &"blessing"
 display_name = "Brighter Halo"
 effect_key = &"damage_mult"
 effect_per_level = 1.15
-cost_base = 22550
+cost_base = 320
 cost_growth = 1.12
 currency = 1

@@ -9,6 +9,6 @@ item_id = &"rainbow"
 display_name = "Pot of Gold"
 effect_key = &"payout_mult"
 effect_per_level = 1.12
-cost_base = 35139
+cost_base = 917
 currency = 1
 sort_order = 1

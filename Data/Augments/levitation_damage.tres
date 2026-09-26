@@ -9,6 +9,6 @@ item_id = &"levitation"
 display_name = "Softer Air"
 effect_key = &"damage_mult"
 effect_per_level = 1.15
-cost_base = 33800
+cost_base = 590
 cost_growth = 1.12
 currency = 1

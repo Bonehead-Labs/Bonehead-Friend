@@ -9,6 +9,6 @@ item_id = &"levitation"
 display_name = "Cloud Rates"
 effect_key = &"payout_mult"
 effect_per_level = 1.12
-cost_base = 26364
+cost_base = 460
 currency = 1
 sort_order = 1

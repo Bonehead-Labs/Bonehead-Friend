@@ -3820,6 +3820,65 @@ models no Dollars and no contracts, and nothing it reads moved.
 toys2 205; verbs 273; brain 393; item_check 136 items, 5,014 passed, 0 failed; pacing 4/4, first
 Reincarnation 9:42:13 as before.
 
+### Amended 2026-09-27 (optional — owner decision): the first Reincarnation at eight hours, and the kind spells at Care prices
+
+**If taken.** `marrow_divisor` 1e7 → 5e6, and blessing, levitation and rainbow at 6,000, 12,000
+and 25,000 Hearts — what their harm-side twins, telekinesis, time stop and the meteor shower,
+cost in Bones — the top of the Care drawer, above the bubble blaster's 2,400. Their trees and
+capstones are re-derived by the seeder's own rules (`seed_m39_powers -- --force
+--only=blessing,levitation,rainbow`, with the three scenes, which carry no price, left as they
+were).
+
+**The hinge it removes.** D72 priced the kind three at 500,000 to 1,000,000 only because the
+simulator's first run hung on one capstone. The massage chair earns mastery only while it is
+among the last five kind things bought, and only in the twelve minutes an hour the modelled
+player plays, so it reached rank 25 inside the hour-nine window with about a minute to spare, and
+any Hearts item bought in run one cost it the window and the run an hour. Reproduced on this
+tree: at the twin prices and the old divisor the chair's capstone slips from 9:10 to 10:03 and
+the first Reincarnation from 9:42:13 to 10:10:23, past the ceiling.
+
+**Why the divisor.** It is the knob the simulator exists to set — "roughly what a first long run
+earns" — and it was chosen to put the first Reincarnation at about eight hours (8:07, D33's
+table). The roster has grown by a hundred items since and the run had drifted to 9:42, its last
+half-hour waiting on the chair. At 5e6 the first Reincarnation is at 8:00:08, the middle of the
+window, and it is taken before the chair's capstone at all: no single purchase decides it. The
+other lever, the modelled player — attention spread over more toys, or kept on one until its
+capstone — would change the player every other number was tuned against to rescue one of them.
+
+**Measured**, `pacing_sim -- --divisor <d> --price <ladder>`, the seeders' rules applied in
+memory; the default run, with neither flag, agrees with the committed row.
+
+| divisor | blessing / levitation / rainbow | first Reincarnation |
+|---|---|---|
+| 1e7 | 500k / 750k / 1M, as D72 shipped them | 9:42:13 |
+| 1e7 | 6k / 12k / 25k | 10:10:23 — fails |
+| 5e6 | 500k / 750k / 1M | 8:00:08 |
+| 5e6 | 900 / 2k / 4k | 8:01:28 |
+| 5e6 | 3k / 6k / 12k | 8:01:24 |
+| **5e6** | **6k / 12k / 25k** | **8:01:18** |
+| 5e6 | 12k / 25k / 60k | 8:00:55 |
+| 5e6 | 100k / 200k / 400k | 8:00:08 |
+| 6e6 | 6k / 12k / 25k | 8:31:27 |
+
+Every 5e6 row passes all four targets, each Reincarnation within 1.0–1.2x of the one before.
+Where D72 measured a Hearts purchase in run one costing an hour, it now costs about a minute.
+
+**What else it moves.** A run pays √2 as much Marrow for the same earnings, so the five
+Reincarnations come at 8:01, 12:04, 15:04, 18:05 and 21:07 rather than 9:42, 15:05, 19:01, 22:12
+and 26:07, and the Rebirth page quotes more. The kind three's capstones follow their price, and at
+500,000 and up they had been the three biggest Hearts engines in the game by accident of the rule
+— the rainbow machine 500,800 Hearts for 667 a second a level; now 13,300 for 17.2, beside the
+recliner valet's 60,800 for 80.5. The simulator's idle Hearts at hour 72 is 6,590 a second rather
+than 49,090. Nothing it asserts reads that, and how the late game feels is the owner's to judge.
+
+**Take both halves or neither.** The prices without the divisor fail the ten-hour ceiling; the
+divisor without the prices leaves three spells priced for a reason that is gone. To leave it,
+revert this one commit: the first half of D76 does not depend on it.
+
+*Verified with it:* pacing 4/4 in the default run, first Reincarnation 8:01:18; unit 254; loop 804;
+ui 621; powers_check 187 (one run beside the simulator missed the meteor shower's second hit on
+him; alone, twice, 187 of 187); item_check on the three, 124 passed.
+
 
 ## Recommendations not yet decided
 
