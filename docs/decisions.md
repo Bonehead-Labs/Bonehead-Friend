@@ -4104,6 +4104,53 @@ machine that was 35 % busy with something else. *Not yet seen:* most shapes were
 owner took the PC back, so their final frames have not been looked at — the rapier's and the tyre
 iron's never have. The captures are queued.
 
+### Amended again 2026-09-27: the leftovers
+
+- **An act's number goes beside his face** when its rise would cross it — at the hand's height, on
+  the hand's side, never over his head — and its combo tag goes out the same way. A hit's number
+  keeps its spot (D75).
+- **A badge makes way.** It puts away payout numbers rising where it goes (`FXLayer.make_way`) and
+  waits only for a word or a headline: a badge is his state *now* and lasts the whole state; a
+  payout is the least line on the layer and the purse counts it anyway. Half a pixel of slack,
+  because 32-bit rounding was removing numbers placed exactly flush against a badge.
+- **A badge's chips come off his sides.** One emitter on his middle rising straight up put the
+  towel's hearts, and eight other badges' chips, through his face for the whole state; there is one
+  each side now, just outside him, drifting up and out.
+- **The Swaddle's warm puff is gone** (the `towel_wrap` shape's steam replaced it), and the towel's
+  picture rides his breath (`BuddyArt.figure_lift_local`): the "10 px headphone hop" in
+  `idle_happy` was his whole figure breathing under a towel pinned to his collider. The headphones
+  track his skull within 3 px; the art was left alone.
+- **The flail's GOTCHA! is links and a padlock** at his waist, not a hoop.
+- **A payoff on the desk stands on the floor line**, never across it — the ground pound's slabs, the
+  serve's chalk line, the golf cup — because the floor is often the window's bottom edge.
+
+*Verified:* ui_check 646, ability_check 2692 and the aura's own check, headless. *Not yet seen.*
+
+## D80 — A desk of its own, and a throw that arrives (2026-09-27)
+
+*Context:* the bug pass before the first playtest. Three findings were open against the physics.
+
+- **The sledgehammer's Ground Pound failed after any other item** in `item_check` and passed alone.
+  Nothing leaked from the hole punch: every desk shared one SubViewport's `World2D`, and the first
+  desk was built one physics step later than the rest — the same fault `ability_check` had (D74,
+  "Fixed 2026-09-26"). The approach swings a 14 kg head through him; alone it threw him 150 px and
+  the wave caught him, after another item 270 px into the wall and the wave landed 325 px away,
+  past its 280 px radius. A player cannot meet this. Each desk now gets a fresh `World2D` built
+  straight after a physics tick, and the suite holds every desk to the first, step for step.
+- **A thrown gun was billed at random (~F1).** Godot's cast-ray CCD, in the step before a fast body
+  meets another, cuts its velocity to the gap left plus 1 % of its length — permanently: an SMG
+  left the hand at 1,313 px/s and met him at 82. Whether a throw paid depended on where the step
+  boundary fell. A harm gun thrown faster than 300 px/s now sweeps its shapes along the motion,
+  solves the collision itself in `_physics_process` before `StepStart`, and hands him his half
+  through `Buddy.take_contact`, which bills it through the ordinary contact gates, once. It also
+  closed a ledger hole: a push on a sleeping buddy is folded into the span the ledger holds open.
+  13 of 13 harm guns now bill (414–2,286); kind guns bill nothing, as before.
+- **The flamethrower's ~F2 had been fixed by D60** and outlived it, because a `~` line can neither
+  fail nor go stale. `every_shot` now asserts that every single-pellet turret's tick bills.
+
+`item_check`'s KNOWN table is empty. *Verified:* item_check 136 items, 5,299 passed, 0 failed,
+0 known, three runs in a row; ability_check twice; loop 834; pacing 4/4, 9:20:31.
+
 
 ## D78 — The right button beyond the melee drawer: eleven more things that do something in the hand (2026-09-26)
 

@@ -211,8 +211,9 @@ PROJ='C:\Users\George\Godot Projects\Projects\Bonehead_Friend\interactive-buddy-
 # its currency through the real pipeline, its contract event, its effect, binning, teardown,
 # every augment key read by something. ~6.5 min for the roster. Drivers are picked by exact
 # script class and a class with no driver fails by name. Open findings live in its KNOWN
-# table (docs/item-audit-2026-09.md); a known finding that stops reproducing fails the suite,
-# so delete its lines when you fix it.
+# table (docs/item-audit-2026-09.md; empty since D80); a known finding that stops reproducing
+# fails the suite, so delete its lines when you fix it. Never mark one `~` (intermittent) to
+# quieten it: a `~` line can neither fail nor go stale, and the flamethrower's outlived its fix.
 "$GODOT" --headless --path "$PROJ" res://tests/integration/item_check.tscn
 "$GODOT" --headless --path "$PROJ" res://tests/integration/item_check.tscn -- --only=fist,grenade --trace
 
@@ -427,7 +428,13 @@ GDScript quirks already paid for once each:
   each). Anything else that needs the speed of an impact reads
   `get_contact_collider_velocity_at_position` — the speed before the collision was solved — as
   the trampoline does. In `body_entered` a thrown ball has already stopped: keep a decaying peak
-  speed, not last frame's.
+  speed, not last frame's. **Godot's cast-ray CCD permanently cuts a fast body** to the gap it has
+  left the step before contact (an SMG thrown at 1,313 px/s met him at 82), so whether a fast throw
+  pays depends on the step boundary: a body that must land its speed solves the step itself before
+  `StepStart` and bills through `Buddy.take_contact` (D80, thrown guns).
+- **A suite that hosts many desks gives each a fresh `World2D`, built straight after a physics
+  tick** (D74, D80): a shared broadphase and a desk built a step late turned 0.05 px into a 67 px
+  swing and made the sledgehammer fail after any other item.
 - **A field that moves him without touching him claims his impacts** (`Buddy.claim_impacts`,
   every frame it acts, D65), so the floor he is thrown into bills the vortex or the fan, not
   `world`.
