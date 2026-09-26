@@ -22,6 +22,9 @@ extends ThrowAbility
 const TOSSED := 70
 const SERVED := 71
 
+## The stroke, its streak and the ace (D77's shapes): drawn by the payoff's own shape script.
+const Ace := preload("res://Scripts/Bodies/Abilities/Shapes/tennis_ace.gd")
+
 var _toss_from := Vector2.ZERO
 var _apex_seconds := 0.5
 
@@ -31,6 +34,10 @@ var serve_speed := 0.0
 var aces := 0
 var faults := 0
 var returned := 0
+
+## Struck and on its way to him, for its streak.
+func is_served() -> bool:
+	return _active and _phase == SERVED
 
 func pip_fill() -> float:
 	if not _active or _phase != TOSSED:
@@ -141,6 +148,7 @@ func _serve() -> void:
 	var fx := fx()
 	if fx:
 		fx.ring(from, 18.0 + 14.0 * timing, WorldFX.kind_colour(body.juice_tier), 0.16, 2.0)
+	Ace.serve(AbilityFX.of(body), self, from, want.normalized(), timing)
 	sound(&"crack", lerpf(-14.0, -4.0, timing), lerpf(1.4, 1.0, timing))
 	_update_pip()
 	if him:

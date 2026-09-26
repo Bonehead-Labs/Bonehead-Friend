@@ -24,6 +24,9 @@ extends ThrowAbility
 const PITCHED := 40
 const HELD := 41
 
+## Its seam trail and its mitt (D77's shapes): drawn by the payoff's own shape script.
+const Mitt := preload("res://Scripts/Bodies/Abilities/Shapes/catchers_mitt.gd")
+
 var _glove_local := Transform2D.IDENTITY
 var _held_by: Buddy
 var _layer := 0
@@ -31,6 +34,8 @@ var _mask := 0
 var _freeze_mode := RigidBody2D.FREEZE_MODE_STATIC
 var _frozen := false
 var _broke := false
+## The ball is drawn in the mitt while he holds it, and the real one is hidden under it.
+var _in_mitt := false
 
 ## For the suites: whether it broke, how far it bent, and whether he caught it.
 var broke := false
@@ -38,6 +43,14 @@ var bend := 0.0
 var pitches := 0
 var catches := 0
 var thrown_back := false
+
+## In the air on its way to him, for its seam trail.
+func is_pitching() -> bool:
+	return _active and _phase == PITCHED
+
+## In his hands, for the mitt.
+func is_holding() -> bool:
+	return _active and _phase == HELD
 
 ## His hands: chest height, on the side the ball comes from.
 func _glove(him: Buddy, from: Vector2) -> Vector2:
@@ -79,6 +92,7 @@ func _on_press() -> void:
 	pitches += 1
 	set_process_input(true)
 	run(true)
+	Mitt.pitch(AbilityFX.of(body), self)
 	sound(&"whoosh", -6.0, 1.3)
 	AbilityCues.activation(self, from)
 	# Something is coming to him to catch, head or wear: whatever routine he was in stands down.
@@ -176,6 +190,11 @@ func _catch(him: Buddy) -> void:
 	sound(&"tock", -4.0, 1.0)
 	tell(&"caught_it", glove)
 	AbilityCues.payoff(self, &"curveball", glove, "caught!")
+	# The mitt is up with the ball in its pocket: one ball on screen, not two.
+	var s := sprite()
+	if s and Mitt.holding(AbilityFX.of(body)):
+		s.visible = false
+		_in_mitt = true
 
 ## What an ordinary catch of this ball pays: its own `hearts_per_contact`.
 func _catch_value() -> float:
@@ -187,6 +206,11 @@ func _ride() -> void:
 		body.global_transform = _held_by.global_transform * _glove_local
 
 func _release_hold() -> void:
+	if _in_mitt:
+		_in_mitt = false
+		var s := sprite()
+		if s:
+			s.visible = true
 	if not _frozen or body == null:
 		return
 	_frozen = false

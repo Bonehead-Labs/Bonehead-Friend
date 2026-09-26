@@ -253,7 +253,7 @@ const LOOKS := {
 		"colour": "ff9a2e", "call": "KEEPY-UPPY", "burst": &"ball", "glint": 0.5,
 		"cue": {"icon": &"ball", "count": &"count"},
 		"states": {&"lobbed": {"none": true}, &"header": {"none": true}},
-		"pay": {&"header": {"size": 0.35}},
+		"pay": {&"header": {"size": 0.35, "shape": &"beach_header"}},
 	},
 	&"make_a_wish": {
 		"colour": "ffd23a", "call": "MAKE A WISH", "burst": &"star", "glint": 0.85,
@@ -265,13 +265,13 @@ const LOOKS := {
 		"colour": "e04a4a", "call": "CURVEBALL", "burst": &"ball", "glint": 0.5,
 		"states": {&"pitched": {"icon": &"target", "seconds": 0.8},
 			&"caught_it": {"icon": &"ball", "seconds": 1.2}, &"threw_back": {"none": true}},
-		"pay": {&"curveball": {"size": 0.45}},
+		"pay": {&"curveball": {"size": 0.45, "shape": &"catchers_mitt"}},
 	},
 	&"serve": {
 		"colour": "e8b83a", "call": "SERVE", "burst": &"ball", "glint": 0.5,
 		"states": {&"served": {"icon": &"target", "seconds": 0.8},
 			&"volley": {"icon": &"ball", "seconds": 0.8}},
-		"pay": {&"serve": {"size": 0.6}},
+		"pay": {&"serve": {"size": 0.6, "shape": &"tennis_ace"}},
 	},
 	&"swaddle": {
 		"colour": "ff8fbb", "call": "SWADDLE", "burst": &"heart", "glint": 0.6,
@@ -284,7 +284,7 @@ const LOOKS := {
 		"colour": "5a78ff", "call": "BOWL!", "burst": &"pin", "glint": 0.5,
 		"states": {&"incoming": {"icon": &"pin", "colour": RED, "seconds": 0.9},
 			&"bowled": {"icon": &"pin", "seconds": "claim_seconds"}},
-		"pay": {&"strike": {"size": 0.95}},
+		"pay": {&"strike": {"size": 0.95, "shape": &"bowling_pins"}},
 	},
 	&"wring": {
 		"colour": "4fb8ff", "call": "WRING", "burst": &"drop", "glint": 0.5,
