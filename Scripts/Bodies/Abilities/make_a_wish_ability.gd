@@ -26,8 +26,10 @@ const WISHING := 10
 const FLAME := Color("ffd166")
 const SMOKE := Color("8a8478")
 
-## One blown-out copy per cake texture, for the life of the process.
-static var _unlit: Dictionary = {}
+## The blown-out copy of this cake's picture, made the first time it is blown out and kept for as
+## long as the cake is. Not in a static: a static holding a texture keeps it past shutdown, where it
+## reads as a leak (AbilityTable's note, and ExplosionUtil's).
+var _unlit: Texture2D
 
 var _lit_texture: Texture2D
 var _blown := false
@@ -226,9 +228,8 @@ func _wicks_world_centre() -> Vector2:
 
 ## The same cake with its flames cleared: every pixel of `flame_rows`, made once and kept.
 func _unlit_for(texture: Texture2D) -> Texture2D:
-	var key := texture.resource_path if texture.resource_path != "" else str(texture.get_rid())
-	if _unlit.has(key):
-		return _unlit[key]
+	if _unlit:
+		return _unlit
 	var image := texture.get_image()
 	if image == null:
 		return texture
@@ -240,9 +241,8 @@ func _unlit_for(texture: Texture2D) -> Texture2D:
 	for y in range(maxi(rows.x, 0), mini(rows.y + 1, image.get_height())):
 		for x in image.get_width():
 			image.set_pixel(x, y, Color(0, 0, 0, 0))
-	var unlit := ImageTexture.create_from_image(image)
-	_unlit[key] = unlit
-	return unlit
+	_unlit = ImageTexture.create_from_image(image)
+	return _unlit
 
 ## The flames swelling while the wish gathers: a warm halo on each, drawn in the sprite's frame so
 ## it sits exactly on the art at any angle.
