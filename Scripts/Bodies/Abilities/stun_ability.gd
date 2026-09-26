@@ -191,7 +191,12 @@ func _follow() -> void:
 	if afx:
 		afx.waves(head, WorldFX.GOLD, 2, 90.0 + 35.0 * float(n), 0.08, 4.0 + float(n))
 		afx.waves(glint_world(), WorldFX.GOLD, 1, 70.0 + 20.0 * float(n), 0.0, 4.0)
-		afx.payoff(head, 0.25 + 0.14 * float(n), WorldFX.GOLD)
+		# The BONG's own ringing again (`Shapes/bong.gd`), bigger with every follow-up.
+		var shape := StringName(AbilityLooks.pay_spec(look(), &"bong").get("shape", &""))
+		if shape != &"":
+			afx.payoff_shaped(shape, head, 0.25 + 0.14 * float(n), WorldFX.GOLD, self)
+		else:
+			afx.payoff(head, 0.25 + 0.14 * float(n), WorldFX.GOLD)
 	var weight := AbilityFX.weight_for(ability_id(), true) * (0.7 + 0.16 * float(n))
 	follow_weights.append(weight)
 	callout("BONG" + "!".repeat(n + 1), head + Vector2(0.0, -58.0), true, weight)

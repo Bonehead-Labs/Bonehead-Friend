@@ -198,13 +198,17 @@ func _bite() -> void:
 	var point := at.clamp(him.get_interaction_rect().position, him.get_interaction_rect().end)
 	last_bite = num("bite_force", 1800.0)
 	strike(last_bite, into, point, num("bite_mult", 1.0), num("shove", 0.3))
+	# A look with a shape of its own for the bite (`Shapes/punch.gd`, `snip.gd`, `crank.gd`) draws the
+	# bite; the ring and the confetti here are the generic ones.
+	var shaped := AbilityLooks.pay_spec(look(), ability_id()).has("shape")
 	var fx := fx()
 	if fx:
-		# In its colour, not white: a white ring on white bone is invisible (D77).
-		fx.ring(point, 30.0, accent(), 0.15, 2.0)
+		if not shaped:
+			# In its colour, not white: a white ring on white bone is invisible (D77).
+			fx.ring(point, 30.0, accent(), 0.15, 2.0)
 		fx.chips(point, Color("f2ead8"), 3, 200.0)
 		fx.shake(3.0)
-	if bool(row.get("confetti", false)):
+	if bool(row.get("confetti", false)) and not shaped:
 		_confetti(point)
 	if num("hole_seconds", 0.0) > 0.0:
 		_punch_hole(him, point)
@@ -370,7 +374,8 @@ func _crank_hit(him: Buddy, at: Vector2) -> void:
 	var fx := fx()
 	if fx:
 		fx.chips(at, Color("f2ead8"), 4, 220.0)
-		fx.ring(at, 26.0, tier_colour(), 0.18, 2.0)
+		if not AbilityLooks.pay_spec(look(), &"crank").has("shape"):
+			fx.ring(at, 26.0, tier_colour(), 0.18, 2.0)
 	sound(&"ratchet", -4.0, 0.8 + 0.1 * float(cranks), 0.0)
 	sound(&"creak", -8.0, 1.0 + 0.1 * float(cranks), 0.05)
 	paid_off.emit(&"crank")

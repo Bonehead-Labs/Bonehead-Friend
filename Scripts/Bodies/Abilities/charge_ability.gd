@@ -146,10 +146,13 @@ func _land() -> void:
 	payoffs += 1
 	var fx := fx()
 	if fx:
-		fx.ring(at, 70.0 + 50.0 * _charge, WorldFX.GOLD, 0.35, 4.0)
-		fx.burst(at, &"star", WorldFX.GOLD, 4 + int(5.0 * _charge), 320.0)
-		# Not white: white on him is invisible (D77).
-		fx.chips(at, accent(), 6, 260.0)
+		# With a look of its own (`Shapes/home_run.gd`: the crack, the splinters, the ball for the sky)
+		# the ring and the stars are the generic ones.
+		if not AbilityLooks.pay_spec(look(), &"home_run").has("shape"):
+			fx.ring(at, 70.0 + 50.0 * _charge, WorldFX.GOLD, 0.35, 4.0)
+			fx.burst(at, &"star", WorldFX.GOLD, 4 + int(5.0 * _charge), 320.0)
+			# Not white: white on him is invisible (D77).
+			fx.chips(at, accent(), 6, 260.0)
 		fx.shake(4.0 + 5.0 * _charge)
 	sound(&"crack", -2.0, lerpf(1.15, 0.9, _charge))
 	tell(&"home_run", at)

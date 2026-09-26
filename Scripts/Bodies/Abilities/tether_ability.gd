@@ -191,7 +191,9 @@ func _catch() -> void:
 func _caught() -> void:
 	var fx := fx()
 	if fx:
-		fx.ring(him_world(), 56.0, Color("c9c4b4"), 0.25, 3.0)
+		# The lasso round him is the look's (`Shapes/wrap_catch.gd`); the ring is the generic one.
+		if not AbilityLooks.pay_spec(look(), &"catch").has("shape"):
+			fx.ring(him_world(), 56.0, Color("c9c4b4"), 0.25, 3.0)
 		fx.chips(him_world(), WorldFX.SPARK, 5, 220.0)
 	sound(&"chain", -2.0, 1.1)
 	sound(&"impact_metal", -8.0, 0.7)
@@ -259,7 +261,7 @@ func _let_go(fling: bool, gap: float = -1.0) -> void:
 		flung = true
 		him.claim_impacts(body.item_id, base_mult() * num("slam_mult", 1.0), num("claim_seconds", 2.0))
 		var fx := fx()
-		if fx:
+		if fx and not AbilityLooks.pay_spec(look(), &"fling").has("shape"):
 			fx.ring(him_world(), 40.0, tier_colour(), 0.2, 2.0)
 		sound(&"whoosh", -4.0, 0.8)
 		sound(&"chain", -10.0, 1.3)
