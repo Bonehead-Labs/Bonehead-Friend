@@ -1870,6 +1870,22 @@ func _drive_wrap(body: WeaponBase, ability: TetherAbility) -> Dictionary:
 	_check("a hit with it armed wraps him (%d caught)" % ability.catches, ability.is_holding())
 	_check("and he and it do not collide while he is on it",
 		body.get_collision_exceptions().has(_buddy))
+	# GOTCHA! reads as a chain locked round him (D77 amended), not the hoop it was: an ellipse twice
+	# his width, spinning as it closed. Wide only while it whips in; then links at his waist, as wide as
+	# the hold's own chain, turned only as he is, with its lock on the side of him that shows.
+	var loop := _afx_probe.get_node_or_null("WrapLoopFront0") as Node2D if is_instance_valid(_afx_probe) else null
+	_check("the catch plays its chain", loop != null and loop.visible)
+	if loop:
+		await _await_cond(func() -> bool: return float(loop.get("t")) >= 0.25 or not loop.visible, 30)
+		var r: Vector2 = loop.call("_radii")
+		var half := _buddy.get_interaction_rect().size.x * 0.5
+		var links: int = (loop.call("_links", r, 1.0, 1000.0) as PackedFloat32Array).size() \
+			+ (loop.call("_links", r, -1.0, 1000.0) as PackedFloat32Array).size()
+		var clasp := float(loop.get("_clasp"))
+		_check("closed to his waist (%.0f px across, he is %.0f), in %d links"
+			% [r.x * 2.0, half * 2.0, links], r.x <= half + 4.5 and links >= 20)
+		_check("turned only as he is, and locked where it shows (%.2f rad round)" % clasp,
+			absf(angle_difference(loop.rotation, _buddy.global_rotation)) < 0.2 and sin(clasp) > 0.2)
 	await _expect_face(&"wrapped", &"wrapped")
 	# The hand goes up into the open and round: he is the ball on the chain.
 	var start := _buddy.global_position
