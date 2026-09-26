@@ -60,6 +60,16 @@ if that contact is gone, bill `mass × |Δv − g·dt|` to it through the same f
 by whoever owns `Buddy` — this is the damage model, and the balance of every thrown thing moves with
 it. The suite's `F1` lines will fail the day it lands.
 
+**The thrown guns, fixed 2026-09-27.** D64's ledger bills what reaches him; a thrown gun often never
+did. Godot's cast-ray CCD cuts a fast body's velocity, for good, to the gap to him plus 1% of its
+length per step, the step before it arrives: the SMG left the hand at 1,313 px/s, met him at 82 and
+handed him 58 of momentum. Whether a throw paid was where the frame boundary fell, so all thirteen
+harm guns carried `~F1` lines. A gun let go of at speed now solves the step it would meet him in
+from its own `_physics_process` (`HeldGun._meet_him_in_flight`: its shapes swept along the CCD's
+motion, a restitution collision with both bodies' mass and inertia) and hands him his half through
+`Buddy.take_contact`, which bills it as a contact of that gun, once. Measured: thirteen of thirteen
+thrown harm guns billed, collisions of 414 to 2,286. The `~F1` lines are gone.
+
 ### F2. Five of eight turrets deal no damage (since D54)
 
 **Affects:** pellet turret, nail gun, rail gun, laser lattice; the flamethrower almost always.

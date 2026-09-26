@@ -313,6 +313,9 @@ func trigger_held() -> bool:
 	return _trigger_held
 
 func _end_drag() -> void:
+	# Let go of at speed, a harm gun is a throw (`_meet_him_in_flight`). Read before the joint goes,
+	# which changes nothing this frame but says what the hand was doing.
+	_flight_steps = THROW_STEPS if not is_kind_gun() and linear_velocity.length() > THROW_SPEED else 0
 	super._end_drag()
 	release_trigger()
 	_set_threat(false)
@@ -329,10 +332,12 @@ func _exit_tree() -> void:
 
 func _physics_process(delta: float) -> void:
 	super._physics_process(delta)
+	# Not while the hit-stop has physics switched off (D54): an impulse or a torque applied to a
+	# stopped world accumulates and lands all at once when it resumes.
+	if _flight_steps > 0 and not physics_frozen:
+		_fly(delta)
 	if not dragging:
 		return
-	# Not while the hit-stop has physics switched off (D54): a torque applied to a stopped
-	# world accumulates and lands all at once when it resumes.
 	if physics_frozen:
 		return
 	var since := Time.get_ticks_msec() - _last_shot_msec
@@ -349,6 +354,112 @@ func _physics_process(delta: float) -> void:
 		_since_flush += delta
 		if _since_flush >= FLUSH_SECONDS:
 			_flush()
+
+# --- thrown --------------------------------------------------------------------------
+#
+# **A thrown gun bills its own hit** (item audit F1's last case, the thrown guns). A harm gun thrown
+# into him is a lump of metal and is billed its contact multiplier, as anything that hits him is —
+# but only if the engine lets it arrive. Godot's cast-ray CCD sees a fast body about to cross into
+# another inside the step and cuts its velocity, for good, to what reaches the contact point and no
+# further (`_test_ccd`: the gap to him plus 1% of its length, per step). Measured on the SMG: 1,313
+# px/s the step before, 82 px/s at the contact, 58 of momentum handed to him and nothing billed. How
+# much of a throw survived was the gap to him when its last step began — anywhere from nothing to
+# the whole step's 22 px — so a throw paid or did not by where the frame boundary fell, on every gun
+# short enough for the CCD to call fast.
+#
+# So a gun let go of at speed is watched for the step in which it would reach him — its own shapes
+# swept along that step's motion, which is exactly the motion the CCD casts — and that collision is
+# solved here, from its `_physics_process`, before `Buddy.StepStart` (D64, D74): the impulse of a
+# collision at the contact point with the engine's own restitution (the two bounces summed, clamped
+# to 1) and both bodies' mass and inertia. The gun takes its half, and `Buddy.take_contact` hands
+# him his and bills it through the floor, the cooldown and `_attribute` a reported contact goes
+# through. The gun is then moving off him, so the CCD has nothing to cut and no contact follows to
+# bill it twice. A gun already touching him, or thrown slowly, is left to the engine as before.
+
+## Out of the hand faster than this, it is a throw. The suite's throws leave at 580 to 880 px/s; a
+## gun put down, or let go of while held still, is not one.
+const THROW_SPEED := 300.0
+## How long a throw is watched: a second of physics steps, then it is a gun lying on the desk.
+const THROW_STEPS := 60
+
+## Physics steps of the current throw still watched; 0 when it is not in the air from a throw.
+var _flight_steps := 0
+## For the suites: the impulse the last throw's collision handed him, 0 before one lands.
+var last_throw_hit := 0.0
+
+func _fly(delta: float) -> void:
+	_flight_steps -= 1
+	if dragging or linear_velocity.length() < THROW_SPEED:
+		_flight_steps = 0
+		return
+	if _meet_him_in_flight(delta):
+		_flight_steps = 0
+
+## Solves the collision with him that this step would have made, if it makes one. True if it did.
+func _meet_him_in_flight(delta: float) -> bool:
+	if not is_inside_tree():
+		return false
+	if not is_instance_valid(_buddy):
+		_buddy = get_tree().get_first_node_in_group(Buddy.GROUP_BUDDY) as Buddy
+	if _buddy == null or _buddy.freeze or not _buddy.is_inside_tree():
+		return false
+	var space := get_world_2d().direct_space_state
+	# What the CCD will cast: this step's velocity, gravity included, over one step.
+	var motion := (linear_velocity + get_gravity() * delta) * delta
+	var first := 1.0
+	var hit := {}
+	for child in get_children():
+		var cs := child as CollisionShape2D
+		if cs == null or cs.shape == null or cs.disabled:
+			continue
+		var query := PhysicsShapeQueryParameters2D.new()
+		query.shape = cs.shape
+		query.transform = cs.global_transform
+		query.motion = motion
+		query.collision_mask = WeaponAbility.BUDDY_LAYER
+		query.exclude = [get_rid()]
+		var fractions := space.cast_motion(query)
+		if fractions.size() < 2 or fractions[1] >= first:
+			continue
+		if fractions[1] <= 0.0:
+			# Already touching him: an ordinary contact, which the engine solves at full speed.
+			return false
+		first = fractions[1]
+		query.transform = cs.global_transform.translated(motion * fractions[1])
+		query.motion = Vector2.ZERO
+		query.margin = 1.0
+		hit = space.get_rest_info(query)
+	if hit.is_empty() or int(hit.get("collider_id", 0)) != _buddy.get_instance_id():
+		return false
+	var me := PhysicsServer2D.body_get_direct_state(get_rid())
+	var his := PhysicsServer2D.body_get_direct_state(_buddy.get_rid())
+	if me == null or his == null:
+		return false
+	# The rest info's normal is his surface's, pointing out of him at the gun.
+	var n := -(hit["normal"] as Vector2).normalized()
+	var point: Vector2 = hit["point"]
+	var r_me := point - (global_position + me.center_of_mass)
+	var r_him := point - (_buddy.global_position + his.center_of_mass)
+	var v_me := me.linear_velocity + Vector2(-r_me.y, r_me.x) * me.angular_velocity
+	var v_him := his.linear_velocity + Vector2(-r_him.y, r_him.x) * his.angular_velocity
+	var closing := (v_me - v_him).dot(n)
+	if closing <= 0.0:
+		return false
+	var arm_me := r_me.cross(n)
+	var arm_him := r_him.cross(n)
+	var k := me.inverse_mass + his.inverse_mass + arm_me * arm_me * me.inverse_inertia \
+		+ arm_him * arm_him * his.inverse_inertia
+	if k <= 0.0:
+		return false
+	var e := clampf(_bounce_of(self) + _bounce_of(_buddy), 0.0, 1.0)
+	var j := (1.0 + e) * closing / k
+	apply_impulse(-n * j, point - global_position)
+	last_throw_hit = j
+	_buddy.take_contact(self, n * j, point)
+	return true
+
+static func _bounce_of(body: RigidBody2D) -> float:
+	return body.physics_material_override.bounce if body.physics_material_override else 0.0
 
 ## A rotary gun: up to speed while the trigger is held, down again when it is not, shuddering
 ## in the hand while it turns, and the barrels drawn turning.

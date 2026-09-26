@@ -605,6 +605,39 @@ func take_impulse(impulse: float, source_id: StringName, damage_mult: float, at:
 		return
 	_queue_hit(impulse, source_id, damage_mult, at)
 
+## A collision the engine was never going to solve at the speed it came in, handed to him by the
+## body that knows it happened: a thrown gun, which Godot's cast-ray CCD would otherwise have slowed
+## to a crawl the step before it met him (`HeldGun._meet_him_in_flight`). `impulse` is what the
+## collision hands him, applied here at `at`; the body applies its own half. Call it from a
+## `_physics_process`, before `StepStart` (D64, D74), so his ledger reads it as a push and never as
+## a contact — and if he was asleep at the last read, the span the ledger holds open (see
+## `_span_asleep`) began before this push, so the push is folded into where that span starts.
+##
+## Then it is billed as a contact he reported himself would be: the floor for what hit him, his
+## own play, the per-source cooldown and `_attribute`, so it is that body's hit, at its contact
+## multiplier, exactly once. True if it was billed.
+func take_contact(src: Object, impulse: Vector2, at: Vector2) -> bool:
+	if src == null or freeze:
+		return false
+	apply_impulse(impulse, at - global_position)
+	if _step_v_fresh and _span_asleep:
+		_step_v += impulse / mass
+	if health == null or health.down:
+		return false
+	var size := impulse.length()
+	var b := ItemDB.balance
+	if size < b.min_damage_impulse or size < _min_impulse_for(src, b):
+		return false
+	if is_own_play(src):
+		return false
+	if not _cooldown_ready(src, b.damage_cooldown):
+		return false
+	hit_at = at
+	var attribution := _attribute(src)
+	hit_at = Vector2.INF
+	_queue_hit(size, attribution[0], attribution[1], at)
+	return true
+
 func _queue_hit(impulse: float, source_id: StringName, damage_mult: float, at: Vector2) -> void:
 	var b := ItemDB.balance
 	var amount := EconomyMath.damage_from_impulse(impulse, b.min_damage_impulse, b.damage_per_impulse, damage_mult)

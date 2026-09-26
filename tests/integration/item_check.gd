@@ -134,22 +134,6 @@ const KNOWN := {
 	"flamethrower/mastery": "~F2 D54's 18 px impact inset leaves the shot under the damage floor",
 	"flamethrower/aug_damage_mult": "~F2 D54's 18 px impact inset leaves the shot under the damage floor",
 	"flamethrower/aug_payout_mult": "~F2 D54's 18 px impact inset leaves the shot under the damage floor",
-
-	# The held guns and the fidget toys (D56, D57), added to the suite after it was written.
-	"revolver/thrown": "~F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
-	"smg/thrown": "~F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
-	"pump_shotgun/thrown": "~F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
-	"hunting_rifle/thrown": "~F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
-	"blunderbuss/thrown": "~F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
-	# D71's, the same throw and the same finding: reported when it shows, not failed when it does not.
-	"pistol/thrown": "~F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
-	"shotgun/thrown": "~F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
-	"minigun/thrown": "~F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
-	"flare_gun/thrown": "~F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
-	"tommy_gun/thrown": "~F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
-	"grenade_launcher/thrown": "~F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
-	"harpoon_gun/thrown": "~F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
-	"ray_gun/thrown": "~F1 a hit that parts in one physics step is never billed (D7's contact impulse)",
 }
 
 var _passed := 0
@@ -2696,29 +2680,39 @@ func _thrown_gun(run: Run, body: HeldGun, kind: bool) -> void:
 		return
 	var hits := run.hits.size()
 	var bones := run.bones
+	body.last_throw_hit = 0.0
 	await _throw_at(_centre(), 1400.0)
 	# Asked of his own contact list, so "it bills nothing" is never said of a throw that missed.
 	# The list reports a contact a step after the step that stopped it, so the speed it arrived
-	# at is a fading peak, as the stress ball keeps one for its catch.
+	# at is a fading peak, as the stress ball keeps one for its catch. A harm gun solves the step
+	# it meets him in itself, and moves off him inside that step, so its own record says so too.
 	var speed := 0.0
 	var touched := -1.0
 	for i in 40:
 		if _gone(body):
 			break
 		speed = maxf(body.linear_velocity.length(), speed * 0.66)
-		if touched < 0.0 and _buddy.get_colliding_bodies().has(body):
+		if touched < 0.0 and (_buddy.get_colliding_bodies().has(body) or body.last_throw_hit > 0.0):
 			touched = speed
 		await _step()
 	var landed := run.hits.size() - hits
-	run.notes.append("thrown into him at %.0f px/s: %d contact hit(s)" % [touched, landed] if touched >= 0.0
-		else "thrown, and missed him")
+	var collision := 0.0 if _gone(body) else body.last_throw_hit
+	run.notes.append("thrown into him at %.0f px/s: %d contact hit(s), a collision of %.0f" % [touched,
+		landed, collision] if touched >= 0.0 else "thrown, and missed him")
 	if kind:
 		_expect(run, "thrown", touched > 300.0 and landed == 0 and run.bones == bones,
 			"thrown into him (%.0f px/s), a kind gun bills nothing (%d hits)" % [touched, landed])
-	else:
-		_expect(run, "thrown", touched > 300.0 and landed > 0,
-			"thrown into him (%.0f px/s), a harm gun is a lump of metal and bills its contact multiplier (%d hits)"
-			% [touched, landed])
+		return
+	# The collision it solved is billed once: exactly one hit carries its impulse, so the ledger did
+	# not read the same push as a contact as well.
+	var once := 0
+	for i in range(hits, run.hits.size()):
+		if absf(run.hits[i].raw_impulse - collision) <= 0.5:
+			once += 1
+	_expect(run, "thrown", touched > 300.0 and landed > 0
+		and (collision < ItemDB.balance.min_damage_impulse or once == 1),
+		"thrown into him (%.0f px/s), a harm gun is a lump of metal and bills its contact multiplier (%d hits, its collision %d time)"
+		% [touched, landed, once])
 
 ## Shift+right in the hand bins it instead of firing it: D24's override, which no trigger may
 ## claim. Asked where the hand is, which is over its grab region.
