@@ -81,6 +81,7 @@ var _icons := {}
 var _materials := {}
 var _glint_material: ShaderMaterial
 var _glint_still: ShaderMaterial
+var _rng := RandomNumberGenerator.new()
 
 ## The world's ability effects: a child of `WorldFX`, built the first time anything asks, found by
 ## group through it (D9) and never by path. Null in a scene with no WorldFX, which every caller treats
@@ -217,6 +218,7 @@ func _material(speed: float, gravity: float) -> ParticleProcessMaterial:
 
 func _take() -> Burst:
 	var burst := _bursts[_next_burst]
+	burst.turn_from = _rng.randf() * TAU
 	_next_burst = (_next_burst + 1) % _bursts.size()
 	return burst
 
@@ -621,6 +623,9 @@ class StateMark extends Node2D:
 ## eight-point star that shrinks), impact lines that run outward, and rings that expand and thin —
 ## each with a dark rim under it. `_process` only while one is in flight.
 class Burst extends Node2D:
+	## Where its lines and stars point, set by the pool from its own generator: the global one is the
+	## suites' (they seed it per weapon), and a flourish must not move what they measure.
+	var turn_from := 0.0
 	var colour := Color.WHITE
 	var flare := 0.0
 	var flash := 0.0
@@ -641,7 +646,7 @@ class Burst extends Node2D:
 		line_from = float(spec.get("line_from", 0.0))
 		line_to = float(spec.get("line_to", 0.0))
 		rings = spec.get("rings", [])
-		_turn = randf() * TAU
+		_turn = turn_from
 		_t = 0.0
 		_life = 0.0
 		if flare > 0.0:

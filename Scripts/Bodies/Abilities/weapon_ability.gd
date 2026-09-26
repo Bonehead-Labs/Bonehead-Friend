@@ -235,6 +235,12 @@ func note_hit() -> void:
 	billed.append(hit_multiplier())
 	if billed.size() > 16:
 		billed.pop_front()
+	# Where the contact touched him, while he still knows (`Buddy.hit_at`, set only for the length of
+	# his attribution): a payoff for this hit a tick later is drawn there, not at his middle (D77).
+	var him := buddy()
+	if him and him.hit_at != Vector2.INF:
+		_strike_at = him.hit_at
+		_strike_frame = Engine.get_physics_frames()
 	if _active:
 		_on_hit()
 

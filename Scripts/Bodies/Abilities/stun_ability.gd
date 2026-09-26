@@ -40,6 +40,8 @@ var _pan_shudder := 0.0
 var _pan_rest := Vector2.INF
 var _pan_wave := 0.0
 var _pan_t := 0.0
+## The shudder's own generator: the global one is the suites', seeded per weapon.
+var _pan_rng := RandomNumberGenerator.new()
 
 ## For the suites: hits billed while he was dazed, and how big each follow-up's word was asked to be.
 var dazed_hits := 0
@@ -143,7 +145,8 @@ func _ring_the_pan(delta: float) -> void:
 			_pan_rest = s.position
 		_pan_shudder = maxf(_pan_shudder - delta, 0.0)
 		var amp := 3.0 * minf(_pan_shudder / 0.3, 1.0) * Settings.intensity_scale()
-		s.position = _pan_rest + Vector2(randf_range(-amp, amp), randf_range(-amp, amp)).round()
+		var jitter := Vector2(_pan_rng.randf_range(-amp, amp), _pan_rng.randf_range(-amp, amp))
+		s.position = _pan_rest + jitter.round()
 		if _pan_shudder <= 0.0:
 			s.position = _pan_rest
 			_pan_rest = Vector2.INF
