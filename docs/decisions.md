@@ -4029,6 +4029,58 @@ its ability with it. The eleven pass 1,100 of 1,100 on their own. On D78's merge
 items and 0 failed (one known finding, as on the integration branch), `brain_check` 402 and unit
 254.
 
+### Amended 2026-09-27: the first look, and a payoff of its own for every ability
+
+D77 was built headless and nobody had seen a frame of it. The first windowed pass (`ability_shots`,
+197 frames, every ability) showed the frying pan now reads — a gold DING! armed, BONG! with rings
+off his skull and five stars — and showed four things wrong with everything else:
+
+- **Every payoff was one ring.** A flash, six to twelve spokes and two rings, recoloured: the
+  bowling Strike and the katana's cut were both blue and could not be told apart, which is the
+  opposite of what the owner asked for ("totally unique").
+- **It hid him.** Centred on him, the rings and spokes left a white blob where he was — and his own
+  hit flash, restarted by every hit, whitened his outline too, so a sustained grind erased him.
+- **Words and badges landed on each other.** The mastery rank-up ("KATANA RANK 1") printed through
+  the state badge — and a new weapon's first uses are exactly when it ranks up — and D75's trickles
+  rose onto the badge over his head. Placement (D63) kept lines apart from lines and nothing else.
+- **The Swaddle looked like it took his head off.** It did not: the towel lay across his eyes, and
+  what showed above it was his headphones and the notch of his skull.
+
+**A payoff is a shape of its own.** A look's pay spec names `shape`, and
+`Scripts/Bodies/Abilities/Shapes/<shape>.gd` plays it through `AbilityFX.payoff_shaped` — one file
+per shape, so three streams could draw 46 without touching one file. Every ability has one now (the
+flail, halberd and crowbar a catch and a release; the monitor a crash and a reboot): the home run's
+CRACK and a ball arcing for the sky, the iaido's one long line that holds and parts, the pan's rings
+round his skull, the ground pound's crack along the desk, the golf drive's tracer and flag, the
+scythe's crescent and the ghost it takes, the cricket bat's boundary rope, keycaps spelling CLACK, a
+blue screen over his face for two frames, ten bowling pins, a catcher's mitt, a chalk puff on an ace,
+suds popping round his ears, the cake's smoke and confetti, a flak cloud splitting into bomblets.
+Three small helpers draw them (`Shapes/kit/fx_piece.gd`, `Shapes/kit/moment.gd`,
+`Shapes/payoff_sketch.gd`, none with a `class_name`): pooled on first use, whole pixels, dark rims,
+their own random streams, nothing at rest, and nothing fades. The generic `payoff` stays for an
+ability with no shape, and a hook draws its own ring only when its look names none.
+
+**Nothing floats over a badge or his face.** A badge joins `FXLayer`'s keep-out group and every line
+steps round it; a badge put up under a rising line waits for it; a headline steps round an ability's
+words; and words step round `BuddyArt.face_rect()`. The default payoff starts its rings and lines at
+his half-diagonal, behind him, with a three-frame flash where it struck. Repeats of one payoff or one
+word inside `WeaponAbility.FOLD_STEPS` (30 physics steps, not the 200 ms of wall clock it was) fold
+into one, and `AbilityFX.PAYOFF_CAP` keeps two alive. His hit flash whitens his fill and leaves his
+rim dark. The towel lies under his face at the lowest his breathing takes it (`_drape`, measured from
+`face_floor_local`); a second, fixed offset the D78 stream added the same day was taken out at the
+merge, since the two together put it at his legs. The ready glint is a white-hearted star, 22 px at
+1x, with longer rays every 1.8 s (a shader, no tick): the old 7 px cross in the tier colour vanished
+on a gold weapon. `ability_shots` takes `--backdrop=dark|chroma|<id>`.
+
+*Tested:* ability_check asserts, by enumeration over the looks, that every named shape has a script
+and actually played when its payoff landed (`AbilityFX.shape_plays`); ui_check that a badge and a
+headline never intersect and that no number lands on a badge (six of its new checks fail on the old
+placement); ability_check caps a sustained ability's clutter. Performance on a release build the same
+evening, before the shapes: idle 0.52 % of the machine and load 0.74 %, minimum of three, on a
+machine that was 35 % busy with something else. *Not yet seen:* most shapes were finished after the
+owner took the PC back, so their final frames have not been looked at — the rapier's and the tyre
+iron's never have. The captures are queued.
+
 
 ## D78 — The right button beyond the melee drawer: eleven more things that do something in the hand (2026-09-26)
 

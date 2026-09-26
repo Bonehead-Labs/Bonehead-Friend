@@ -492,6 +492,14 @@ GDScript quirks already paid for once each:
   other than where it last struck sets `fx_at`. ability_check enumerates `AbilityTable` for all
   four stages. Jolt the desk only when `WorldFX.is_shaking()` is false: the shake is the canvas
   transform the cursor maps through, so a jolt moves a held weapon in a suite.
+- **A payoff is a shape of its own** (D77 amended): a look's pay spec names `shape`, and
+  `Scripts/Bodies/Abilities/Shapes/<shape>.gd`'s `static func play(afx, at, size, colour, ability)`
+  draws it; ability_check fails a shape with no script or one that never played. Nothing floats over
+  a badge or his face — a badge joins `FXLayer`'s keep-out group, words avoid `BuddyArt.face_rect()`,
+  and shapes should keep off it too; draw round him, never a ring centred on him. Repeats fold for
+  `WeaponAbility.FOLD_STEPS`. His face frame is the whole 96 px cell: use `face_rect()`, never the
+  texture size. `await process_frame` resumes before that frame's `_process`: await two frames to
+  read state a node computes there.
 - **Never give `WeaponAbility` a member a subclass already declares** (`landed` and `_glint` were
   taken). The redeclaration is a parse error, and ability_check sits on a scene that never loads.
 - **Anything an ability or item applies to him happens in `_physics_process`, before
@@ -655,7 +663,9 @@ a sticky bomb on a remote — with a design sheet of the other 59 in D78 (eight 
 turret Overdrive waits on the owner, since right on a placed turret bins it today); and **every
 ability reads** in four stages — a ready glint on the weapon, its name called out, a badge on him
 that drains as the state runs down, and a payoff where it lands — the frying pan's BONG first,
-because the owner could not tell it had happened (D77). D77's frames have not been looked at yet.
+because the owner could not tell it had happened (D77), and after the first look at the frames a
+payoff shape of its own for every one of the 46, drawn round him (D77 amended; most final frames
+still unseen).
 
 **M3's engineering is closed. What remains of the milestone is the art pass and the two
 playtests — neither of which can be done from a keyboard.** Mood, grime, the Hearts economy, the knockout beat, mastery and the shared pool,
