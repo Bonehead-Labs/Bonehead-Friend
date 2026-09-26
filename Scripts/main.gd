@@ -115,6 +115,11 @@ func _report_offline(offline: Dictionary) -> void:
 		parts.append("%s Bones" % UIStyle.format_amount(bones))
 	if hearts > 0.0:
 		parts.append("%s Hearts" % UIStyle.format_amount(hearts))
+	# Automation's Dollar trickle, at the offline fraction (D31). Printed like every other Dollar
+	# figure on the shell, and only once it rounds to one: "$0" is a receipt, not a line.
+	var dollars := float(offline.get(Economy.DOLLARS, 0.0))
+	if dollars >= 0.5:
+		parts.append("$%s" % UIStyle.format_amount(dollars))
 	var hours := float(offline.get("seconds", 0.0)) / 3600.0
 	var lines: Array[String] = ["While you were out (%.1f h): %s." % [hours, ", ".join(parts)]]
 	# The sting, said once, where the money is: a hit cap is what drives the next session, and

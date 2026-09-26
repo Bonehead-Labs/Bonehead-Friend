@@ -35,6 +35,7 @@ func _physics_process(delta: float) -> void:
 		return
 	var direction := blow_direction.normalized().rotated(rotation)
 	var push := force * Progression.get_modifier(item_id, &"wind_mult")
+	var by_itself := blowing_by_itself()
 	for body in wind_area.get_overlapping_bodies():
 		var rigid := body as RigidBody2D
 		if rigid == null or rigid == self or rigid.freeze:
@@ -50,7 +51,31 @@ func _physics_process(delta: float) -> void:
 		rigid.apply_central_force(direction * push * falloff * delta * 60.0)
 		if rigid is Buddy:
 			(rigid as Buddy).claim_impacts(item_id, Progression.damage_mult_for(item_id, 1.0),
-				CLAIM_SECONDS)
+				CLAIM_SECONDS, by_itself)
+		elif by_itself and rigid is BaseDraggable:
+			# A prop it blows into him is still the prop's, and nobody's act.
+			(rigid as BaseDraggable).fling_by_itself(CLAIM_SECONDS)
+
+## **A fan nobody is holding is nobody's hand** (D76 amended). It blows whether or not anyone is
+## at the desk, so the wall it blows him into is the world he was blown into: it is billed to the
+## fan, and it is an act only when the world's would be — he was held, or a hand moved him in the
+## last three seconds. In the hand, or just put down, or just aimed, it is the player's. Measured
+## at an empty desk, a fan beside a gorilla turned the landings D76 had made nobody's back into
+## acts: 2,325 Dollars an hour, and two knockouts and 370 damage a minute on the board.
+func blowing_by_itself() -> bool:
+	return not dragging and Time.get_ticks_msec() - _handled_msec > Economy.WORLD_FOLLOWS_MSEC
+
+## And its body, when he is thrown into it: a fan nobody holds is furniture, and a mortar that
+## lands him on it is not a hand (measured: four such hits a minute beside a mortar).
+func acts_by_itself() -> bool:
+	return super.acts_by_itself() or blowing_by_itself()
+
+## When the player last had it: let go of, or aimed.
+var _handled_msec := -100000
+
+func _end_drag() -> void:
+	super._end_drag()
+	_handled_msec = Time.get_ticks_msec()
 
 ## How far off level the fan can be aimed, up or down, on either side (D67). Past this it is a
 ## fan blowing at the ceiling or into the desk, and neither moves anything worth moving.
@@ -65,6 +90,7 @@ func aim_at(world: Vector2) -> void:
 	var local := to_local(world)
 	if local.length_squared() < 64.0:
 		return
+	_handled_msec = Time.get_ticks_msec()
 	var tilt := clampf(atan2(local.y, absf(local.x)), -MAX_TILT, MAX_TILT)
 	var angle := tilt if local.x >= 0.0 else PI - tilt
 	blow_direction = Vector2.from_angle(angle)

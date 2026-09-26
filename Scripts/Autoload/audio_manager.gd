@@ -172,6 +172,14 @@ const BIG_BANG_HINTS := ["demolition", "black_hole", "implosion", "mortar", "nap
 
 ## Petting fires several times a second, so this is quiet and wide-spread on purpose —
 ## the same sample at the same pitch four times a second is a fire alarm, not affection.
+##
+## **The chime is the sound of an act, and only of an act** (D76 amended). Every trickle in the
+## game is silent — a boombox, a hot tub, a sponge — and his own play at a toy has been a trickle
+## since D76, so it is silent too; that is a decision, not a side effect. A chime cannot tell a
+## returning player he was happy — a sound is over the moment it plays, and the one who hears it
+## is somebody already at the desk, who did not ask for it. What stays for the player coming back
+## is what can be seen: his face, the Hearts, the heart drifting off each trickle. And with the
+## overlay unfocused the game is muted anyway (`mute_when_unfocused`, on by default).
 func _on_kindness_given(_source_id: StringName, _value: float, _world_pos: Vector2) -> void:
 	# Pitched up per act in the combo, so a petting streak climbs the way a hit streak does.
 	play(&"kindness", 0.25, -14.0, 1.0 + 0.05 * float(mini(Economy.kindness_combo(), 10)))

@@ -94,6 +94,7 @@ func _physics_process(delta: float) -> void:
 		_next_launch[id] = now + int(relaunch_cooldown * 1000.0)
 		var launch := launch_speed(falling)
 		rigid.linear_velocity = Vector2(rigid.linear_velocity.x, -launch)
+		_mark_launched(rigid)
 		# Dust off the mat, more for a harder landing.
 		var fx := WorldFX.of(self)
 		if fx:
@@ -102,7 +103,37 @@ func _physics_process(delta: float) -> void:
 				fx.ring(Vector2(rigid.global_position.x, global_position.y), 26.0 + 10.0 * juice_tier, trail_colour(), 0.25, 2.0)
 		# Louder for a harder landing, the same way a hit is.
 		AudioManager.play(&"bounce", 0.15, lerpf(-16.0, -4.0, clampf(falling / 900.0, 0.0, 1.0)))
-		# "Bounce him 100 times" is the player's to do. His own bouncing would finish it overnight.
-		var him := rigid as Buddy
-		if him == null or not him.is_own_play(self):
+		if counts_as_bounce(rigid):
 			EventBus.contract_event.emit(&"bounce", 1)
+
+## "Bounce him 100 times" is the player's to do. His own bouncing would finish it overnight, and
+## so did a ball left bouncing on the mat — 27 a minute at an empty desk, the 300 daily in eleven
+## minutes (D76 amended). So a bounce on the board is him, not at his own play, with a hand behind
+## him or on the mat.
+func counts_as_bounce(body: RigidBody2D) -> bool:
+	var him := body as Buddy
+	return him != null and not him.is_own_play(self) \
+		and (Economy.hand_behind_him() or not acts_by_itself())
+
+## **The mat is a floor when nobody holds it** (D76 amended). His landing on it is billed to the
+## mat (D64), and until now every such landing was an act — a gorilla slamming him onto it, or
+## him stumbling onto it on his way to another toy, with nobody at the desk. Like the world, it
+## is the hand's only while he is held or a hand moved him in the last three seconds, which a
+## throw onto it always is; swung at him in the hand, or just let go of, it is the player's.
+func acts_by_itself() -> bool:
+	return super.acts_by_itself() or (not dragging
+		and Time.get_ticks_msec() - _let_go_msec > Economy.WORLD_FOLLOWS_MSEC)
+
+var _let_go_msec := -100000
+
+## What a mat nobody holds launches is its throw, not the player's (D76 amended): a bowling ball
+## left bouncing on it beside him landed on him as an act, and the act made the wall after it the
+## hand's. Him it launches as it always did; his landing is judged on its own.
+func _mark_launched(body: RigidBody2D) -> void:
+	var prop := body as BaseDraggable
+	if prop and not (prop is Buddy) and not prop.dragging and acts_by_itself():
+		prop.fling_by_itself(Economy.WORLD_FOLLOWS_MSEC / 1000.0)
+
+func _end_drag() -> void:
+	super._end_drag()
+	_let_go_msec = Time.get_ticks_msec()

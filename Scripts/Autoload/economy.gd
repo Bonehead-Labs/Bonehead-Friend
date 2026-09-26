@@ -156,12 +156,23 @@ var _down := false
 
 ## Whether a hit from `source_id` was dealt by something acting on its own. Asked of the data,
 ## so a turret added next month is covered by the seeder that writes it.
-func is_unattended(source_id: StringName) -> bool:
-	if source_id == &"world":
-		return not _held and not (_moved_by_hand
-			and Time.get_ticks_msec() - _moved_msec <= WORLD_FOLLOWS_MSEC)
+##
+## `by_itself` is a hit under an item's name with nobody's hand behind it (`HitInfo.by_itself`,
+## D76 amended): the wall a desk fan left blowing throws him into, a bat a raccoon threw at him.
+## It is judged exactly as the world is — the hand's while he is held or a hand moved him in the
+## last three seconds, nobody's otherwise. Before this, a fan beside a gorilla or a mortar billed
+## the landings D76 had made nobody's as acts again, under the fan's name, and a raccoon's throws
+## were acts of the bat and the bowling ball.
+func is_unattended(source_id: StringName, by_itself: bool = false) -> bool:
+	if source_id == &"world" or by_itself:
+		return not hand_behind_him()
 	var item := ItemDB.get_item(source_id)
 	return item != null and item.is_autonomous
+
+## Whether a hand is behind whatever happens to him right now: he is held, or the last thing to
+## move him was a hand and it did so inside `WORLD_FOLLOWS_MSEC`.
+func hand_behind_him() -> bool:
+	return _held or (_moved_by_hand and Time.get_ticks_msec() - _moved_msec <= WORLD_FOLLOWS_MSEC)
 
 func _moved_by(unattended: bool) -> void:
 	_moved_by_hand = not unattended
@@ -330,11 +341,15 @@ func _on_damage_dealt(info: HitInfo) -> void:
 	grant(BONES, bones, info.position, info.source_id)
 	# Something that acts on its own is not an act (D76): it marks the tick as earning on its
 	# own, and the board and the till never hear of it.
-	if is_unattended(info.source_id):
+	if is_unattended(info.source_id, info.by_itself):
 		_unattended_hit = true
 		_moved_by(true)
 		return
-	_moved_by(false)
+	# A hit nobody's hand is behind can fall inside the hand's three seconds but never extends
+	# them: the world only gives back what a hand put in, and a fan or a raccoon puts in its own,
+	# so a chain of their hits would otherwise stay the hand's for as long as they kept at it.
+	if not info.by_itself:
+		_moved_by(false)
 	_round_hands_on = true
 	# `damage:<item_id>`, which turns "deal N damage with the mace" into pure data for every
 	# weapon in the game at once — HitInfo has always carried source_id and nothing read it
@@ -486,7 +501,8 @@ func _process(delta: float) -> void:
 
 # --- offline ---------------------------------------------------------------
 
-## Accrual for time the game was closed. Only automation earns offline.
+## Accrual for time the game was closed. Only automation earns offline: its Bones and Hearts,
+## and its Dollar trickle (`EconomyMath.offline_dollars`).
 ##
 ## **Offline pays the stable multipliers and not the volatile ones** — prestige and the
 ## Mastery Pool, never mood, a timed boost, per-item augments or an item's own mastery
@@ -498,7 +514,8 @@ func _process(delta: float) -> void:
 ## `grant()` directly and offline income got *none* of the four, while online automation
 ## got all of them.
 ##
-## Returns {currency: amount} for what was earned, so the caller can show a summary.
+## Returns {currency: amount} for what was earned — Dollars included — so the caller can show a
+## summary.
 func apply_offline_earnings(last_played_unix: int) -> Dictionary:
 	var b := ItemDB.balance
 	var cap := b.offline_cap_seconds(offline_cap_level)
@@ -507,12 +524,22 @@ func apply_offline_earnings(last_played_unix: int) -> Dictionary:
 	var elapsed := SaveSchema.offline_seconds(last_played_unix, int(Time.get_unix_time_from_system()), cap)
 	var stable := marrow_multiplier() * Progression.mastery_pool_bonus()
 	var earned := {}
+	var automating := false
 	for currency in [BONES, HEARTS]:
 		var rate := Progression.automation_rate_per_second(currency)
+		automating = automating or rate > 0.0
 		var amount := EconomyMath.offline_earnings(rate, elapsed, b.offline_efficiency) * stable
 		earned[currency] = amount
 		if amount > 0.0:
 			grant(currency, amount)
+	# And automation's Dollar trickle, which D31 says offline pays and which it did not: the
+	# closed game was the one idle state that earned no Dollars. Unmultiplied, as every Dollar
+	# is, so none of the stable multipliers above reaches it.
+	var dollars := EconomyMath.offline_dollars(automating, b.dollars_per_hit,
+		b.dollars_idle_efficiency, elapsed, b.offline_efficiency)
+	earned[DOLLARS] = dollars
+	if dollars > 0.0:
+		grant(DOLLARS, dollars)
 	earned["seconds"] = elapsed
 	# Whether the cap was the thing that decided the number — the welcome says so once.
 	earned["capped"] = elapsed >= cap and elapsed > 0.0

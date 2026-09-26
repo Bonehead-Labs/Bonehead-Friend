@@ -117,3 +117,20 @@ static func mastery_xp_for_rank(base: float, rank: int, exponent: float = 1.6) -
 ## that it lives on your desktop.
 static func offline_earnings(rate_per_second: float, elapsed_seconds: float, efficiency: float = 0.5) -> float:
 	return maxf(0.0, rate_per_second) * maxf(0.0, elapsed_seconds) * clampf(efficiency, 0.0, 1.0)
+
+## Dollars for time the game was closed (docs/decisions.md D31: "automation and offline pay them
+## at `dollars_idle_efficiency`"). Offline is automation left running, so it pays automation's own
+## Dollar trickle — a flat `dollars_per_hit x idle_efficiency` a second, whatever the capstones'
+## rate and however many of them there are — and, like every offline number, at the offline
+## fraction: a closed game earns less than an open one, and Dollars are the currency most owed to
+## being looked at. Nothing automated, nothing paid.
+##
+## **No multiplier of any kind**, not even the stable ones offline Bones and Hearts take: Dollars
+## are never multiplied, by Marrow or the pool or anything else (D31's first property). The
+## elapsed time is clamped by the caller, to zero below and the cap above, as it is for the rest.
+static func offline_dollars(automating: bool, dollars_per_hit: float, idle_efficiency: float,
+		elapsed_seconds: float, offline_efficiency: float = 0.5) -> float:
+	if not automating:
+		return 0.0
+	return offline_earnings(maxf(0.0, dollars_per_hit) * clampf(idle_efficiency, 0.0, 1.0),
+		elapsed_seconds, offline_efficiency)

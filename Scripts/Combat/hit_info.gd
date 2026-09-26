@@ -11,6 +11,12 @@ var raw_impulse: float     ## Unscaled contact impulse, used for detach/knockbac
 ## Which part of him took it. `torso` until the multi-hitbox lands (docs/plan-movement-
 ## hitboxes.md §5); the seam exists now so the parts are additive when they arrive.
 var part: StringName
+## Nobody's hand is behind it, though an item's name is on it (D76 amended): a desk fan left
+## blowing, which claims the wall it blows him into (D65), or a prop a raccoon threw at him
+## (`BaseDraggable.fling_by_itself`). The id says whose; this says nobody was there, so Economy
+## judges it as it judges the world and the idle brain does not take it for the player arriving.
+## False for everything a hand swings, throws, fires or holds.
+var by_itself := false
 
 func _init(p_amount: float = 0.0, p_source_id: StringName = &"", p_position: Vector2 = Vector2.ZERO,
 		p_raw_impulse: float = 0.0, p_part: StringName = &"torso") -> void:

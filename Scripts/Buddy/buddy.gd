@@ -141,6 +141,10 @@ const GROUND_NORMAL_Y := -0.7
 var _claim_id: StringName = &""
 var _claim_mult := 1.0
 var _claim_until_msec := 0
+## Whether the field claiming him is acting with nobody holding it: a desk fan left blowing. Its
+## claimed impact is then the world he was blown into, and it is the hand's only when the world's
+## would be (D76) — `HitInfo.by_itself`. A vortex, a spell or an ability is held while it pulls.
+var _claim_by_itself := false
 
 ## **His own play is never a hit** (D70). While the idle brain has him at a toy, the toy and the
 ## world are his own doing: the mat he bounces on, the floor he comes down on, a ball he bops
@@ -192,9 +196,12 @@ func is_grounded() -> bool:
 	return _grounded
 
 ## Called every physics frame a field acts on him; the claim runs `seconds` past the last.
-func claim_impacts(source_id: StringName, damage_mult: float, seconds: float) -> void:
+## `by_itself` for a field nobody is holding (the desk fan, D76 amended).
+func claim_impacts(source_id: StringName, damage_mult: float, seconds: float,
+		by_itself: bool = false) -> void:
 	_claim_id = source_id
 	_claim_mult = damage_mult
+	_claim_by_itself = by_itself
 	_claim_until_msec = Time.get_ticks_msec() + int(seconds * 1000.0)
 
 func impacts_claimed_by() -> StringName:
@@ -431,7 +438,8 @@ func _integrate_forces(state_: PhysicsDirectBodyState2D) -> void:
 		hit_at = state_.get_contact_local_position(i)
 		var attribution := _attribute(src)
 		hit_at = Vector2.INF
-		_queue_hit(impulse, attribution[0], attribution[1], state_.get_contact_local_position(i))
+		_queue_hit(impulse, attribution[0], attribution[1], state_.get_contact_local_position(i),
+			attribution.size() > 2 and bool(attribution[2]))
 	# The step before this one, now that the engine has said all it will about it; then this
 	# step, held for the same question next time. After a sleep the one still held is from
 	# before it, and what this callback reports is the step that woke him, not that one.
@@ -594,7 +602,8 @@ func _settle_ledger(state_: PhysicsDirectBodyState2D, b: BalanceData) -> void:
 		hit_at = _ledger_at[s]
 		var attribution := _attribute(src)
 		hit_at = Vector2.INF
-		_queue_hit(share, attribution[0], attribution[1], _ledger_at[s])
+		_queue_hit(share, attribution[0], attribution[1], _ledger_at[s],
+			attribution.size() > 2 and bool(attribution[2]))
 
 ## Damage from a source that is not a contact — an explosion's blast, a gunshot. Fed the
 ## same kind of impulse the contact solver produces so there is one damage model, not two.
@@ -605,7 +614,8 @@ func take_impulse(impulse: float, source_id: StringName, damage_mult: float, at:
 		return
 	_queue_hit(impulse, source_id, damage_mult, at)
 
-func _queue_hit(impulse: float, source_id: StringName, damage_mult: float, at: Vector2) -> void:
+func _queue_hit(impulse: float, source_id: StringName, damage_mult: float, at: Vector2,
+		by_itself: bool = false) -> void:
 	var b := ItemDB.balance
 	var amount := EconomyMath.damage_from_impulse(impulse, b.min_damage_impulse, b.damage_per_impulse, damage_mult)
 	if amount <= 0.0:
@@ -613,7 +623,9 @@ func _queue_hit(impulse: float, source_id: StringName, damage_mult: float, at: V
 	# One pathological impulse — a tunnelling collision, a physics blow-up — must not pay
 	# out a whole round.
 	amount = minf(amount, b.knockout_damage * b.max_hit_fraction)
-	_pending_hits.append(HitInfo.new(amount, source_id, at, impulse))
+	var info := HitInfo.new(amount, source_id, at, impulse)
+	info.by_itself = by_itself
+	_pending_hits.append(info)
 
 func _deal(info: HitInfo) -> void:
 	if health == null or health.down:
@@ -680,26 +692,32 @@ func get_interaction_rect() -> Rect2:
 ## Who to bill the hit to, and by how much. Anything without a script is still a weapon —
 ## it just has no multiplier and no mastery.
 func _attribute(src: Object) -> Array:
+	# A prop a raccoon threw, or a fan left blowing pushed, is billed under its own name and as
+	# nobody's act (D76 amended). The third element is `HitInfo.by_itself`.
+	var flung := src is BaseDraggable and (src as BaseDraggable).acts_by_itself()
 	if src is WeaponBase:
 		var w := src as WeaponBase
 		# Both gates have already run by the time attribution does, so this is the honest
 		# count of swings that landed — the contract board's "land 120 hits with the mace".
-		w.register_use()
-		return [w.item_id, w.effective_damage_mult()]
+		# A bat a raccoon threw is not a swing anybody landed.
+		if not flung:
+			w.register_use()
+		return [w.item_id, w.effective_damage_mult(), flung]
 	if src is ThrowableBase:
 		var t := src as ThrowableBase
-		return [t.item_id, t.effective_damage_mult()]
+		return [t.item_id, t.effective_damage_mult(), flung]
 	# An animal or a turret that runs into him is billed at its own multiplier, the same one
 	# its blows and shots already carry. It was a flat 1.0, so a hornet's body-check ignored the
 	# "Sharper Sting" the player had bought for it, measured by item_check (D59). Duck-typed:
 	# the method is the contract, and the classes that have one are not a list kept here.
 	if src is BaseDraggable and src.has_method(&"effective_damage_mult"):
-		return [(src as BaseDraggable).item_id, float(src.call(&"effective_damage_mult"))]
+		return [(src as BaseDraggable).item_id, float(src.call(&"effective_damage_mult")), flung]
 	if src is BaseDraggable:
-		return [(src as BaseDraggable).item_id, 1.0]
-	# The world, unless a field is throwing him into it (D65).
+		return [(src as BaseDraggable).item_id, 1.0, flung]
+	# The world, unless a field is throwing him into it (D65) — and whether that field is one
+	# nobody is holding, which Economy then judges as it judges the world (D76 amended).
 	if impacts_claimed_by() != &"":
-		return [_claim_id, _claim_mult]
+		return [_claim_id, _claim_mult, _claim_by_itself]
 	return [&"world", 1.0]
 
 ## Where the contact being billed touched him, while `_attribute` asks its weapon for a

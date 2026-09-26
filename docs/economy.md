@@ -340,6 +340,14 @@ about 20,000. A `world` hit is the hand's only while he is held or inside three 
 hand last moving him; a toy's contact is the player's while it is in their hand and for three
 seconds after they let go.
 
+The same holds for everything that carries an item's name with nobody's hand behind it (D76
+amended): the wall a desk fan left blowing throws him into, the fan's body and a trampoline's mat
+when nobody holds them, a prop a raccoon throws or a mat launches, and a kind toy left touching
+him. Each is judged as the world is — the hand's while he is held or a hand moved him in the last
+three seconds, or while the item itself is in the hand or was let go of, put down or aimed in the
+last three — and none of them extends that clock. A bounce on the board is him, with a hand behind
+him or on the mat.
+
 Three properties, each load-bearing:
 
 - **They are never multiplied.** Not by mood, not by augments, not by mastery, not by Marrow.
@@ -450,7 +458,12 @@ unlock, every augment level, every exclusive choice and all mastery.
 ```
 elapsed  = clamp(now − last_played, 0, cap_hours × 3600)     # negative deltas → 0, always
 earnings = automation_rate_per_second × elapsed × balance.offline_efficiency
+dollars  = dollars_per_hit × dollars_idle_efficiency × elapsed × offline_efficiency   # if automating
 ```
+
+- Offline Dollars are automation's own trickle at the offline fraction (`EconomyMath.offline_dollars`):
+  $270 an hour closed at the shipped knobs, against $540 open, and nothing if nothing is automated.
+  Like every Dollar they are never multiplied — not even by the stable multipliers below.
 
 - Offline pays `rate x elapsed x efficiency x prestige x pool` — the **stable** multipliers, and
   deliberately not mood, item augments or item rank (see Automation above).

@@ -1034,6 +1034,13 @@ func _nobody_at_the_desk_is_not_an_act() -> void:
 		_check("and is no act: no combo, no Dollar, nothing on the board",
 			Economy.kindness_combo() == 0 and _d76_board("kindness") == 0
 			and is_equal_approx(Economy.balance_of(Economy.DOLLARS), dollars))
+		# And silent, deliberately (D76 amended): the chime is the sound of an act and no trickle
+		# in the game rings one. Pinned by its wiring, since this suite runs at Focus Off, where
+		# nothing plays at all.
+		var chimes_on_trickle := EventBus.kindness_sustained.get_connections().any(
+			func(c: Dictionary) -> bool: return (c["callable"] as Callable).get_object() == AudioManager)
+		_check("and rings no chime: the chime answers acts, and no trickle has one",
+			EventBus.kindness_given.is_connected(AudioManager._on_kindness_given) and not chimes_on_trickle)
 		ball._next_contact_msec = 0
 		ball.dragging = true
 		ball.pay_presence(buddy, 1.0)
@@ -1051,6 +1058,29 @@ func _nobody_at_the_desk_is_not_an_act() -> void:
 		_check("and so is the same catch with him not at play: three acts, three Dollars, three on the board",
 			_d76_given == 3 and _d76_board("kindness") == 3 and is_equal_approx(
 				Economy.balance_of(Economy.DOLLARS) - dollars, 3.0 * b.dollars_per_kind_act))
+		# With nobody's hand behind it (D76 amended): the ball put down long ago, and nobody has
+		# had him. Before the fix a rubber duck left on him paid 28 acts a minute, 720 Dollars an
+		# hour and 1,800 on the board, at an empty desk.
+		ball._arrived_msec = -100000
+		Economy._held = false
+		Economy._moved_msec -= Economy.WORLD_FOLLOWS_MSEC + 1000
+		var trickled := _d76_sustained
+		ball._next_contact_msec = 0
+		ball.pay_presence(buddy, 1.0)
+		Economy.flush_dollars()
+		_check("a toy touching him with nobody's hand behind it pays a trickle, not an act (%d acts)" % _d76_given,
+			_d76_given == 3 and _d76_sustained > trickled and _d76_board("kindness") == 3
+			and is_equal_approx(Economy.balance_of(Economy.DOLLARS) - dollars, 3.0 * b.dollars_per_kind_act))
+		Economy._on_buddy_state_changed(&"dragged")
+		Economy._on_buddy_state_changed(&"idle")
+		ball._next_contact_msec = 0
+		ball.pay_presence(buddy, 1.0)
+		_check("but him put against it by the player is the player's act", _d76_given == 4)
+		Economy._moved_msec -= Economy.WORLD_FOLLOWS_MSEC + 1000
+		ball._arrived_msec = Time.get_ticks_msec()
+		ball._next_contact_msec = 0
+		ball.pay_presence(buddy, 1.0)
+		_check("and so is a toy the player has just put down on him", _d76_given == 5)
 		# A fidget toy worked by hand while he is at it is the hand's (D57's `pay_act`), always.
 		var wrap := _instance_of(&"bubble_wrap") as FidgetToy
 		if wrap:
@@ -1068,6 +1098,185 @@ func _nobody_at_the_desk_is_not_an_act() -> void:
 		EventBus.kindness_sustained.disconnect(_d76_trickle)
 		remove_child(ball)
 		ball.free()
+	# A fan nobody is holding is nobody's hand (D76 amended). Its wind claims the wall it blows him
+	# into under its own name (D65), and that claim is judged the way the world is. Measured
+	# before the fix, a gorilla beside a fan banked 2,325 Dollars an hour at an empty desk and put
+	# two knockouts and 370 damage on the board a minute; the gorilla alone, 81 and nothing.
+	var fan := _instance_of(&"desk_fan") as WindSource
+	_check("a desk fan to stand beside him", buddy != null and fan != null)
+	if buddy and fan:
+		fan.position = buddy.global_position + Vector2(-600, -400)
+		add_child(fan)
+		fan.freeze = true
+		_check("left on the desk, it blows by itself", fan.blowing_by_itself())
+		fan.dragging = true
+		_check("in the hand, it is the player's", not fan.blowing_by_itself())
+		fan.dragging = false
+		fan._end_drag()
+		_check("and just put down, still theirs", not fan.blowing_by_itself())
+		fan._handled_msec -= Economy.WORLD_FOLLOWS_MSEC + 1000
+		fan.aim_at(fan.global_position + Vector2(200, -40))
+		_check("and just aimed, theirs again", not fan.blowing_by_itself())
+		fan._handled_msec -= Economy.WORLD_FOLLOWS_MSEC + 1000
+
+		# What he is billed for, through his own attribution: the world, claimed by the fan.
+		buddy.claim_impacts(&"desk_fan", 1.0, 0.5, fan.blowing_by_itself())
+		var claimed: Array = buddy._attribute(null)
+		_check("the wall it blows him into is billed to the fan, as by itself (%s)" % [claimed],
+			claimed[0] == &"desk_fan" and claimed.size() > 2 and bool(claimed[2]))
+		Economy.flush_dollars()
+		Economy._unattended_hit = false
+		Economy._held = false
+		Economy._moved_msec -= Economy.WORLD_FOLLOWS_MSEC + 1000
+		dollars = Economy.balance_of(Economy.DOLLARS)
+		bones = Economy.balance_of(Economy.BONES)
+		_d76_keys.clear()
+		var blown := HitInfo.new(20.0, claimed[0], at, 3000.0)
+		blown.by_itself = bool(claimed[2])
+		EventBus.damage_dealt.emit(blown)
+		Economy.flush_dollars()
+		_check("with nobody at the desk it still pays its Bones", Economy.balance_of(Economy.BONES) > bones)
+		_check("but it is no act: no Dollar and nothing on the board (%s)" % _d76_keys,
+			is_equal_approx(Economy.balance_of(Economy.DOLLARS), dollars)
+			and _d76_board("deal_damage") == 0 and _d76_board("damage:desk_fan") == 0)
+		_check("it earns the idle trickle instead, like a turret", Economy._unattended_hit)
+		_check("and the bounce after it is nobody's either", Economy.is_unattended(&"world"))
+		Economy._unattended_hit = false
+
+		# Thrown through its wind by the player, the landing is the player's, as the floor is.
+		Economy._on_buddy_state_changed(&"dragged")
+		Economy._on_buddy_state_changed(&"idle")
+		Economy._moved_msec -= 2000
+		EventBus.damage_dealt.emit(blown)
+		Economy.flush_dollars()
+		_check("thrown through its wind, the landing is the hand's (%s)" % _d76_keys,
+			_d76_board("damage:desk_fan") == 20
+			and is_equal_approx(Economy.balance_of(Economy.DOLLARS) - dollars, b.dollars_per_hit))
+		# But the fan puts in its own energy: its landings are inside the hand's three seconds,
+		# never an extension of them, or a fan juggling him would be the hand's forever.
+		Economy._moved_msec -= 1500
+		dollars = Economy.balance_of(Economy.DOLLARS)
+		_d76_keys.clear()
+		EventBus.damage_dealt.emit(blown)
+		Economy.flush_dollars()
+		_check("and its next landing, past the hand's three seconds, is not",
+			_d76_board("deal_damage") == 0 and is_equal_approx(Economy.balance_of(Economy.DOLLARS), dollars))
+		Economy._unattended_hit = false
+
+		# The fan in the player's hand blowing him into the wall is the player's act.
+		fan.dragging = true
+		buddy.claim_impacts(&"desk_fan", 1.0, 0.5, fan.blowing_by_itself())
+		claimed = buddy._attribute(null)
+		fan.dragging = false
+		var aimed := HitInfo.new(20.0, claimed[0], at, 3000.0)
+		aimed.by_itself = bool(claimed[2])
+		Economy._moved_msec -= Economy.WORLD_FOLLOWS_MSEC + 1000
+		EventBus.damage_dealt.emit(aimed)
+		Economy.flush_dollars()
+		_check("and a fan in the hand is the hand's, with nobody holding him",
+			_d76_board("damage:desk_fan") == 20
+			and is_equal_approx(Economy.balance_of(Economy.DOLLARS) - dollars, b.dollars_per_hit))
+		buddy.claim_impacts(&"", 1.0, 0.0)
+		remove_child(fan)
+		fan.free()
+
+	# What a raccoon throws is its throw, not the player's (D76 amended): the prop keeps its name
+	# and its Bones, and lands as nobody's act. Measured before the fix, a raccoon with a bat, a
+	# bowling ball and a tennis ball to hand banked 3,636 Dollars an hour at an empty desk and put
+	# 1,201 damage, three knockouts, nine kind acts and fifty "use" on the board in a minute.
+	var raccoon := _instance_of(&"raccoon") as NpcBase
+	var bat := _instance_of(&"baseball_bat") as WeaponBase
+	_check("a raccoon and a bat it can reach", buddy != null and raccoon != null and bat != null)
+	if buddy and raccoon and bat:
+		raccoon.position = buddy.global_position + Vector2(-800, -400)
+		add_child(raccoon)
+		raccoon.freeze = true
+		bat.position = raccoon.position + Vector2(40, 0)
+		bat.add_to_group(BaseDraggable.GROUP_SPAWNED)
+		add_child(bat)
+		_check("a bat left on the desk is nobody's throw yet", not bat.acts_by_itself())
+		_check("the raccoon throws it at him", raccoon._hurl_loose_item(buddy))
+		_check("and it is the raccoon's throw", bat.acts_by_itself())
+		_d76_keys.clear()
+		var hurled: Array = buddy._attribute(bat)
+		_check("which lands billed as the bat, and as nobody's (%s)" % [hurled],
+			hurled[0] == &"baseball_bat" and hurled.size() > 2 and bool(hurled[2]))
+		_check("and is no swing anybody landed: no use of the bat on the board",
+			_d76_board("use:baseball_bat") == 0)
+		Economy.flush_dollars()
+		Economy._held = false
+		Economy._moved_msec -= Economy.WORLD_FOLLOWS_MSEC + 1000
+		dollars = Economy.balance_of(Economy.DOLLARS)
+		bones = Economy.balance_of(Economy.BONES)
+		var thrown := HitInfo.new(30.0, hurled[0], at, 3000.0)
+		thrown.by_itself = bool(hurled[2])
+		EventBus.damage_dealt.emit(thrown)
+		Economy.flush_dollars()
+		_check("it pays the bat's Bones, and no Dollar and nothing on the board (%s)" % _d76_keys,
+			Economy.balance_of(Economy.BONES) > bones
+			and is_equal_approx(Economy.balance_of(Economy.DOLLARS), dollars)
+			and _d76_board("deal_damage") == 0)
+		Economy._unattended_hit = false
+		bat.dragging = true
+		_check("and in the player's hand it is theirs again", not bat.acts_by_itself())
+		bat.dragging = false
+		remove_child(bat)
+		bat.free()
+		remove_child(raccoon)
+		raccoon.free()
+
+	# The mat is a floor when nobody holds it (D76 amended). Measured before the fix, a ball left
+	# bouncing on it put 27 "bounce him" on the board in a minute at an empty desk, and a gorilla
+	# beside it 18 bounces, 117 damage and a knockout.
+	var mat := _instance_of(&"trampoline") as Trampoline
+	_check("a trampoline", buddy != null and mat != null)
+	if buddy and mat:
+		mat.position = buddy.global_position + Vector2(-800, -400)
+		add_child(mat)
+		mat.freeze = true
+		Economy._held = false
+		Economy._moved_msec -= Economy.WORLD_FOLLOWS_MSEC + 1000
+		_check("left on the desk, the mat is a floor", mat.acts_by_itself())
+		var landed: Array = buddy._attribute(mat)
+		_check("so his landing on it is billed to the mat, as nobody's (%s)" % [landed],
+			landed[0] == &"trampoline" and landed.size() > 2 and bool(landed[2]))
+		_check("and with nobody's hand behind him it is no bounce for the board",
+			not mat.counts_as_bounce(buddy))
+		var prop := RigidBody2D.new()
+		_check("nor is a ball bouncing on it: the board says him", not mat.counts_as_bounce(prop))
+		prop.free()
+		var launched := _instance_of(&"bowling_ball")
+		if launched:
+			mat._mark_launched(launched)
+			_check("and a ball it launches at him is its throw, not a hand's", launched.acts_by_itself())
+			launched.free()
+		Economy._on_buddy_state_changed(&"dragged")
+		Economy._on_buddy_state_changed(&"idle")
+		_check("thrown onto it by the player, he bounces for the board", mat.counts_as_bounce(buddy))
+		Economy._moved_msec -= Economy.WORLD_FOLLOWS_MSEC + 1000
+		mat.dragging = true
+		_check("and the mat in the player's hand is theirs", not mat.acts_by_itself()
+			and mat.counts_as_bounce(buddy))
+		mat.dragging = false
+		remove_child(mat)
+		mat.free()
+
+	# A fan nobody holds is furniture, its body as well as its wind: four hits a minute landed a
+	# mortar's target on it as acts, before the fix.
+	var furniture := _instance_of(&"desk_fan") as WindSource
+	if buddy and furniture:
+		furniture.position = buddy.global_position + Vector2(-800, -400)
+		add_child(furniture)
+		furniture.freeze = true
+		var into: Array = buddy._attribute(furniture)
+		_check("thrown into a fan nobody holds, the hit is the fan's and nobody's (%s)" % [into],
+			into[0] == &"desk_fan" and into.size() > 2 and bool(into[2]))
+		furniture.dragging = true
+		_check("and swung in the hand, the player's", not bool(buddy._attribute(furniture)[2]))
+		furniture.dragging = false
+		remove_child(furniture)
+		furniture.free()
+
 	Economy._combo_deadline_msec = 0
 	Economy._round_hands_on = false
 	EventBus.contract_event.disconnect(_d76_contract)
@@ -2775,9 +2984,36 @@ func _automation_earns_and_toggles() -> void:
 
 	# Offline accrual, including the clamp that matters most.
 	var before := Economy.balance_of(Economy.BONES)
+	var dollars_before := Economy.balance_of(Economy.DOLLARS)
+	var lifetime_before := Economy.lifetime_of(Economy.BONES) + Economy.lifetime_of(Economy.HEARTS)
 	var earned := Economy.apply_offline_earnings(int(Time.get_unix_time_from_system()) - 600)
 	_check("ten minutes away pays Bones", float(earned.get(Economy.BONES, 0.0)) > 0.0)
 	_check("and the wallet actually received it", Economy.balance_of(Economy.BONES) > before)
+
+	# And Dollars, which D31 says offline pays at the idle fraction and which it paid none of:
+	# automation's own trickle, at the offline fraction, and not one multiplier on it.
+	var b := ItemDB.balance
+	var trickle := b.dollars_per_hit * b.dollars_idle_efficiency * b.offline_efficiency
+	_check("ten minutes away pays automation's Dollar trickle at the offline fraction (%.2f of %.2f)"
+		% [float(earned.get(Economy.DOLLARS, 0.0)), trickle * 600.0],
+		is_equal_approx(float(earned.get(Economy.DOLLARS, 0.0)), trickle * 600.0))
+	_check("into the purse", is_equal_approx(Economy.balance_of(Economy.DOLLARS) - dollars_before,
+		trickle * 600.0))
+	_check("and not as income: lifetime grew by the Bones and Hearts alone", is_equal_approx(
+		Economy.lifetime_of(Economy.BONES) + Economy.lifetime_of(Economy.HEARTS) - lifetime_before,
+		float(earned.get(Economy.BONES, 0.0)) + float(earned.get(Economy.HEARTS, 0.0))))
+	var long_away := Economy.apply_offline_earnings(int(Time.get_unix_time_from_system())
+		- int(b.offline_cap_seconds(Economy.offline_cap_level)) * 10)
+	_check("the cap bounds the Dollars as it bounds the rest",
+		is_equal_approx(float(long_away.get(Economy.DOLLARS, 0.0)),
+			trickle * b.offline_cap_seconds(Economy.offline_cap_level)))
+	Progression.set_automation_enabled(&"bat_sentry", false)
+	var idle_rate := Progression.automation_rate_per_second(Economy.BONES) \
+		+ Progression.automation_rate_per_second(Economy.HEARTS)
+	var switched_off := Economy.apply_offline_earnings(int(Time.get_unix_time_from_system()) - 600)
+	Progression.set_automation_enabled(&"bat_sentry", true)
+	_check("and with nothing automated, no Dollars (%.2f a second automated)" % idle_rate,
+		idle_rate == 0.0 and float(switched_off.get(Economy.DOLLARS, -1.0)) == 0.0)
 
 	# Offline pays the stable multipliers — prestige and the pool — and none of the
 	# volatile ones. It used to pay *nothing*, while online automation paid all four.
@@ -2789,6 +3025,7 @@ func _automation_earns_and_toggles() -> void:
 	var future := Economy.apply_offline_earnings(int(Time.get_unix_time_from_system()) + 99999)
 	_check("a clock skewed into the future pays nothing",
 		is_equal_approx(float(future.get(Economy.BONES, 0.0)), 0.0))
+	_check("not even a Dollar", float(future.get(Economy.DOLLARS, -1.0)) == 0.0)
 
 func _contracts_track_and_pay() -> void:
 	_suite("contracts")
