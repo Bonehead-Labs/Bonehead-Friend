@@ -29,10 +29,11 @@ func _ready() -> void:
 	# stranded-collider bug M0 removed from the prototype, reintroduced by a no-op guard.
 	_on_deactivated()
 
-## **A held button ends when the game loses focus** (D70). Four powers are held — the minigun's
-## stream, the magnifying glass, the open hand's stroke, the vortex — and each watches for the
-## release in `_input`. Alt-tab with the button down and the release goes to the other window,
-## so the minigun kept firing, and paying Bones, at a desk nobody was at until the next click.
+## **A held button ends when the game loses focus** (D70). The magnifying glass, the open hand's
+## stroke and the vortex are held, and so are four of D72's spells (`SpellPower.release_hold`);
+## each watches for the release in `_input`. Alt-tab with the button down and the release goes to
+## the other window, so the minigun — a cursor power then — kept firing, and paying Bones, at a
+## desk nobody was at until the next click.
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_APPLICATION_FOCUS_OUT:
 		release_hold()
