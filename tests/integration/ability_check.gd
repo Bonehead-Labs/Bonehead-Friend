@@ -271,6 +271,7 @@ func _check_ability(id: StringName) -> void:
 	_faces.clear()
 	_pipeline_bad.clear()
 	var before_uses := ability.uses
+	var shapes_before := AbilityFX.shapes_played.duplicate()
 
 	var measured := {}
 	# A hooked row that is used differently from its archetype brings a driver of its own, because
@@ -328,6 +329,7 @@ func _check_ability(id: StringName) -> void:
 		not ability.fx_states.is_empty() or ability.payoffs == 0)
 	_check("its payoff was drawn where it landed (%d drawn for %d payoffs)" % [ability.fx_landed,
 		ability.payoffs], ability.payoffs == 0 or ability.fx_landed > 0)
+	_shapes_played(look, ability.fx_paid, shapes_before)
 	var own_words := [String(look["call"]), String(look["go"])]
 	var landing_words := ability.fx_said.filter(func(w: String) -> bool: return not own_words.has(w))
 	_check("and a word for it (%s)" % str(landing_words), ability.payoffs == 0
@@ -2210,6 +2212,7 @@ func _check_held_ability(id: StringName) -> void:
 	var shown := ability.fx_states
 	var paid := ability.fx_paid
 	var look := ability.look()
+	var shapes_before := AbilityFX.shapes_played.duplicate()
 
 	var driver := "_drive_%s" % row.get("id", "")
 	if not has_method(driver):
@@ -2228,6 +2231,7 @@ func _check_held_ability(id: StringName) -> void:
 	_check("it called out \"%s\" as it began" % look["call"], said.has(String(look["call"])))
 	_check("it put a state up, over him or over itself (%s)" % str(shown), not shown.is_empty())
 	_check("its payoff was drawn where it landed (%s)" % str(paid), not paid.is_empty())
+	_shapes_played(look, paid, shapes_before)
 	var own_words := [String(look["call"]), String(look["go"])]
 	var landing_words := said.filter(func(w: String) -> bool: return not own_words.has(w))
 	_check("and a word for it (%s)" % str(landing_words), not landing_words.is_empty())
@@ -2319,6 +2323,21 @@ func _check_held_ability(id: StringName) -> void:
 	measured["worth"] = worth
 	_report.append("%-14s %s" % [id, _format(measured)])
 	await _free_stage()
+
+## Every payoff this use drew whose look names a shape of its own played that shape (D77's shapes,
+## `AbilityFX.shapes_played`): read off the look by enumeration, so a shape is covered the day a look
+## names it. A payoff that fell back to the generic ring, a shape whose script has no `play`, or one
+## never reached, fails here by name.
+func _shapes_played(look: Dictionary, paid: Array[StringName], before: Dictionary) -> void:
+	var pay: Dictionary = look.get("pay", {})
+	var named := {}
+	for event in paid:
+		var spec: Dictionary = pay.get(event, {})
+		if spec.has("shape"):
+			named[StringName(spec["shape"])] = true
+	for shape in named:
+		var played := int(AbilityFX.shapes_played.get(shape, 0)) - int(before.get(shape, 0))
+		_check("its payoff played its own shape, %s (%d)" % [shape, played], played > 0)
 
 func _spawn_any(id: StringName, at: Vector2) -> BaseDraggable:
 	EventBus.spawn_requested.emit(id, at)

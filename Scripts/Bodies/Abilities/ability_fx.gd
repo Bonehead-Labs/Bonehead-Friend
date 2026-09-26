@@ -167,6 +167,10 @@ func payoff(at: Vector2, size: float, colour: Color) -> void:
 ## own without editing this one, and a generic ring in every colour stops reading as every ability.
 const SHAPES_DIR := "res://Scripts/Bodies/Abilities/Shapes/"
 
+## Shaped payoffs played this session, by shape, for the suites: every look that names a shape is
+## checked to have played it when that payoff landed. Plain data, so a static is safe.
+static var shapes_played := {}
+
 static func shape_path(shape: StringName) -> String:
 	return "%s%s.gd" % [SHAPES_DIR, shape]
 
@@ -182,6 +186,7 @@ func payoff_shaped(shape: StringName, at: Vector2, size: float, colour: Color,
 		push_warning("AbilityFX: no payoff shape '%s'" % shape)
 		payoff(at, size, colour)
 		return
+	shapes_played[shape] = int(shapes_played.get(shape, 0)) + 1
 	(load(path) as GDScript).call("play", self, at, clampf(size, 0.0, 1.0), colour, ability)
 
 ## Concentric waves out of a point, `gap` seconds apart: a gong struck, a bell, a pulse.
