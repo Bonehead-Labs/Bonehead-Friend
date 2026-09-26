@@ -162,6 +162,28 @@ func payoff(at: Vector2, size: float, colour: Color) -> void:
 	if world and s >= 0.5 and not world.is_shaking():
 		world.shake(2.0 + 6.0 * s)
 
+## Where a payoff of an ability's own lives: one script per shape, named by the look's pay spec
+## (`"shape": &"pins"` plays `Shapes/pins.gd`). One file each so an ability can grow a payoff of its
+## own without editing this one, and a generic ring in every colour stops reading as every ability.
+const SHAPES_DIR := "res://Scripts/Bodies/Abilities/Shapes/"
+
+static func shape_path(shape: StringName) -> String:
+	return "%s%s.gd" % [SHAPES_DIR, shape]
+
+## A shaped payoff: the shape script's `static func play(afx: AbilityFX, at: Vector2, size: float,
+## colour: Color, ability: WeaponAbility) -> void`. Falls back to the generic `payoff` when the
+## shape is missing, so a typo still lands something — and ability_check fails the typo by name.
+func payoff_shaped(shape: StringName, at: Vector2, size: float, colour: Color,
+		ability: WeaponAbility) -> void:
+	if not moving():
+		return
+	var path := shape_path(shape)
+	if not ResourceLoader.exists(path):
+		push_warning("AbilityFX: no payoff shape '%s'" % shape)
+		payoff(at, size, colour)
+		return
+	(load(path) as GDScript).call("play", self, at, clampf(size, 0.0, 1.0), colour, ability)
+
 ## Concentric waves out of a point, `gap` seconds apart: a gong struck, a bell, a pulse.
 func waves(at: Vector2, colour: Color, count: int, radius: float, gap: float = 0.07,
 		width: float = 5.0) -> void:

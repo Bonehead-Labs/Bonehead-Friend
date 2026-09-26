@@ -885,7 +885,9 @@ func fx_land(event: StringName, at: Vector2 = Vector2.INF) -> void:
 	if size > 0.0:
 		_paid_msec[event] = now
 		var afx := AbilityFX.of(body)
-		if afx:
+		if afx and spec.has("shape"):
+			afx.payoff_shaped(StringName(spec["shape"]), where, size, accent(), self)
+		elif afx:
 			afx.payoff(where, size, accent())
 	# The word: the look's own for this event if it names one, else what the ability said with it
 	# (`AbilityCues.payoff`), else the look's landing word.

@@ -194,6 +194,14 @@ func _look_is_sound(ability_id: StringName, display_name: String) -> void:
 		or ResourceLoader.exists("%s/%s.png" % [UIStyle.GLYPH_DIR, burst])
 	_check("%s's badges and burst are drawn icons (%s)" % [ability_id, str(icons)],
 		unknown.is_empty() and burst_known)
+	var shapes: Array[StringName] = []
+	for event in (look.get("pay", {}) as Dictionary):
+		var pay: Dictionary = look["pay"][event]
+		if pay.has("shape"):
+			shapes.append(StringName(pay["shape"]))
+	var missing := shapes.filter(func(shape: StringName) -> bool:
+		return not ResourceLoader.exists(AbilityFX.shape_path(shape)))
+	_check("and every payoff shape it names is a script (%s)" % str(shapes), missing.is_empty())
 	var green := colours.filter(func(c: Color) -> bool: return c.h > 0.2 and c.h < 0.45 and c.s > 0.5)
 	_check("and none of its colours is a green the chroma key would eat", green.is_empty())
 	_check("and it calls out a word as it starts (\"%s\")" % look["call"], not String(look["call"]).is_empty())
