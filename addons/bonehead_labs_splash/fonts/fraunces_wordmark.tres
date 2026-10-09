@@ -1,0 +1,15 @@
+[gd_resource type="FontVariation" load_steps=3 format=3]
+
+[ext_resource type="FontFile" path="res://addons/bonehead_labs_splash/fonts/fraunces-normal-latin.woff2" id="1_latin"]
+[ext_resource type="FontFile" path="res://addons/bonehead_labs_splash/fonts/fraunces-normal-latin-ext.woff2" id="2_ext"]
+
+[resource]
+resource_name = "Fraunces Wordmark (wght 850, SOFT 100, WONK 1, opsz 72)"
+fallbacks = Array[Font]([ExtResource("2_ext")])
+base_font = ExtResource("1_latin")
+variation_opentype = {
+2003265652: 850,
+1397704276: 100,
+1464815179: 1,
+1869640570: 72
+}

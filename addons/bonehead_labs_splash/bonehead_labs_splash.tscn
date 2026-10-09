@@ -1,0 +1,15 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://addons/bonehead_labs_splash/bonehead_labs_splash.gd" id="1_splash"]
+
+[node name="BoneheadLabsSplash" type="Control"]
+editor_description = "The Bonehead Labs studio splash (addons/bonehead_labs_splash, see README.md). Everything is built in code by bonehead_labs_splash.gd; configure it with the exported properties (next_scene, skippable, reduce_flashing, audio_bus, subtitle_text) or instance it and connect finished."
+texture_filter = 4
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("1_splash")

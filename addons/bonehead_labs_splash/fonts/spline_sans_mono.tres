@@ -1,0 +1,10 @@
+[gd_resource type="FontVariation" load_steps=2 format=3]
+
+[ext_resource type="FontFile" path="res://addons/bonehead_labs_splash/fonts/spline-sans-mono-normal-latin.woff2" id="1_mono"]
+
+[resource]
+resource_name = "Spline Sans Mono (wght 500)"
+base_font = ExtResource("1_mono")
+variation_opentype = {
+2003265652: 500
+}
