@@ -334,7 +334,7 @@ func _the_desk_can_be_cleared() -> void:
 	# The hole this suite used to have. Fourteen explosives claim plain right-click to prime
 	# a fuse, and for a whole milestone that meant a sixth of the spawnable roster could not
 	# be removed one at a time by any gesture at all — the player's only exit was a button
-	# labelled with a bare cross. Shift is the override no subclass may take.
+	# labelled with a bare cross. The bin is the middle button now, which nothing claims.
 	EventBus.spawn_requested.emit(&"grenade", Vector2(200.0, 100.0))
 	await get_tree().process_frame
 	var primed: Node = null
@@ -345,25 +345,22 @@ func _the_desk_can_be_cleared() -> void:
 	if primed == null:
 		_check("an explosive is on the desk and claims right-click", false)
 	else:
-		_check("an explosive keeps plain right-click for its fuse",
-			not primed.click_would_bin(false))
-		_check("but Shift bins it anyway", primed.click_would_bin(true))
+		_check("an explosive keeps right-click for its fuse and middle-click bins it",
+			primed.click_would_bin())
 		primed.bin_myself()
 		await get_tree().process_frame
 		_check("and it actually leaves the desk", spawner.item_count() == 0)
 
-	# The other half of the same rule: an ordinary item needs no modifier, or the gesture
-	# everybody uses becomes the awkward one.
 	EventBus.spawn_requested.emit(&"baseball_bat", Vector2(200.0, 100.0))
 	await get_tree().process_frame
 	var plain: Node = get_tree().get_first_node_in_group(&"spawned_item")
-	_check("an ordinary item bins on a plain right-click",
-		plain != null and plain.click_would_bin(false))
+	_check("an ordinary item bins on a middle-click",
+		plain != null and plain.click_would_bin())
 
-	# Nothing may bin the buddy, with or without a modifier — he is not in the group, and
-	# this is the assertion that keeps it that way if somebody ever adds him for dragging.
-	_check("and Shift still cannot bin the buddy",
-		buddy != null and not buddy.click_would_bin(true))
+	# Nothing may bin the buddy — he is not in the group, and this is the assertion that
+	# keeps it that way if somebody ever adds him for dragging.
+	_check("and a middle-click cannot bin the buddy",
+		buddy != null and not buddy.click_would_bin())
 
 	# Explosives have to survive the button too, not only the gesture.
 	for i in 3:

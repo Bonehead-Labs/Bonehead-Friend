@@ -278,13 +278,18 @@ func _the_boombox_changes_track() -> void:
 		await _work(box, verbs.row(&"next_track"))
 	_check("four tracks and round again (%d)" % verbs.state_of(&"next_track"),
 		verbs.state_of(&"next_track") == (1 + 1 + 3) % 4)
-	# Off the buttons it is a boombox: a right-click on a speaker still bins it (D57's grammar).
+	# Off the buttons a right-click is nothing, and a middle-click on a speaker bins it.
 	var speaker := box.gesture_zones.art_to_world(Vector2(-12, 8))
 	await _hover(speaker)
 	_press(speaker, MOUSE_BUTTON_RIGHT)
 	_release(speaker, MOUSE_BUTTON_RIGHT)
 	await _settle()
-	_check("a right-click off the buttons still bins it", not is_instance_valid(box)
+	_check("a right-click off the buttons no longer bins it", is_instance_valid(box)
+		and box.is_inside_tree() and not box.is_queued_for_deletion())
+	_press(speaker, MOUSE_BUTTON_MIDDLE)
+	_release(speaker, MOUSE_BUTTON_MIDDLE)
+	await _settle()
+	_check("a middle-click on it bins it", not is_instance_valid(box)
 		or not box.is_inside_tree() or box.is_queued_for_deletion())
 	_spawner_clear()
 
@@ -621,10 +626,10 @@ func _the_grammar_holds() -> void:
 		and tank.gesture_zones.cursor_shape == Input.CURSOR_POINTING_HAND)
 	var count := _spawner.item_count()
 	await _hover(lid)
-	_press(lid, MOUSE_BUTTON_RIGHT, true)
-	_release(lid, MOUSE_BUTTON_RIGHT)
+	_press(lid, MOUSE_BUTTON_MIDDLE)
+	_release(lid, MOUSE_BUTTON_MIDDLE)
 	await _settle()
-	_check("Shift+right on a verb's zone bins the item, zone or no zone",
+	_check("middle-click on a verb's zone bins the item, zone or no zone",
 		not is_instance_valid(tank) or not tank.is_inside_tree() or _spawner.item_count() < count)
 	_move(Vector2(40, 400))
 	_spawner_clear()

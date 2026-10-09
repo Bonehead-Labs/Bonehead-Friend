@@ -178,9 +178,9 @@ func _steps(count: int) -> void:
 		if is_instance_valid(_held) and _held.dragging:
 			_held.handle.global_position = _hand
 
-func _right(pressed: bool, shift: bool = false) -> void:
+func _right(pressed: bool, shift: bool = false, button: MouseButton = MOUSE_BUTTON_RIGHT) -> void:
 	var click := InputEventMouseButton.new()
-	click.button_index = MOUSE_BUTTON_RIGHT
+	click.button_index = button
 	click.pressed = pressed
 	click.shift_pressed = shift
 	click.position = Vector2(8, 8)
@@ -413,12 +413,12 @@ func _the_trigger_is_right_click_while_held() -> void:
 	await _steps(1)
 	_check("in the hand, right-click fires", gun.shots_fired == 1)
 	_check("and the gesture says so", ItemDB.get_item(&"revolver").controls.contains("Right-click"))
-	# Shift+right is the bin, and nothing may claim it — hovered, as the hand over its grip is.
+	# Middle-click is the bin, and nothing may claim it — hovered, as the hand over its grip is.
 	gun.drag_area.is_hovered = true
 	gun._next_shot_msec = 0
-	_right(true, true)
+	_right(true, false, MOUSE_BUTTON_MIDDLE)
 	await _steps(1)
-	_check("Shift+right bins it instead of firing", not is_instance_valid(gun)
+	_check("middle-click bins it instead of firing", not is_instance_valid(gun)
 		or (gun.is_queued_for_deletion() and gun.shots_fired == 1))
 	_held = null
 	await _steps(2)

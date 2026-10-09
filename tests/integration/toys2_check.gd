@@ -966,7 +966,7 @@ func _hover_shows_what_is_a_button() -> void:
 # --- the bin -----------------------------------------------------------------------------
 
 func _shift_right_always_bins() -> void:
-	_suite("Shift+right bins")
+	_suite("middle-click bins")
 	for id in TOYS:
 		var body := await _fresh(id, _beside_him(-220.0)) as BaseDraggable
 		if body == null:
@@ -978,10 +978,10 @@ func _shift_right_always_bins() -> void:
 		if body.gesture_zones and not body.gesture_zones.zone_ids().is_empty():
 			at = body.gesture_zones.zone_world(body.gesture_zones.zone_ids()[0])
 		await _hover(at)
-		_press(at, MOUSE_BUTTON_RIGHT, true)
-		_release(at, MOUSE_BUTTON_RIGHT)
+		_press(at, MOUSE_BUTTON_MIDDLE)
+		_release(at, MOUSE_BUTTON_MIDDLE)
 		await _settle()
-		_check("Shift+right on the %s bins it" % id, not is_instance_valid(body)
+		_check("middle-click on the %s bins it" % id, not is_instance_valid(body)
 			or not body.is_inside_tree() or _spawner.item_count() < count)
 		_spawner_clear()
 

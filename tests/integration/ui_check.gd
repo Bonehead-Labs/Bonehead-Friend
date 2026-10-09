@@ -189,6 +189,25 @@ func _the_strip_opens_the_panels() -> void:
 	await _click(_centre_of(toys))
 	_check("clicking it again reopens it", panels.call("is_open"))
 
+	# A press on the desk rolls the card up, so playing never means a trip back to the tab.
+	# The desk is wherever no control takes the mouse; find a patch of it.
+	var desk := Vector2(-1, -1)
+	for y in range(40, int(VIEW_SIZE.y) - 20, 40):
+		for x in range(20, int(VIEW_SIZE.x) - 20, 40):
+			if _hovered_at(Vector2(x, y)) == null:
+				desk = Vector2(x, y)
+				break
+		if desk.x >= 0.0:
+			break
+	_check("there is desk to click with the card open", desk.x >= 0.0)
+	if desk.x >= 0.0:
+		await _click(_centre_of(_find(panels, "Card") as Control))
+		_check("a click on the card leaves it open", panels.call("is_open"))
+		await _click(desk)
+		_check("a click on the desk rolls the card up", not panels.call("is_open"))
+		await _click(_centre_of(toys))
+		_check("and the tab opens it again", panels.call("is_open"))
+
 ## The card is one size whichever page is showing. It used to measure the page it was
 ## about to show and resize to fit, so the panel changed shape under the cursor on every
 ## tab click.

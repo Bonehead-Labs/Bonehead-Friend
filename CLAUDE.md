@@ -654,7 +654,7 @@ carries, right fires, a torque controller aims it at him with weight, recoil kic
 settles back; five harm guns on a sixth harm tab, a water pistol and a bubble blaster on the kind
 side; he cowers when one is aimed). Fidget toys (D57: `GestureZones` — zones in art pixels and a
 gesture vocabulary per button, one input grammar for everything held: **left carries, right while
-holding is the item's action, right on a zone is the zone's action, Shift+right bins**; bubble
+holding is the item's action, right on a zone is the zone's action, middle-click bins** (D81; it was Shift+right); bubble
 wrap, fidget spinner, jack-in-the-box, fortune ball, stress ball, each of which he uses himself).
 The Arcade rebuilt as cabinets (D58). Every item tested alone (D59, `item_check`) and every
 multi-collider weapon re-authored against its art (D61). Fourteen sprites redrawn, a walk cycle

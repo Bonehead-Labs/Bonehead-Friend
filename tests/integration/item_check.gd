@@ -1274,8 +1274,8 @@ func _drive_explosive(run: Run) -> void:
 	var body := await _spawn(run, _centre() + Vector2(-240.0, -140.0)) as ThrowableBase
 	if body == null:
 		return
-	_expect(run, "fuse_click", body.right_click_is_mine() and not body.click_would_bin(false),
-		"plain right-click is its fuse, not the bin")
+	_expect(run, "fuse_click", body.right_click_is_mine() and body.click_would_bin(),
+		"plain right-click is its fuse, and middle-click is the bin")
 	if not await _prime_and_drop(run, body, _centre() + Vector2(-55.0, -10.0)):
 		return
 	var cluster := body as ClusterBomb
@@ -1409,8 +1409,8 @@ func _drive_mine(run: Run) -> void:
 	var body := await _spawn(run, _centre() + Vector2(_reach_of(run) + 90.0, -60.0)) as ProximityMine
 	if body == null:
 		return
-	_expect(run, "bins_plainly", not body.right_click_is_mine() and body.click_would_bin(false),
-		"it has no fuse, so plain right-click bins it")
+	_expect(run, "bins_plainly", not body.right_click_is_mine() and body.click_would_bin(),
+		"it has no fuse, so right-click is not its own, and middle-click bins it")
 	var mine: WeakRef = weakref(body)
 	var armed := await _await(func() -> bool: return mine.get_ref() == null or mine.get_ref()._armed, 150)
 	_expect(run, "arms", armed and not _gone(body), "it arms itself once it has settled")
@@ -2742,7 +2742,7 @@ func _thrown_gun(run: Run, body: HeldGun, kind: bool) -> void:
 		"thrown into him (%.0f px/s), a harm gun is a lump of metal and bills its contact multiplier (%d hits, its collision %d time)"
 		% [touched, landed, once])
 
-## Shift+right in the hand bins it instead of firing it: D24's override, which no trigger may
+## Middle-click in the hand bins it instead of firing it (D81): the bin, which no trigger may
 ## claim. Asked where the hand is, which is over its grab region.
 func _bin_in_the_hand(run: Run, body: HeldGun) -> void:
 	# Back on him first: a long gun still swinging from its kick has swung out from under the
@@ -2754,11 +2754,11 @@ func _bin_in_the_hand(run: Run, body: HeldGun) -> void:
 		run.notes.append("the hand was not over it for the in-hand bin")
 		return
 	var uses := run.uses()
-	_press(MOUSE_BUTTON_RIGHT, true)
-	_release(MOUSE_BUTTON_RIGHT, true)
+	_press(MOUSE_BUTTON_MIDDLE)
+	_release(MOUSE_BUTTON_MIDDLE)
 	await _step(2)
 	_expect(run, "bins_held", _gone(body) and run.uses() == uses,
-		"Shift+right in the hand bins it instead of firing")
+		"middle-click in the hand bins it instead of firing")
 
 # --- drivers: the fidget layer (D57) -------------------------------------------------------
 #
@@ -3386,19 +3386,19 @@ func _expect_values(run: Run, values: Array) -> void:
 
 # --- what every item owes -----------------------------------------------------------------
 
-## Shift+right-click bins anything the spawner put down, whatever else right-click means to it
+## Middle-click bins anything the spawner put down, whatever right-click means to it
 ## (D24). Asked with the real gesture, at the real grab region.
 func _the_bin_gesture_works(run: Run) -> void:
 	var body := await _spawn(run, _centre() + Vector2(260.0, -160.0))
 	if body == null:
 		return
 	var mine := body.right_click_is_mine()
-	_expect(run, "bin_rule", body.click_would_bin(true) and body.click_would_bin(false) == not mine,
-		"Shift+right-click would bin it, and plain right-click %s" % ("is its own" if mine else "would too"))
+	_expect(run, "bin_rule", body.click_would_bin(),
+		"middle-click would bin it, and plain right-click %s" % ("is its own" if mine else "is not"))
 	_move(_grab_point(body))
 	await _step(2)
-	_press(MOUSE_BUTTON_RIGHT, true)
-	_release(MOUSE_BUTTON_RIGHT, true)
+	_press(MOUSE_BUTTON_MIDDLE)
+	_release(MOUSE_BUTTON_MIDDLE)
 	await _step(2)
 	_expect(run, "bins", _gone(body) and _spawner.item_count() == 0,
 		"and the gesture takes it off the desk")

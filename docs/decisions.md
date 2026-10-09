@@ -4423,3 +4423,17 @@ Carried in the spec, owner's call before they matter:
   game is nearly text-free.
 - **Cosmetic supporter pack (~$4) post-launch**, no gated content (11% attach rate on the
   comparable).
+
+## D81 — The bin is the middle button; a click on the desk shuts the card (2026-09-27)
+
+**Middle-click bins anything the spawner put down**, held or lying, on a zone or off it. Right-click
+no longer bins anything. Since D74 and D78 the right button is every held thing's ability, and a
+right press that missed the ability's window (a weapon a frame out of the hand, an ability that
+declined) fell through to the bin and threw the weapon away. Shift+right, D24's override, no longer
+means anything; the code that declines Shift on the right button is left in place and harmless.
+`BaseDraggable.click_would_bin()` takes no argument now and is only "am I spawned".
+`right_click_is_mine()` stays because the suites assert who owns the right button.
+
+**A press on the desk rolls the card up** (`PanelLayer._input`): any mouse press with no GUI control
+under the cursor closes an open page. The press is not consumed, so it still grabs, fires or pets.
+Clicks on the card, the tabs, the HUD or the purse leave it open. ui_check's tab-strip suite drives it.

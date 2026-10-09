@@ -356,6 +356,21 @@ func _on_show_item(item_id: StringName) -> void:
 	shop.show_category(item.category)
 	shop.select(item_id)
 
+## A press on the desk itself rolls the card up, so playing never means a trip back to the
+## tab to shut it. "On the desk" is "no control under the cursor": the card, the tabs, the HUD
+## and the purse all take the mouse, and every full-window layout control is IGNORE, so a
+## hovered control is exactly a click on the shell. `_input`, not unhandled: grabbing an item
+## claims the press before an unhandled handler here would hear it. The press is not consumed.
+func _input(event: InputEvent) -> void:
+	var click := event as InputEventMouseButton
+	if click == null or not click.pressed or not is_open():
+		return
+	if click.button_index not in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_RIGHT, MOUSE_BUTTON_MIDDLE]:
+		return
+	if get_viewport().gui_get_hovered_control() != null:
+		return
+	close()
+
 func close() -> void:
 	if _current == &"" and not (_card and _card.visible):
 		return

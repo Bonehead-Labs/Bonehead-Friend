@@ -714,7 +714,7 @@ func _hover_shows_the_hand() -> void:
 # --- the bin -----------------------------------------------------------------------
 
 func _shift_right_always_bins() -> void:
-	_suite("Shift+right bins")
+	_suite("middle-click bins")
 	for entry in [[&"bubble_wrap", &"b1"], [&"jack_in_the_box", &"crank"],
 			[&"magic_eight_ball", &"ball"]]:
 		var body := await _fresh(entry[0], _beside_him(170.0)) as FidgetToy
@@ -726,10 +726,10 @@ func _shift_right_always_bins() -> void:
 		var count := _spawner.item_count()
 		var at := body.gestures.zone_world(entry[1])
 		await _hover(at)
-		_press(at, MOUSE_BUTTON_RIGHT, true)
-		_release(at, MOUSE_BUTTON_RIGHT)
+		_press(at, MOUSE_BUTTON_MIDDLE)
+		_release(at, MOUSE_BUTTON_MIDDLE)
 		await _settle()
-		_check("Shift+right on %s's %s bins it, zone or no zone" % [entry[0], entry[1]],
+		_check("middle-click on %s's %s bins it, zone or no zone" % [entry[0], entry[1]],
 			not is_instance_valid(body) or not body.is_inside_tree()
 			or _spawner.item_count() < count)
 		_spawner_clear()

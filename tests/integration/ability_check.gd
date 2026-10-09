@@ -294,8 +294,8 @@ func _check_ability(id: StringName) -> void:
 	# --- lying on the desk -------------------------------------------------------------
 	await _await_still(body, 60)
 	_check("at rest nothing of it runs", not ability.is_busy())
-	_check("right on it lying there is still the bin",
-		not body.right_click_is_mine() and body.click_would_bin(false) and body.click_would_bin(true))
+	_check("lying there, right is not its own and middle-click bins it",
+		not body.right_click_is_mine() and body.click_would_bin())
 	var press := InputEventMouseButton.new()
 	press.button_index = MOUSE_BUTTON_RIGHT
 	press.pressed = true
@@ -306,8 +306,8 @@ func _check_ability(id: StringName) -> void:
 		_check("its grab region takes a click", false)
 		await _free_stage()
 		return
-	_check("held, right is its own and Shift+right is still the bin",
-		body.right_click_is_mine() and not body.click_would_bin(false) and body.click_would_bin(true))
+	_check("held, right is its own and middle-click is still the bin",
+		body.right_click_is_mine() and body.click_would_bin())
 	# How it reads (D77): the ready glint, a sprite drawn once, on the weapon in the hand.
 	var glint := ability.ready_glint()
 	_check("held and ready, it wears its ready glint", glint != null and glint.visible)
@@ -440,10 +440,10 @@ func _check_ability(id: StringName) -> void:
 	if await _grab(body):
 		_move(_grab_point(body))
 		await _step(2)
-		_press(MOUSE_BUTTON_RIGHT, true)
-		_release(MOUSE_BUTTON_RIGHT, true)
+		_press(MOUSE_BUTTON_MIDDLE)
+		_release(MOUSE_BUTTON_MIDDLE)
 		await _step(3)
-		_check("Shift+right in the hand bins it", _gone(body))
+		_check("middle-click in the hand bins it", _gone(body))
 	var errors := _catch.take()
 	_check("nothing was pushed to the error log%s" % ("" if errors.is_empty() else ": " + errors[0]),
 		errors.is_empty())
@@ -2359,11 +2359,11 @@ func _check_held_ability(id: StringName) -> void:
 	await _await_still(body, 60)
 	_check("at rest nothing of it runs", not ability.is_busy())
 	if fuse:
-		_check("right on it lying there is still its fuse, never the bin (D59)",
-			body.right_click_is_mine() and not body.click_would_bin(false) and body.click_would_bin(true))
+		_check("right on it lying there is still its fuse, and middle-click bins it (D59)",
+			body.right_click_is_mine() and body.click_would_bin())
 	else:
-		_check("right on it lying there is still the bin",
-			not body.right_click_is_mine() and body.click_would_bin(false) and body.click_would_bin(true))
+		_check("lying there, right is not its own and middle-click bins it",
+			not body.right_click_is_mine() and body.click_would_bin())
 	var press := InputEventMouseButton.new()
 	press.button_index = MOUSE_BUTTON_RIGHT
 	press.pressed = true
@@ -2374,8 +2374,8 @@ func _check_held_ability(id: StringName) -> void:
 		_check("its grab region takes a click", false)
 		await _free_stage()
 		return
-	_check("held, right is its own and Shift+right is still the bin",
-		body.right_click_is_mine() and not body.click_would_bin(false) and body.click_would_bin(true))
+	_check("held, right is its own and middle-click is still the bin",
+		body.right_click_is_mine() and body.click_would_bin())
 	# How it reads (D77), the same four stages as a melee weapon's, through `AbilityCues`.
 	var glint := ability.ready_glint()
 	_check("held and ready, it wears its ready glint", glint != null and glint.visible)
@@ -2490,10 +2490,10 @@ func _check_held_ability(id: StringName) -> void:
 		if await _grab(body):
 			_move(_grab_point(body))
 			await _step(2)
-			_press(MOUSE_BUTTON_RIGHT, true)
-			_release(MOUSE_BUTTON_RIGHT, true)
+			_press(MOUSE_BUTTON_MIDDLE)
+			_release(MOUSE_BUTTON_MIDDLE)
 			await _step(3)
-			_check("Shift+right in the hand bins it", _gone(body))
+			_check("middle-click in the hand bins it", _gone(body))
 	_release_all()
 	var errors := _catch.take()
 	_check("nothing was pushed to the error log%s" % ("" if errors.is_empty() else ": " + errors[0]),

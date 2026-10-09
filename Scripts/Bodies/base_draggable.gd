@@ -118,38 +118,32 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif not click.pressed and dragging:
 			_end_drag()
 		return
-	# Right-click to throw one thing away.
+	# Middle-click to throw one thing away.
 	#
 	# This replaces the trash bin, which was a 36x45 catch area under a 64px sprite,
 	# positioned above the height at which a dropped item comes to rest — so in practice
 	# nothing ever landed in it. Pointing at a thing and dismissing it needs no aim and no
 	# explanation, and the HUD's clear-desk button does all of them at once.
-	if click.button_index != MOUSE_BUTTON_RIGHT or not click.pressed:
+	#
+	# It was right-click (with Shift as the override) until the right button became every held
+	# thing's ability: a right press that missed the ability's window — a weapon a frame out of
+	# the hand, an ability that declined — fell through and binned the weapon. Nothing else
+	# claims the middle button, so the bin needs no override.
+	if click.button_index != MOUSE_BUTTON_MIDDLE or not click.pressed:
 		return
-	if not (drag_area and drag_area.is_hovered and is_in_group(GROUP_SPAWNED)):
+	if not (drag_area and (dragging or drag_area.is_hovered)):
 		return
-	if not click_would_bin(click.shift_pressed):
+	if not click_would_bin():
 		return
 	bin_myself()
 	get_viewport().set_input_as_handled()
 
-## Whether a right-click with or without Shift means "get rid of this".
-##
-## **Shift is the override, and nothing may claim it.** Plain right-click is legitimately
-## taken by anything that primes — and by the time the roster held fourteen explosives, that
-## meant a sixth of everything spawnable could not be dismissed by the one gesture for
-## dismissing things. Spawn a mine you did not want and the only way out was a button most
-## players never found. So a subclass keeps right-click and gives up Shift.
-##
-## Split out from the input handler so the rule can be asserted without synthesising a click
-## with a modifier held, which no headless suite can do.
-func click_would_bin(shift_held: bool) -> bool:
-	if not is_in_group(GROUP_SPAWNED):
-		return false
-	return shift_held or not right_click_is_mine()
+## Whether a middle-click means "get rid of this": anything the spawner put down, and never him.
+func click_would_bin() -> bool:
+	return is_in_group(GROUP_SPAWNED)
 
 ## Take myself off the desk. Public and used by both routes, so that the clear-desk button
-## and the right-click gesture cannot drift apart — they were two copies of "emit and free",
+## and the middle-click gesture cannot drift apart — they were two copies of "emit and free",
 ## and the next thing either of them needs to do on the way out (cancel a running fuse, let
 ## an NPC drop its target) would have been written into only one of them.
 func bin_myself() -> void:
@@ -158,17 +152,15 @@ func bin_myself() -> void:
 	EventBus.item_despawned.emit(self)
 	queue_free()
 
-## Subclasses that already mean something by right-click say so here, and keep it — but only
-## for the unmodified click. Shift+right-click is not theirs to take (see above).
+## Subclasses that mean something by right-click say so here. The bin no longer reads it (it is
+## the middle button now), but the suites still assert who owns the right button.
 ##
-## A grenade primes with right-click. When the despawn gesture was added it ran first,
-## because it lives in the base class and the subclass calls `super` — so right-clicking a
-## grenade deleted it instead of arming it, and explosives silently stopped working
-## altogether.
+## A grenade primes with right-click. When the despawn gesture was on the right button it ran
+## first, because it lives in the base class and the subclass calls `super` — so right-clicking
+## a grenade deleted it instead of arming it, and explosives silently stopped working altogether.
 ##
 ## Right while holding something with an ability is the ability, and so is right on it while
 ## the ability is still at work out of the hand — an axe in the air, a towel round him (D74, D78).
-## Right on it lying idle on the desk is still the bin.
 func right_click_is_mine() -> bool:
 	return ability != null and (dragging or ability.is_active())
 

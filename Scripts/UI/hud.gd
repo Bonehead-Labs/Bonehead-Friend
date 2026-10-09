@@ -657,8 +657,7 @@ func _offer_the_removal_hint() -> void:
 	if Settings.hint_seen(HINT_REMOVAL):
 		return
 	Settings.mark_hint_seen(HINT_REMOVAL)
-	show_toast("Right-click an item to bin it — hold Shift for anything that uses "
-		+ "right-click itself. Clear desk removes the lot.", 10.0)
+	show_toast("Middle-click an item to bin it. Clear desk removes the lot.", 10.0)
 
 ## Key prefix for the one-off tip that says how to work a toy (D57), one per item id.
 const HINT_CONTROLS_PREFIX := "controls:"
@@ -684,7 +683,7 @@ func _offer_the_controls_hint(node: Node2D) -> void:
 	var text := "%s: %s" % [item.display_name, item.controls]
 	if not Settings.hint_seen(HINT_REMOVAL):
 		Settings.mark_hint_seen(HINT_REMOVAL)
-		text += "\nShift+right-click bins anything. Clear desk removes the lot."
+		text += "\nMiddle-click bins anything. Clear desk removes the lot."
 	show_toast(text, 10.0)
 
 func _on_clear_pressed() -> void:
