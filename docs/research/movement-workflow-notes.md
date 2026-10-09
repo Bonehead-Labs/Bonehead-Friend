@@ -79,7 +79,7 @@ Change: friction feed-forward (`+ direction * mass * g * μ`) so he reaches the 
 ## CPU note
 None of the above changes the on/off structure (`_physics_process` stays disabled while WATCHING, `:233`/`:595`). A per-contact normal read only runs on ticks with contacts; `lock_rotation` toggles are free.
 
-Files: `C:\Users\George\Godot Projects\Projects\Bonehead_Friend\interactive-buddy-2\Scripts\Buddy\idle_brain.gd`, `...\Scripts\Buddy\buddy.gd`, `...\Scripts\Buddy\buddy_art.gd`, `...\Scenes\Buddy\buddy.tscn`, `...\tests\integration\loop_check.gd`, `...\tests\integration\loop_check.tscn`, `...\Scripts\Data\balance_data.gd`, `...\Scripts\World\npc_base.gd`, `...\Scripts\Overlay\world_bounds.gd`, `...\Scenes\Friendly\beanbag.tscn`, `...\Scenes\Friendly\hot_tub.tscn`.
+Files: `C:\Users\George\Godot Projects\Projects\bonehead-friend\Scripts\Buddy\idle_brain.gd`, `...\Scripts\Buddy\buddy.gd`, `...\Scripts\Buddy\buddy_art.gd`, `...\Scenes\Buddy\buddy.tscn`, `...\tests\integration\loop_check.gd`, `...\tests\integration\loop_check.tscn`, `...\Scripts\Data\balance_data.gd`, `...\Scripts\World\npc_base.gd`, `...\Scripts\Overlay\world_bounds.gd`, `...\Scenes\Friendly\beanbag.tscn`, `...\Scenes\Friendly\hot_tub.tscn`.
 
 ---
 
@@ -317,7 +317,7 @@ Trampoline: spawn one under him, `pretend_idle()`, 600 frames; assert ≥ 1 worl
 
 Walk-tag art and its hook-up are outside this (hook-up ≈ 1 h once the tag exists).
 
-Files: `C:\Users\George\Godot Projects\Projects\Bonehead_Friend\interactive-buddy-2\Scripts\Buddy\idle_brain.gd`, `…\Scripts\Buddy\buddy.gd`, `…\Scripts\Buddy\buddy_art.gd`, `…\Scripts\Bodies\base_draggable.gd`, `…\Scripts\Bodies\trampoline.gd`, `…\Scripts\Data\balance_data.gd`, `…\Scripts\Economy\economy_math.gd`, `…\Scripts\Autoload\economy.gd`, `…\Scenes\Buddy\buddy.tscn`, `…\tests\integration\loop_check.gd`, `…\tests\integration\loop_check.tscn`, `…\tests\run_tests.gd`.
+Files: `C:\Users\George\Godot Projects\Projects\bonehead-friend\Scripts\Buddy\idle_brain.gd`, `…\Scripts\Buddy\buddy.gd`, `…\Scripts\Buddy\buddy_art.gd`, `…\Scripts\Bodies\base_draggable.gd`, `…\Scripts\Bodies\trampoline.gd`, `…\Scripts\Data\balance_data.gd`, `…\Scripts\Economy\economy_math.gd`, `…\Scripts\Autoload\economy.gd`, `…\Scenes\Buddy\buddy.tscn`, `…\tests\integration\loop_check.gd`, `…\tests\integration\loop_check.tscn`, `…\tests\run_tests.gd`.
 
 ---
 
@@ -440,7 +440,7 @@ Pacing sim must be re-run (CLAUDE.md rule on balance numbers); the trampoline ch
 - Suite runs, pacing_sim, by-hand drag/throw feel on two monitors: 2 h
 - **≈ 11.5 h code.** Walk tag art (generate, postprocess, hand-finish): 3-4 h separately.
 
-Files: `C:\Users\George\Godot Projects\Projects\Bonehead_Friend\interactive-buddy-2\Scripts\Buddy\buddy.gd`, `...\Scripts\Buddy\idle_brain.gd`, `...\Scripts\Buddy\buddy_art.gd`, `...\Scenes\Buddy\buddy.tscn`, `...\Scripts\Combat\hit_info.gd`, `...\Scripts\Data\balance_data.gd`, `...\Scripts\Economy\economy_math.gd`, `...\Scripts\Bodies\base_draggable.gd`, `...\tests\integration\loop_check.gd`, `...\tests\run_tests.gd`, `...\art\src\bonehead_neutral_96.png`.
+Files: `C:\Users\George\Godot Projects\Projects\bonehead-friend\Scripts\Buddy\buddy.gd`, `...\Scripts\Buddy\idle_brain.gd`, `...\Scripts\Buddy\buddy_art.gd`, `...\Scenes\Buddy\buddy.tscn`, `...\Scripts\Combat\hit_info.gd`, `...\Scripts\Data\balance_data.gd`, `...\Scripts\Economy\economy_math.gd`, `...\Scripts\Bodies\base_draggable.gd`, `...\tests\integration\loop_check.gd`, `...\tests\run_tests.gd`, `...\art\src\bonehead_neutral_96.png`.
 
 ---
 
@@ -595,7 +595,7 @@ In `_real_physics_produces_hits()` (:1456-1527):
 - One sandbox session on both monitors to watch him go to a beanbag, a hot tub and a trampoline: 1 h.
 - **Total 6-7 h**, one commit; the walk-tag hook in `BuddyArt` is 1 h more when the art exists.
 
-Files: `C:\Users\George\Godot Projects\Projects\Bonehead_Friend\interactive-buddy-2\Scripts\Buddy\idle_brain.gd`, `...\Scripts\Buddy\buddy.gd`, `...\Scripts\Bodies\base_draggable.gd`, `...\Scripts\Data\balance_data.gd`, `...\Scripts\Buddy\buddy_art.gd`, `...\Scenes\Buddy\buddy.tscn`, `...\tests\integration\loop_check.gd`, `...\Scripts\Economy\economy_math.gd`, `...\Scripts\Autoload\economy.gd`, `...\Scripts\Bodies\trampoline.gd`, `...\Scripts\Bodies\friendly_base.gd`, `...\Scenes\Friendly\beanbag.tscn`, `...\Scenes\Friendly\hot_tub.tscn`, `...\Scenes\Friendly\rubber_duck.tscn`, `...\Scripts\World\npc_base.gd`.
+Files: `C:\Users\George\Godot Projects\Projects\bonehead-friend\Scripts\Buddy\idle_brain.gd`, `...\Scripts\Buddy\buddy.gd`, `...\Scripts\Bodies\base_draggable.gd`, `...\Scripts\Data\balance_data.gd`, `...\Scripts\Buddy\buddy_art.gd`, `...\Scenes\Buddy\buddy.tscn`, `...\tests\integration\loop_check.gd`, `...\Scripts\Economy\economy_math.gd`, `...\Scripts\Autoload\economy.gd`, `...\Scripts\Bodies\trampoline.gd`, `...\Scripts\Bodies\friendly_base.gd`, `...\Scenes\Friendly\beanbag.tscn`, `...\Scenes\Friendly\hot_tub.tscn`, `...\Scenes\Friendly\rubber_duck.tscn`, `...\Scripts\World\npc_base.gd`.
 
 ---
 

@@ -75,7 +75,7 @@ into one multi-tag source. Two things that will waste your time:
 
 ```bash
 ASE="/mnt/c/Program Files (x86)/Steam/steamapps/common/Aseprite/Aseprite.exe"
-P='C:\Users\George\Godot Projects\Projects\Bonehead_Friend\interactive-buddy-2'
+P='C:\Users\George\Godot Projects\Projects\bonehead-friend'
 "$ASE" --batch \
   --script-param "dir=$P\\art\\raw" \
   --script-param "out=$P\\art\\src\\bonehead.aseprite" \

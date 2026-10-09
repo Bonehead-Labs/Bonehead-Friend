@@ -191,7 +191,7 @@ first version of these tools left staged test state in the player's save.
 
 ```bash
 GODOT="/mnt/c/Users/George/Godot Projects/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe"
-PROJ='C:\Users\George\Godot Projects\Projects\Bonehead_Friend\interactive-buddy-2'
+PROJ='C:\Users\George\Godot Projects\Projects\bonehead-friend'
 
 # Economy math, save round-trips, every migration step
 "$GODOT" --headless --path "$PROJ" -s tests/run_tests.gd

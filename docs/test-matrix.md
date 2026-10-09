@@ -9,7 +9,7 @@ is mostly pure-function testing.
 
 ```bash
 GODOT="/mnt/c/Users/George/Godot Projects/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe"
-PROJ='C:\Users\George\Godot Projects\Projects\Bonehead_Friend\interactive-buddy-2'
+PROJ='C:\Users\George\Godot Projects\Projects\bonehead-friend'
 "$GODOT" --headless --path "$PROJ" -s tests/run_tests.gd   # pure-function asserts
 "$GODOT" --headless --path "$PROJ" res://tests/integration/loop_check.tscn  # the whole loop
 "$GODOT" --headless --path "$PROJ" res://tests/integration/ui_check.tscn    # can you click it

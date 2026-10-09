@@ -12,7 +12,7 @@ Status: ✅ done and verified · 🟡 started · ⬜ not started · 🚫 blocked
 
 ```bash
 G="/c/Users/George/Godot Projects/Godot_v4.7.2-stable_win64.exe/Godot_v4.7.2-stable_win64_console.exe"
-P='C:\Users\George\Godot Projects\Projects\Bonehead_Friend\interactive-buddy-2'
+P='C:\Users\George\Godot Projects\Projects\bonehead-friend'
 "$G" --headless --editor --quit --path "$P"                       # after any new class_name or asset
 "$G" --headless --path "$P" -s tests/run_tests.gd                  # unit
 "$G" --headless --path "$P" res://tests/integration/loop_check.tscn
