@@ -46,6 +46,10 @@ func _ready() -> void:
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_CRASH:
+		# Nothing to keep before the save has been read. The studio splash plays before
+		# main.tscn loads it, and a quit there used to write a fresh save over the player's.
+		if _loaded_data.is_empty():
+			return
 		save_game()
 
 # --- providers -------------------------------------------------------------

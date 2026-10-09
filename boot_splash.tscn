@@ -1,0 +1,14 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://Scripts/boot_splash.gd" id="1_boot"]
+
+[node name="BootSplash" type="Control"]
+editor_description = "Bonehead Friend's run/main_scene: a thin adapter over the shared Bonehead Labs splash addon (addons/bonehead_labs_splash). It plays the splash on a card where the boot image was, so the transparent overlay window never blanks the desktop, then opens main.tscn."
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("1_boot")

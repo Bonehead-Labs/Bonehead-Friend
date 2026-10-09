@@ -195,6 +195,11 @@ func _ready() -> void:
 ## After the main scene has loaded the save, so the first row can say who is playing.
 func _begin_when_ready() -> void:
 	await get_tree().process_frame
+	# The studio splash (Scripts/boot_splash.gd) plays before main.tscn, and the save loads with
+	# main: wait for the hand-off, or the first row describes an unloaded game.
+	var scene := get_tree().current_scene
+	if scene != null and scene.is_in_group(&"boot_splash"):
+		await get_tree().scene_changed
 	if logging_enabled():
 		begin_session()
 	# Whatever a previous launch could not send goes first, once the desk has settled.

@@ -16,8 +16,10 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 
 config/name="Bonehead Friend"
 config/version="1.0.0"
-run/main_scene="res://main.tscn"
+run/main_scene="res://boot_splash.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
+boot_splash/bg_color=Color(0.956863, 0.929412, 0.878431, 1)
+boot_splash/image="res://addons/bonehead_labs_splash/boot/bonehead_boot.png"
 config/icon="uid://c12mnyiv85kom"
 config/windows_native_icon="res://Assets/base-bonehead-ICON (1).ico"
 
